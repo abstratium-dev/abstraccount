@@ -1,19 +1,20 @@
 package dev.abstratium.demo.entity;
 
-import jakarta.persistence.*;
-import java.time.LocalDateTime;
 import java.util.UUID;
 
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.Table;
+
 @Entity
-@Table(name = "T_credentials")
+@Table(name = "T_demo")
 public class Demo {
 
     @Id
     @Column(length = 36)
     private String id;
-
-    @Column(name = "account_id", nullable = false, length = 36)
-    private String accountId;
 
     @PrePersist
     public void prePersist() {
@@ -29,14 +30,6 @@ public class Demo {
 
     public void setId(String id) {
         this.id = id;
-    }
-
-    public String getAccountId() {
-        return accountId;
-    }
-
-    public void setAccountId(String accountId) {
-        this.accountId = accountId;
     }
 
 }

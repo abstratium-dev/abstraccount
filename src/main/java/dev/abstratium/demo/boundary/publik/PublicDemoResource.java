@@ -1,5 +1,7 @@
 package dev.abstratium.demo.boundary.publik;
 
+import java.util.List;
+
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 
 import io.quarkus.runtime.annotations.RegisterForReflection;
@@ -8,7 +10,6 @@ import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
-import jakarta.ws.rs.core.Response;
 
 /** the public API */
 @Path("/public/api")
@@ -17,17 +18,18 @@ import jakarta.ws.rs.core.Response;
 public class PublicDemoResource {
 
     @GET
+    @Path("/hello")
     @Produces(MediaType.APPLICATION_JSON)
-    public Response demo() {
-        return Response.ok(new AResponse(true)).build();
+    public List<SuccessResponse> demo() {
+        return List.of(new SuccessResponse("Demo public endpoint works!"));
     }
 
     @RegisterForReflection
-    public static class AResponse {
-        public boolean aBoolean;
-
-        public AResponse(boolean aBoolean) {
-            this.aBoolean = aBoolean;
+    public static class SuccessResponse {
+        public String message;
+        
+        public SuccessResponse(String message) {
+            this.message = message;
         }
     }
 }

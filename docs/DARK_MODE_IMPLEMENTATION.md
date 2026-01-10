@@ -1,7 +1,7 @@
 # Dark Mode Implementation
 
 ## Overview
-This document describes the implementation of dark and light mode theming for the Abstrauth Angular application.
+This document describes the implementation of dark and light mode theming for the this Angular application.
 
 ## Changes Made
 
@@ -42,14 +42,14 @@ Created a new Angular service to manage theme state:
 
 **Features**:
 - Uses Angular signals for reactive theme state
-- Persists theme preference to `localStorage` (key: `abstrauth-theme`)
+- Persists theme preference to `localStorage` (key: `abstratium-theme`)
 - Detects and respects system/browser theme preference using `prefers-color-scheme` media query
 - Defaults to light mode if no preference is set
 - Applies theme by setting `data-theme` attribute on document root element
 - Provides methods:
   - `toggleTheme()` - Switch between light and dark
   - `setTheme(theme)` - Set specific theme
-  - `theme$()` - Signal to access current theme
+  - `theme$()` - Signal to access current tstraheme
 
 ### 3. Header Component Updates
 **TypeScript** (`src/main/webui/src/app/header/header.component.ts`):

@@ -4,7 +4,7 @@ import { provideRouter } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 
 import { routes } from './app.routes';
-import { AuthService } from './auth.service';
+import { AuthService } from './core/auth.service';
 
 export const appConfig: ApplicationConfig = {
   providers: [

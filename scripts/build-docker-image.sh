@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Script to build Docker image for Abstrauth OAuth Server
+# Script to build Docker image
 # This script:
 # 1. Builds the native executable using Maven with container build
 # 2. Extracts the build version from application.properties
@@ -29,13 +29,13 @@ echo "Build version: $VERSION"
 # Build the Docker image with version tag and latest tag
 echo "Building Docker image..."
 docker build -f src/main/docker/Dockerfile.native-micro \
-    -t ghcr.io/abstratium-dev/abstrauth:$VERSION \
-    -t ghcr.io/abstratium-dev/abstrauth:latest \
+    -t ghcr.io/abstratium-dev/TODO:$VERSION \
+    -t ghcr.io/abstratium-dev/TODO:latest \
     .
 
 echo ""
 echo "Successfully built Docker images:"
-echo "  - ghcr.io/abstratium-dev/abstrauth:$VERSION"
-echo "  - ghcr.io/abstratium-dev/abstrauth:latest"
+echo "  - ghcr.io/abstratium-dev/TODO:$VERSION"
+echo "  - ghcr.io/abstratium-dev/TODO:latest"
 echo ""
 echo "To push to GitHub Container Registry, run: ./push-docker-image.sh"

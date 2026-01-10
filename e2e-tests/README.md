@@ -1,11 +1,11 @@
 # End-to-End Tests
 
-This directory contains Playwright-based end-to-end tests for the Abstrauth OAuth authorization server.
+This directory contains Playwright-based end-to-end tests.
 
 **IMPORTANT**: E2E tests require the application to be built with H2 database support. 
 Since `quarkus.datasource.db-kind` is a build-time property, you must use the `e2e` profile:
 
-    source /w/abstratium-abstrauth.env
+    source /w/abstratium-TODO.env
     mvn verify -Pe2e
 
 This will:
@@ -13,9 +13,7 @@ This will:
 2. Run unit tests, including angular tests
 3. Package the JAR with H2 database drivers too
 4. Start Quarkus with H2 via `start-e2e-server.sh`
-5. Run Playwright tests **twice**:
-   - First with `ALLOW_SIGNUP=false` (tests from `tests-nosignup/` directory)
-   - Then with `ALLOW_SIGNUP=true` (tests from `tests-signup/` directory)
+5. Run Playwright tests
 6. Stop the server
 
 **Note**: Running `mvn verify` without `-Pe2e` will skip the Playwright tests.
@@ -24,39 +22,17 @@ This will:
 ## Directory Structure
 
 ### `/pages`
-Contains Page Object Model (POM) files that encapsulate page interactions and element locators. These provide reusable functions for common operations:
-- `signin.page.ts` - Sign-in, sign-up, and authentication flows
-- `accounts.page.ts` - Account management operations
-- `clients.page.ts` - OAuth client management
-- `authorize.page.ts` - Authorization approval flows
-- `change-password.page.ts` - Password change operations
-- `header.ts` - Header navigation and user menu interactions
+Contains Page Object Model (POM) files that encapsulate page interactions and element locators. These provide reusable functions for common operations.
 
-### `/tests-nosignup`
-Tests that run when signup is **disabled** (`ALLOW_SIGNUP=false`). These tests assume:
-- User signup is not available through the UI
-- Accounts must be created by administrators via invite links
-- Tests focus on invite-based account creation, role management, and authorization flows
+### `/tests`
+The actual test scripts.
 
-⚠️ **IMPORTANT**: Tests in this folder **must run in order** (see `tests-nosignup/README.md`):
-1. `1-happy2.spec.ts` - Creates admin account and sets up initial state
-2. `2-signin-failures.spec.ts` - Tests authentication errors with existing admin
-3. `3-client-integration.spec.ts` - Tests complete OAuth flow
-
+⚠️ **IMPORTANT**: If tests in this folder **must run in order** then name them with `1-`, `2-`, etc. prefixes.
 The numeric prefixes ensure Playwright runs them alphabetically in the correct order.
-
-### `/tests-signup`
-Tests that run when signup is **enabled** (`ALLOW_SIGNUP=true`). These tests verify:
-- Self-service user registration through the signup form
-- Signup validation and error handling
-
-**Files:**
-- `signup-failures.spec.ts` - Signup failure scenarios (validation errors, duplicate accounts)
 
 ### `/start-e2e-server.sh`
 Shell script that starts the Quarkus application for e2e testing. It:
 - Runs the built JAR file with the `e2e` profile (uses H2 in-memory database)
-- Accepts the `ALLOW_SIGNUP` environment variable and passes it to Quarkus
 - Is automatically invoked by Playwright when `BASE_URL` is set
 
 ## Environment Variables
@@ -66,11 +42,6 @@ Controls whether Playwright starts the server automatically:
 - **Not set**: Assumes server is already running (manual testing mode)
 - **Set to `http://localhost:8080`**: Playwright will execute `start-e2e-server.sh` to start the server
 
-### `ALLOW_SIGNUP`
-Controls which test directory runs and configures the Quarkus application:
-- **`false` or unset**: Runs tests in `tests-nosignup/` directory, signup is disabled in the application
-- **`true`**: Runs tests in `tests-signup/` directory, signup is enabled in the application
-
 ## Running Tests
 
 ### Manual Testing (Development)
@@ -78,18 +49,12 @@ When developing tests or debugging, you can run the server manually and then run
 
 ```bash
 # Start Quarkus in dev mode
-source /w/abstratium-abstrauth.env
+source /w/abstratium-TODO.env
 mvn quarkus:dev
 
 # In another terminal, run tests
 cd e2e-tests
 npx playwright test
-```
-
-By default, this runs the `tests-nosignup/` directory. To run signup tests:
-
-```bash
-ALLOW_SIGNUP=true npx playwright test
 ```
 
 ### Maven Integration (CI/CD)
@@ -103,11 +68,10 @@ This will:
 1. Build the application with H2 database support
 2. Package the JAR
 3. Start the server via `start-e2e-server.sh`
-4. Run tests from `tests-nosignup/` directory with `ALLOW_SIGNUP=false`
-5. Run tests from `tests-signup/` directory with `ALLOW_SIGNUP=true`
+4. Run tests
 6. Stop the server
 
-The `e2e` profile runs both test suites sequentially to ensure complete coverage of both signup-enabled and signup-disabled scenarios.
+The `e2e` profile runs both test suites sequentially to ensure complete coverage of all scenarios.
 
 ## Configuration
 
@@ -120,9 +84,7 @@ Main Playwright configuration file. Key settings:
 - `forbidOnly`: Prevents `test.only` from being committed to CI
 
 ### `pom.xml` Profiles
-- **`e2e`**: Runs e2e tests twice in sequence:
-  1. First with `ALLOW_SIGNUP=false` (tests from `tests-nosignup/`)
-  2. Then with `ALLOW_SIGNUP=true` (tests from `tests-signup/`)
+- **`e2e`**: Runs e2e tests in sequence:
 
 The profile activates the `e2e` Quarkus profile which configures H2 database at build time.
 

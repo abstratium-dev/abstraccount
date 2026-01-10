@@ -2,17 +2,7 @@
 trigger: always_on
 ---
 
-The basis of this project are the following RFCs:
-
-- https://datatracker.ietf.org/doc/html/rfc6749
-- https://datatracker.ietf.org/doc/html/rfc6749 and 
-- https://datatracker.ietf.org/doc/rfc6819/
-- https://datatracker.ietf.org/doc/rfc9700/
-
-The aim of the project is to implement an oauth authorization server which is kept as simple as possible for only the following flows used by the company named abstratium:
-
-- Authorization Code Flow
-- Authorization Code Flow with Proof Key for Code Exchange (PKCE)
+The aim of the project is to implement a demo of a functional component which includes the backend and frontend.
 
 The project uses the quarkus framework with Java 21. The extensions in use are:
 
@@ -21,9 +11,7 @@ The project uses the quarkus framework with Java 21. The extensions in use are:
 - JDBC Driver - MySQL [quarkus-jdbc-mysql] Connect to the MySQL database via JDBC
 - quinoa for integrating an angular UI into the server
 - quarkus-rest-jackson and quarkus-rest for transporting json
-- SmallRye JWT [quarkus-smallrye-jwt] Secure your applications with JSON Web Token
-- SmallRye JWT Build [quarkus-smallrye-jwt-build] Create JSON Web Token with SmallRye JWT Build API
-- quarkus-smallrye-openapi used to document the ui
+- quarkus-oidc for authentication
 
 It MUST be deployed as a native image, so it may only use java constructs that are capable of being built into a native image.
 

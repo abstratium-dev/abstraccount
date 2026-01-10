@@ -2,7 +2,7 @@
 
 ## Reporting Security Vulnerabilities
 
-We take the security of abstrauth seriously and are deeply grateful to security researchers who help us keep our users safe. If you discover a security vulnerability, we would be incredibly thankful if you could disclose it to us in a responsible manner. Your efforts in finding and reporting security issues are invaluable to us and the community!
+We take the security of abstratium projects seriously and are deeply grateful to security researchers who help us keep our users safe. If you discover a security vulnerability, we would be incredibly thankful if you could disclose it to us in a responsible manner. Your efforts in finding and reporting security issues are invaluable to us and the community!
 
 ### How to Report a Security Vulnerability
 
@@ -51,7 +51,7 @@ We aim to release security patches within 30 days of confirmation. For critical 
 
 This security policy applies to the following:
 
-- **abstrauth OAuth2 Authorization Server** (this repository)
+- This repository
 - All versions currently marked as supported
 - Security vulnerabilities in dependencies (we will coordinate with upstream projects)
 
@@ -77,7 +77,7 @@ We provide security updates for the following versions:
 
 ### Security Best Practices
 
-When deploying abstrauth, please follow these security best practices:
+When deploying this project, please follow these security best practices:
 
 1. **Use HTTPS** - Always deploy behind a reverse proxy with TLS/SSL
 2. **Secure secrets** - Store all secrets (JWT keys, OAuth client secrets, pepper) in environment variables
@@ -89,18 +89,13 @@ When deploying abstrauth, please follow these security best practices:
 
 ### Security Features
 
-abstrauth includes the following security features:
+This project includes the following security features:
 
 - **OAuth 2.0 with PKCE** - Prevents authorization code interception
-- **BCrypt password hashing** - With configurable cost factor and pepper
-- **JWT token signing** - Using RS256 (RSA-PSS with SHA-256)
 - **CSRF protection** - State parameter validation
-- **Rate limiting** - Prevents brute-force attacks
+- **CORS** - Prevents cross-origin requests from unauthorized domains
 - **Content Security Policy** - Prevents XSS and code injection
 - **Security headers** - HSTS, X-Frame-Options, etc.
-- **Account lockout** - After failed login attempts
-
-For more details, see [SECURITY_DESIGN.md](docs/security/SECURITY_DESIGN.md).
 
 ### Recognition and Gratitude
 

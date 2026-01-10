@@ -9,16 +9,12 @@
 
 First add env vars:
 
-    source /w/abstratium-abstrauth.env
+    source /w/abstratium-TODO.env
 
 That file should contain:
 
-    export OAUTH_GOOGLE_CLIENT_ID=...
-    export OAUTH_GOOGLE_CLIENT_SECRET=GOCSPX-...
-    export PASSWORD_PEPPER=... created using `openssl rand -base64 32`
-    export ABSTRAUTH_CLIENT_SECRET=... also created using `openssl rand -base64 32`
-
-The first couple of values are what you get when you configure a Google OAuth client in the Google Cloud Console. See the following website for details: https://developers.google.com/identity/protocols/oauth2
+    export ABSTRATIUM_CLIENT_SECRET=...
+    export COOKIE_ENCRYPTION_SECRET=...
 
 The application uses Quarkus. Run it with either `./mvnw quarkus:dev` or `quarkus dev` if you have installed the Quarkus CLI.
 
@@ -39,7 +35,7 @@ Use `ng serve` and accept the port it offers, in order to see the actual error m
 
 The application uses a MySQL database. It expects a database to be running at `localhost:41040` with the user `root` and password `secret`.
 
-Create the container, the database and user for abstrauth:
+Create the container, the database and user:
 
 ```bash
 docker run -d \
@@ -51,26 +47,26 @@ docker run -d \
     -v /shared2/mysql-abstratium/:/var/lib/mysql:rw \
     mysql:9.3
 
-# create the database and user for abstrauth
+# create the database and user
 docker run -it --rm --network abstratium mysql mysql -h abstratium-mysql --port 3306 -u root -psecret
 
 
-DROP USER IF EXISTS 'abstrauth'@'%';
+DROP USER IF EXISTS 'TODO'@'%';
 
-CREATE USER 'abstrauth'@'%' IDENTIFIED BY 'secret';
+CREATE USER 'TODO'@'%' IDENTIFIED BY 'secret';
 
-DROP DATABASE IF EXISTS abstrauth;
+DROP DATABASE IF EXISTS TODO;
 
-CREATE DATABASE abstrauth CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-GRANT ALL PRIVILEGES ON abstrauth.* TO abstrauth@'%'; -- on own database
+CREATE DATABASE TODO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+GRANT ALL PRIVILEGES ON TODO.* TO TODO@'%'; -- on own database
 
 FLUSH PRIVILEGES;
 ```
 
-exit, then reconnect using the abstrauth user:
+exit, then reconnect using the new user:
 
 ```bash
-docker run -it --network abstratium --rm mysql mysql -h abstratium-mysql --port 3306 -u abstrauth -psecret abstrauth
+docker run -it --network abstratium --rm mysql mysql -h abstratium-mysql --port 3306 -u TODO -psecret TODO
 ```
 
 # Testing
@@ -93,23 +89,17 @@ See the [E2E Testing Documentation](../e2e-tests/README.md) for detailed instruc
 
 It might be easier to test these manually during testing.
 
-Start Abstrauth:
+Start the component:
 ```bash
-source /w/abstratium-abstrauth.env
+source /w/abstratium-TODO.env
 quarkus dev
-```
-
-Start the client example:
-```bash
-cd client-example
-npm start
 ```
 
 And then the e2e tests:
 
 ```bash
 cd e2e-tests
-ALLOW_SIGNUP=true npx playwright test --ui
+npx playwright test --ui
 ```
 
 And then execute them manually by clicking the play button in the UI which opened.
@@ -134,14 +124,7 @@ ng update
 ng update @angular/cli @angular/core
 ```
 
-4. Ensure that there are no nodejs vulnerabilities:
-```bash
-cd ../../../client-example
-npm i
-npm audit fix
-```
-
-5. Check Github for security problems by signing in and viewing the problems here: https://github.com/abstratium-dev/abstrauth/security/dependabot and https://github.com/abstratium-dev/abstrauth/security/code-scanning
+4. Check Github for security problems by signing in and viewing the problems here: https://github.com/abstratium-dev/TODO/security/dependabot and https://github.com/abstratium-dev/TODO/security/code-scanning
 
 # Issues with Webkit
 

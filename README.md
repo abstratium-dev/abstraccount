@@ -24,18 +24,18 @@ Create a new empty repository on your Git server.
 
 Clone Abstracore and point it to your new origin:
 
-Bash
-
+```bash
 git clone https://github.com/your-org/abstracore.git your-new-project
 cd your-new-project
 git remote rename origin upstream
 git remote add origin https://github.com/your-org/your-new-project.git
 git push -u origin main
+```
+
 2. Pulling Baseline Updates
 When Abstracore is updated with new features or security patches, pull those changes into your project fork:
 
-Bash
-
+```bash
 # Ensure you are on your main branch
 git checkout main
 
@@ -44,7 +44,9 @@ git fetch upstream
 
 # Merge baseline changes into your project
 git merge upstream/main --allow-unrelated-histories
-[!IMPORTANT] Avoid modifying the /core or /baseline directories in your project forks. Keep your custom logic in /app or specific feature packages to minimize merge conflicts during updates.
+```
+
+⚠️ **IMPORTANT**: Avoid modifying the `/core` directory in your project forks. Keep your custom logic in `/app` or specific feature packages to minimize merge conflicts during updates.
 
 ## 🏗️ Project Structure
 
@@ -78,25 +80,12 @@ This is a Living Blueprint. If you develop a feature in a specific project (like
 ------------------------
 
 
-## Key Features
+## Things to remember
 
-- **Backend For Frontend (BFF) Architecture** - All clients MUST be confidential clients using a backend to handle OAuth flows
-- **JWT-based authentication** - Tokens signed with PS256 using public/private key pairs for stateless verification
-- **HTTP-only encrypted cookies** - Tokens never exposed to JavaScript for maximum security
-- **Federated login** - Users can authenticate via Google OAuth or native credentials
-- **Multi-tenancy** - Single server instance serves multiple client applications with role-based access control (RBAC)
-- **Self-hosted admin UI** - Angular-based management interface secured by Abstrauth itself using BFF pattern
-- **Security hardened** - PKCE required, confidential clients only, HTTP-only cookies, CSRF protection, rate limiting, CSP headers
+- **Backend For Frontend (BFF) Architecture** - This service must act as a BFF if it has a UI. It is the BFF for that UI.
+- **Native Builds** - This service must be built as a native image (GraalVM) for optimal performance and low footprint.
 - **Low footprint** - uses as little as 64MB RAM and a small amount of CPU for typical workloads, idles at near zero CPU, achieved by being built as a native image (GraalVM)
 - **Based on Quarkus and Angular** - industry standard frameworks
-
-**Security Architecture:**
-- Tokens are stored in encrypted HTTP-only cookies (never accessible to JavaScript)
-- PKCE is REQUIRED for all authorization requests
-- Only confidential clients are supported (public clients are rejected)
-- Compliant with [OAuth 2.0 for Browser-Based Apps](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-browser-based-apps-26)
-
-Abstrauth uses itself as an authorization server for users signing into the admin UI, demonstrating the BFF pattern in practice.
 
 ## Security
 
@@ -107,11 +96,8 @@ For information about the security implementation and features, see [SECURITY_DE
 ## Documentation
 
 - [User Guide](USER_GUIDE.md)
-- [OAuth 2.0 Authorization Flows](docs/oauth/FLOWS.md)
-- [Federated Login](docs/oauth/FEDERATED_LOGIN.md)
 - [Database](docs/DATABASE.md)
 - [Native Image Build](docs/NATIVE_IMAGE_BUILD.md)
-- [Why do I need to implement a BFF?](decisions/BFF.md)
 
 ## Running the Application
 
@@ -140,3 +126,30 @@ Font Size: 110
 Font Color: #FFFFFF
 Background Color: #5c6bc0
 
+----
+
+# Things to do when creating a new project
+
+[ ] - Search for TODO and fix
+[ ] - Search for core and fix, e.g. in `pom.xml`
+[ ] - Update README.md with project-specific information
+[ ] - Update USER_GUIDE.md with project-specific information
+[ ] - Update DATABASE.md with project-specific information
+[ ] - Update NATIVE_IMAGE_BUILD.md with project-specific information
+[ ] - Update SECURITY_DESIGN.md with project-specific information
+[ ] - Update TODO.md with project-specific information
+[ ] - Update SECURITY.md with project-specific information
+[ ] - Update CONTRIBUTING.md with project-specific information
+[ ] - Create favicon, store it in root as zip and put it in `src/main/webui/public`
+[ ] - Update `.windsurf` configuration
+[ ] - Replace `src/main/webui/src/app/demo` with project-specific components
+[ ] - 
+[ ] - 
+[ ] - 
+[ ] - 
+[ ] - 
+[ ] - 
+[ ] - 
+[ ] - 
+[ ] - 
+[ ] - 

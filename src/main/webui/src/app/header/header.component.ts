@@ -1,9 +1,9 @@
 import { CommonModule } from '@angular/common';
 import { Component, effect, inject, OnInit } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
-import { AuthService, Token } from '../auth.service';
+import { AuthService, Token } from '../core/auth.service';
 import { Controller } from '../controller';
-import { ThemeService } from '../theme.service';
+import { ThemeService } from '../core/theme.service';
 
 @Component({
     selector: 'header',

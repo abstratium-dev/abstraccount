@@ -1,0 +1,1 @@
+# Core - Library functionality, shared across all projects

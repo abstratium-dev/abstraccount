@@ -2,8 +2,8 @@ import { Component, inject, Signal } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { HeaderComponent } from './header/header.component';
-import { ToastComponent } from './shared/toast/toast.component';
-import { ConfirmDialogComponent } from './shared/confirm-dialog/confirm-dialog.component';
+import { ToastComponent } from './core/toast/toast.component';
+import { ConfirmDialogComponent } from './core/confirm-dialog/confirm-dialog.component';
 import { ModelService } from './model.service';
 
 @Component({
@@ -13,7 +13,7 @@ import { ModelService } from './model.service';
   styleUrl: './app.component.scss'
 })
 export class AppComponent {
-  title = 'abstrauth';
+  title = 'TODO';
   private modelService = inject(ModelService);
   
   insecureClientSecret: Signal<boolean> = this.modelService.insecureClientSecret$;
