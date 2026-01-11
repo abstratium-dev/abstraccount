@@ -4,9 +4,9 @@ import java.util.List;
 
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 
+import dev.abstratium.demo.Roles;
 import dev.abstratium.demo.entity.Demo;
 import dev.abstratium.demo.service.DemoService;
-import dev.abstratium.demo.service.Roles;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.DELETE;

@@ -2,7 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { Controller } from './controller';
-import { ModelService, OAuthClient } from './model.service';
+import { Demo, ModelService } from './model.service';
 
 describe('Controller', () => {
   let controller: Controller;
@@ -29,918 +29,255 @@ describe('Controller', () => {
     expect(controller).toBeTruthy();
   });
 
-  describe('SignUp Username Delegation', () => {
-    it('should delegate setSignUpUsername to modelService', () => {
-      spyOn(modelService, 'setSignUpUsername');
-      
-      controller.setSignUpUsername('testuser');
-      
-      expect(modelService.setSignUpUsername).toHaveBeenCalledWith('testuser');
-      expect(modelService.setSignUpUsername).toHaveBeenCalledTimes(1);
-    });
+  describe('loadDemos', () => {
+    it('should load demos and update model service', () => {
+      const mockDemos: Demo[] = [{ id: '1' }, { id: '2' }];
 
-    it('should update modelService state when setting username', () => {
-      controller.setSignUpUsername('newuser');
-      
-      expect(modelService.signUpUsername$()).toBe('newuser');
-    });
+      controller.loadDemos();
 
-    it('should handle empty username', () => {
-      controller.setSignUpUsername('');
-      
-      expect(modelService.signUpUsername$()).toBe('');
-    });
-
-    it('should handle special characters in username', () => {
-      const specialUsername = 'user+test@example.com';
-      controller.setSignUpUsername(specialUsername);
-      
-      expect(modelService.signUpUsername$()).toBe(specialUsername);
-    });
-
-    it('should handle multiple username updates', () => {
-      controller.setSignUpUsername('user1');
-      controller.setSignUpUsername('user2');
-      controller.setSignUpUsername('user3');
-      
-      expect(modelService.signUpUsername$()).toBe('user3');
-    });
-  });
-
-  describe('SignUp Password Delegation', () => {
-    it('should delegate setSignUpPassword to modelService', () => {
-      spyOn(modelService, 'setSignUpPassword');
-      
-      controller.setSignUpPassword('password123');
-      
-      expect(modelService.setSignUpPassword).toHaveBeenCalledWith('password123');
-      expect(modelService.setSignUpPassword).toHaveBeenCalledTimes(1);
-    });
-
-    it('should update modelService state when setting password', () => {
-      controller.setSignUpPassword('securepass');
-      
-      expect(modelService.signUpPassword$()).toBe('securepass');
-    });
-
-    it('should handle empty password', () => {
-      controller.setSignUpPassword('');
-      
-      expect(modelService.signUpPassword$()).toBe('');
-    });
-
-    it('should handle special characters in password', () => {
-      const specialPassword = 'P@ssw0rd!#$%^&*()';
-      controller.setSignUpPassword(specialPassword);
-      
-      expect(modelService.signUpPassword$()).toBe(specialPassword);
-    });
-
-    it('should handle multiple password updates', () => {
-      controller.setSignUpPassword('pass1');
-      controller.setSignUpPassword('pass2');
-      controller.setSignUpPassword('pass3');
-      
-      expect(modelService.signUpPassword$()).toBe('pass3');
-    });
-  });
-
-  describe('SignIn RequestId Delegation', () => {
-    it('should delegate setSignInRequestId to modelService', () => {
-      spyOn(modelService, 'setSignInRequestId');
-      
-      controller.setSignInRequestId('req-123');
-      
-      expect(modelService.setSignInRequestId).toHaveBeenCalledWith('req-123');
-      expect(modelService.setSignInRequestId).toHaveBeenCalledTimes(1);
-    });
-
-    it('should update modelService state when setting requestId', () => {
-      controller.setSignInRequestId('auth-req-456');
-      
-      expect(modelService.signInRequestId$()).toBe('auth-req-456');
-    });
-
-    it('should handle empty requestId', () => {
-      controller.setSignInRequestId('');
-      
-      expect(modelService.signInRequestId$()).toBe('');
-    });
-
-    it('should handle UUID format requestId', () => {
-      const uuid = '550e8400-e29b-41d4-a716-446655440000';
-      controller.setSignInRequestId(uuid);
-      
-      expect(modelService.signInRequestId$()).toBe(uuid);
-    });
-
-    it('should handle multiple requestId updates', () => {
-      controller.setSignInRequestId('req1');
-      controller.setSignInRequestId('req2');
-      controller.setSignInRequestId('req3');
-      
-      expect(modelService.signInRequestId$()).toBe('req3');
-    });
-  });
-
-  describe('Combined Operations', () => {
-    it('should handle setting all values', () => {
-      controller.setSignUpUsername('testuser');
-      controller.setSignUpPassword('testpass');
-      controller.setSignInRequestId('testreq');
-      
-      expect(modelService.signUpUsername$()).toBe('testuser');
-      expect(modelService.signUpPassword$()).toBe('testpass');
-      expect(modelService.signInRequestId$()).toBe('testreq');
-    });
-
-    it('should maintain independent state for each value', () => {
-      controller.setSignUpUsername('user1');
-      expect(modelService.signUpUsername$()).toBe('user1');
-      expect(modelService.signUpPassword$()).toBe('');
-      expect(modelService.signInRequestId$()).toBe('');
-      
-      controller.setSignUpPassword('pass1');
-      expect(modelService.signUpUsername$()).toBe('user1');
-      expect(modelService.signUpPassword$()).toBe('pass1');
-      expect(modelService.signInRequestId$()).toBe('');
-      
-      controller.setSignInRequestId('req1');
-      expect(modelService.signUpUsername$()).toBe('user1');
-      expect(modelService.signUpPassword$()).toBe('pass1');
-      expect(modelService.signInRequestId$()).toBe('req1');
-    });
-
-    it('should handle clearing all values', () => {
-      controller.setSignUpUsername('user');
-      controller.setSignUpPassword('pass');
-      controller.setSignInRequestId('req');
-      
-      controller.setSignUpUsername('');
-      controller.setSignUpPassword('');
-      controller.setSignInRequestId('');
-      
-      expect(modelService.signUpUsername$()).toBe('');
-      expect(modelService.signUpPassword$()).toBe('');
-      expect(modelService.signInRequestId$()).toBe('');
-    });
-  });
-
-  describe('Method Call Verification', () => {
-    it('should call modelService methods with correct parameters', () => {
-      spyOn(modelService, 'setSignUpUsername');
-      spyOn(modelService, 'setSignUpPassword');
-      spyOn(modelService, 'setSignInRequestId');
-      
-      controller.setSignUpUsername('user');
-      controller.setSignUpPassword('pass');
-      controller.setSignInRequestId('req');
-      
-      expect(modelService.setSignUpUsername).toHaveBeenCalledWith('user');
-      expect(modelService.setSignUpPassword).toHaveBeenCalledWith('pass');
-      expect(modelService.setSignInRequestId).toHaveBeenCalledWith('req');
-    });
-
-    it('should not call other methods when setting username', () => {
-      spyOn(modelService, 'setSignUpUsername');
-      spyOn(modelService, 'setSignUpPassword');
-      spyOn(modelService, 'setSignInRequestId');
-      
-      controller.setSignUpUsername('user');
-      
-      expect(modelService.setSignUpUsername).toHaveBeenCalled();
-      expect(modelService.setSignUpPassword).not.toHaveBeenCalled();
-      expect(modelService.setSignInRequestId).not.toHaveBeenCalled();
-    });
-
-    it('should not call other methods when setting password', () => {
-      spyOn(modelService, 'setSignUpUsername');
-      spyOn(modelService, 'setSignUpPassword');
-      spyOn(modelService, 'setSignInRequestId');
-      
-      controller.setSignUpPassword('pass');
-      
-      expect(modelService.setSignUpUsername).not.toHaveBeenCalled();
-      expect(modelService.setSignUpPassword).toHaveBeenCalled();
-      expect(modelService.setSignInRequestId).not.toHaveBeenCalled();
-    });
-
-    it('should not call other methods when setting requestId', () => {
-      spyOn(modelService, 'setSignUpUsername');
-      spyOn(modelService, 'setSignUpPassword');
-      spyOn(modelService, 'setSignInRequestId');
-      
-      controller.setSignInRequestId('req');
-      
-      expect(modelService.setSignUpUsername).not.toHaveBeenCalled();
-      expect(modelService.setSignUpPassword).not.toHaveBeenCalled();
-      expect(modelService.setSignInRequestId).toHaveBeenCalled();
-    });
-  });
-
-  describe('Edge Cases', () => {
-    it('should handle very long strings', () => {
-      const longString = 'x'.repeat(10000);
-      
-      controller.setSignUpUsername(longString);
-      controller.setSignUpPassword(longString);
-      controller.setSignInRequestId(longString);
-      
-      expect(modelService.signUpUsername$()).toBe(longString);
-      expect(modelService.signUpPassword$()).toBe(longString);
-      expect(modelService.signInRequestId$()).toBe(longString);
-    });
-
-    it('should handle unicode characters', () => {
-      controller.setSignUpUsername('用户名');
-      controller.setSignUpPassword('密码123');
-      controller.setSignInRequestId('请求ID');
-      
-      expect(modelService.signUpUsername$()).toBe('用户名');
-      expect(modelService.signUpPassword$()).toBe('密码123');
-      expect(modelService.signInRequestId$()).toBe('请求ID');
-    });
-
-    it('should handle strings with special whitespace', () => {
-      controller.setSignUpUsername('user\nname');
-      controller.setSignUpPassword('pass\tword');
-      controller.setSignInRequestId('req\r\nid');
-      
-      expect(modelService.signUpUsername$()).toBe('user\nname');
-      expect(modelService.signUpPassword$()).toBe('pass\tword');
-      expect(modelService.signInRequestId$()).toBe('req\r\nid');
-    });
-  });
-
-  describe('Service Integration', () => {
-    it('should use the same ModelService instance', () => {
-      const directModelService = TestBed.inject(ModelService);
-      
-      controller.setSignUpUsername('testuser');
-      
-      expect(directModelService.signUpUsername$()).toBe('testuser');
-    });
-
-    it('should reflect changes made directly to ModelService', () => {
-      modelService.setSignUpUsername('directuser');
-      
-      // Controller should see the change through the shared service
-      expect(modelService.signUpUsername$()).toBe('directuser');
-    });
-  });
-
-  describe('loadAccounts', () => {
-    it('should load accounts and update model service', () => {
-      const mockAccounts = [
-        { id: '1', email: 'test@example.com', name: 'Test User', emailVerified: true, authProvider: 'native', createdAt: '2024-01-01', roles: [] }
-      ];
-
-      controller.loadAccounts();
-
-      const req = httpMock.expectOne('/api/accounts');
+      const req = httpMock.expectOne('/api/demo');
       expect(req.request.method).toBe('GET');
-      req.flush(mockAccounts);
+      req.flush(mockDemos);
 
-      expect(modelService.accounts$()).toEqual(mockAccounts);
+      expect(modelService.demos$()).toEqual(mockDemos);
+      expect(modelService.demosLoading$()).toBe(false);
+      expect(modelService.demosError$()).toBeNull();
     });
 
-    it('should handle error when loading accounts', () => {
-      controller.loadAccounts();
+    it('should set loading state before request', () => {
+      controller.loadDemos();
 
-      const req = httpMock.expectOne('/api/accounts');
+      expect(modelService.demosLoading$()).toBe(true);
+      expect(modelService.demosError$()).toBeNull();
+
+      const req = httpMock.expectOne('/api/demo');
+      req.flush([]);
+    });
+
+    it('should handle empty demos list', () => {
+      controller.loadDemos();
+
+      const req = httpMock.expectOne('/api/demo');
+      req.flush([]);
+
+      expect(modelService.demos$()).toEqual([]);
+      expect(modelService.demosLoading$()).toBe(false);
+    });
+
+    it('should handle error response', () => {
+      controller.loadDemos();
+
+      const req = httpMock.expectOne('/api/demo');
+      req.error(new ProgressEvent('error'), { status: 500, statusText: 'Server Error' });
+
+      expect(modelService.demos$()).toEqual([]);
+      expect(modelService.demosLoading$()).toBe(false);
+      expect(modelService.demosError$()).toBe('Failed to load demos');
+    });
+
+    it('should handle network error', () => {
+      controller.loadDemos();
+
+      const req = httpMock.expectOne('/api/demo');
       req.error(new ProgressEvent('error'));
 
-      expect(modelService.accounts$()).toEqual([]);
+      expect(modelService.demosError$()).toBe('Failed to load demos');
     });
   });
 
-  describe('loadClients', () => {
-    it('should load clients and update model service', () => {
-      const mockClients = [
-        { id: '1', clientId: 'test-client', clientName: 'Test Client', clientType: 'confidential', redirectUris: '[]', allowedScopes: '[]', requirePkce: true, createdAt: '2024-01-01' }
-      ];
+  describe('createDemo', () => {
+    it('should create demo and reload list', async () => {
+      const newDemo: Demo = { id: '123' };
+      const allDemos: Demo[] = [newDemo];
 
-      controller.loadClients();
+      const createPromise = controller.createDemo();
 
-      expect(modelService.clientsLoading$()).toBe(true);
-      expect(modelService.clientsError$()).toBeNull();
-
-      const req = httpMock.expectOne('/api/clients');
-      expect(req.request.method).toBe('GET');
-      req.flush(mockClients);
-
-      expect(modelService.clients$()).toEqual(mockClients);
-      expect(modelService.clientsLoading$()).toBe(false);
-      expect(modelService.clientsError$()).toBeNull();
-    });
-
-    it('should handle error when loading clients', () => {
-      controller.loadClients();
-
-      expect(modelService.clientsLoading$()).toBe(true);
-
-      const req = httpMock.expectOne('/api/clients');
-      req.error(new ProgressEvent('error'));
-
-      expect(modelService.clients$()).toEqual([]);
-      expect(modelService.clientsLoading$()).toBe(false);
-      expect(modelService.clientsError$()).toBe('Failed to load clients');
-    });
-  });
-
-  describe('loadConfig', () => {
-    it('should load config and update model service', () => {
-      controller.loadConfig();
-
-      const req = httpMock.expectOne('/public/config');
-      expect(req.request.method).toBe('GET');
-      req.flush({ signupAllowed: true, allowNativeSignin: true, sessionTimeoutSeconds: 900 });
-
-      expect(modelService.signupAllowed$()).toBe(true);
-      expect(modelService.allowNativeSignin$()).toBe(true);
-      expect(modelService.sessionTimeoutSeconds$()).toBe(900);
-    });
-
-    it('should handle false signup allowed', () => {
-      controller.loadConfig();
-
-      const req = httpMock.expectOne('/public/config');
-      req.flush({ signupAllowed: false, allowNativeSignin: false, sessionTimeoutSeconds: 1800 });
-
-      expect(modelService.signupAllowed$()).toBe(false);
-      expect(modelService.allowNativeSignin$()).toBe(false);
-      expect(modelService.sessionTimeoutSeconds$()).toBe(1800);
-    });
-
-    it('should handle error when loading config', () => {
-      controller.loadConfig();
-
-      const req = httpMock.expectOne('/public/config');
-      req.error(new ProgressEvent('error'));
-
-      expect(modelService.signupAllowed$()).toBe(false);
-      expect(modelService.allowNativeSignin$()).toBe(false);
-      expect(modelService.sessionTimeoutSeconds$()).toBe(900); // Default fallback
-    });
-  });
-
-  describe('loadSignupAllowed (deprecated)', () => {
-    it('should call loadConfig', () => {
-      spyOn(controller, 'loadConfig');
-      controller.loadSignupAllowed();
-      expect(controller.loadConfig).toHaveBeenCalled();
-    });
-  });
-
-  describe('createClient', () => {
-    const mockClientData = {
-      clientId: 'new-client',
-      clientName: 'New Client',
-      clientType: 'confidential',
-      redirectUris: '["http://localhost:3000/callback"]',
-      allowedScopes: '["openid", "profile"]',
-      requirePkce: true
-    };
-
-    const mockCreatedClient = {
-      id: '123',
-      ...mockClientData,
-      createdAt: '2024-01-01T00:00:00Z'
-    };
-
-    it('should create client and return the created client', async () => {
-      const promise = controller.createClient(mockClientData);
-
-      const createReq = httpMock.expectOne('/api/clients');
+      const createReq = httpMock.expectOne('/api/demo');
       expect(createReq.request.method).toBe('POST');
-      expect(createReq.request.body).toEqual(mockClientData);
-      createReq.flush(mockCreatedClient);
+      expect(createReq.request.body).toEqual({});
+      createReq.flush(newDemo);
 
-      await Promise.resolve();
-      // Should trigger loadClients
-      const loadReq = httpMock.expectOne('/api/clients');
+      const result = await createPromise;
+      expect(result).toEqual(newDemo);
+
+      // Verify reload was triggered
+      const loadReq = httpMock.expectOne('/api/demo');
       expect(loadReq.request.method).toBe('GET');
-      loadReq.flush([mockCreatedClient]);
+      loadReq.flush(allDemos);
 
-      const result = await promise;
-      expect(result).toEqual(mockCreatedClient);
+      expect(modelService.demos$()).toEqual(allDemos);
     });
 
-    it('should reload clients list after successful creation', async () => {
-      const promise = controller.createClient(mockClientData);
+    it('should throw error on failed creation', async () => {
+      const createPromise = controller.createDemo();
 
-      const createReq = httpMock.expectOne('/api/clients');
-      createReq.flush(mockCreatedClient);
+      const req = httpMock.expectOne('/api/demo');
+      req.error(new ProgressEvent('error'), { status: 400, statusText: 'Bad Request' });
 
-      await Promise.resolve();
-      const loadReq = httpMock.expectOne('/api/clients');
-      loadReq.flush([mockCreatedClient]);
-
-      await promise;
-
-      expect(modelService.clients$()).toEqual([mockCreatedClient]);
+      await expectAsync(createPromise).toBeRejected();
     });
 
-    it('should handle error when creating client', async () => {
-      const promise = controller.createClient(mockClientData);
+    it('should handle server error during creation', async () => {
+      const createPromise = controller.createDemo();
 
-      const createReq = httpMock.expectOne('/api/clients');
-      createReq.flush({ error: 'Client ID already exists' }, { status: 409, statusText: 'Conflict' });
+      const req = httpMock.expectOne('/api/demo');
+      req.error(new ProgressEvent('error'), { status: 500, statusText: 'Server Error' });
 
-      try {
-        await promise;
-        fail('Should have thrown an error');
-      } catch (err: any) {
-        expect(err.status).toBe(409);
-        expect(err.error.error).toBe('Client ID already exists');
-      }
-    });
-
-    it('should handle validation error', async () => {
-      const promise = controller.createClient(mockClientData);
-
-      const createReq = httpMock.expectOne('/api/clients');
-      createReq.flush({ error: 'Client ID is required' }, { status: 400, statusText: 'Bad Request' });
-
-      try {
-        await promise;
-        fail('Should have thrown an error');
-      } catch (err: any) {
-        expect(err.status).toBe(400);
-      }
-    });
-
-    it('should handle permission error', async () => {
-      const promise = controller.createClient(mockClientData);
-
-      const createReq = httpMock.expectOne('/api/clients');
-      createReq.flush({}, { status: 403, statusText: 'Forbidden' });
-
-      try {
-        await promise;
-        fail('Should have thrown an error');
-      } catch (err: any) {
-        expect(err.status).toBe(403);
-      }
-    });
-
-    it('should handle network error', async () => {
-      const promise = controller.createClient(mockClientData);
-
-      const createReq = httpMock.expectOne('/api/clients');
-      createReq.error(new ProgressEvent('error'));
-
-      try {
-        await promise;
-        fail('Should have thrown an error');
-      } catch (err) {
-        expect(err).toBeTruthy();
-      }
-    });
-
-    it('should send correct data format', async () => {
-      const clientData = {
-        clientId: 'test-client',
-        clientName: 'Test Client',
-        clientType: 'confidential',
-        redirectUris: '["https://example.com/callback"]',
-        allowedScopes: '["openid", "email", "profile"]',
-        requirePkce: false
-      };
-
-      const promise = controller.createClient(clientData);
-
-      const createReq = httpMock.expectOne('/api/clients');
-      expect(createReq.request.body.clientId).toBe('test-client');
-      expect(createReq.request.body.clientName).toBe('Test Client');
-      expect(createReq.request.body.clientType).toBe('confidential');
-      expect(createReq.request.body.redirectUris).toBe('["https://example.com/callback"]');
-      expect(createReq.request.body.allowedScopes).toBe('["openid", "email", "profile"]');
-      expect(createReq.request.body.requirePkce).toBe(false);
-      
-      createReq.flush({ id: '456', ...clientData, createdAt: '2024-01-01' });
-      
-      await Promise.resolve();
-      const loadReq = httpMock.expectOne('/api/clients');
-      loadReq.flush([]);
-
-      await promise;
-    });
-
-    it('should handle server error', async () => {
-      const promise = controller.createClient(mockClientData);
-
-      const createReq = httpMock.expectOne('/api/clients');
-      createReq.flush({}, { status: 500, statusText: 'Internal Server Error' });
-
-      try {
-        await promise;
-        fail('Should have thrown an error');
-      } catch (err: any) {
-        expect(err.status).toBe(500);
-      }
+      await expectAsync(createPromise).toBeRejected();
     });
   });
 
-  describe('updateClient', () => {
-    const mockClientId = '123';
-    const mockUpdateData = {
-      clientName: 'Updated Client',
-      clientType: 'confidential',
-      redirectUris: '["http://localhost:4000/callback"]',
-      allowedScopes: '["openid", "email"]',
-      requirePkce: false
-    };
+  describe('updateDemo', () => {
+    it('should update demo and reload list', async () => {
+      const demoToUpdate: Demo = { id: '123' };
+      const updatedDemo: Demo = { id: '123' };
+      const allDemos: Demo[] = [updatedDemo];
 
-    const mockUpdatedClient = {
-      id: mockClientId,
-      clientId: 'test-client',
-      ...mockUpdateData,
-      createdAt: '2024-01-01T00:00:00Z'
-    };
+      const updatePromise = controller.updateDemo(demoToUpdate);
 
-    it('should update client and return the updated client', async () => {
-      const promise = controller.updateClient(mockClientId, mockUpdateData);
-
-      const updateReq = httpMock.expectOne(`/api/clients/${mockClientId}`);
+      const updateReq = httpMock.expectOne('/api/demo');
       expect(updateReq.request.method).toBe('PUT');
-      expect(updateReq.request.body).toEqual(mockUpdateData);
-      updateReq.flush(mockUpdatedClient);
+      expect(updateReq.request.body).toEqual(demoToUpdate);
+      updateReq.flush(updatedDemo);
 
-      await Promise.resolve();
-      // Should trigger loadClients
-      const loadReq = httpMock.expectOne('/api/clients');
+      const result = await updatePromise;
+      expect(result).toEqual(updatedDemo);
+
+      // Verify reload was triggered
+      const loadReq = httpMock.expectOne('/api/demo');
       expect(loadReq.request.method).toBe('GET');
-      loadReq.flush([mockUpdatedClient]);
+      loadReq.flush(allDemos);
 
-      const result = await promise;
-      expect(result).toEqual(mockUpdatedClient);
+      expect(modelService.demos$()).toEqual(allDemos);
     });
 
-    it('should reload clients list after successful update', async () => {
-      const promise = controller.updateClient(mockClientId, mockUpdateData);
+    it('should throw error on failed update', async () => {
+      const demoToUpdate: Demo = { id: '123' };
+      const updatePromise = controller.updateDemo(demoToUpdate);
 
-      const updateReq = httpMock.expectOne(`/api/clients/${mockClientId}`);
-      updateReq.flush(mockUpdatedClient);
+      const req = httpMock.expectOne('/api/demo');
+      req.error(new ProgressEvent('error'), { status: 404, statusText: 'Not Found' });
 
-      await Promise.resolve();
-      const loadReq = httpMock.expectOne('/api/clients');
-      loadReq.flush([mockUpdatedClient]);
-
-      await promise;
-
-      expect(modelService.clients$()).toEqual([mockUpdatedClient]);
+      await expectAsync(updatePromise).toBeRejected();
     });
 
-    it('should handle error when updating client', async () => {
-      const promise = controller.updateClient(mockClientId, mockUpdateData);
+    it('should handle validation error during update', async () => {
+      const demoToUpdate: Demo = { id: '123' };
+      const updatePromise = controller.updateDemo(demoToUpdate);
 
-      const updateReq = httpMock.expectOne(`/api/clients/${mockClientId}`);
-      updateReq.flush({ error: 'Client not found' }, { status: 404, statusText: 'Not Found' });
+      const req = httpMock.expectOne('/api/demo');
+      req.error(new ProgressEvent('error'), { status: 400, statusText: 'Bad Request' });
 
-      try {
-        await promise;
-        fail('Should have thrown an error');
-      } catch (err: any) {
-        expect(err.status).toBe(404);
-        expect(err.error.error).toBe('Client not found');
-      }
-    });
-
-    it('should handle validation error', async () => {
-      const promise = controller.updateClient(mockClientId, mockUpdateData);
-
-      const updateReq = httpMock.expectOne(`/api/clients/${mockClientId}`);
-      updateReq.flush({ error: 'Client name is required' }, { status: 400, statusText: 'Bad Request' });
-
-      try {
-        await promise;
-        fail('Should have thrown an error');
-      } catch (err: any) {
-        expect(err.status).toBe(400);
-      }
-    });
-
-    it('should handle permission error', async () => {
-      const promise = controller.updateClient(mockClientId, mockUpdateData);
-
-      const updateReq = httpMock.expectOne(`/api/clients/${mockClientId}`);
-      updateReq.flush({}, { status: 403, statusText: 'Forbidden' });
-
-      try {
-        await promise;
-        fail('Should have thrown an error');
-      } catch (err: any) {
-        expect(err.status).toBe(403);
-      }
-    });
-
-    it('should handle network error', async () => {
-      const promise = controller.updateClient(mockClientId, mockUpdateData);
-
-      const updateReq = httpMock.expectOne(`/api/clients/${mockClientId}`);
-      updateReq.error(new ProgressEvent('error'));
-
-      try {
-        await promise;
-        fail('Should have thrown an error');
-      } catch (err) {
-        expect(err).toBeTruthy();
-      }
-    });
-
-    it('should send correct data format', async () => {
-      const updateData = {
-        clientName: 'New Name',
-        clientType: 'confidential',
-        redirectUris: '["https://example.com/callback"]',
-        allowedScopes: '["openid"]',
-        requirePkce: true
-      };
-
-      const promise = controller.updateClient(mockClientId, updateData);
-
-      const updateReq = httpMock.expectOne(`/api/clients/${mockClientId}`);
-      expect(updateReq.request.body.clientName).toBe('New Name');
-      expect(updateReq.request.body.clientType).toBe('confidential');
-      expect(updateReq.request.body.redirectUris).toBe('["https://example.com/callback"]');
-      expect(updateReq.request.body.allowedScopes).toBe('["openid"]');
-      expect(updateReq.request.body.requirePkce).toBe(true);
-      
-      updateReq.flush({ id: mockClientId, ...updateData, createdAt: '2024-01-01' });
-      
-      await Promise.resolve();
-      const loadReq = httpMock.expectOne('/api/clients');
-      loadReq.flush([]);
-
-      await promise;
+      await expectAsync(updatePromise).toBeRejected();
     });
   });
 
-  describe('deleteClient', () => {
-    const mockClientId = '123';
+  describe('deleteDemo', () => {
+    it('should delete demo and reload list', async () => {
+      const demoId = '123';
+      const remainingDemos: Demo[] = [{ id: '456' }];
 
-    it('should delete client successfully', async () => {
-      const promise = controller.deleteClient(mockClientId);
+      const deletePromise = controller.deleteDemo(demoId);
 
-      const deleteReq = httpMock.expectOne(`/api/clients/${mockClientId}`);
+      const deleteReq = httpMock.expectOne(`/api/demo/${demoId}`);
       expect(deleteReq.request.method).toBe('DELETE');
-      deleteReq.flush(null, { status: 204, statusText: 'No Content' });
+      deleteReq.flush(null);
 
-      await Promise.resolve();
-      // Should trigger loadClients
-      const loadReq = httpMock.expectOne('/api/clients');
+      await deletePromise;
+
+      // Verify reload was triggered
+      const loadReq = httpMock.expectOne('/api/demo');
       expect(loadReq.request.method).toBe('GET');
-      loadReq.flush([]);
+      loadReq.flush(remainingDemos);
 
-      await promise;
+      expect(modelService.demos$()).toEqual(remainingDemos);
     });
 
-    it('should reload clients list after successful deletion', async () => {
-      const mockClients: OAuthClient[] = [
-        {
-          id: '456',
-          clientId: 'remaining-client',
-          clientName: 'Remaining Client',
-          clientType: 'confidential',
-          redirectUris: '["http://localhost:3000/callback"]',
-          allowedScopes: '["openid"]',
-          requirePkce: true,
-          createdAt: '2024-01-01T00:00:00Z'
-        }
-      ];
+    it('should throw error on failed deletion', async () => {
+      const demoId = '123';
+      const deletePromise = controller.deleteDemo(demoId);
 
-      const promise = controller.deleteClient(mockClientId);
+      const req = httpMock.expectOne(`/api/demo/${demoId}`);
+      req.error(new ProgressEvent('error'), { status: 404, statusText: 'Not Found' });
 
-      const deleteReq = httpMock.expectOne(`/api/clients/${mockClientId}`);
-      deleteReq.flush(null, { status: 204, statusText: 'No Content' });
-
-      await Promise.resolve();
-      const loadReq = httpMock.expectOne('/api/clients');
-      loadReq.flush(mockClients);
-
-      await promise;
-
-      expect(modelService.clients$()).toEqual(mockClients);
+      await expectAsync(deletePromise).toBeRejected();
     });
 
-    it('should handle error when client not found', async () => {
-      const promise = controller.deleteClient(mockClientId);
+    it('should handle permission error during deletion', async () => {
+      const demoId = '123';
+      const deletePromise = controller.deleteDemo(demoId);
 
-      const deleteReq = httpMock.expectOne(`/api/clients/${mockClientId}`);
-      deleteReq.flush({ error: 'Client not found' }, { status: 404, statusText: 'Not Found' });
+      const req = httpMock.expectOne(`/api/demo/${demoId}`);
+      req.error(new ProgressEvent('error'), { status: 403, statusText: 'Forbidden' });
 
-      try {
-        await promise;
-        fail('Should have thrown an error');
-      } catch (err: any) {
-        expect(err.status).toBe(404);
-        expect(err.error.error).toBe('Client not found');
-      }
+      await expectAsync(deletePromise).toBeRejected();
     });
 
-    it('should handle permission error', async () => {
-      const promise = controller.deleteClient(mockClientId);
+    it('should handle server error during deletion', async () => {
+      const demoId = '123';
+      const deletePromise = controller.deleteDemo(demoId);
 
-      const deleteReq = httpMock.expectOne(`/api/clients/${mockClientId}`);
-      deleteReq.flush({}, { status: 403, statusText: 'Forbidden' });
+      const req = httpMock.expectOne(`/api/demo/${demoId}`);
+      req.error(new ProgressEvent('error'), { status: 500, statusText: 'Server Error' });
 
-      try {
-        await promise;
-        fail('Should have thrown an error');
-      } catch (err: any) {
-        expect(err.status).toBe(403);
-      }
-    });
-
-    it('should handle network error', async () => {
-      const promise = controller.deleteClient(mockClientId);
-
-      const deleteReq = httpMock.expectOne(`/api/clients/${mockClientId}`);
-      deleteReq.error(new ProgressEvent('error'));
-
-      try {
-        await promise;
-        fail('Should have thrown an error');
-      } catch (err) {
-        expect(err).toBeTruthy();
-      }
+      await expectAsync(deletePromise).toBeRejected();
     });
   });
 
-  describe('addAccountRole', () => {
-    const mockAccountId = 'account-123';
-    const mockClientId = 'client-456';
-    const mockRole = 'admin';
-    const mockResponse = { clientId: mockClientId, role: mockRole };
+  describe('Error Handling', () => {
+    it('should log errors to console', () => {
+      spyOn(console, 'error');
 
-    it('should add account role successfully', async () => {
-      const promise = controller.addAccountRole(mockAccountId, mockClientId, mockRole);
+      controller.loadDemos();
 
-      const req = httpMock.expectOne('/api/accounts/role');
-      expect(req.request.method).toBe('POST');
-      expect(req.request.body).toEqual({
-        accountId: mockAccountId,
-        clientId: mockClientId,
-        role: mockRole
-      });
-      req.flush(mockResponse);
+      const req = httpMock.expectOne('/api/demo');
+      req.error(new ProgressEvent('error'));
 
-      await Promise.resolve();
-      const accountsReq = httpMock.expectOne('/api/accounts');
-      accountsReq.flush([]);
-
-      const result = await promise;
-      expect(result).toEqual(mockResponse);
+      expect(console.error).toHaveBeenCalledWith('Error loading demos:', jasmine.any(Object));
     });
 
-    it('should reload accounts after adding role', async () => {
-      const promise = controller.addAccountRole(mockAccountId, mockClientId, mockRole);
+    it('should log creation errors to console', async () => {
+      spyOn(console, 'error');
 
-      const req = httpMock.expectOne('/api/accounts/role');
-      req.flush(mockResponse);
+      const createPromise = controller.createDemo();
 
-      await Promise.resolve();
-      const accountsReq = httpMock.expectOne('/api/accounts');
-      accountsReq.flush([]);
-
-      await promise;
-    });
-
-    it('should handle 400 validation error', async () => {
-      const promise = controller.addAccountRole(mockAccountId, mockClientId, 'invalid@role');
-
-      const req = httpMock.expectOne('/api/accounts/role');
-      req.flush({ error: 'Invalid role format' }, { status: 400, statusText: 'Bad Request' });
-
-      try {
-        await promise;
-        fail('Should have thrown an error');
-      } catch (err: any) {
-        expect(err.status).toBe(400);
-      }
-    });
-
-    it('should handle 403 permission error', async () => {
-      const promise = controller.addAccountRole(mockAccountId, mockClientId, mockRole);
-
-      const req = httpMock.expectOne('/api/accounts/role');
-      req.flush({ error: 'Forbidden' }, { status: 403, statusText: 'Forbidden' });
-
-      try {
-        await promise;
-        fail('Should have thrown an error');
-      } catch (err: any) {
-        expect(err.status).toBe(403);
-      }
-    });
-
-    it('should handle 404 account not found error', async () => {
-      const promise = controller.addAccountRole('non-existent', mockClientId, mockRole);
-
-      const req = httpMock.expectOne('/api/accounts/role');
-      req.flush({ error: 'Account not found' }, { status: 404, statusText: 'Not Found' });
-
-      try {
-        await promise;
-        fail('Should have thrown an error');
-      } catch (err: any) {
-        expect(err.status).toBe(404);
-      }
-    });
-
-    it('should handle network error', async () => {
-      const promise = controller.addAccountRole(mockAccountId, mockClientId, mockRole);
-
-      const req = httpMock.expectOne('/api/accounts/role');
+      const req = httpMock.expectOne('/api/demo');
       req.error(new ProgressEvent('error'));
 
       try {
-        await promise;
-        fail('Should have thrown an error');
-      } catch (err) {
-        expect(err).toBeTruthy();
+        await createPromise;
+      } catch (e) {
+        // Expected
       }
+
+      expect(console.error).toHaveBeenCalledWith('Error creating demo:', jasmine.any(Object));
     });
   });
 
-  describe('removeAccountRole', () => {
-    const mockAccountId = 'account-123';
-    const mockClientId = 'client-456';
-    const mockRole = 'admin';
+  describe('Integration', () => {
+    it('should handle multiple operations in sequence', async () => {
+      // Load demos
+      controller.loadDemos();
+      const loadReq1 = httpMock.expectOne('/api/demo');
+      loadReq1.flush([{ id: '1' }]);
 
-    it('should remove account role successfully', async () => {
-      const promise = controller.removeAccountRole(mockAccountId, mockClientId, mockRole);
+      // Create demo
+      const createPromise = controller.createDemo();
+      const createReq = httpMock.expectOne('/api/demo');
+      createReq.flush({ id: '2' });
+      await createPromise;
+      const loadReq2 = httpMock.expectOne('/api/demo');
+      loadReq2.flush([{ id: '1' }, { id: '2' }]);
 
-      const req = httpMock.expectOne('/api/accounts/role');
-      expect(req.request.method).toBe('DELETE');
-      expect(req.request.body).toEqual({
-        accountId: mockAccountId,
-        clientId: mockClientId,
-        role: mockRole
-      });
-      req.flush(null, { status: 204, statusText: 'No Content' });
+      // Delete demo
+      const deletePromise = controller.deleteDemo('1');
+      const deleteReq = httpMock.expectOne('/api/demo/1');
+      deleteReq.flush(null);
+      await deletePromise;
+      const loadReq3 = httpMock.expectOne('/api/demo');
+      loadReq3.flush([{ id: '2' }]);
 
-      await Promise.resolve();
-      const accountsReq = httpMock.expectOne('/api/accounts');
-      accountsReq.flush([]);
-
-      await promise;
-    });
-
-    it('should reload accounts after removing role', async () => {
-      const promise = controller.removeAccountRole(mockAccountId, mockClientId, mockRole);
-
-      const req = httpMock.expectOne('/api/accounts/role');
-      req.flush(null, { status: 204, statusText: 'No Content' });
-
-      await Promise.resolve();
-      const accountsReq = httpMock.expectOne('/api/accounts');
-      accountsReq.flush([]);
-
-      await promise;
-    });
-
-    it('should handle 403 permission error', async () => {
-      const promise = controller.removeAccountRole(mockAccountId, mockClientId, mockRole);
-
-      const req = httpMock.expectOne('/api/accounts/role');
-      req.flush({ error: 'Forbidden' }, { status: 403, statusText: 'Forbidden' });
-
-      try {
-        await promise;
-        fail('Should have thrown an error');
-      } catch (err: any) {
-        expect(err.status).toBe(403);
-      }
-    });
-
-    it('should handle 404 account not found error', async () => {
-      const promise = controller.removeAccountRole('non-existent', mockClientId, mockRole);
-
-      const req = httpMock.expectOne('/api/accounts/role');
-      req.flush({ error: 'Account not found' }, { status: 404, statusText: 'Not Found' });
-
-      try {
-        await promise;
-        fail('Should have thrown an error');
-      } catch (err: any) {
-        expect(err.status).toBe(404);
-      }
-    });
-
-    it('should handle network error', async () => {
-      const promise = controller.removeAccountRole(mockAccountId, mockClientId, mockRole);
-
-      const req = httpMock.expectOne('/api/accounts/role');
-      req.error(new ProgressEvent('error'));
-
-      try {
-        await promise;
-        fail('Should have thrown an error');
-      } catch (err) {
-        expect(err).toBeTruthy();
-      }
+      expect(modelService.demos$()).toEqual([{ id: '2' }]);
     });
   });
 });

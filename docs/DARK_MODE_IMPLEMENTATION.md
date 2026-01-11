@@ -114,6 +114,15 @@ Created comprehensive unit tests for the theme service:
 - Tooltips describe the action (e.g., "Switch to dark mode")
 - Icon changes to indicate current mode and available action
 
+## Component Guidelines
+All components should use global styles from `styles.scss` instead of component-specific styles to ensure:
+- Consistent theming across the application
+- Automatic dark mode support
+- Reduced CSS duplication
+- Easier maintenance
+
+**Example**: The `SignedOutComponent` uses global classes like `.container`, `.card`, `.btn-primary`, and `.description` instead of custom component styles.
+
 ## Future Enhancements (Optional)
 - Add smooth transition animations between themes
 - Add more theme variants (e.g., high contrast)

@@ -2,7 +2,6 @@ import { CommonModule } from '@angular/common';
 import { Component, effect, inject, OnInit } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import { AuthService, Token } from '../core/auth.service';
-import { Controller } from '../controller';
 import { ThemeService } from '../core/theme.service';
 
 @Component({
@@ -13,7 +12,6 @@ import { ThemeService } from '../core/theme.service';
 })
 export class HeaderComponent implements OnInit {
     private authService = inject(AuthService);
-    private controller = inject(Controller);
     themeService = inject(ThemeService);
 
     token!: Token;
@@ -27,7 +25,7 @@ export class HeaderComponent implements OnInit {
     }
 
     ngOnInit(): void {
-        this.controller.loadConfig();
+        // No initialization needed
     }
 
     toggleTheme(): void {

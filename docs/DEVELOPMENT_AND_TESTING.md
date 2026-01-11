@@ -13,8 +13,9 @@ First add env vars:
 
 That file should contain:
 
-    export ABSTRATIUM_CLIENT_SECRET=...
-    export COOKIE_ENCRYPTION_SECRET=...
+    export ABSTRATIUM_CLIENT_SECRET=... (taken from the abstrauth application)
+    export COOKIE_ENCRYPTION_SECRET=... (generated with `openssl rand -base64 32`)
+    export CSRF_TOKEN_SIGNATURE_KEY=... (generated with `openssl rand -base64 64`)
 
 The application uses Quarkus. Run it with either `./mvnw quarkus:dev` or `quarkus dev` if you have installed the Quarkus CLI.
 
@@ -50,15 +51,16 @@ docker run -d \
 # create the database and user
 docker run -it --rm --network abstratium mysql mysql -h abstratium-mysql --port 3306 -u root -psecret
 
+TODO change `abstracore` to the actual database name
 
-DROP USER IF EXISTS 'TODO'@'%';
+DROP USER IF EXISTS 'abstracore'@'%';
 
-CREATE USER 'TODO'@'%' IDENTIFIED BY 'secret';
+CREATE USER 'abstracore'@'%' IDENTIFIED BY 'secret';
 
-DROP DATABASE IF EXISTS TODO;
+DROP DATABASE IF EXISTS abstracore;
 
-CREATE DATABASE TODO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-GRANT ALL PRIVILEGES ON TODO.* TO TODO@'%'; -- on own database
+CREATE DATABASE abstracore CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+GRANT ALL PRIVILEGES ON abstracore.* TO abstracore@'%'; -- on own database
 
 FLUSH PRIVILEGES;
 ```

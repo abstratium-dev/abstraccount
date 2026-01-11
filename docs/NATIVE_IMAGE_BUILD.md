@@ -24,8 +24,9 @@ docker run -it --rm \
   -e QUARKUS_DATASOURCE_USERNAME=TODO \
   -e QUARKUS_DATASOURCE_PASSWORD=secret \
   -e ABSTRATIUM_CLIENT_SECRET="${ABSTRATIUM_CLIENT_SECRET}" \
-  -e CSRF_TOKEN_SIGNATURE_KEY="asdfasdfasdfasdf" \
-  -e OAUTH_REDIRECT_URI="http://localhost:8080/oauth2/callback" \
+  -e CSRF_TOKEN_SIGNATURE_KEY="KU/PESqYGdsE0psW7aOaXF/tszvDKCecFo/1u3tSKoQmo4YZfEjZNvUppot1svY1Yj9oub4GSy/5mueqfRlKOw==" \
+  -e COOKIE_ENCRYPTION_SECRET="dnde2xhez89RGV0nJHqSR8Khu3SFCE6fxqCgDzu9Hng=" \
+  -e OAUTH_REDIRECT_URI="http://localhost:8080/oauth/callback" \
   -e QUARKUS_MANAGEMENT_HOST=0.0.0.0 \
   ghcr.io/abstratium-dev/TODO:latest
 ```

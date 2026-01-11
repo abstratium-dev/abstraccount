@@ -3,14 +3,12 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { provideHttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { AuthService, ANONYMOUS, Token } from './auth.service';
-import { RouteRestorationService } from './route-restoration.service';
 import { WINDOW } from './window.token';
 import { Subject } from 'rxjs';
 
 describe('AuthService (BFF Pattern)', () => {
 
   let service: AuthService;
-  let routeRestoration: RouteRestorationService;
   let httpMock: HttpTestingController;
   let routerSpy: jasmine.SpyObj<Router>;
   let routerEventsSubject: Subject<any>;
@@ -66,14 +64,12 @@ describe('AuthService (BFF Pattern)', () => {
         provideHttpClient(),
         provideHttpClientTesting(),
         AuthService,
-        RouteRestorationService,
         { provide: Router, useValue: spy },
         { provide: WINDOW, useValue: mockWindow }
       ]
     });
 
     service = TestBed.inject(AuthService);
-    routeRestoration = TestBed.inject(RouteRestorationService);
     httpMock = TestBed.inject(HttpTestingController);
     routerSpy = TestBed.inject(Router) as jasmine.SpyObj<Router>;
   });
@@ -106,7 +102,7 @@ describe('AuthService (BFF Pattern)', () => {
   });
 
   describe('BFF Pattern - Initialize from Backend', () => {
-    it('should load user info from /api/userinfo when authenticated', (done) => {
+    it('should load user info from /api/core/userinfo when authenticated', (done) => {
       setRouterUrl('/accounts');
       service.initialize().subscribe(() => {
         const token = service.getAccessToken();
@@ -117,12 +113,12 @@ describe('AuthService (BFF Pattern)', () => {
         done();
       });
 
-      const req = httpMock.expectOne('/api/userinfo');
+      const req = httpMock.expectOne('/api/core/userinfo');
       expect(req.request.method).toBe('GET');
       req.flush(mockUserInfo);
     });
 
-    it('should set anonymous token when /api/userinfo returns 401', (done) => {
+    it('should set anonymous token when /api/core/userinfo returns 401', (done) => {
       service.initialize().subscribe(() => {
         const token = service.getAccessToken();
         expect(token.email).toBe(ANONYMOUS.email);
@@ -130,7 +126,7 @@ describe('AuthService (BFF Pattern)', () => {
         done();
       });
 
-      const req = httpMock.expectOne('/api/userinfo');
+      const req = httpMock.expectOne('/api/core/userinfo');
       req.flush('Unauthorized', { status: 401, statusText: 'Unauthorized' });
     });
 
@@ -143,7 +139,7 @@ describe('AuthService (BFF Pattern)', () => {
         done();
       });
 
-      const req = httpMock.expectOne('/api/userinfo');
+      const req = httpMock.expectOne('/api/core/userinfo');
       req.flush(mockUserInfo);
     });
 
@@ -157,57 +153,49 @@ describe('AuthService (BFF Pattern)', () => {
         });
       });
 
-      const req = httpMock.expectOne('/api/userinfo');
+      const req = httpMock.expectOne('/api/core/userinfo');
       req.flush(mockUserInfo);
       
       // Verify no additional requests
-      httpMock.expectNone('/api/userinfo');
+      httpMock.expectNone('/api/core/userinfo');
     });
 
-    it('should navigate to saved route after authentication', (done) => {
-      // Set a saved route and router URL BEFORE initialization
-      routeRestoration.saveRoute('/clients');
-      setRouterUrl('/accounts'); // Set to a different route than saved
+    it('should initialize without errors', (done) => {
+      setRouterUrl('/accounts');
       
       service.initialize().subscribe(() => {
-        // In test environment, window.location is /context.html which is different from router.url
-        // So it will navigate to /context.html (the initial URL) instead of saved route
-        // This is the expected behavior - initial URL takes precedence
-        expect(routerSpy.navigateByUrl).toHaveBeenCalled();
+        // Auth service no longer handles navigation
+        expect(service.isAuthenticated()).toBe(true);
         done();
       });
 
-      const req = httpMock.expectOne('/api/userinfo');
+      const req = httpMock.expectOne('/api/core/userinfo');
       req.flush(mockUserInfo);
     });
 
-    it('should navigate from root to saved route after authentication', (done) => {
-      // Simulate post-logout scenario where backend redirects to /
-      setRouterUrl('/'); // Currently on root after logout redirect
+    it('should initialize from root route', (done) => {
+      setRouterUrl('/');
       
       service.initialize().subscribe(() => {
-        // In test environment, window.location is /context.html which is different from /
-        // So it will navigate to /context.html instead of saved route
-        expect(routerSpy.navigateByUrl).toHaveBeenCalled();
+        // Auth service no longer handles navigation
+        expect(service.isAuthenticated()).toBe(true);
         done();
       });
 
-      const req = httpMock.expectOne('/api/userinfo');
+      const req = httpMock.expectOne('/api/core/userinfo');
       req.flush(mockUserInfo);
     });
 
-    it('should not navigate if already on saved route', (done) => {
-      routeRestoration.saveRoute('/clients');
+    it('should handle initialization on specific route', (done) => {
       setRouterUrl('/clients');
       
       service.initialize().subscribe(() => {
-        // In test environment, window.location is /context.html which is different from /clients
-        // So it will navigate to /context.html
-        expect(routerSpy.navigateByUrl).toHaveBeenCalled();
+        // Auth service no longer handles navigation
+        expect(service.isAuthenticated()).toBe(true);
         done();
       });
 
-      const req = httpMock.expectOne('/api/userinfo');
+      const req = httpMock.expectOne('/api/core/userinfo');
       req.flush(mockUserInfo);
     });
 
@@ -217,7 +205,7 @@ describe('AuthService (BFF Pattern)', () => {
     beforeEach((done) => {
       setRouterUrl('/accounts');
       service.initialize().subscribe(() => done());
-      const req = httpMock.expectOne('/api/userinfo');
+      const req = httpMock.expectOne('/api/core/userinfo');
       req.flush(mockUserInfo);
     });
 
@@ -255,7 +243,7 @@ describe('AuthService (BFF Pattern)', () => {
         done();
       });
 
-      const req = httpMock.expectOne('/api/userinfo');
+      const req = httpMock.expectOne('/api/core/userinfo');
       req.flush(expiredToken);
     });
 
@@ -268,7 +256,7 @@ describe('AuthService (BFF Pattern)', () => {
         done();
       });
 
-      const req = httpMock.expectOne('/api/userinfo');
+      const req = httpMock.expectOne('/api/core/userinfo');
       req.flush(soonToExpireToken);
     });
 
@@ -279,7 +267,7 @@ describe('AuthService (BFF Pattern)', () => {
         done();
       });
 
-      const req = httpMock.expectOne('/api/userinfo');
+      const req = httpMock.expectOne('/api/core/userinfo');
       req.flush(mockUserInfo);
     });
   });
@@ -297,18 +285,15 @@ describe('AuthService (BFF Pattern)', () => {
         done();
       });
 
-      const req = httpMock.expectOne('/api/userinfo');
+      const req = httpMock.expectOne('/api/core/userinfo');
       req.flush(mockUserInfo);
     });
   });
 
   describe('Signout', () => {
-    it('should call route restoration service and set window.location.href', () => {
-      spyOn(routeRestoration, 'saveCurrentRouteBeforeSignout');
-      
+    it('should set window.location.href to logout endpoint', () => {
       service.signout();
       
-      expect(routeRestoration.saveCurrentRouteBeforeSignout).toHaveBeenCalled();
       expect(mockWindow.location.href).toBe('/api/auth/logout');
     });
   });

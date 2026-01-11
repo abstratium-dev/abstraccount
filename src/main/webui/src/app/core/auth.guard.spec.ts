@@ -41,17 +41,17 @@ describe('authGuard', () => {
     );
 
     expect(result).toBe(false);
-    expect(router.navigate).toHaveBeenCalledWith(['/authorize']);
+    expect(router.navigate).toHaveBeenCalledWith(['/signed-out']);
   });
 
-  it('should store the attempted URL before redirecting', () => {
+  it('should redirect to signed-out page when attempting to access protected route', () => {
     authService.isAuthenticated.and.returnValue(false);
 
     TestBed.runInInjectionContext(() => 
       authGuard({} as any, { url: '/user/123' } as any)
     );
 
-    expect(router.navigate).toHaveBeenCalledWith(['/authorize']);
+    expect(router.navigate).toHaveBeenCalledWith(['/signed-out']);
   });
 
   it('should handle complex URLs with query parameters', () => {
@@ -61,7 +61,7 @@ describe('authGuard', () => {
       authGuard({} as any, { url: '/clients?page=1&filter=active' } as any)
     );
 
-    expect(router.navigate).toHaveBeenCalledWith(['/authorize']);
+    expect(router.navigate).toHaveBeenCalledWith(['/signed-out']);
   });
 
   it('should handle URLs with hash fragments', () => {
@@ -71,7 +71,7 @@ describe('authGuard', () => {
       authGuard({} as any, { url: '/user/123#section' } as any)
     );
 
-    expect(router.navigate).toHaveBeenCalledWith(['/authorize']);
+    expect(router.navigate).toHaveBeenCalledWith(['/signed-out']);
   });
 
   it('should not store route when user is authenticated', () => {
@@ -93,7 +93,7 @@ describe('authGuard', () => {
     );
 
     expect(result).toBe(false);
-    expect(router.navigate).toHaveBeenCalledWith(['/authorize']);
+    expect(router.navigate).toHaveBeenCalledWith(['/signed-out']);
   });
 
   it('should handle multiple calls with different authentication states', () => {
@@ -110,6 +110,6 @@ describe('authGuard', () => {
       authGuard({} as any, { url: '/user/456' } as any)
     );
     expect(result).toBe(false);
-    expect(router.navigate).toHaveBeenCalledWith(['/authorize']);
+    expect(router.navigate).toHaveBeenCalledWith(['/signed-out']);
   });
 });

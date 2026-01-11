@@ -2,7 +2,6 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, inject, signal } from '@angular/core';
 import { Observable, of } from 'rxjs';
 import { catchError, map, tap } from 'rxjs/operators';
-import { RouteRestorationService } from './route-restoration.service';
 import { WINDOW } from './window.token';
 
 export const CLIENT_ID = 'abstratium-TODO';
@@ -46,7 +45,6 @@ export const ANONYMOUS: Token = {
 })
 export class AuthService {
     private http = inject(HttpClient);
-    private routeRestoration = inject(RouteRestorationService);
     private window = inject(WINDOW);
 
     token$ = signal<Token>(ANONYMOUS);
@@ -72,27 +70,16 @@ export class AuthService {
         const initialUrl = this.window.location.pathname + this.window.location.search;
         console.debug('[AUTH] Initial URL captured:', initialUrl);
         
-        return this.http.get<Token>('/api/userinfo').pipe(
+        return this.http.get<Token>('/api/core/userinfo').pipe(
             tap(token => {
                 console.debug('[AUTH] User is authenticated:', token.email);
                 this.token = token;
                 this.token$.set(token);
                 this.initialized = true;
                 this.setupTokenExpiryTimer(token.exp);
-                
-                // Handle post-authentication navigation (includes invite validation)
-                // BUT skip navigation if user is on a signin page (OAuth flow in progress)
-                if (!initialUrl.startsWith('/signin/')) {
-                    this.routeRestoration.handlePostAuthenticationNavigation(initialUrl, token.email);
-                } else {
-                    console.debug('[AUTH] Skipping route restoration - OAuth signin flow in progress');
-                }
             }),
             catchError((err) => {
                 console.debug('[AUTH] User is NOT authenticated, error:', err.status);
-                // Not authenticated - save the initial URL for later
-                this.routeRestoration.saveRoute(initialUrl);
-                
                 // Use ANONYMOUS token
                 this.token = ANONYMOUS;
                 this.token$.set(ANONYMOUS);
@@ -161,16 +148,11 @@ export class AuthService {
     signout() {
         console.debug('[AUTH] signout() called');
         this.resetToken();
-        this.routeRestoration.saveCurrentRouteBeforeSignout();
         console.debug('[AUTH] Redirecting to logout endpoint');
         this.window.location.href = '/api/auth/logout';
     }
 
     hasRole(role: string): boolean {
         return this.token.groups.includes(role);
-    }
-
-    isAdmin(): boolean {
-        return this.hasRole(ROLE_ADMIN);
     }
 }

@@ -2,349 +2,69 @@ package dev.abstratium.demo.entity;
 
 import org.junit.jupiter.api.Test;
 
-import dev.abstratium.demo.entity.Account;
-import dev.abstratium.demo.entity.AccountRole;
-import dev.abstratium.demo.entity.AuthorizationCode;
-import dev.abstratium.demo.entity.AuthorizationRequest;
-import dev.abstratium.demo.entity.Demo;
-import dev.abstratium.demo.entity.FederatedIdentity;
-import dev.abstratium.demo.entity.OAuthClient;
-
-import java.time.LocalDateTime;
-
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Tests for entity @PrePersist methods to ensure ID and timestamp generation works correctly.
+ * Tests for entity @PrePersist methods to ensure ID generation works correctly.
  */
 class EntityPrePersistTest {
 
     @Test
-    void oAuthClientShouldGenerateIdWhenNull() {
-        OAuthClient client = new OAuthClient();
-        assertNull(client.getId());
+    void demoShouldGenerateIdWhenNull() {
+        Demo demo = new Demo();
+        assertNull(demo.getId());
         
-        client.prePersist();
+        demo.prePersist();
         
-        assertNotNull(client.getId());
-        assertTrue(client.getId().length() == 36); // UUID length
+        assertNotNull(demo.getId());
+        assertEquals(36, demo.getId().length()); // UUID length
     }
 
     @Test
-    void oAuthClientShouldNotOverrideExistingId() {
-        OAuthClient client = new OAuthClient();
+    void demoShouldNotOverrideExistingId() {
+        Demo demo = new Demo();
         String existingId = "existing-id-123";
-        client.setId(existingId);
+        demo.setId(existingId);
         
-        client.prePersist();
+        demo.prePersist();
         
-        assertEquals(existingId, client.getId());
+        assertEquals(existingId, demo.getId());
     }
 
     @Test
-    void oAuthClientShouldGenerateCreatedAtWhenNull() {
-        OAuthClient client = new OAuthClient();
-        assertNull(client.getCreatedAt());
+    void demoShouldGenerateUniqueIds() {
+        Demo demo1 = new Demo();
+        Demo demo2 = new Demo();
         
-        LocalDateTime before = LocalDateTime.now();
-        client.prePersist();
-        LocalDateTime after = LocalDateTime.now();
+        demo1.prePersist();
+        demo2.prePersist();
         
-        assertNotNull(client.getCreatedAt());
-        assertTrue(client.getCreatedAt().isAfter(before.minusSeconds(1)));
-        assertTrue(client.getCreatedAt().isBefore(after.plusSeconds(1)));
+        assertNotNull(demo1.getId());
+        assertNotNull(demo2.getId());
+        assertNotEquals(demo1.getId(), demo2.getId());
     }
 
     @Test
-    void oAuthClientShouldNotOverrideExistingCreatedAt() {
-        OAuthClient client = new OAuthClient();
-        LocalDateTime existingTime = LocalDateTime.of(2024, 1, 1, 12, 0);
-        client.setCreatedAt(existingTime);
+    void demoShouldGenerateValidUuidFormat() {
+        Demo demo = new Demo();
         
-        client.prePersist();
+        demo.prePersist();
         
-        assertEquals(existingTime, client.getCreatedAt());
+        // UUID format: 8-4-4-4-12 characters separated by hyphens
+        String id = demo.getId();
+        assertTrue(id.matches("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"));
     }
 
     @Test
-    void authorizationCodeShouldGenerateIdWhenNull() {
-        AuthorizationCode code = new AuthorizationCode();
-        assertNull(code.getId());
+    void demoPrePersistShouldBeIdempotent() {
+        Demo demo = new Demo();
         
-        code.prePersist();
+        demo.prePersist();
+        String firstId = demo.getId();
         
-        assertNotNull(code.getId());
-        assertTrue(code.getId().length() == 36);
-    }
-
-    @Test
-    void authorizationCodeShouldNotOverrideExistingId() {
-        AuthorizationCode code = new AuthorizationCode();
-        String existingId = "existing-code-id";
-        code.setId(existingId);
+        demo.prePersist();
+        String secondId = demo.getId();
         
-        code.prePersist();
-        
-        assertEquals(existingId, code.getId());
-    }
-
-    @Test
-    void authorizationCodeShouldGenerateCreatedAtWhenNull() {
-        AuthorizationCode code = new AuthorizationCode();
-        assertNull(code.getCreatedAt());
-        
-        LocalDateTime before = LocalDateTime.now();
-        code.prePersist();
-        LocalDateTime after = LocalDateTime.now();
-        
-        assertNotNull(code.getCreatedAt());
-        assertTrue(code.getCreatedAt().isAfter(before.minusSeconds(1)));
-        assertTrue(code.getCreatedAt().isBefore(after.plusSeconds(1)));
-    }
-
-    @Test
-    void authorizationCodeShouldNotOverrideExistingCreatedAt() {
-        AuthorizationCode code = new AuthorizationCode();
-        LocalDateTime existingTime = LocalDateTime.of(2024, 6, 15, 10, 30);
-        code.setCreatedAt(existingTime);
-        
-        code.prePersist();
-        
-        assertEquals(existingTime, code.getCreatedAt());
-    }
-
-    @Test
-    void credentialShouldGenerateIdWhenNull() {
-        Demo credential = new Demo();
-        assertNull(credential.getId());
-        
-        credential.prePersist();
-        
-        assertNotNull(credential.getId());
-        assertTrue(credential.getId().length() == 36);
-    }
-
-    @Test
-    void credentialShouldNotOverrideExistingId() {
-        Demo credential = new Demo();
-        String existingId = "existing-credential-id";
-        credential.setId(existingId);
-        
-        credential.prePersist();
-        
-        assertEquals(existingId, credential.getId());
-    }
-
-    @Test
-    void credentialShouldGenerateCreatedAtWhenNull() {
-        Demo credential = new Demo();
-        assertNull(credential.getCreatedAt());
-        
-        LocalDateTime before = LocalDateTime.now();
-        credential.prePersist();
-        LocalDateTime after = LocalDateTime.now();
-        
-        assertNotNull(credential.getCreatedAt());
-        assertTrue(credential.getCreatedAt().isAfter(before.minusSeconds(1)));
-        assertTrue(credential.getCreatedAt().isBefore(after.plusSeconds(1)));
-    }
-
-    @Test
-    void credentialShouldNotOverrideExistingCreatedAt() {
-        Demo credential = new Demo();
-        LocalDateTime existingTime = LocalDateTime.of(2024, 3, 20, 14, 45);
-        credential.setCreatedAt(existingTime);
-        
-        credential.prePersist();
-        
-        assertEquals(existingTime, credential.getCreatedAt());
-    }
-
-    @Test
-    void federatedIdentityShouldGenerateIdWhenNull() {
-        FederatedIdentity identity = new FederatedIdentity();
-        assertNull(identity.getId());
-        
-        identity.prePersist();
-        
-        assertNotNull(identity.getId());
-        assertTrue(identity.getId().length() == 36);
-    }
-
-    @Test
-    void federatedIdentityShouldNotOverrideExistingId() {
-        FederatedIdentity identity = new FederatedIdentity();
-        String existingId = "existing-identity-id";
-        identity.setId(existingId);
-        
-        identity.prePersist();
-        
-        assertEquals(existingId, identity.getId());
-    }
-
-    @Test
-    void federatedIdentityShouldGenerateConnectedAtWhenNull() {
-        FederatedIdentity identity = new FederatedIdentity();
-        assertNull(identity.getConnectedAt());
-        
-        LocalDateTime before = LocalDateTime.now();
-        identity.prePersist();
-        LocalDateTime after = LocalDateTime.now();
-        
-        assertNotNull(identity.getConnectedAt());
-        assertTrue(identity.getConnectedAt().isAfter(before.minusSeconds(1)));
-        assertTrue(identity.getConnectedAt().isBefore(after.plusSeconds(1)));
-    }
-
-    @Test
-    void federatedIdentityShouldNotOverrideExistingConnectedAt() {
-        FederatedIdentity identity = new FederatedIdentity();
-        LocalDateTime existingTime = LocalDateTime.of(2024, 7, 10, 9, 15);
-        identity.setConnectedAt(existingTime);
-        
-        identity.prePersist();
-        
-        assertEquals(existingTime, identity.getConnectedAt());
-    }
-
-    @Test
-    void accountRoleShouldGenerateIdWhenNull() {
-        AccountRole role = new AccountRole();
-        assertNull(role.getId());
-        
-        role.prePersist();
-        
-        assertNotNull(role.getId());
-        assertTrue(role.getId().length() == 36);
-    }
-
-    @Test
-    void accountRoleShouldNotOverrideExistingId() {
-        AccountRole role = new AccountRole();
-        String existingId = "existing-role-id";
-        role.setId(existingId);
-        
-        role.prePersist();
-        
-        assertEquals(existingId, role.getId());
-    }
-
-    @Test
-    void accountRoleShouldGenerateCreatedAtWhenNull() {
-        AccountRole role = new AccountRole();
-        assertNull(role.getCreatedAt());
-        
-        LocalDateTime before = LocalDateTime.now();
-        role.prePersist();
-        LocalDateTime after = LocalDateTime.now();
-        
-        assertNotNull(role.getCreatedAt());
-        assertTrue(role.getCreatedAt().isAfter(before.minusSeconds(1)));
-        assertTrue(role.getCreatedAt().isBefore(after.plusSeconds(1)));
-    }
-
-    @Test
-    void accountRoleShouldNotOverrideExistingCreatedAt() {
-        AccountRole role = new AccountRole();
-        LocalDateTime existingTime = LocalDateTime.of(2024, 2, 28, 16, 20);
-        role.setCreatedAt(existingTime);
-        
-        role.prePersist();
-        
-        assertEquals(existingTime, role.getCreatedAt());
-    }
-
-    @Test
-    void accountShouldGenerateIdWhenNull() {
-        Account account = new Account();
-        assertNull(account.getId());
-        
-        account.prePersist();
-        
-        assertNotNull(account.getId());
-        assertTrue(account.getId().length() == 36);
-    }
-
-    @Test
-    void accountShouldNotOverrideExistingId() {
-        Account account = new Account();
-        String existingId = "existing-account-id";
-        account.setId(existingId);
-        
-        account.prePersist();
-        
-        assertEquals(existingId, account.getId());
-    }
-
-    @Test
-    void accountShouldGenerateCreatedAtWhenNull() {
-        Account account = new Account();
-        assertNull(account.getCreatedAt());
-        
-        LocalDateTime before = LocalDateTime.now();
-        account.prePersist();
-        LocalDateTime after = LocalDateTime.now();
-        
-        assertNotNull(account.getCreatedAt());
-        assertTrue(account.getCreatedAt().isAfter(before.minusSeconds(1)));
-        assertTrue(account.getCreatedAt().isBefore(after.plusSeconds(1)));
-    }
-
-    @Test
-    void accountShouldNotOverrideExistingCreatedAt() {
-        Account account = new Account();
-        LocalDateTime existingTime = LocalDateTime.of(2024, 5, 5, 11, 30);
-        account.setCreatedAt(existingTime);
-        
-        account.prePersist();
-        
-        assertEquals(existingTime, account.getCreatedAt());
-    }
-
-    @Test
-    void authorizationRequestShouldGenerateIdWhenNull() {
-        AuthorizationRequest request = new AuthorizationRequest();
-        assertNull(request.getId());
-        
-        request.prePersist();
-        
-        assertNotNull(request.getId());
-        assertTrue(request.getId().length() == 36);
-    }
-
-    @Test
-    void authorizationRequestShouldNotOverrideExistingId() {
-        AuthorizationRequest request = new AuthorizationRequest();
-        String existingId = "existing-request-id";
-        request.setId(existingId);
-        
-        request.prePersist();
-        
-        assertEquals(existingId, request.getId());
-    }
-
-    @Test
-    void authorizationRequestShouldGenerateCreatedAtWhenNull() {
-        AuthorizationRequest request = new AuthorizationRequest();
-        assertNull(request.getCreatedAt());
-        
-        LocalDateTime before = LocalDateTime.now();
-        request.prePersist();
-        LocalDateTime after = LocalDateTime.now();
-        
-        assertNotNull(request.getCreatedAt());
-        assertTrue(request.getCreatedAt().isAfter(before.minusSeconds(1)));
-        assertTrue(request.getCreatedAt().isBefore(after.plusSeconds(1)));
-    }
-
-    @Test
-    void authorizationRequestShouldNotOverrideExistingCreatedAt() {
-        AuthorizationRequest request = new AuthorizationRequest();
-        LocalDateTime existingTime = LocalDateTime.of(2024, 8, 12, 13, 45);
-        request.setCreatedAt(existingTime);
-        
-        request.prePersist();
-        
-        assertEquals(existingTime, request.getCreatedAt());
+        assertEquals(firstId, secondId);
     }
 }

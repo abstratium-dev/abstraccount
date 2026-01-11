@@ -1,10 +1,9 @@
-import { Component, inject, Signal } from '@angular/core';
+import { Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { HeaderComponent } from './header/header.component';
 import { ToastComponent } from './core/toast/toast.component';
 import { ConfirmDialogComponent } from './core/confirm-dialog/confirm-dialog.component';
-import { ModelService } from './model.service';
 
 @Component({
   selector: 'app-root',
@@ -14,12 +13,4 @@ import { ModelService } from './model.service';
 })
 export class AppComponent {
   title = 'TODO';
-  private modelService = inject(ModelService);
-  
-  insecureClientSecret: Signal<boolean> = this.modelService.insecureClientSecret$;
-  showSecurityWarning = true;
-  
-  dismissWarning() {
-    this.showSecurityWarning = false;
-  }
 }

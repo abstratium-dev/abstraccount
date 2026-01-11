@@ -23,10 +23,6 @@ describe('HeaderComponent', () => {
     fixture = TestBed.createComponent(HeaderComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
-    
-    // Mock the /public/config request that's called in ngOnInit
-    const configReq = httpMock.expectOne('/public/config');
-    configReq.flush({ signupAllowed: false, allowNativeSignin: false, sessionTimeoutSeconds: 900 });
   });
 
   afterEach(() => {

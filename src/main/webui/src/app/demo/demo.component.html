@@ -1,238 +1,57 @@
 <div class="container">
   <div class="page-header">
-    <h1>User Accounts</h1>
-    <button *ngIf="hasManageAccountsRole() && !loading" id="add-account-button" class="btn-add" (click)="toggleAddAccountForm()"
-      [disabled]="formSubmitting">
-      {{ showAddAccountForm ? 'Cancel' : '+ Add Account' }}
+    <h1>Demo Items</h1>
+    <button class="btn-add" (click)="toggleAddForm()" [disabled]="formSubmitting">
+      {{ showAddForm ? 'Cancel' : '+ Add Demo Item' }}
     </button>
   </div>
   
-  <div *ngIf="loading" class="loading">
-    <p>Loading accounts...</p>
+  <div *ngIf="loading()" class="loading">
+    <p>Loading demo items...</p>
   </div>
 
-  <div *ngIf="error" class="error-box">
-    <p>{{ error }}</p>
-    <button (click)="loadAccounts()">Retry</button>
+  <div *ngIf="error()" class="error-box">
+    <p>{{ error() }}</p>
+    <button (click)="onRetry()">Retry</button>
   </div>
 
-  <!-- Add Account Form -->
-  <div *ngIf="showAddAccountForm && hasManageAccountsRole()" class="form-container">
-    <h2>Create New Account</h2>
+  <!-- Add Demo Form -->
+  <div *ngIf="showAddForm" class="form-container">
+    <h2>Create New Demo Item</h2>
 
-    <form (ngSubmit)="onSubmitAddAccount()">
+    <form (ngSubmit)="onSubmitAdd()">
       <div *ngIf="formError" class="error-box">
         {{ formError }}
       </div>
 
-      <div *ngIf="!showInviteLink">
-        <div class="form-group">
-          <label for="email">Email *</label>
-          <input type="email" id="email" name="email" [(ngModel)]="accountFormData.email" required
-            placeholder="user@example.com" [disabled]="formSubmitting">
-          <small class="form-hint">Email address for the new account</small>
-        </div>
-
-        <div class="form-group">
-          <label for="authProvider">Authorisation Provider *</label>
-          <select id="authProvider" name="authProvider" [(ngModel)]="accountFormData.authProvider" required
-            [disabled]="formSubmitting">
-            <option value="">Select a provider</option>
-            <option value="native">Native (Username/Password)</option>
-            <option value="google">Google</option>
-          </select>
-          <small class="form-hint">Authentication provider for this account</small>
-        </div>
-
-        <div class="form-group" *ngIf="accountFormData.authProvider === 'native'">
-          <label for="name">Full Name *</label>
-          <input type="text" id="name" name="name" [(ngModel)]="accountFormData.name" required
-            placeholder="John Doe" [disabled]="formSubmitting">
-          <small class="form-hint">Full name of the user</small>
-        </div>
-
-        <div class="form-actions">
-          <button type="submit" id="create-account-button" class="btn-primary" [disabled]="formSubmitting">
-            {{ formSubmitting ? 'Creating...' : 'Create Account' }}
-          </button>
-          <button type="button" id="cancel-account-button" class="btn-secondary" (click)="toggleAddAccountForm()" [disabled]="formSubmitting">
-            Cancel
-          </button>
-        </div>
+      <div class="form-actions">
+        <button type="submit" class="btn-primary" [disabled]="formSubmitting">
+          {{ formSubmitting ? 'Creating...' : 'Create Demo Item' }}
+        </button>
+        <button type="button" class="btn-secondary" (click)="toggleAddForm()" [disabled]="formSubmitting">
+          Cancel
+        </button>
       </div>
     </form>
-
-    <!-- Invite Link Display -->
-    <div *ngIf="showInviteLink" class="invite-link-container">
-      <h3>Account Created Successfully!</h3>
-      <div class="account-details">
-        <p><strong>Email:</strong> {{ accountFormData.email }}</p>
-        <p><strong>Authorisation Provider:</strong> {{ accountFormData.authProvider === 'native' ? 'Native (Username/Password)' : accountFormData.authProvider === 'google' ? 'Google' : accountFormData.authProvider }}</p>
-      </div>
-      <p>Share this invite link with the user:</p>
-      <div class="invite-link-box">
-        <input type="text" [value]="inviteLink" readonly id="invite-link-input" class="invite-link-input">
-        <button type="button" class="btn-primary" (click)="copyInviteLink()">
-          📋 Copy Link
-        </button>
-      </div>
-      <p class="invite-hint">
-        <strong>Important:</strong> This link contains the initial credentials. 
-        <span *ngIf="accountFormData.authProvider === 'native'">
-          The user will be required to change their password on first sign-in.
-        </span>
-      </p>
-      <div class="form-actions">
-        <button type="button" class="btn-primary" (click)="closeInviteLink()">
-          Done
-        </button>
-      </div>
-    </div>
   </div>
 
-  <div *ngIf="!loading && !error && accounts.length === 0" class="info-message">
-    <p>No accounts found.</p>
+  <div *ngIf="!loading() && !error() && demos().length === 0" class="info-message">
+    <p>No demo items found.</p>
   </div>
 
-  <div *ngIf="!loading && !error && accounts.length > 0">
-    <div *ngIf="getAdminCount() > 0 && hasAdminRole()" class="notice-box" [ngClass]="getAdminCount() === 1 ? 'notice-success' : 'notice-info'">
-      <p *ngIf="getAdminCount() === 1 && hasAdminRole()">
-        ✓ You are the first and only admin
-      </p>
-      <p *ngIf="getAdminCount() > 1 && hasAdminRole()">
-        ⚠ Multiple admin accounts detected ({{ getAdminCount() }} admins)
-      </p>
-    </div>
-
-    <!-- Filter Section -->
-    <url-filter
-      id="account-filter"
-      [placeholder]="'Filter by name, email, role, or provider...'"
-      [itemCount]="filteredAccounts.length"
-      [totalCount]="accounts.length"
-      [itemLabel]="'accounts'"
-      (filterChange)="onFilterChange($event)">
-    </url-filter>
-
-    <!-- No Results Message -->
-    <div *ngIf="filteredAccounts.length === 0" class="info-message">
-      <p>No accounts match your filter criteria.</p>
-    </div>
-
-    <!-- Account Tiles -->
-    <div class="tile-grid" *ngIf="filteredAccounts.length > 0">
-      <div class="tile" [class.highlighted-tile]="isCurrentUser(account.id)" *ngFor="let account of filteredAccounts">
+  <div *ngIf="!loading() && !error() && demos().length > 0">
+    <div class="demo-list">
+      <div class="tile" *ngFor="let demo of demos()">
         <div class="tile-header">
-          <div class="tile-identity">
-            <img *ngIf="account.picture" [src]="account.picture" [alt]="account.name" class="tile-picture">
-            <div class="tile-info">
-              <h3 class="tile-title">{{ account.name }}</h3>
-              <p class="tile-subtitle">{{ account.email }}</p>
-            </div>
+          <div class="tile-info">
+            <h3 class="tile-title">Demo Item</h3>
+            <p class="tile-subtitle">ID: {{ demo.id }}</p>
           </div>
-          <div class="tile-header-actions">
-            <div class="tile-badges">
-              <span class="badge" [ngClass]="getProviderBadgeClass(account.authProvider)">
-                {{ account.authProvider }}
-              </span>
-              <span class="badge" [ngClass]="account.emailVerified ? 'badge-verified' : 'badge-unverified'">
-                {{ account.emailVerified ? '✓ Verified' : '✗ Not Verified' }}
-              </span>
-            </div>
-            <button *ngIf="hasManageAccountsRole()" 
-                    class="btn-icon btn-icon-danger" 
-                    (click)="deleteAccount(account)" 
-                    title="Delete account">
-              🗑️
-            </button>
-          </div>
-        </div>
-
-        <div class="tile-details">
-          <div class="tile-detail-item">
-            <span class="label">Created:</span>
-            <span class="value">{{ account.createdAt | date:'medium' }}</span>
-          </div>
-        </div>
-
-        <!-- Roles Section -->
-        <div class="sub-tiles-section">
-          <div class="sub-tiles-header">
-            <h4 class="sub-tiles-title">Roles</h4>
-            <button *ngIf="hasManageAccountsRole() && addingRoleForAccountId !== account.id"
-                    class="btn-add-small"
-                    (click)="startAddRole(account.id)"
-                    [disabled]="addingRoleForAccountId !== null">
-              + Add Role
-            </button>
-          </div>
-
-          <!-- Add Role Form -->
-          <div *ngIf="addingRoleForAccountId === account.id" class="form-container" style="margin-bottom: 1rem;">
-            <form (ngSubmit)="onSubmitRole(account.id)">
-              <div *ngIf="roleFormError" class="error-box">
-                {{ roleFormError }}
-              </div>
-
-              <div class="form-group">
-                <label for="clientId-{{account.id}}">Client *</label>
-                <select id="clientId-{{account.id}}"
-                        name="clientId"
-                        [(ngModel)]="roleFormData.clientId"
-                        required
-                        [disabled]="roleFormSubmitting">
-                  <option value="">Select a client</option>
-                  <option *ngFor="let client of clients" [value]="client.clientId">
-                    {{ client.clientName }} ({{ client.clientId }})
-                  </option>
-                </select>
-              </div>
-
-              <div class="form-group">
-                <label for="role-{{account.id}}">Role * (alphanumeric and hyphens only)</label>
-                <input type="text"
-                       id="role-{{account.id}}"
-                       name="role"
-                       [(ngModel)]="roleFormData.role"
-                       required
-                       pattern="[a-zA-Z0-9\-]+"
-                       placeholder="e.g., admin, user, manager"
-                       [disabled]="roleFormSubmitting">
-                <small class="form-hint">Role name for this account on the selected client</small>
-              </div>
-
-              <div class="form-actions">
-                <button type="submit" class="btn-primary" [disabled]="roleFormSubmitting">
-                  {{ roleFormSubmitting ? 'Adding...' : 'Add Role' }}
-                </button>
-                <button type="button" class="btn-secondary" (click)="cancelAddRole()" [disabled]="roleFormSubmitting">
-                  Cancel
-                </button>
-              </div>
-            </form>
-          </div>
-
-          <div *ngIf="account.roles && account.roles.length > 0" class="sub-tiles">
-            <div class="sub-tile" *ngFor="let role of account.roles">
-              <div class="sub-tile-header">
-                <div class="sub-tile-title">
-                  <a (click)="filterByRole(role.role)" class="role-link">{{ role.role }}</a>
-                </div>
-                <button *ngIf="hasManageAccountsRole()"
-                        class="btn-icon btn-icon-danger"
-                        (click)="deleteRole(account.id, role.clientId, role.role)"
-                        title="Delete role">
-                  🗑️
-                </button>
-              </div>
-              <div class="sub-tile-content">
-                Client: <a [routerLink]="['/clients']" [queryParams]="{filter: role.clientId}" class="client-link">{{ role.clientId }}</a>
-              </div>
-            </div>
-          </div>
-          <div *ngIf="(!account.roles || account.roles.length === 0) && addingRoleForAccountId !== account.id" class="sub-tiles-empty">
-            No roles assigned
-          </div>
+          <button class="btn-icon btn-icon-danger" 
+                  (click)="deleteDemo(demo)" 
+                  title="Delete demo item">
+            🗑️
+          </button>
         </div>
       </div>
     </div>
