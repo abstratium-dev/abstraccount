@@ -51,7 +51,7 @@ docker run -d \
 # create the database and user
 docker run -it --rm --network abstratium mysql mysql -h abstratium-mysql --port 3306 -u root -psecret
 
-TODO change `abstracore` to the actual database name
+TODO change `abstracore` to the actual database name, in all of the statements below
 
 DROP USER IF EXISTS 'abstracore'@'%';
 

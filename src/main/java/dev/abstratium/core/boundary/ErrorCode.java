@@ -5,9 +5,6 @@ import java.net.URI;
 /**
  * Enumeration of all error codes used in the application.
  * Each error code maps to a unique URI that can be looked up in the wiki for detailed documentation.
- * 
- * The URI follows the pattern: https://wiki.abstratium.dev/errors/{code}
- * where {code} is a unique identifier for the error type.
  */
 public enum ErrorCode {
     
@@ -38,7 +35,6 @@ public enum ErrorCode {
     
     private final String code;
     private final String description;
-    private static final String WIKI_BASE_URL = "https://wiki.abstratium.dev/errors/";
     
     ErrorCode(String code, String description) {
         this.code = code;
@@ -64,7 +60,7 @@ public enum ErrorCode {
      * This URI is used as the 'type' field in RFC 7807 Problem Details.
      */
     public URI getTypeUri() {
-        return URI.create(WIKI_BASE_URL + code);
+        return URI.create(code);
     }
     
     @Override
