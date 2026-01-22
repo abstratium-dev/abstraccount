@@ -93,12 +93,11 @@ Run the following command to start Quarkus in Dev Mode with the Angular live-rel
 ```bash
 ./mvnw quarkus:dev
 ```
-
-Backend: http://localhost:8080
+Backend: http://localhost:808x
 
 Frontend: Automatically proxied by Quinoa
 
-Dev UI: http://localhost:8080/q/dev
+Dev UI: http://localhost:808x/q/dev
 
 ## 📝 Governance
 
@@ -159,6 +158,7 @@ Background Color: #5c6bc0
 
 # Things to do when creating a new project
 
+- [ ] - decide on a new port number for this service and change it in `proxy.conf.json` and all the TODO comments that tell you to do that and all the places that use `808x` and `900x` and `420x`.
 - [ ] - Use the prompt below, to get an LLM to do this
 - [ ] - Search for TODO and fix
 - [ ] - Search for core and fix, e.g. in `pom.xml`

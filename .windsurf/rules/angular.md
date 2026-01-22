@@ -12,3 +12,5 @@ It is the controller which should generally make backend calls. Exceptions to th
 Whenever making changes, remember to make sure that tests are updated and test them using `ng test`. add the `--watch=false` flag so that the execution doesn't hang while you wait for the results.
 
 code coverage is measured using `ng test --code-coverage --watch=false` - goals are 80% statement coverage and 70% branch coverage.
+
+if you are generating forms, use https://html.spec.whatwg.org/multipage/form-control-infrastructure.html#autofill to make the form use values that a user has used before.

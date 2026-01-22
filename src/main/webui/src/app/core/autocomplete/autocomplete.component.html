@@ -1,0 +1,56 @@
+<div class="autocomplete-container">
+  <div class="input-wrapper">
+    <input
+      type="text"
+      [value]="searchTerm()"
+      (input)="onInputChange($any($event.target).value)"
+      (focus)="onInputFocus()"
+      (blur)="onInputBlur()"
+      (keydown)="onKeyDown($event)"
+      [placeholder]="placeholder"
+      [required]="required"
+      class="autocomplete-input"
+      autocomplete="off"
+    />
+    <button
+      *ngIf="selectedValue()"
+      type="button"
+      class="clear-button"
+      (click)="clearSelection()"
+      aria-label="Clear selection"
+    >
+      ✕
+    </button>
+  </div>
+
+  <div class="dropdown" *ngIf="showDropdown()">
+    <div class="dropdown-content">
+      <!-- Loading state -->
+      <div *ngIf="isLoading()" class="dropdown-item loading">
+        {{ searchingText }}
+      </div>
+
+      <!-- No results -->
+      <div *ngIf="!isLoading() && options().length === 0 && searchTerm().length >= minSearchLength" class="dropdown-item no-results">
+        {{ noResultsText }}
+      </div>
+
+      <!-- Search prompt -->
+      <div *ngIf="!isLoading() && searchTerm().length > 0 && searchTerm().length < minSearchLength" class="dropdown-item hint">
+        Type at least {{ minSearchLength }} characters to search
+      </div>
+
+      <!-- Options list -->
+      <div
+        *ngFor="let option of options(); let i = index"
+        class="dropdown-item"
+        [class.highlighted]="i === highlightedIndex()"
+        [class.selected]="option.value === selectedValue()"
+        (mousedown)="selectOption(option)"
+        (mouseenter)="highlightedIndex.set(i)"
+      >
+        {{ option.label }}
+      </div>
+    </div>
+  </div>
+</div>

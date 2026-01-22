@@ -40,7 +40,7 @@ Shell script that starts the Quarkus application for e2e testing. It:
 ### `BASE_URL`
 Controls whether Playwright starts the server automatically:
 - **Not set**: Assumes server is already running (manual testing mode)
-- **Set to `http://localhost:8080`**: Playwright will execute `start-e2e-server.sh` to start the server
+- **Set to `http://localhost:808x`**: Playwright will execute `start-e2e-server.sh` to start the server
 
 ## Running Tests
 
@@ -78,7 +78,7 @@ The `e2e` profile runs both test suites sequentially to ensure complete coverage
 ### `playwright.config.ts`
 Main Playwright configuration file. Key settings:
 - `testDir`: Dynamically set based on `ALLOW_SIGNUP` env var
-- `baseURL`: Defaults to `http://localhost:8080`
+- `baseURL`: Defaults to `http://localhost:808x`
 - `webServer`: Conditionally starts server when `BASE_URL` is set
 - `workers: 1`: Tests run sequentially (not in parallel) to avoid database conflicts
 - `forbidOnly`: Prevents `test.only` from being committed to CI
@@ -162,7 +162,7 @@ npx playwright show-report
 ### `ERR_CONNECTION_REFUSED`
 The server is not running. Either:
 - Start Quarkus manually with `mvn quarkus:dev`, or
-- Set `BASE_URL=http://localhost:8080` to let Playwright start the server
+- Set `BASE_URL=http://localhost:808x` to let Playwright start the server
 
 ### Test timeout waiting for elements
 The Angular application may not have loaded yet. Ensure you're waiting for elements with appropriate timeouts:
@@ -170,7 +170,7 @@ The Angular application may not have loaded yet. Ensure you're waiting for eleme
 await page.locator("#username").waitFor({ state: 'visible', timeout: 10000 });
 ```
 
-### Port 8080 already in use
+### Port 808x already in use
 Another instance of Quarkus is running. Stop it before running e2e tests via Maven.
 
 ## test.only

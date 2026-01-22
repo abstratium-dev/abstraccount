@@ -148,6 +148,10 @@
             <version>3.9.2</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-opentelemetry</artifactId>
+        </dependency>
     </dependencies>
 
     <build>
@@ -219,7 +223,7 @@
                 2. Run unit tests
                 3. Package the JAR
                 4. Start Quarkus with H2 via start-e2e-server.sh
-                5. Run Playwright tests against http://localhost:8080
+                5. Run Playwright tests against http://localhost:808x
                 6. Stop the server
             -->
             <plugin>
@@ -257,7 +261,7 @@
                                 <argument>test</argument>
                             </arguments>
                             <environmentVariables>
-                                <BASE_URL>http://localhost:8080</BASE_URL>
+                                <BASE_URL>http://localhost:808x</BASE_URL>
                             </environmentVariables>
                         </configuration>
                     </execution>
@@ -314,7 +318,7 @@
                                         <argument>test</argument>
                                     </arguments>
                                     <environmentVariables>
-                                        <BASE_URL>http://localhost:8080</BASE_URL>
+                                        <BASE_URL>http://localhost:808x</BASE_URL>
                                     </environmentVariables>
                                 </configuration>
                             </execution>

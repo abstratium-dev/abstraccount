@@ -19,13 +19,13 @@ class LoginResourceTest {
     @TestSecurity(user = "testuser@example.com", roles = {})
     void testLoginRedirectsToHomePage() {
         // When authenticated (via @TestSecurity), the endpoint should redirect to home page
-        // The Location header will be an absolute URI (e.g., http://localhost:8081/)
+        // The Location header will be an absolute URI (e.g., http://localhost:808x/)
         RestAssured.given()
             .redirects().follow(false)
             .when()
             .get("/api/auth/login")
             .then()
             .statusCode(303)
-            .header("Location", equalTo("http://localhost:8081/"));
+            .header("Location", equalTo("http://localhost:808x/"));
     }
 }

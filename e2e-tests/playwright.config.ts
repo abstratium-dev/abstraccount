@@ -22,10 +22,10 @@ console.log("ALLOW_SIGNUP: ", process.env.ALLOW_SIGNUP);
  * 
  * Usage:
  * - Manual testing: Run `mvn quarkus:dev` then `npx playwright test`
- *   Tests will use http://localhost:8080 (Quinoa Angular dev server)
+ *   Tests will use http://localhost:808x (Quinoa Angular dev server)
  * 
  * - Maven integration: Run `mvn verify -Pe2e`
- *   Tests will use http://localhost:8080 (built Quarkus jar with H2 and static Angular files)
+ *   Tests will use http://localhost:808x (built Quarkus jar with H2 and static Angular files)
  *   The BASE_URL environment variable is set by Maven to trigger jar startup
  *   Tests run twice: first with ALLOW_SIGNUP=false, then with ALLOW_SIGNUP=true
  * 
@@ -46,7 +46,7 @@ export default defineConfig({
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
     /* Base URL to use in actions like `await page.goto('')`. */
-    baseURL: process.env.BASE_URL || 'http://localhost:8080',
+    baseURL: process.env.BASE_URL || 'http://localhost:808x',
 
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',
@@ -97,7 +97,7 @@ export default defineConfig({
   webServer: process.env.BASE_URL ? {
     // When BASE_URL is set (Maven integration), start the built jar
     command: './start-e2e-server.sh',
-    url: 'http://localhost:8080/m/health',
+    url: 'http://localhost:808x/m/health',
     reuseExistingServer: !process.env.CI,
     timeout: 12000,
     stdout: 'pipe',

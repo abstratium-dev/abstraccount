@@ -64,8 +64,8 @@ _Replace all `TODO_...` values with the values generated above.
    docker run -d \
      --name TODO \
      --network your-network \
-     -p 127.0.0.1:41080:8080 \
-     -p 127.0.0.1:9002:9002 \
+     -p 127.0.0.1:4108x:808x \
+     -p 127.0.0.1:900x:900x \
      -e QUARKUS_DATASOURCE_JDBC_URL="jdbc:mysql://your-mysql-host:3306/TODO" \
      -e QUARKUS_DATASOURCE_USERNAME="TODO_YOUR_USERNAME" \
      -e QUARKUS_DATASOURCE_PASSWORD="TODO_YOUR_SECURE_PASSWORD" \
@@ -87,13 +87,13 @@ _Replace all `TODO_...` values with the values generated above.
    ```bash
    docker ps
    docker logs TODO
-   curl http://localhost:41080/m/health
-   curl http://localhost:41080/m/info
+   curl http://localhost:4108x/m/health
+   curl http://localhost:4108x/m/info
    ```
 
 4. **Access the application**:
-   - Main application: http://localhost:41080
-   - Management interface: http://localhost:9002/m/info
+   - Main application: http://localhost:4108x
+   - Management interface: http://localhost:900x/m/info
 
 ### Prerequisites
 
@@ -112,7 +112,7 @@ TODO
 
 ## Account and Role Management
 
-This component requires that users can authenticate using an oauth authorization server. That requires that an administrator signs into something like `abstratium-abstrauth` first, to create the oauth2 client. The callback url should be `http://localhost:8080/oauth/callback` and one for the production environment, also ending in `/oauth/callback`. Use the `client_id` and `client_secret` that it provides, to set the values of the environment variables above, so that users can sign in.
+This component requires that users can authenticate using an oauth authorization server. That requires that an administrator signs into something like `abstratium-abstrauth` first, to create the oauth2 client. The callback url should be `http://localhost:808x/oauth/callback` and one for the production environment, also ending in `/oauth/callback`. Use the `client_id` and `client_secret` that it provides, to set the values of the environment variables above, so that users can sign in.
 
 ## TODO
 
@@ -122,11 +122,11 @@ TODO describe other functionality here.
 
 This project provides several endpoints for monitoring:
 
-- **Health Check**: `http://localhost:9002/m/health`
+- **Health Check**: `http://localhost:900x/m/health`
   - Returns application health status
   - Includes database connectivity check
 
-- **Info Endpoint**: `http://localhost:9002/m/info`
+- **Info Endpoint**: `http://localhost:900x/m/info`
   - Returns build information, version, and configuration
   - Useful for verifying deployment
 

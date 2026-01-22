@@ -32,7 +32,7 @@ This ensures every commit has a unique, trackable timestamp.
 The baseline timestamp is exposed at the public config endpoint, which requires no authentication:
 
 ```bash
-curl http://localhost:8080/public/config
+curl http://localhost:808x/public/config
 ```
 
 Response:
@@ -48,7 +48,7 @@ Response:
 The timestamp is also available through the Quarkus management interface:
 
 ```bash
-curl http://localhost:9001/q/info
+curl http://localhost:808x/q/info
 ```
 
 Response:
