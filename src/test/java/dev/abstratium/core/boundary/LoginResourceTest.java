@@ -26,6 +26,7 @@ class LoginResourceTest {
             .get("/api/auth/login")
             .then()
             .statusCode(303)
-            .header("Location", equalTo("http://localhost:808x/"));
+            // TODO change port number to 808x
+            .header("Location", equalTo("http://localhost:8081/"));
     }
 }

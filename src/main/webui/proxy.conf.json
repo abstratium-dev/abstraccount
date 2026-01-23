@@ -1,16 +1,16 @@
 {
   "/oauth": {
-    "target": "http://localhost:808x",
+    "target": "http://localhost:8081",
     "secure": false,
     "logLevel": "debug"
   },
   "/api": {
-    "target": "http://localhost:808x",
+    "target": "http://localhost:8081",
     "secure": false,
     "logLevel": "debug"
   },
   "/public": {
-    "target": "http://localhost:808x",
+    "target": "http://localhost:8081",
     "secure": false,
     "logLevel": "debug"
   }

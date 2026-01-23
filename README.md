@@ -158,7 +158,15 @@ Background Color: #5c6bc0
 
 # Things to do when creating a new project
 
-- [ ] - decide on a new port number for this service and change it in `proxy.conf.json` and all the TODO comments that tell you to do that and all the places that use `808x` and `900x` and `420x`.
+- [ ] - decide on a new port number for this service and change it
+  - in `proxy.conf.json`
+  - and all the TODO comments that tell you to do that 
+  - and all the places that use 
+    - `808x`
+    - `900x`
+    - `420x`
+  - in `package.json` of `src/main/webui` where it tells `ng serve` which port number to use
+    - `"start": "ng serve --proxy-config proxy.conf.json --port=4201",` <<< THERE!
 - [ ] - Use the prompt below, to get an LLM to do this
 - [ ] - Search for TODO and fix
 - [ ] - Search for core and fix, e.g. in `pom.xml`
