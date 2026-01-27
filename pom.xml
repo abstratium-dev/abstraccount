@@ -243,7 +243,7 @@
                             <workingDirectory>${project.basedir}/src/main/webui</workingDirectory>
                             <arguments>
                                 <argument>-c</argument>
-                                <argument>source ~/.nvm/nvm.sh &amp;&amp; nvm use v24.11.1 &amp;&amp; npm test -- --browsers=ChromeHeadless --watch=false</argument>
+                                <argument>source ~/.nvm/nvm.sh &amp;&amp; nvm use v24.11.1 &amp;&amp; npm test -- --browsers=ChromeHeadless --code-coverage --watch=false</argument>
                             </arguments>
                         </configuration>
                     </execution>
