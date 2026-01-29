@@ -7,7 +7,6 @@ import { Router } from '@angular/router';
 
 export const CLIENT_ID = 'abstratium-abstracore'; // TODO set the client id properly
 export const ISSUER = 'https://abstrauth.abstratium.dev';
-export const ROLE_USER = CLIENT_ID + '_user';
 
 export interface Token {
     sub: string; // id of the user
