@@ -111,6 +111,35 @@
   color: #0c5460;
 }
 
+.toast-action {
+  background: transparent;
+  border: none;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  margin-left: 0.5rem;
+  border-radius: 4px;
+  text-decoration: underline;
+  transition: background-color 0.2s;
+}
+
+.toast-success .toast-action {
+  color: #0d4a1f;
+}
+
+.toast-error .toast-action {
+  color: #5a1419;
+}
+
+.toast-info .toast-action {
+  color: #084248;
+}
+
+.toast-action:hover {
+  background-color: rgba(0, 0, 0, 0.1);
+}
+
 .toast-close {
   background: transparent;
   border: none;

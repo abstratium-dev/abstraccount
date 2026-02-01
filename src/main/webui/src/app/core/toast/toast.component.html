@@ -11,6 +11,12 @@
         <span *ngIf="toast.type === 'info'">ℹ</span>
       </span>
       <span class="toast-message">{{ toast.message }}</span>
+      <button *ngIf="toast.action" 
+              class="toast-action" 
+              (click)="executeAction(toast)"
+              [attr.data-partner-number]="toast.action.label">
+        {{ toast.action.label }}
+      </button>
     </div>
     <button class="toast-close" (click)="close(toast.id)" aria-label="Close">×</button>
   </div>

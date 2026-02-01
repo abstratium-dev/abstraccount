@@ -1,10 +1,16 @@
 import { Injectable, signal, Signal } from '@angular/core';
 
+export interface ToastAction {
+  label: string;
+  callback: () => void;
+}
+
 export interface Toast {
   id: number;
   message: string;
   type: 'success' | 'error' | 'info';
   duration: number;
+  action?: ToastAction;
 }
 
 @Injectable({
@@ -16,9 +22,9 @@ export class ToastService {
 
   toasts$: Signal<Toast[]> = this.toasts.asReadonly();
 
-  show(message: string, type: 'success' | 'error' | 'info' = 'info', duration: number = 5000): void {
+  show(message: string, type: 'success' | 'error' | 'info' = 'info', duration: number = 5000, action?: ToastAction): void {
     const id = this.nextId++;
-    const toast: Toast = { id, message, type, duration };
+    const toast: Toast = { id, message, type, duration, action };
     
     this.toasts.update(toasts => [...toasts, toast]);
 
@@ -29,8 +35,8 @@ export class ToastService {
     }
   }
 
-  success(message: string, duration: number = 5000): void {
-    this.show(message, 'success', duration);
+  success(message: string, duration: number = 5000, action?: ToastAction): void {
+    this.show(message, 'success', duration, action);
   }
 
   error(message: string, duration: number = 7000): void {
