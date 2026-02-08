@@ -144,7 +144,7 @@ quarkus update
 
 3. Update node/npm using nvm.
 Do this if Angular needs a new version.
-Search for nvm in all the docs in this project and update which version is used, e.g. v24.11.1
+Search for `nvm` in all the docs in this project and update which version is used, e.g. `v24.11.1`
 
 4. Update Angular:
 ```bash
@@ -157,14 +157,28 @@ ng update @angular/cli @angular/core
 
 5. Check Github for security problems by signing in and viewing the problems here: https://github.com/abstratium-dev/TODO/security/dependabot and https://github.com/abstratium-dev/TODO/security/code-scanning
 
-6. Upgrading `nvm` means searching all places that use `v24.11.1` and updating it to the new version. Use `nvm` itself to install the latest stable version, but check Angular documentation for what a suitable version is.
-
 # Issues with Webkit
 
 For some strange reason, cookies aren't properly transported when testing localhost with Webkit (e.g. e2e tests, but also manual browser tests). If you sign out and try and sign in again and it doesn't pass the cookies properly and you remain on the sign in page.
 
 The application works fine in production, so just don't test with Webkit locally.
 
-# Building
+# Building and Releasing
 
-See [NATIVE_IMAGE_BUILD.md](NATIVE_IMAGE_BUILD.md) for instructions on building a native image.
+Ensure everything is up to date (see upgrading above).
+
+Ensure docs and especially USER_GUIDE.md is up to date.
+
+Ensure that `mvn verify` is successful.
+
+Start `quarkus dev`
+
+(Alternatively, don't start quarkus or the client example, and set `BASE_URL=http://localhost:808x` in the command line after ALLOW_SIGNUP)
+
+Run `npx playwright test --ui` in the `e2e-tests` directory.
+
+Manually run all the tests - this tests the e2e tests.
+
+(Don't run `mvn verify -Pe2e` since it's a little flakey.)
+
+If that all works, see [NATIVE_IMAGE_BUILD.md](NATIVE_IMAGE_BUILD.md) for instructions on building a native image and releasing it.
