@@ -13,24 +13,24 @@ This script will:
 2. Extract the build version from `application.properties`
 3. Build the Docker image with both version-specific and `latest` tags
 
-Then run the container (make sure to source your env file first: `source /w/abstratium-TODO.env`) as shown below, in order to test it. For a production deployment, see [../USER_GUIDE.md](USER_GUIDE.md).
+Then run the container (make sure to source your env file first: `source /w/abstratium-abstraccount.env`) as shown below, in order to test it. For a production deployment, see [../USER_GUIDE.md](USER_GUIDE.md).
 
-Note: The `latest` tag always refers to the most recently built and pushed image. You can also use a specific version tag (e.g., `ghcr.io/abstratium-dev/TODO:20251223212503`).
+Note: The `latest` tag always refers to the most recently built and pushed image. You can also use a specific version tag (e.g., `ghcr.io/abstratium-dev/abstraccount:20251223212503`).
 
 ```bash
 docker run -it --rm \
-  -p 127.0.0.1:808x:808x \
-  -p 127.0.0.1:900x:900x \
+  -p 127.0.0.1:8083:8083 \
+  -p 127.0.0.1:9005:9005 \
   --network abstratium \
-  -e QUARKUS_DATASOURCE_JDBC_URL=jdbc:mysql://abstratium-mysql:3306/TODO \
-  -e QUARKUS_DATASOURCE_USERNAME=TODO \
+  -e QUARKUS_DATASOURCE_JDBC_URL=jdbc:mysql://abstratium-mysql:3306/abstraccount \
+  -e QUARKUS_DATASOURCE_USERNAME=abstraccount \
   -e QUARKUS_DATASOURCE_PASSWORD=secret \
   -e ABSTRATIUM_CLIENT_SECRET="${ABSTRATIUM_CLIENT_SECRET}" \
   -e CSRF_TOKEN_SIGNATURE_KEY="KU/PESqYGdsE0psW7aOaXF/tszvDKCecFo/1u3tSKoQmo4YZfEjZNvUppot1svY1Yj9oub4GSy/5mueqfRlKOw==" \
   -e COOKIE_ENCRYPTION_SECRET="dnde2xhez89RGV0nJHqSR8Khu3SFCE6fxqCgDzu9Hng=" \
-  -e OAUTH_REDIRECT_URI="http://localhost:808x/oauth/callback" \
+  -e OAUTH_REDIRECT_URI="http://localhost:8083/oauth/callback" \
   -e QUARKUS_MANAGEMENT_HOST=0.0.0.0 \
-  ghcr.io/abstratium-dev/TODO:latest
+  ghcr.io/abstratium-dev/abstraccount:latest
 ```
 
 e2e tests will work against this running image. see dev readme for tips on how to run them manually.
@@ -53,7 +53,7 @@ Export it as follows:
 export CR_PAT=your_token_here
 ```
 
-(alternatively add it to `/w/abstratium-TODO.env`)
+(alternatively add it to `/w/abstratium-abstraccount.env`)
 
 Run the script named `./push-docker-image.sh`, which also tags the source code and pushes it to GitHub.
 

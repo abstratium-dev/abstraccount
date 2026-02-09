@@ -108,7 +108,7 @@ sequenceDiagram
     OIDC->>Browser: 302 Redirect to Auth Server
     
     Note over Browser,Auth: Authorization Request
-    Browser->>Auth: GET /oauth2/authorize?<br/>response_type=code<br/>&client_id=abstratium-abstracore<br/>&redirect_uri=http://localhost:808x/oauth/callback<br/>&state=[random]<br/>&code_challenge=[hash]<br/>&code_challenge_method=S256<br/>&scope=openid+profile+email
+    Browser->>Auth: GET /oauth2/authorize?<br/>response_type=code<br/>&client_id=abstratium-abstracore<br/>&redirect_uri=http://localhost:8083/oauth/callback<br/>&state=[random]<br/>&code_challenge=[hash]<br/>&code_challenge_method=S256<br/>&scope=openid+profile+email
     
     Auth->>Browser: Show login page
     Browser->>Auth: User authenticates
@@ -120,7 +120,7 @@ sequenceDiagram
     Note over Browser: Sends q_auth_[state] cookie
     
     OIDC->>OIDC: Validate state cookie matches
-    OIDC->>Auth: POST /oauth2/token<br/>grant_type=authorization_code<br/>&code=[auth_code]<br/>&redirect_uri=http://localhost:808x/oauth/callback<br/>&code_verifier=[verifier]<br/>Authorization: Basic [client_id:secret]
+    OIDC->>Auth: POST /oauth2/token<br/>grant_type=authorization_code<br/>&code=[auth_code]<br/>&redirect_uri=http://localhost:8083/oauth/callback<br/>&code_verifier=[verifier]<br/>Authorization: Basic [client_id:secret]
     
     Auth->>Auth: Validate code & verifier
     Auth->>OIDC: 200 OK<br/>{access_token, id_token}
@@ -174,8 +174,8 @@ window.location.href = '/api/auth/login';
 ```
 https://auth.abstratium.dev/oauth2/authorize?
   response_type=code
-  &client_id=abstratium-abstracore
-  &redirect_uri=http://localhost:808x/oauth/callback
+  &client_id=abstratium-abstraccount
+  &redirect_uri=http://localhost:8083/oauth/callback
   &state=9011d874-320f-4c83-8c64-cad203ec13ec
   &code_challenge=yWua0iJq5xA54UyURCz4S9W9XFxIw9VfanSv8t9rGR8
   &code_challenge_method=S256
@@ -479,7 +479,7 @@ Restricts which origins can make API requests.
 
 ```properties
 quarkus.http.cors.enabled=true
-quarkus.http.cors.origins=http://localhost:4200,http://localhost:808x
+quarkus.http.cors.origins=http://localhost:4203,http://localhost:8083
 quarkus.http.cors.access-control-allow-credentials=true
 ```
 
@@ -553,7 +553,7 @@ quarkus.oidc.token-state-manager.encryption-required=true
 
 #### Issue: 403 Forbidden on API calls
 
-**Cause:** Role mismatch - JWT has `abstratium-TODO_user` but code checks for `abstratium-TODO_other`.
+**Cause:** Role mismatch - JWT has `abstratium-abstraccount_user` but code checks for a different role.
 
 **Solution:** Update `Roles.CLIENT_ID` to match actual OIDC client ID.
 

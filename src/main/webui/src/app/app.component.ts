@@ -12,5 +12,5 @@ import { ConfirmDialogComponent } from './core/confirm-dialog/confirm-dialog.com
   styleUrl: './app.component.scss'
 })
 export class AppComponent {
-  title = 'TODO';
+  title = 'abstraccount';
 }

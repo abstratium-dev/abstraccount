@@ -12,13 +12,14 @@ These TODOs are to be resolved by the developer, NOT THE LLM.
 
 ## Tomorrow
 
+- [ ] - Update README.md with project-specific information
+- [ ] - Update DATABASE.md with project-specific information
+- [ ] - Search for TODO and fix
+- [ ] - Create favicon, store it in root as zip and put it in `src/main/webui/public`
+- [ ] - Replace `src/main/webui/src/app/demo` with project-specific components
+- [ ] - Update database migration files
+- [ ] - Update clear-test-db.sh
+
 
 ## Later (not yet necessary for initial release)
 
-
-# TODOs for Abstracore (to be deleted downstream)
-
-- add a banner for non-prod envs with a custom string to warn users that they are not using prod
-- add observability (logging, metrics, tracing)
-- fix tracking of the url in the auth service, so that if the user clicks or enters a link, they are redirected, regardless of whether they are already signed in, or need to sign in
-- allow other addresses than localhost to read management/metrics

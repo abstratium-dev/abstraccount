@@ -28,8 +28,8 @@ echo $CR_PAT | docker login ghcr.io -u abstratium-dev --password-stdin
 
 # Push the image with the version tag and latest tag
 echo "Pushing Docker images..."
-docker push ghcr.io/abstratium-dev/TODO:$VERSION
-docker push ghcr.io/abstratium-dev/TODO:latest
+docker push ghcr.io/abstratium-dev/abstraccount:$VERSION
+docker push ghcr.io/abstratium-dev/abstraccount:latest
 
 # Clean up so that malicious scripts cannot access tokens saved during docker login
 # This removes the Docker configuration file containing authentication credentials
@@ -37,8 +37,8 @@ echo "Cleaning up authentication credentials..."
 rm /home/ant/.docker/config.json
 
 echo "Successfully pushed:"
-echo "  - ghcr.io/abstratium-dev/TODO:$VERSION"
-echo "  - ghcr.io/abstratium-dev/TODO:latest"
+echo "  - ghcr.io/abstratium-dev/abstraccount:$VERSION"
+echo "  - ghcr.io/abstratium-dev/abstraccount:latest"
 
 echo ""
 echo "Tag the git commit with the version from application.properties"

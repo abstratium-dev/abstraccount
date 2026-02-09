@@ -2,18 +2,18 @@
 
 This project uses Quarkus, the Supersonic Subatomic Java Framework.
 
-It was generated using `quarkus create app --maven --package-name=dev.abstratium.TODO --java=21 --name TODO dev.abstratium:TODO`
+It was generated using `quarkus create app --maven --package-name=dev.abstratium.abstraccount --java=21 --name abstraccount dev.abstratium:abstraccount`
 
 ## Running the application in dev mode
 
 You can run your application in dev mode that enables live coding using:
 
 ```shell script
-source /w/abstratium-TODO.env
+source /w/abstratium-abstraccount.env
 ./mvnw quarkus:dev
 ```
 
-> **_NOTE:_**  Quarkus now ships with a Dev UI, which is available in dev mode only at <http://localhost:808x/q/dev/>.
+> **_NOTE:_**  Quarkus now ships with a Dev UI, which is available in dev mode only at <http://localhost:8083/q/dev/>.
 
 ## Packaging and running the application
 
@@ -50,7 +50,7 @@ Or, if you don't have GraalVM installed, you can run the native executable build
 ./mvnw package -Dnative -Dquarkus.native.container-build=true
 ```
 
-You can then execute your native executable with: `./target/TODO-1.0.0-SNAPSHOT-runner`
+You can then execute your native executable with: `./target/abstraccount-1.0.0-SNAPSHOT-runner`
 
 If you want to learn more about building native executables, please consult <https://quarkus.io/guides/maven-tooling>.
 

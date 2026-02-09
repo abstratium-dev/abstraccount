@@ -1,12 +1,6 @@
-# abstracore
+# abstraccount
 
-----
-FIRST: check that the file `.git/hooks/pre-commit` exists and is executable. If not, move the script `copy_to_.git_hooks_pre-commit` to there.
-
-THEN: read more below.
-----
-
-**abstracore** is the master blueprint for abstratium applications. Built on the Quarkus subatomic Java stack, Quinoa for seamless integration, and Angular for the frontend, it serves as the upstream source for all specific project forks.
+**abstraccount** is a double-entry accounting service. Built on the Quarkus subatomic Java stack, Quinoa for seamless integration, and Angular for the frontend, it serves as the upstream source for all specific project forks.
 
 ## 📦 Tech Stack
 
@@ -22,56 +16,11 @@ Data: Designed for MySql compatibility
 
 ## 🛠️ Getting Started
 
-1. Creating a New Project from Abstracore
-
-To start a new project (e.g., abstradex) using this core:
-
-Create a new empty repository on your Git server.
-
-Clone Abstracore and point it to your new origin:
-
-```bash
-git clone https://github.com/abstratium-dev/abstracore.git your-new-project
-cd your-new-project
-git remote rename origin upstream
-git remote add origin git@github.com:your-org/your-new-project.git
-git push -u origin main
-```
-
-2. Pulling Baseline Updates
-
-When Abstracore is updated with new features or security patches, pull those changes into your project fork using the provided sync script:
+This project is based on the Abstracore template. To sync with baseline updates from Abstracore:
 
 ```bash
 # From the project root, run the sync script
 bash scripts/sync-base.sh
-```
-
-The script will:
-- Add the `upstream` remote if it doesn't exist (pointing to Abstracore)
-- Fetch the latest changes from Abstracore
-- Merge the baseline changes into your project
-- Pause before committing so you can review the changes
-
-**Manual Alternative:**
-
-If you prefer to sync manually:
-
-```bash
-# Ensure you are on your main branch
-git checkout main
-
-# Add upstream remote (only needed once)
-git remote add upstream git@github.com:abstratium-dev/abstracore.git
-
-# Fetch the latest baseline code
-git fetch upstream
-
-# Merge baseline changes into your project
-git merge upstream/main --no-commit --no-ff
-
-# Review changes, then commit
-git commit -m "Merge baseline updates from Abstracore"
 ```
 
 ⚠️ **IMPORTANT**: Avoid modifying the `/core` directory in your project forks. Keep your custom logic in `/app` or specific feature packages to minimize merge conflicts during updates.
@@ -93,16 +42,15 @@ Run the following command to start Quarkus in Dev Mode with the Angular live-rel
 ```bash
 ./mvnw quarkus:dev
 ```
-Backend: http://localhost:808x
+Backend: http://localhost:8083
 
 Frontend: Automatically proxied by Quinoa
 
-Dev UI: http://localhost:808x/q/dev
+Dev UI: http://localhost:8083/q/dev
 
 ## 📝 Governance
 
-This is a Living Blueprint. If you develop a feature in a specific project (like a new logging service or UI utility) that would benefit all Abstratium apps, please back-port it to Abstracore via a Pull Request.
-
+This project is based on Abstracore. If you develop a feature here (like a new logging service or UI utility) that would benefit all Abstratium apps, please consider back-porting it to Abstracore via a Pull Request.
 
 ------------------------
 
@@ -158,54 +106,6 @@ Background Color: #5c6bc0
 
 # Things to do when creating a new project
 
-- [ ] - decide on a new port number for this service and change it
-  - in `proxy.conf.json`
-  - and all the TODO comments that tell you to do that 
-  - and all the places that use 
-    - `808x`
-    - `900x`
-    - `420x`
-  - in `package.json` of `src/main/webui` where it tells `ng serve` which port number to use
-    - `"start": "ng serve --proxy-config proxy.conf.json --port=4201",` <<< THERE!
-- [ ] - Use the prompt below, to get an LLM to do this
-- [ ] - Search for TODO and fix
-- [ ] - Search for core and fix, e.g. in `pom.xml`
-- [ ] - Update README.md with project-specific information
-- [ ] - Update USER_GUIDE.md with project-specific information
-- [ ] - Update DATABASE.md with project-specific information
-- [ ] - Update NATIVE_IMAGE_BUILD.md with project-specific information
-- [ ] - Update SECURITY_DESIGN.md with project-specific information
-- [ ] - Update TODO.md with project-specific information
-- [ ] - Update SECURITY.md with project-specific information
-- [ ] - Update CONTRIBUTING.md with project-specific information
-- [ ] - Create favicon, store it in root as zip and put it in `src/main/webui/public`
-- [ ] - Update `.windsurf` configuration
-- [ ] - Replace `src/main/webui/src/app/demo` with project-specific components
-- [ ] - Update application.properties with abstradex-specific values
-- [ ] - Update Angular configuration files (angular.json, package.json, index.html)
-- [ ] - Update Java source files (Roles.java, ConfigInfoContributor.java)
-- [ ] - Update database migration files
-- [ ] - Update script files (build-docker-image.sh, push-docker-image.sh, clear-test-db.sh)
-- [ ] - Update e2e-tests configuration
-- [ ] - Update documentation files (QUARKUS.md, DEVELOPMENT_AND_TESTING.md, AUTHENTICATION_FLOW.md)
-- [ ] - delete the top of this file that talks about the git hook
-- [ ] - delete the file name `copy_to_.git_hooks_pre-commit` as it is only required in the baseline project, and keeping that hook in your new project would break the mechanism!!!
-- [ ] add a new oauth client to your oauth authorization server like abstrauth
-- [ ] - delete this TODO list
-
-# First Prompt for LLM 
-
-```
-I have copied a "baseline project" that I use to create an initial version of all the microservices in my company. it is full of "TODO" and "todo" markers which show places in the code that need updating.
-
-This project is called "abstradex" and is A "rolodex" for your SME's partners (customers, suppliers, etc.) . Search for all places that contain the text "todo" and make the appropriate changes. 
-
-Also use @README.md#L154-169  as a checklist and as you fix those things, add an X between the square brackets. if anything is missing off of that list, please append it to the list. keep going until you cannot find any more TODOs to fix. 
-
-If there is anything you are unsure of, add that to a new chapter named "FIXME" below the todo list in @README.md .  
-
-Please do not change the functionality of the application yet. Keep things like the @Demo.java entity, @DemoService.java , @DemoResource.java  and all the related stuff in the @src/main/webui  folder like @demo.component.ts , etc.  We will change the functionality later!
-```
 
 # Second Prompt for LLM
 

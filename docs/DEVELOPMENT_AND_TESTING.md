@@ -9,11 +9,11 @@
 
 First add env vars:
 
-    source /w/abstratium-TODO.env
+    source /w/abstratium-abstraccount.env
 
 That file should contain:
 
-    export ABSTRATIUM_CLIENT_ID="abstratium-TODO"
+    export ABSTRATIUM_CLIENT_ID="abstratium-abstraccount"
     export ABSTRATIUM_CLIENT_SECRET="... (taken from the abstrauth application)"
     export CSRF_TOKEN_SIGNATURE_KEY="... (generated with `openssl rand -base64 64 | tr -d '\n'`)"
     export COOKIE_ENCRYPTION_SECRET="... (generated with `openssl rand -base64 32`)"
@@ -52,16 +52,14 @@ docker run -d \
 # create the database and user
 docker run -it --rm --network abstratium mysql mysql -h abstratium-mysql --port 3306 -u root -psecret
 
-TODO change `abstracore` to the actual database name, in all of the statements below
+DROP USER IF EXISTS 'abstraccount'@'%';
 
-DROP USER IF EXISTS 'abstracore'@'%';
+CREATE USER 'abstraccount'@'%' IDENTIFIED BY 'secret';
 
-CREATE USER 'abstracore'@'%' IDENTIFIED BY 'secret';
+DROP DATABASE IF EXISTS abstraccount;
 
-DROP DATABASE IF EXISTS abstracore;
-
-CREATE DATABASE abstracore CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-GRANT ALL PRIVILEGES ON abstracore.* TO abstracore@'%'; -- on own database
+CREATE DATABASE abstraccount CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+GRANT ALL PRIVILEGES ON abstraccount.* TO abstraccount@'%'; -- on own database
 
 FLUSH PRIVILEGES;
 ```
@@ -69,7 +67,7 @@ FLUSH PRIVILEGES;
 exit, then reconnect using the new user:
 
 ```bash
-docker run -it --network abstratium --rm mysql mysql -h abstratium-mysql --port 3306 -u TODO -psecret TODO
+docker run -it --network abstratium --rm mysql mysql -h abstratium-mysql --port 3306 -u abstraccount -psecret abstraccount
 ```
 
 # Authorization
@@ -98,7 +96,7 @@ It might be easier to test these manually during testing.
 
 Start the component:
 ```bash
-source /w/abstratium-TODO.env
+source /w/abstratium-abstraccount.env
 quarkus dev
 ```
 
@@ -155,7 +153,7 @@ ng update
 ng update @angular/cli @angular/core
 ```
 
-5. Check Github for security problems by signing in and viewing the problems here: https://github.com/abstratium-dev/TODO/security/dependabot and https://github.com/abstratium-dev/TODO/security/code-scanning
+5. Check Github for security problems by signing in and viewing the problems here: https://github.com/abstratium-dev/abstraccount/security/dependabot and https://github.com/abstratium-dev/abstraccount/security/code-scanning
 
 # Issues with Webkit
 
@@ -173,7 +171,7 @@ Ensure that `mvn verify` is successful.
 
 Start `quarkus dev`
 
-(Alternatively, don't start quarkus or the client example, and set `BASE_URL=http://localhost:808x` in the command line after ALLOW_SIGNUP)
+(Alternatively, don't start quarkus or the client example, and set `BASE_URL=http://localhost:8083` in the command line after ALLOW_SIGNUP)
 
 Run `npx playwright test --ui` in the `e2e-tests` directory.
 
