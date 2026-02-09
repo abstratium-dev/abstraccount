@@ -101,34 +101,3 @@ Font Variant: Regular 400 Normal
 Font Size: 110
 Font Color: #FFFFFF
 Background Color: #5c6bc0
-
-----
-
-# Things to do when creating a new project
-
-
-# Second Prompt for LLM
-
-Remember to replace XXXXXX with the name of the entity that you want to replace. Like "partner".
-
-```
-Using the description at the top of the @README.md file, replace the @Demo.java entity, @DemoService.java , @DemoResource.java  and all the related stuff in the @src/main/webui  folder like @demo.component.ts , etc.  with a new CRUD service for the XXXXXX entity.
-
-That Entity should have the following properties:
-
-- name
-- description
-- website
-- phone
-- email
-- address
-- city
-- state
-- zip
-- country
-```
-
-# TODO later after implementing your first feature
-
-- [ ] remove all references to `demo` in the entire project
-- [ ] remove all files with `demo` in their name
