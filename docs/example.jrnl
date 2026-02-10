@@ -1,0 +1,95 @@
+; logo: https://abstratium.dev/abstratium-logo-small.png
+; title: abstratium informatique sàrl, UID CHE-375.146.563
+; subtitle: Chemin de la Marouette 26, 1607 Palézieux, Suisse, abstratium.dev@gmail.com
+; Currency: CHF
+
+commodity CHF 1000.00
+
+; ============================================================================
+; ACCOUNT DECLARATIONS WITH TYPE ANNOTATIONS
+; ============================================================================
+
+account 2 Passif / Equity
+  ; type:Equity
+  ; note:Equity represents the owners claims on the companys assets after liabilities are subtracted
+
+account 2 Passif / Equity:28 Capitaux propres (personnes morales) / Shareholders Equity (legal entities)
+  ; type:Equity
+  ; note:It reflects the owners claims on the companys assets after liabilities are subtracted
+
+account 1 Actifs / Assets
+  ; type:Asset
+  ; note:This group includes all accounts related to what the company owns
+
+account 1 Actifs / Assets:10 Actif circulants / Current Assets
+  ; type:Asset
+  ; note:These are assets that are expected to be converted into cash / sold / or consumed within one business year. Typical examples include Cash and cash equivalents / Accounts receivable / Inventory / Prepaid expenses / Short-term financial investments
+
+account 1 Actifs / Assets:10 Actif circulants / Current Assets:100 Trésorerie / Cash and cash equivalents
+  ; type:Asset
+  ; note:This account group includes highly liquid assets such as Cash on hand; Bank account balances; Postal account balances; Short-term deposits (that can be quickly converted to cash); These are the most liquid part of current assets (actifs circulants).
+
+account 1 Actifs / Assets:10 Actif circulants / Current Assets:100 Trésorerie / Cash and cash equivalents:1000 Caisse / Cash
+  ; type:Cash
+  ; note:Petty cash on hand
+
+account 1 Actifs / Assets:10 Actif circulants / Current Assets:100 Trésorerie / Cash and cash equivalents:1020 Avoirs en banque / Bank Account (asset)
+  ; type:Cash
+  ; note:This refers to the positive balance (avoir) in a bank account meaning money the company holds in the bank (as opposed to an overdraft or liability). Marked as Cash type for cash flow reporting.
+
+
+account 2 Passif / Liabilities
+  ; type:Liability
+  ; note:In accounting passifs represent what the company owes — obligations to creditors / suppliers / banks / tax authorities / etc. In the SME chart this includes both Short-term liabilities (current liabilities) and Long-term liabilities (non-current liabilities)
+
+account 3 Produits d'exploitation des ventes de biens et de prestations de services / Net proceeds from sales of goods and services
+  ; type:Revenue
+
+account 4 Charges de Materiel, de Biens de Prestations de Services et d'Energie / Cost of Materials, Goods, Services and Energy Costs
+  ; type:Expense
+  ; note:Use this if I have to purchase stuff to make stuff I sell
+
+; ============================================================================
+; TRANSACTIONS
+; ============================================================================
+
+; Opening balances transaction
+2025-01-01 * Opening Balances
+    ; :OpeningBalances:
+    1 Actifs / Assets    CHF 0.00
+    1 Actifs / Assets:10 Actif circulants / Current Assets    CHF 0.00
+    1 Actifs / Assets:10 Actif circulants / Current Assets:100 Trésorerie / Cash and cash equivalents    CHF 0.00
+    1 Actifs / Assets:10 Actif circulants / Current Assets:100 Trésorerie / Cash and cash equivalents:1000 Caisse / Cash    CHF 0.00
+    1 Actifs / Assets:10 Actif circulants / Current Assets:100 Trésorerie / Cash and cash equivalents:1020 Avoirs en banque / Bank Account (asset)    CHF 1800.80
+    ...
+
+2025-01-01 * Transfer of Annual Profit/Loss 2024
+    ; id:ffdbc252-a0a2-40e8-8e89-45369b6efa42
+    ; :Closing:
+    2 Passif / Equity:290 Réserves, propres parts du capital et bénéfice ou perte résultant du bilan / Reserves and retained earnings, own capital shares and disposable profit:2970 Bénéfice reporté ou perte reportée / Profit carried forward or loss carried forward as negative item    CHF 10.20
+    2 Passif / Equity:290 Réserves, propres parts du capital et bénéfice ou perte résultant du bilan / Reserves and retained earnings, own capital shares and disposable profit:2979 Bénéfice de l'exercice ou perte de l'exercice / Annual profit or loss as negative items    CHF -10.20
+
+2025-01-04 * P00000007 Hoststar | hoststar invoice domain name monitor-everything.online - Invoice_9100.pdf
+    ; id:bcba9da2-81be-4a78-b4a3-fbd856ad7dde
+    ; invoice:PI00000017
+    6 Autres Charges d'Explotation, Amortissements et Corrections de Valeur et Resultats Financiers / Other Operating Expenses, Depreciations and Value Adjustments, Financial result:6570 Charges informatiques, yc leasing / IT and computing expenses, including leasing:6570.001 Domain Names                CHF 1.60
+    2 Passif / Liabilities:20 Capitaux étrangers à court terme / Current liabilities:200 Dettes résultant de l'achat de biens et de prestations de services / Accounts payable (A/P):2000 Dettes résultant de l'achat de biens et de prestations de services (créanciers) / Accounts payable (suppliers&creditors)                CHF -1.60
+
+2025-01-15 * P00000001 Ant Kutschera | repay petty cash to A. Kutschera - 2025-01-10 bank.pdf
+    ; id:3d3003d6-359a-4df0-8747-e6d59c08d57d
+    ; :Payment:, invoice:PI00000019
+    1 Actifs / Assets:10 Actif circulants / Current Assets:100 Trésorerie / Cash and cash equivalents:1020 Avoirs en banque / Bank Account (asset)                CHF -8.24
+    2 Passif / Liabilities:20 Capitaux étrangers à court terme / Current liabilities:220 Autres dettes à court terme / Other short-term liabilities:2210 Autres dettes à court terme / Other short-term liabilities:2210.001 Anton Kutschera                CHF 8.24
+
+2025-02-28 * P00000004 PostFinance AG | Bank charges - 2025-02-20 Transaction overview.pdf
+    ; id:8ae9021a-ddab-4b12-8a2b-64a8e40af4bd
+    ; :Payment:, invoice:PI00000024
+    1 Actifs / Assets:10 Actif circulants / Current Assets:100 Trésorerie / Cash and cash equivalents:1020 Avoirs en banque / Bank Account (asset)                CHF -5.00
+    6 Autres Charges d'Explotation, Amortissements et Corrections de Valeur et Resultats Financiers / Other Operating Expenses, Depreciations and Value Adjustments, Financial result:6900 Charges financières / Financial expense                CHF 5.00
+
+2025-12-31 * Close expense account 6 Autres Charges d'Explotation, Amortissements et Corrections de Valeur et Resultats Financiers / Other Operating Expenses, Depreciations and Value Adjustments, Financial result:6570 Charges informatiques, yc leasing / IT and computing expenses, including leasing:6570.006 OpenAI
+    ; :Closing:
+    2 Passif / Equity:290 Réserves, propres parts du capital et bénéfice ou perte résultant du bilan / Reserves and retained earnings, own capital shares and disposable profit:2979 Bénéfice de l'exercice ou perte de l'exercice / Annual profit or loss as negative items    CHF 23.70
+    6 Autres Charges d'Explotation, Amortissements et Corrections de Valeur et Resultats Financiers / Other Operating Expenses, Depreciations and Value Adjustments, Financial result:6570 Charges informatiques, yc leasing / IT and computing expenses, including leasing:6570.006 OpenAI    CHF -23.70
+
+

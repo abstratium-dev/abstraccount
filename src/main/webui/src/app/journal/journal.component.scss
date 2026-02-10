@@ -1,0 +1,275 @@
+.journal-container {
+  padding: 20px;
+  max-width: 1400px;
+  margin: 0 auto;
+
+  h1 {
+    margin-bottom: 30px;
+    color: #333;
+  }
+
+  h3 {
+    margin-top: 20px;
+    margin-bottom: 15px;
+    color: #555;
+  }
+}
+
+.error-message {
+  background-color: #f8d7da;
+  color: #721c24;
+  padding: 12px;
+  border-radius: 4px;
+  margin-bottom: 20px;
+  border: 1px solid #f5c6cb;
+}
+
+.loading {
+  text-align: center;
+  padding: 40px;
+  font-size: 18px;
+  color: #666;
+}
+
+.account-selection {
+  margin-bottom: 30px;
+
+  label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #555;
+  }
+
+  select {
+    width: 100%;
+    max-width: 600px;
+    padding: 10px;
+    font-size: 16px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    
+    &:focus {
+      outline: none;
+      border-color: #4CAF50;
+      box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.1);
+    }
+  }
+}
+
+.balance-display {
+  background-color: #e8f5e9;
+  padding: 15px 20px;
+  border-radius: 4px;
+  margin-bottom: 20px;
+  border-left: 4px solid #4CAF50;
+
+  h3 {
+    margin: 0;
+    color: #2e7d32;
+    font-size: 18px;
+  }
+}
+
+.filters {
+  background-color: #f5f5f5;
+  padding: 20px;
+  border-radius: 4px;
+  margin-bottom: 30px;
+
+  h3 {
+    margin-top: 0;
+  }
+
+  .filter-row {
+    display: flex;
+    gap: 15px;
+    flex-wrap: wrap;
+    align-items: flex-end;
+  }
+
+  .filter-field {
+    flex: 1;
+    min-width: 200px;
+
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: 500;
+      color: #555;
+    }
+
+    input, select {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 14px;
+
+      &:focus {
+        outline: none;
+        border-color: #4CAF50;
+      }
+    }
+  }
+
+  .filter-buttons {
+    display: flex;
+    gap: 10px;
+    align-items: flex-end;
+
+    button {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      transition: background-color 0.2s;
+
+      &.btn-primary {
+        background-color: #4CAF50;
+        color: white;
+
+        &:hover {
+          background-color: #45a049;
+        }
+      }
+
+      &.btn-secondary {
+        background-color: #757575;
+        color: white;
+
+        &:hover {
+          background-color: #616161;
+        }
+      }
+    }
+  }
+}
+
+.postings-table {
+  margin-top: 30px;
+
+  .table {
+    width: 100%;
+    border-collapse: collapse;
+    background-color: white;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+
+    thead {
+      background-color: #f5f5f5;
+      
+      th {
+        padding: 12px;
+        text-align: left;
+        font-weight: 600;
+        color: #333;
+        border-bottom: 2px solid #ddd;
+
+        &.amount {
+          text-align: right;
+        }
+      }
+    }
+
+    tbody {
+      tr {
+        border-bottom: 1px solid #eee;
+        transition: background-color 0.2s;
+
+        &:hover {
+          background-color: #f9f9f9;
+        }
+
+        &.positive {
+          background-color: #f1f8f4;
+        }
+
+        &.negative {
+          background-color: #fef5f5;
+        }
+
+        td {
+          padding: 12px;
+          color: #555;
+
+          &.amount {
+            text-align: right;
+            font-family: 'Courier New', monospace;
+            font-weight: 500;
+          }
+        }
+      }
+    }
+  }
+
+  .status-badge {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 3px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+
+    &.cleared {
+      background-color: #c8e6c9;
+      color: #2e7d32;
+    }
+
+    &.pending {
+      background-color: #fff9c4;
+      color: #f57f17;
+    }
+
+    &.uncleared {
+      background-color: #e0e0e0;
+      color: #616161;
+    }
+  }
+
+  .posting-count {
+    margin-top: 15px;
+    text-align: right;
+    color: #666;
+    font-style: italic;
+  }
+}
+
+.no-data, .no-selection {
+  text-align: center;
+  padding: 60px 20px;
+  color: #999;
+  font-size: 16px;
+  background-color: #f9f9f9;
+  border-radius: 4px;
+  margin-top: 20px;
+}
+
+// Responsive design
+@media (max-width: 768px) {
+  .filters .filter-row {
+    flex-direction: column;
+
+    .filter-field {
+      width: 100%;
+    }
+
+    .filter-buttons {
+      width: 100%;
+      justify-content: stretch;
+
+      button {
+        flex: 1;
+      }
+    }
+  }
+
+  .postings-table .table {
+    font-size: 14px;
+
+    th, td {
+      padding: 8px;
+    }
+  }
+}
