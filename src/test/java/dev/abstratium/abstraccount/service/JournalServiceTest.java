@@ -183,8 +183,9 @@ class JournalServiceTest {
         );
         
         assertEquals(2, filtered.size());
-        assertEquals("Opening Balance", filtered.get(0).description());
-        assertEquals("Revenue from sales", filtered.get(1).description());
+        // Reversed order - newest first
+        assertEquals("Revenue from sales", filtered.get(0).description());
+        assertEquals("Opening Balance", filtered.get(1).description());
     }
     
     @Test
@@ -195,8 +196,9 @@ class JournalServiceTest {
         );
         
         assertEquals(2, filtered.size());
-        assertEquals("Revenue from sales", filtered.get(0).description());
-        assertEquals("Office supplies", filtered.get(1).description());
+        // Reversed order - newest first
+        assertEquals("Office supplies", filtered.get(0).description());
+        assertEquals("Revenue from sales", filtered.get(1).description());
     }
     
     @Test

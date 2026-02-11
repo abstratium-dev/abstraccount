@@ -1,9 +1,11 @@
 package dev.abstratium.abstraccount.boundary;
 
+import dev.abstratium.abstraccount.Roles;
 import dev.abstratium.abstraccount.model.*;
 import dev.abstratium.abstraccount.service.JournalService;
 import dev.abstratium.abstraccount.service.TransactionFilter;
 import dev.abstratium.abstraccount.service.TransactionFilters;
+import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
@@ -23,6 +25,7 @@ import java.util.stream.Collectors;
 @Path("/api/journal")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
+@RolesAllowed({Roles.USER})
 public class JournalResource {
     
     private static final Logger LOG = Logger.getLogger(JournalResource.class);
@@ -33,6 +36,9 @@ public class JournalResource {
     
     @Inject
     JournalParser journalParser;
+    
+    @Inject
+    dev.abstratium.abstraccount.service.JournalModelPersistenceService modelPersistenceService;
     
     private Journal cachedJournal;
     private long lastModified = 0;
@@ -273,5 +279,54 @@ public class JournalResource {
                 allBalances.get(account.fullName())
             ))
             .collect(Collectors.toList());
+    }
+    
+    /**
+     * Uploads and persists a journal file.
+     * Parses the journal content and stores all data (journal metadata, accounts, transactions) in the database.
+     * 
+     * @param journalContent the journal file content as a string
+     * @return a summary of what was persisted
+     */
+    @POST
+    @Path("/upload")
+    @Consumes(MediaType.TEXT_PLAIN)
+    @RolesAllowed({Roles.USER})
+    public Map<String, Object> uploadJournal(String journalContent) {
+        LOG.infof("Uploading journal, content length: %d", journalContent.length());
+        
+        try {
+            // Parse the journal
+            Journal journal = journalParser.parse(journalContent);
+            
+            // Persist to database
+            modelPersistenceService.persistJournalModel(journal);
+            
+            // Clear cache to force reload
+            cachedJournal = null;
+            lastModified = 0;
+            
+            // Return summary
+            Map<String, Object> summary = new HashMap<>();
+            summary.put("title", journal.title());
+            summary.put("accountCount", journal.accounts().size());
+            summary.put("transactionCount", journal.transactions().size());
+            summary.put("commodityCount", journal.commodities().size());
+            summary.put("status", "success");
+            
+            LOG.infof("Successfully uploaded journal: %s", journal.title());
+            return summary;
+            
+        } catch (Exception e) {
+            LOG.error("Failed to upload journal", e);
+            Map<String, Object> error = new HashMap<>();
+            error.put("status", "error");
+            error.put("message", e.getMessage());
+            throw new WebApplicationException(
+                jakarta.ws.rs.core.Response.status(jakarta.ws.rs.core.Response.Status.BAD_REQUEST)
+                    .entity(error)
+                    .build()
+            );
+        }
     }
 }

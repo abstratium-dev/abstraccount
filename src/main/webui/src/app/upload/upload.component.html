@@ -1,0 +1,55 @@
+<div class="upload-container">
+  <div class="upload-card">
+    <h1>Upload Journal File</h1>
+    
+    <div class="upload-area" *ngIf="!uploading && !uploadResult">
+      <input 
+        type="file" 
+        id="fileInput" 
+        accept=".journal,.txt" 
+        (change)="onFileSelected($event)"
+        class="file-input"
+      />
+      <label for="fileInput" class="file-label">
+        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+          <polyline points="17 8 12 3 7 8"></polyline>
+          <line x1="12" y1="3" x2="12" y2="15"></line>
+        </svg>
+        <span class="label-text">Click to select journal file</span>
+        <span class="label-hint">or drag and drop</span>
+      </label>
+    </div>
+
+    <div class="uploading" *ngIf="uploading">
+      <div class="spinner"></div>
+      <p>Uploading journal...</p>
+    </div>
+
+    <div class="upload-success" *ngIf="uploadResult && !uploadError">
+      <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="success-icon">
+        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+        <polyline points="22 4 12 14.01 9 11.01"></polyline>
+      </svg>
+      <h2>Upload Successful!</h2>
+      <div class="result-details">
+        <p><strong>Title:</strong> {{ uploadResult.title }}</p>
+        <p><strong>Accounts:</strong> {{ uploadResult.accountCount }}</p>
+        <p><strong>Transactions:</strong> {{ uploadResult.transactionCount }}</p>
+        <p><strong>Commodities:</strong> {{ uploadResult.commodityCount }}</p>
+      </div>
+      <button class="btn-primary" (click)="viewJournal()">View Journal</button>
+    </div>
+
+    <div class="upload-error" *ngIf="uploadError">
+      <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="error-icon">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="15" y1="9" x2="9" y2="15"></line>
+        <line x1="9" y1="9" x2="15" y2="15"></line>
+      </svg>
+      <h2>Upload Failed</h2>
+      <p class="error-message">{{ uploadError }}</p>
+      <button class="btn-secondary" (click)="uploadError = null; uploadResult = null">Try Again</button>
+    </div>
+  </div>
+</div>

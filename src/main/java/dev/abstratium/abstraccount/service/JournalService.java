@@ -33,6 +33,7 @@ public class JournalService {
         
         return journal.transactions().stream()
             .filter(filter::matches)
+            .sorted((t1, t2) -> t2.transactionDate().compareTo(t1.transactionDate()))
             .toList();
     }
     
@@ -160,6 +161,7 @@ public class JournalService {
         
         return journal.transactions().stream()
             .filter(tx -> !tx.isBalanced())
+            .sorted((t1, t2) -> t2.transactionDate().compareTo(t1.transactionDate()))
             .toList();
     }
     

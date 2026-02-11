@@ -1,8 +1,13 @@
 package dev.abstratium.abstraccount.boundary;
 
 import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.security.TestSecurity;
 import io.restassured.http.ContentType;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
+import java.nio.file.Files;
+import java.nio.file.Paths;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.*;
@@ -10,7 +15,28 @@ import static org.hamcrest.Matchers.*;
 @QuarkusTest
 class JournalResourceTest {
     
+    private static boolean journalUploaded = false;
+    
+    @BeforeEach
+    @TestSecurity(user = "testUser", roles = {"abstratium-abstraccount_user"})
+    void uploadTestJournal() throws Exception {
+        if (journalUploaded) {
+            return;
+        }
+        String journalContent = Files.readString(Paths.get("src/test/resources/test-journal.txt"));
+        
+        given()
+            .contentType(ContentType.TEXT)
+            .body(journalContent)
+            .when().post("/api/journal/upload")
+            .then()
+            .statusCode(200);
+        
+        journalUploaded = true;
+    }
+    
     @Test
+    @TestSecurity(user = "testUser", roles = {"abstratium-abstraccount_user"})
     void testGetAccounts() {
         given()
             .when().get("/api/journal/accounts")
@@ -21,6 +47,7 @@ class JournalResourceTest {
     }
     
     @Test
+    @TestSecurity(user = "testUser", roles = {"abstratium-abstraccount_user"})
     void testGetAllBalances() {
         given()
             .when().get("/api/journal/balances")
@@ -30,6 +57,7 @@ class JournalResourceTest {
     }
     
     @Test
+    @TestSecurity(user = "testUser", roles = {"abstratium-abstraccount_user"})
     void testGetAllPostings() {
         given()
             .when().get("/api/journal/postings")
@@ -40,6 +68,7 @@ class JournalResourceTest {
     }
     
     @Test
+    @TestSecurity(user = "testUser", roles = {"abstratium-abstraccount_user"})
     void testGetAccountPostingsWithFilters() {
         // First get an account name
         String accountName = given()
@@ -60,6 +89,7 @@ class JournalResourceTest {
     }
     
     @Test
+    @TestSecurity(user = "testUser", roles = {"abstratium-abstraccount_user"})
     void testGetAccountBalance() {
         // First get an account name
         String accountName = given()
@@ -80,6 +110,7 @@ class JournalResourceTest {
     }
     
     @Test
+    @TestSecurity(user = "testUser", roles = {"abstratium-abstraccount_user"})
     void testGetAccountNotFound() {
         given()
             .when().get("/api/journal/accounts/{accountName}/balance", "NonExistent Account")

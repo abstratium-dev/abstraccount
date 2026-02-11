@@ -9,6 +9,14 @@ These TODOs are to be resolved by the developer, NOT THE LLM.
 
 ## Today
 
+- Only ever use leaf nodes when selecting accounts
+- Viewing journal of parent accounts includes children, because you can't book on a parent
+- Show journal of transaction
+- Show individual accounts with link from posting to the tx
+- Reports based on templates
+- Inputs based on macros
+- Link to receipt documents
+
 ### Second Prompt for LLM
 
 Remember to replace XXXXXX with the name of the entity that you want to replace. Like "partner".

@@ -1,0 +1,150 @@
+// Upload-specific styles - use global .container and .card classes for base styling
+.upload-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: calc(100vh - 100px);
+  padding: 2rem;
+}
+
+.upload-card {
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border-primary);
+  border-radius: 12px;
+  box-shadow: 0 4px 6px var(--shadow-sm);
+  padding: 3rem;
+  max-width: 600px;
+  width: 100%;
+  text-align: center;
+
+  h1 {
+    margin: 0 0 2rem 0;
+    color: var(--color-text-dark);
+    font-size: 2rem;
+    font-weight: 600;
+  }
+
+  h2 {
+    margin: 1rem 0;
+    color: var(--color-text-primary);
+    font-size: 1.5rem;
+    font-weight: 600;
+  }
+}
+
+.upload-area {
+  border: 2px dashed var(--color-border-secondary);
+  border-radius: 8px;
+  padding: 3rem 2rem;
+  transition: all 0.3s ease;
+  cursor: pointer;
+
+  &:hover {
+    border-color: var(--color-primary);
+    background-color: var(--color-overlay);
+  }
+
+  .file-input {
+    display: none;
+  }
+
+  .file-label {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    cursor: pointer;
+    color: var(--color-text-secondary);
+
+    svg {
+      color: var(--color-primary);
+    }
+
+    .label-text {
+      font-size: 1.125rem;
+      font-weight: 500;
+      color: var(--color-text-primary);
+    }
+
+    .label-hint {
+      font-size: 0.875rem;
+      color: var(--color-text-tertiary);
+    }
+  }
+}
+
+.uploading {
+  padding: 3rem 2rem;
+
+  .spinner {
+    margin: 0 auto 1rem;
+    width: 48px;
+    height: 48px;
+    border: 4px solid var(--color-border-primary);
+    border-top-color: var(--color-primary);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+
+  p {
+    color: var(--color-text-secondary);
+    font-size: 1.125rem;
+  }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.upload-success {
+  padding: 2rem 0;
+
+  .success-icon {
+    color: var(--color-success);
+    margin-bottom: 1rem;
+  }
+
+  .result-details {
+    background: var(--color-bg-secondary);
+    border: 1px solid var(--color-border-primary);
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin: 1.5rem 0;
+    text-align: left;
+
+    p {
+      margin: 0.5rem 0;
+      color: var(--color-text-primary);
+      font-size: 1rem;
+
+      strong {
+        color: var(--color-text-dark);
+        font-weight: 600;
+        display: inline-block;
+        min-width: 120px;
+      }
+    }
+  }
+}
+
+.upload-error {
+  padding: 2rem 0;
+
+  .error-icon {
+    color: var(--color-error);
+    margin-bottom: 1rem;
+  }
+
+  .error-message {
+    background: var(--color-error-bg);
+    border: 1px solid var(--color-error-border);
+    border-radius: 6px;
+    padding: 1rem;
+    margin: 1rem 0;
+    color: var(--color-error-text);
+    font-size: 0.875rem;
+  }
+}
+
+// Button styles are inherited from global styles.scss
+// Only add upload-specific button modifications here if needed
