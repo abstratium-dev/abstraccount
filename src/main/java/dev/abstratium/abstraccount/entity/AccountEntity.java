@@ -9,23 +9,15 @@ import java.util.UUID;
  * Loaded without transactions/postings.
  */
 @Entity
-@Table(name = "T_account",
-    uniqueConstraints = {
-        @UniqueConstraint(name = "IU_account_number_journal", columnNames = {"account_number", "journal_id"}),
-        @UniqueConstraint(name = "IU_account_full_name_journal", columnNames = {"full_name", "journal_id"})
-    }
-)
+@Table(name = "T_account")
 public class AccountEntity {
     
     @Id
     @Column(length = 36)
     private String id;
     
-    @Column(name = "account_number", nullable = false)
-    private String accountNumber;
-    
-    @Column(name = "full_name", nullable = false)
-    private String fullName;
+    @Column(name = "account_name")
+    private String accountName;
     
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -34,8 +26,8 @@ public class AccountEntity {
     @Column(length = 1000)
     private String note;
     
-    @Column(name = "parent_account_number")
-    private String parentAccountNumber;
+    @Column(name = "parent_account_id", length = 36)
+    private String parentAccountId;
     
     @Column(name = "journal_id", nullable = false, length = 36)
     private String journalId;
@@ -52,20 +44,15 @@ public class AccountEntity {
         this.id = id;
     }
     
+    /** returns the first word of the account name, i.e. everything before the first space */
     public String getAccountNumber() {
-        return accountNumber;
-    }
-    
-    public void setAccountNumber(String accountNumber) {
-        this.accountNumber = accountNumber;
-    }
-    
-    public String getFullName() {
-        return fullName;
-    }
-    
-    public void setFullName(String fullName) {
-        this.fullName = fullName;
+        if (accountName == null) {
+            return null;
+        } else if (accountName.contains(" ")) {
+            return accountName.split(" ")[0];
+        } else {
+            return accountName;
+        }
     }
     
     public AccountType getType() {
@@ -84,12 +71,20 @@ public class AccountEntity {
         this.note = note;
     }
     
-    public String getParentAccountNumber() {
-        return parentAccountNumber;
+    public String getParentAccountId() {
+        return parentAccountId;
     }
     
-    public void setParentAccountNumber(String parentAccountNumber) {
-        this.parentAccountNumber = parentAccountNumber;
+    public void setParentAccountId(String parentAccountId) {
+        this.parentAccountId = parentAccountId;
+    }
+    
+    public String getAccountName() {
+        return accountName;
+    }
+    
+    public void setAccountName(String accountName) {
+        this.accountName = accountName;
     }
     
     public String getJournalId() {

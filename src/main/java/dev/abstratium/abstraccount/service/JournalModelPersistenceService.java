@@ -9,6 +9,7 @@ import org.jboss.logging.Logger;
 
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -54,25 +55,57 @@ public class JournalModelPersistenceService {
         String journalId = savedJournal.getId();
         LOG.infof("Saving journal metadata with ID: %s", journalId);
         
-        // Deduplicate accounts by account number (keep first occurrence)
+        // Deduplicate accounts by full name (keep first occurrence)
         Map<String, Account> uniqueAccounts = new LinkedHashMap<>();
         for (Account account : journal.accounts()) {
-            uniqueAccounts.putIfAbsent(account.accountNumber(), account);
+            uniqueAccounts.putIfAbsent(account.fullName(), account);
         }
         
-        // Save all unique accounts
-        for (Account account : uniqueAccounts.values()) {
+        LOG.infof("Saving %d accounts (from %d total including duplicates)", uniqueAccounts.size(), journal.accounts().size());
+        
+        // Sort accounts by depth to ensure parents are saved before children
+        List<Account> sortedAccounts = uniqueAccounts.values().stream()
+            .sorted((a1, a2) -> Integer.compare(a1.getDepth(), a2.getDepth()))
+            .toList();
+        
+        // Map to track account full name -> entity ID for parent lookups
+        Map<String, String> accountIdMap = new HashMap<>();
+        
+        // Save all unique accounts in depth order
+        for (Account account : sortedAccounts) {
             AccountEntity accountEntity = new AccountEntity();
-            accountEntity.setAccountNumber(account.accountNumber());
-            accountEntity.setFullName(account.fullName());
+            // Store as "accountNumber leafName" so getAccountNumber() returns the number
+            String leafName = extractAccountName(account.fullName());
+            // If leafName doesn't start with the account number, prepend it
+            String accountName = leafName.startsWith(account.accountNumber() + " ") ? 
+                leafName : account.accountNumber() + " " + leafName;
+            accountEntity.setAccountName(accountName);
             accountEntity.setType(account.type());
             accountEntity.setNote(account.note());
-            accountEntity.setParentAccountNumber(account.parent() != null ? account.parent().accountNumber() : null);
             accountEntity.setJournalId(journalId);
             
-            persistenceService.saveAccount(accountEntity);
+            // Set parent account ID (foreign key to parent account)
+            if (account.parent() != null) {
+                String parentId = accountIdMap.get(account.parent().fullName());
+                if (parentId == null) {
+                    LOG.warnf("Parent account not found for '%s', parent='%s'", 
+                        account.fullName(), account.parent().fullName());
+                }
+                accountEntity.setParentAccountId(parentId);
+            }
+            
+            if (LOG.isDebugEnabled()) {
+                String parentInfo = account.parent() != null ? 
+                    String.format("parent='%s' (id=%s)", account.parent().fullName(), accountEntity.getParentAccountId()) : 
+                    "parent=null";
+                LOG.debugf("  Account: num=%s, name='%s', fullName='%s', type=%s, depth=%d, %s", 
+                    account.accountNumber(), accountEntity.getAccountName(), account.fullName(), 
+                    account.type(), account.getDepth(), parentInfo);
+            }
+            
+            AccountEntity saved = persistenceService.saveAccount(accountEntity);
+            accountIdMap.put(account.fullName(), saved.getId());
         }
-        LOG.infof("Saving %d accounts (from %d total including duplicates)", uniqueAccounts.size(), journal.accounts().size());
         
         // Save all transactions with postings and tags
         for (Transaction transaction : journal.transactions()) {
@@ -80,6 +113,7 @@ public class JournalModelPersistenceService {
             transactionEntity.setTransactionDate(transaction.transactionDate());
             transactionEntity.setStatus(transaction.status());
             transactionEntity.setDescription(transaction.description());
+            transactionEntity.setPartnerId(transaction.partnerId());
             transactionEntity.setTransactionId(transaction.id());
             transactionEntity.setJournalId(journalId);
             
@@ -110,5 +144,14 @@ public class JournalModelPersistenceService {
         LOG.infof("Saving %d transactions", journal.transactions().size());
         
         LOG.infof("Ready to persisted journal model");
+    }
+    
+    /**
+     * Extract just the account's own name (last segment) from the full hierarchical name.
+     * For example: "1 Assets:10 Cash:100 Bank" returns "100 Bank"
+     */
+    private String extractAccountName(String fullName) {
+        int lastColon = fullName.lastIndexOf(':');
+        return lastColon > 0 ? fullName.substring(lastColon + 1) : fullName;
     }
 }

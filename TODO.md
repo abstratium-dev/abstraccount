@@ -16,6 +16,7 @@ These TODOs are to be resolved by the developer, NOT THE LLM.
 - Reports based on templates
 - Inputs based on macros
 - Link to receipt documents
+- add a skill to abstracore so that the llm can read the database (show tables, desc table, select * from table with limit)
 
 ### Second Prompt for LLM
 

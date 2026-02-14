@@ -15,6 +15,7 @@ public record Transaction(
     @JsonProperty("transactionDate") LocalDate transactionDate,
     @JsonProperty("status") TransactionStatus status,
     @JsonProperty("description") String description,
+    @JsonProperty("partnerId") String partnerId,
     @JsonProperty("id") String id,
     @JsonProperty("tags") List<Tag> tags,
     @JsonProperty("postings") List<Posting> postings
@@ -41,14 +42,14 @@ public record Transaction(
      * Creates a transaction with minimal information.
      */
     public static Transaction simple(LocalDate date, TransactionStatus status, String description, List<Posting> postings) {
-        return new Transaction(date, status, description, null, List.of(), postings);
+        return new Transaction(date, status, description, null, null, List.of(), postings);
     }
     
     /**
      * Creates a transaction with an ID.
      */
     public static Transaction withId(LocalDate date, TransactionStatus status, String description, String id, List<Posting> postings) {
-        return new Transaction(date, status, description, id, List.of(), postings);
+        return new Transaction(date, status, description, null, id, List.of(), postings);
     }
     
     /**

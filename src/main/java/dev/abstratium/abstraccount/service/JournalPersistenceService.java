@@ -42,6 +42,30 @@ public class JournalPersistenceService {
     }
     
     /**
+     * Finds all journals in the database.
+     * 
+     * @return List of all journals
+     */
+    @Transactional
+    public List<JournalEntity> findAllJournals() {
+        TypedQuery<JournalEntity> query = entityManager.createQuery(
+            "SELECT j FROM JournalEntity j ORDER BY j.title", JournalEntity.class);
+        return query.getResultList();
+    }
+    
+    /**
+     * Finds a journal by its ID.
+     * 
+     * @param journalId the journal ID
+     * @return Optional containing the journal, or empty if not found
+     */
+    @Transactional
+    public Optional<JournalEntity> findJournalById(String journalId) {
+        JournalEntity journal = entityManager.find(JournalEntity.class, journalId);
+        return Optional.ofNullable(journal);
+    }
+    
+    /**
      * Loads all accounts.
      * Accounts are loaded without their transactions/postings.
      * 
@@ -50,7 +74,7 @@ public class JournalPersistenceService {
     @Transactional
     public List<AccountEntity> loadAllAccounts() {
         return entityManager.createQuery(
-            "SELECT a FROM AccountEntity a ORDER BY a.accountNumber", 
+            "SELECT a FROM AccountEntity a ORDER BY a.accountName", 
             AccountEntity.class)
             .getResultList();
     }
@@ -63,35 +87,25 @@ public class JournalPersistenceService {
      */
     @Transactional
     public Optional<AccountEntity> loadAccountByNumber(String accountNumber) {
+        // Account number is the first word of accountName
         TypedQuery<AccountEntity> query = entityManager.createQuery(
-            "SELECT a FROM AccountEntity a WHERE a.accountNumber = :accountNumber",
+            "SELECT a FROM AccountEntity a WHERE a.accountName LIKE :accountNumber",
             AccountEntity.class);
-        query.setParameter("accountNumber", accountNumber);
+        query.setParameter("accountNumber", accountNumber + " %");
         
         try {
             return Optional.of(query.getSingleResult());
         } catch (NoResultException e) {
-            return Optional.empty();
-        }
-    }
-    
-    /**
-     * Loads an account by its full name.
-     * 
-     * @param fullName the full account name
-     * @return Optional containing the account, or empty if not found
-     */
-    @Transactional
-    public Optional<AccountEntity> loadAccountByFullName(String fullName) {
-        TypedQuery<AccountEntity> query = entityManager.createQuery(
-            "SELECT a FROM AccountEntity a WHERE a.fullName = :fullName",
-            AccountEntity.class);
-        query.setParameter("fullName", fullName);
-        
-        try {
-            return Optional.of(query.getSingleResult());
-        } catch (NoResultException e) {
-            return Optional.empty();
+            // Try exact match (for accounts with no space in name)
+            try {
+                query = entityManager.createQuery(
+                    "SELECT a FROM AccountEntity a WHERE a.accountName = :accountNumber",
+                    AccountEntity.class);
+                query.setParameter("accountNumber", accountNumber);
+                return Optional.of(query.getSingleResult());
+            } catch (NoResultException e2) {
+                return Optional.empty();
+            }
         }
     }
     
@@ -181,6 +195,18 @@ public class JournalPersistenceService {
         } else {
             return entityManager.merge(journal);
         }
+    }
+    
+    /**
+     * Finds all accounts in the database.
+     * 
+     * @return list of all accounts
+     */
+    public List<AccountEntity> findAllAccounts() {
+        return entityManager.createQuery(
+            "SELECT a FROM AccountEntity a ORDER BY a.accountName",
+            AccountEntity.class)
+            .getResultList();
     }
     
     /**

@@ -1,121 +1,166 @@
-<div class="journal-container">
+<div class="container">
   <h1>Journal Viewer</h1>
 
   <!-- Error Display -->
   <div *ngIf="error" class="error-message">
-    {{ error }}
+    <h2>Error</h2>
+    <p>{{ error }}</p>
   </div>
 
   <!-- Loading Indicator -->
   <div *ngIf="loading" class="loading">
-    Loading...
+    <p>Loading...</p>
   </div>
 
-  <!-- Account Selection -->
-  <div class="account-selection">
-    <label for="account-select">Select Account:</label>
+  <!-- Journal Selection -->
+  <div class="form-group">
+    <label for="journal-select">Select Journal:</label>
     <select 
-      id="account-select" 
-      [(ngModel)]="selectedAccount" 
-      (change)="onAccountSelected()"
-      class="form-control">
-      <option [value]="null">-- Select an account --</option>
-      <option *ngFor="let account of accounts" [value]="account.accountName">
-        {{ account.accountName }} ({{ account.accountType }})
+      id="journal-select" 
+      [(ngModel)]="selectedJournal" 
+      (change)="onJournalSelected()">
+      <option [ngValue]="null">-- Select a journal --</option>
+      <option *ngFor="let journal of journals" [ngValue]="journal">
+        {{ journal.title }} ({{ journal.currency }})
       </option>
     </select>
   </div>
 
-  <!-- Balance Display -->
-  <div *ngIf="balance" class="balance-display">
-    <h3>Current Balance: {{ getBalanceString() }}</h3>
-  </div>
-
   <!-- Filters -->
-  <div *ngIf="selectedAccount" class="filters">
+  <div *ngIf="selectedJournal" class="filter-section">
     <h3>Filters</h3>
-    <div class="filter-row">
-      <div class="filter-field">
+    <div class="form-row">
+      <div class="form-group">
         <label for="start-date">Start Date:</label>
         <input 
           type="date" 
           id="start-date" 
-          [(ngModel)]="startDate" 
-          class="form-control">
+          [(ngModel)]="startDate">
       </div>
       
-      <div class="filter-field">
+      <div class="form-group">
         <label for="end-date">End Date:</label>
         <input 
           type="date" 
           id="end-date" 
-          [(ngModel)]="endDate" 
-          class="form-control">
+          [(ngModel)]="endDate">
       </div>
-      
-      <div class="filter-field">
-        <label for="status">Status:</label>
-        <select id="status" [(ngModel)]="status" class="form-control">
-          <option value="">All</option>
-          <option value="CLEARED">Cleared</option>
-          <option value="PENDING">Pending</option>
-          <option value="UNCLEARED">Uncleared</option>
-        </select>
-      </div>
-      
-      <div class="filter-buttons">
-        <button (click)="applyFilters()" class="btn btn-primary">Apply Filters</button>
-        <button (click)="clearFilters()" class="btn btn-secondary">Clear</button>
-      </div>
+    </div>
+    
+    <div class="form-group">
+      <label for="status">Status:</label>
+      <select id="status" [(ngModel)]="status">
+        <option value="">All</option>
+        <option value="CLEARED">Cleared</option>
+        <option value="PENDING">Pending</option>
+        <option value="UNCLEARED">Uncleared</option>
+      </select>
+    </div>
+    
+    <div class="form-actions">
+      <button (click)="applyFilters()" class="btn-primary">Apply Filters</button>
+      <button (click)="clearFilters()" class="btn-secondary">Clear</button>
     </div>
   </div>
 
-  <!-- Postings Table -->
-  <div *ngIf="selectedAccount && postings.length > 0" class="postings-table">
-    <h3>Postings</h3>
-    <table class="table">
+  <!-- Transactions Table -->
+  <div *ngIf="selectedJournal && groupedTransactions.length > 0">
+    <h3>Transactions</h3>
+    <table class="standard-table journal-table">
       <thead>
         <tr>
-          <th>Date</th>
-          <th>Status</th>
+          <th style="width: 50px">Index</th>
+          <th style="width: 120px">Date</th>
           <th>Description</th>
-          <th>Commodity</th>
-          <th class="amount">Amount</th>
-          <th class="amount">Running Balance</th>
+          <th>Account</th>
+          <th style="text-align: right; width: 150px">Amount</th>
         </tr>
       </thead>
       <tbody>
-        <tr *ngFor="let posting of postings" 
-            [class.positive]="posting.amount > 0"
-            [class.negative]="posting.amount < 0">
-          <td>{{ formatDate(posting.transactionDate) }}</td>
-          <td>
-            <span class="status-badge" [class]="posting.transactionStatus.toLowerCase()">
-              {{ posting.transactionStatus }}
-            </span>
-          </td>
-          <td>{{ posting.transactionDescription }}</td>
-          <td>{{ posting.commodity }}</td>
-          <td class="amount">{{ formatAmount(posting.amount) }}</td>
-          <td class="amount">
-            <strong>{{ posting.runningBalance ? formatAmount(posting.runningBalance) : '-' }}</strong>
-          </td>
-        </tr>
+        <ng-container *ngFor="let group of groupedTransactions; let idx = index">
+          <!-- Transaction Header Row -->
+          <tr class="transaction-row">
+            <td>{{ idx + 1 }}</td>
+            <td>{{ formatDateISO(group.date) }}</td>
+            <td>{{ group.description }}</td>
+            <td></td>
+            <td></td>
+          </tr>
+          
+          <!-- Tags Sub-row (if any) -->
+          <tr *ngIf="group.tags.length > 0" class="sub-row tags-row">
+            <td></td>
+            <td></td>
+            <td colspan="3" class="tags-cell">
+              <span *ngFor="let tag of group.tags" class="badge badge-secondary" style="margin-right: 0.5rem">
+                {{ tag }}
+              </span>
+            </td>
+          </tr>
+          
+          <!-- Posting Sub-rows -->
+          <tr *ngFor="let posting of group.postings" class="sub-row posting-row">
+            <td></td>
+            <td></td>
+            <td></td>
+            <td class="posting-account">{{ getShortAccountNumber(posting.accountNumber) }}</td>
+            <td class="posting-amount" 
+                [style.color]="posting.amount < 0 ? 'var(--color-error)' : 'var(--color-text-primary)'"
+                style="text-align: right; font-family: monospace">
+              {{ posting.commodity }} {{ formatAmount(posting.amount) }}
+            </td>
+          </tr>
+        </ng-container>
       </tbody>
     </table>
     
-    <div class="posting-count">
-      Total postings: {{ postings.length }}
-    </div>
+    <p style="text-align: right; color: var(--color-text-secondary); margin-top: 1rem">
+      Total transactions: {{ groupedTransactions.length }}
+    </p>
   </div>
 
   <!-- No Data Message -->
-  <div *ngIf="selectedAccount && postings.length === 0 && !loading" class="no-data">
-    No postings found for the selected account and filters.
+  <div *ngIf="selectedJournal && groupedTransactions.length === 0 && !loading" class="info-message">
+    No transactions found for the selected filters.
   </div>
 
-  <!-- No Account Selected -->
-  <div *ngIf="!selectedAccount && !loading" class="no-selection">
-    Please select an account to view its postings.
+  <!-- No Journal Selected -->
+  <div *ngIf="!selectedJournal && !loading" class="info-message">
+    Please select a journal to begin.
   </div>
 </div>
+
+<style>
+.journal-table .transaction-row {
+  font-weight: 600;
+  background-color: var(--color-bg-secondary);
+}
+
+.journal-table .sub-row {
+  font-size: 0.9rem;
+  background-color: var(--color-bg-primary);
+}
+
+.journal-table .tags-row {
+  padding: 0.25rem 0;
+}
+
+.journal-table .tags-cell {
+  padding-top: 0.25rem;
+  padding-bottom: 0.25rem;
+}
+
+.journal-table .posting-row {
+  border-bottom: none;
+}
+
+.journal-table .posting-account {
+  color: var(--color-link-primary);
+  font-family: monospace;
+  font-size: 0.85rem;
+}
+
+.journal-table .posting-amount {
+  font-weight: 500;
+}
+</style>

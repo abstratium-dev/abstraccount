@@ -1,0 +1,28 @@
+; title: Test Equity Hierarchy
+; currency: CHF
+
+commodity CHF 1000.00
+
+account 2 Equity
+  ; type:Equity
+  ; note:Shareholders equity
+
+account 2 Equity:20 Reserves
+  ; type:Equity
+  ; note:Reserves and retained earnings
+
+account 2 Equity:20 Reserves:200 Legal Reserves
+  ; type:Equity
+  ; note:Legal reserves from profit
+
+account 2 Equity:28 Share Capital
+  ; type:Equity
+  ; note:Basic shareholder capital
+
+account 2 Equity:28 Share Capital:280 Foundation Capital
+  ; type:Equity
+  ; note:Foundation capital
+
+account 2 Equity:28 Share Capital:280 Foundation Capital:2800 Basic Capital
+  ; type:Equity
+  ; note:Basic shareholder or foundation capital

@@ -1,7 +1,9 @@
 package dev.abstratium.abstraccount.boundary;
 
 import dev.abstratium.abstraccount.Roles;
+import dev.abstratium.abstraccount.entity.JournalEntity;
 import dev.abstratium.abstraccount.model.*;
+import dev.abstratium.abstraccount.service.JournalPersistenceService;
 import dev.abstratium.abstraccount.service.JournalService;
 import dev.abstratium.abstraccount.service.TransactionFilter;
 import dev.abstratium.abstraccount.service.TransactionFilters;
@@ -39,6 +41,9 @@ public class JournalResource {
     
     @Inject
     dev.abstratium.abstraccount.service.JournalModelPersistenceService modelPersistenceService;
+    
+    @Inject
+    JournalPersistenceService journalPersistenceService;
     
     private Journal cachedJournal;
     private long lastModified = 0;
@@ -279,6 +284,52 @@ public class JournalResource {
                 allBalances.get(account.fullName())
             ))
             .collect(Collectors.toList());
+    }
+    
+    /**
+     * Gets a list of all journals (metadata only, no accounts or transactions).
+     * 
+     * @return list of journal metadata
+     */
+    @GET
+    @Path("/list")
+    public List<JournalMetadataDTO> listJournals() {
+        LOG.debug("Listing all journals");
+        
+        List<JournalEntity> journals = journalPersistenceService.findAllJournals();
+        
+        return journals.stream()
+            .map(j -> new JournalMetadataDTO(
+                j.getId(),
+                j.getTitle(),
+                j.getSubtitle(),
+                j.getCurrency(),
+                j.getCommodities()
+            ))
+            .collect(Collectors.toList());
+    }
+    
+    /**
+     * Gets metadata for a specific journal by ID.
+     * 
+     * @param journalId the journal ID
+     * @return journal metadata
+     */
+    @GET
+    @Path("/{journalId}/metadata")
+    public JournalMetadataDTO getJournalMetadata(@PathParam("journalId") String journalId) {
+        LOG.debugf("Getting metadata for journal: %s", journalId);
+        
+        JournalEntity journal = journalPersistenceService.findJournalById(journalId)
+            .orElseThrow(() -> new WebApplicationException("Journal not found: " + journalId, 404));
+        
+        return new JournalMetadataDTO(
+            journal.getId(),
+            journal.getTitle(),
+            journal.getSubtitle(),
+            journal.getCurrency(),
+            journal.getCommodities()
+        );
     }
     
     /**

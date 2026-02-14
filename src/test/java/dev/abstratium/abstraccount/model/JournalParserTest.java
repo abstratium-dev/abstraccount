@@ -69,7 +69,7 @@ class JournalParserTest {
         assertNull(rootAccount.parent());
         
         Account childAccount = journal.accounts().get(1);
-        assertEquals("1", childAccount.accountNumber());
+        assertEquals("10", childAccount.accountNumber());
         assertEquals("1 Assets:10 Current Assets", childAccount.fullName());
         assertEquals(AccountType.ASSET, childAccount.type());
         assertEquals("Short-term assets", childAccount.note());
@@ -274,5 +274,58 @@ class JournalParserTest {
     @Test
     void testParseBlankContent() {
         assertThrows(IllegalArgumentException.class, () -> parser.parse("   "));
+    }
+    
+    @Test
+    void testAutoCreatedChildAccountsHaveParents() {
+        // Test that when a child account is used in a posting without being declared,
+        // it and its parent are auto-created with proper parent-child relationships
+        String content = """
+            account 1 Assets
+              ; type:Asset
+            
+            2025-01-01 * Opening Balance
+                1 Assets:10 Cash:100 Bank    CHF 1000.00
+                2 Equity    CHF -1000.00
+            """;
+        
+        Journal journal = parser.parse(content);
+        
+        // Should have 4 accounts: 1 Assets (declared), 1 Assets:10 Cash (auto-created),
+        // 1 Assets:10 Cash:100 Bank (auto-created), 2 Equity (auto-created)
+        assertEquals(4, journal.accounts().size());
+        
+        // Find the accounts
+        Account assets = journal.accounts().stream()
+            .filter(a -> a.fullName().equals("1 Assets"))
+            .findFirst()
+            .orElseThrow();
+        
+        Account cash = journal.accounts().stream()
+            .filter(a -> a.fullName().equals("1 Assets:10 Cash"))
+            .findFirst()
+            .orElseThrow();
+        
+        Account bank = journal.accounts().stream()
+            .filter(a -> a.fullName().equals("1 Assets:10 Cash:100 Bank"))
+            .findFirst()
+            .orElseThrow();
+        
+        Account equity = journal.accounts().stream()
+            .filter(a -> a.fullName().equals("2 Equity"))
+            .findFirst()
+            .orElseThrow();
+        
+        // Verify parent relationships
+        assertNull(assets.parent(), "Assets should have no parent");
+        assertEquals(assets, cash.parent(), "Cash parent should be Assets");
+        assertEquals(cash, bank.parent(), "Bank parent should be Cash");
+        assertNull(equity.parent(), "Equity should have no parent");
+        
+        // Verify account numbers (extracted from last segment)
+        assertEquals("1", assets.accountNumber());
+        assertEquals("10", cash.accountNumber());
+        assertEquals("100", bank.accountNumber());
+        assertEquals("2", equity.accountNumber());
     }
 }

@@ -29,6 +29,14 @@ export interface AccountBalanceDTO {
   balances: { [key: string]: number };
 }
 
+export interface JournalMetadataDTO {
+  id: string;
+  title: string;
+  subtitle: string | null;
+  currency: string;
+  commodities: { [key: string]: string };
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -36,6 +44,14 @@ export class JournalApiService {
   private readonly apiUrl = '/api/journal';
 
   constructor(private http: HttpClient) {}
+
+  listJournals(): Observable<JournalMetadataDTO[]> {
+    return this.http.get<JournalMetadataDTO[]>(`${this.apiUrl}/list`);
+  }
+
+  getJournalMetadata(journalId: string): Observable<JournalMetadataDTO> {
+    return this.http.get<JournalMetadataDTO>(`${this.apiUrl}/${journalId}/metadata`);
+  }
 
   getAccounts(): Observable<AccountSummaryDTO[]> {
     return this.http.get<AccountSummaryDTO[]>(`${this.apiUrl}/accounts`);

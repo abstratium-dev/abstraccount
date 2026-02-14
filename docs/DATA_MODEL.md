@@ -43,6 +43,7 @@ erDiagram
         date transactionDate
         string status
         string description
+        string partnerId
         string id
     }
     
@@ -122,6 +123,7 @@ Represents a financial transaction with multiple postings.
 - `transactionDate`: Date of the transaction
 - `status`: Transaction status (`*` for cleared, `!` for pending, empty for uncleared)
 - `description`: Transaction description
+- `partnerId`: Optional partner identifier (extracted from description after `|` separator)
 - `id`: Optional UUID for unique identification
 - `tags`: List of tags (key-value pairs)
 - `postings`: List of postings (must balance to zero)
@@ -206,6 +208,7 @@ classDiagram
         +LocalDate transactionDate
         +TransactionStatus status
         +String description
+        +String partnerId
         +String id
         +List~Tag~ tags
         +List~Posting~ postings

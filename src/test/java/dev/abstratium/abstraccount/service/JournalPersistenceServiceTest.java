@@ -80,17 +80,16 @@ class JournalPersistenceServiceTest {
     void testSaveAndLoadAccounts() {
         // Create accounts
         AccountEntity account1 = new AccountEntity();
-        account1.setAccountNumber("1000");
-        account1.setFullName("Assets:Cash");
+        account1.setAccountName("1000 Cash");
+        
         account1.setType(AccountType.ASSET);
         account1.setNote("Cash account");
         account1.setJournalId(testJournalId);
         
         AccountEntity account2 = new AccountEntity();
-        account2.setAccountNumber("2000");
-        account2.setFullName("Liabilities:CreditCard");
+        account2.setAccountName("2000 CreditCard");
+        
         account2.setType(AccountType.LIABILITY);
-        account2.setParentAccountNumber("2000");
         account2.setJournalId(testJournalId);
         
         // Save accounts
@@ -108,8 +107,8 @@ class JournalPersistenceServiceTest {
     void testLoadAccountByNumber() {
         // Create and save account
         AccountEntity account = new AccountEntity();
-        account.setAccountNumber("1000");
-        account.setFullName("Assets:Cash");
+        account.setAccountName("1000 Cash");
+        
         account.setType(AccountType.ASSET);
         account.setJournalId(testJournalId);
         service.saveAccount(account);
@@ -117,30 +116,10 @@ class JournalPersistenceServiceTest {
         // Load by number
         Optional<AccountEntity> loaded = service.loadAccountByNumber("1000");
         assertTrue(loaded.isPresent());
-        assertEquals("Assets:Cash", loaded.get().getFullName());
-        
-        // Try non-existent account
-        Optional<AccountEntity> notFound = service.loadAccountByNumber("9999");
-        assertFalse(notFound.isPresent());
-    }
-    
-    @Test
-    void testLoadAccountByFullName() {
-        // Create and save account
-        AccountEntity account = new AccountEntity();
-        account.setAccountNumber("1000");
-        account.setFullName("Assets:Cash");
-        account.setType(AccountType.ASSET);
-        account.setJournalId(testJournalId);
-        service.saveAccount(account);
-        
-        // Load by full name
-        Optional<AccountEntity> loaded = service.loadAccountByFullName("Assets:Cash");
-        assertTrue(loaded.isPresent());
         assertEquals("1000", loaded.get().getAccountNumber());
         
         // Try non-existent account
-        Optional<AccountEntity> notFound = service.loadAccountByFullName("NonExistent");
+        Optional<AccountEntity> notFound = service.loadAccountByNumber("9999");
         assertFalse(notFound.isPresent());
     }
     
@@ -346,8 +325,8 @@ class JournalPersistenceServiceTest {
     void testUpdateAccount() {
         // Create and save account
         AccountEntity account = new AccountEntity();
-        account.setAccountNumber("1000");
-        account.setFullName("Assets:Cash");
+        account.setAccountName("1000 Cash");
+        
         account.setType(AccountType.ASSET);
         account.setJournalId(testJournalId);
         
@@ -415,8 +394,8 @@ class JournalPersistenceServiceTest {
         String journalId = service.saveJournal(journal).getId();
         
         AccountEntity account = new AccountEntity();
-        account.setAccountNumber("1000");
-        account.setFullName("Assets:Cash");
+        account.setAccountName("1000 Cash");
+        
         account.setType(AccountType.ASSET);
         account.setJournalId(journalId);
         service.saveAccount(account);

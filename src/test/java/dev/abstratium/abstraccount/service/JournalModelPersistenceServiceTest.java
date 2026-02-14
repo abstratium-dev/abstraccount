@@ -73,7 +73,7 @@ class JournalModelPersistenceServiceTest {
         
         Optional<AccountEntity> cashAccountEntity = persistenceService.loadAccountByNumber("1000");
         assertTrue(cashAccountEntity.isPresent());
-        assertEquals("Assets:Cash", cashAccountEntity.get().getFullName());
+        assertEquals("1000", cashAccountEntity.get().getAccountNumber());
         assertEquals(AccountType.CASH, cashAccountEntity.get().getType());
         
         // Verify transactions were persisted
@@ -101,9 +101,9 @@ class JournalModelPersistenceServiceTest {
     
     @Test
     void testPersistJournalModelWithDuplicateAccounts() {
-        // Create journal with duplicate account numbers
+        // Create journal with duplicate account full names
         Account account1 = new Account("1000", "Assets:Cash", AccountType.CASH, "First occurrence", null);
-        Account account1Duplicate = new Account("1000", "Assets:Cash Duplicate", AccountType.ASSET, "Duplicate", null);
+        Account account1Duplicate = new Account("1000", "Assets:Cash", AccountType.ASSET, "Duplicate", null);
         Account account2 = new Account("2000", "Liabilities", AccountType.LIABILITY, null, null);
         
         Journal journal = new Journal(
@@ -112,20 +112,20 @@ class JournalModelPersistenceServiceTest {
             null, 
             "USD", 
             List.of(), 
-            List.of(account1, account1Duplicate, account2),  // account1 appears twice
+            List.of(account1, account1Duplicate, account2),  // account1 appears twice with same full name
             List.of()
         );
         
         // Persist the model
         modelPersistenceService.persistJournalModel(journal);
         
-        // Verify only unique accounts were persisted (first occurrence kept)
+        // Verify only unique accounts by full name were persisted (first occurrence kept)
         List<AccountEntity> accounts = persistenceService.loadAllAccounts();
-        assertEquals(2, accounts.size(), "Should only save 2 unique accounts");
+        assertEquals(2, accounts.size(), "Should only save 2 unique accounts by full name");
         
         Optional<AccountEntity> account1000 = persistenceService.loadAccountByNumber("1000");
         assertTrue(account1000.isPresent());
-        assertEquals("Assets:Cash", account1000.get().getFullName(), "Should keep first occurrence");
+        assertEquals("1000", account1000.get().getAccountNumber(), "Should keep first occurrence");
         assertEquals("First occurrence", account1000.get().getNote());
     }
     
@@ -148,7 +148,6 @@ class JournalModelPersistenceServiceTest {
         List<AccountEntity> accounts = persistenceService.loadAllAccounts();
         assertEquals(1, accounts.size());
         assertEquals("2000", accounts.get(0).getAccountNumber());
-        assertEquals("Liabilities", accounts.get(0).getFullName());
         
         Optional<JournalEntity> journal = persistenceService.loadJournal();
         assertTrue(journal.isPresent());

@@ -127,6 +127,20 @@ public class JournalParser {
                 TransactionStatus status = parseTransactionStatus(statusStr);
                 String description = transactionMatcher.group(3);
                 
+                // Extract partner ID from description (first word after pipe separator)
+                String partnerId = null;
+                if (description.contains("|")) {
+                    String[] parts = description.split("\\|", 2);
+                    if (parts.length > 1) {
+                        String partnerPart = parts[1].trim();
+                        if (!partnerPart.isEmpty()) {
+                            // Extract first word as partner ID
+                            String[] words = partnerPart.split("\\s+", 2);
+                            partnerId = words[0];
+                        }
+                    }
+                }
+                
                 // Look ahead for transaction tags
                 List<Tag> transactionTags = new ArrayList<>();
                 String transactionId = null;
@@ -176,7 +190,8 @@ public class JournalParser {
                         if (account == null) {
                             // Account not declared, create a minimal one
                             String accNumber = extractAccountNumber(accountName);
-                            account = new Account(accNumber, accountName, AccountType.ASSET, null, null);
+                            Account parent = findOrCreateParentAccount(accountName, accountMap, accounts);
+                            account = new Account(accNumber, accountName, AccountType.ASSET, null, parent);
                             accountMap.put(accountName, account);
                             accounts.add(account);
                         }
@@ -190,7 +205,7 @@ public class JournalParser {
                 }
                 
                 if (!postings.isEmpty()) {
-                    Transaction transaction = new Transaction(date, status, description, transactionId, transactionTags, postings);
+                    Transaction transaction = new Transaction(date, status, description, partnerId, transactionId, transactionTags, postings);
                     transactions.add(transaction);
                 }
                 
@@ -210,12 +225,26 @@ public class JournalParser {
     }
     
     private String extractAccountNumber(String fullName) {
-        // Extract the leading number from the account name
-        String[] parts = fullName.split("\\s+", 2);
-        if (parts.length > 0 && parts[0].matches("\\d+")) {
+        // Extract the account number from the last segment after the last colon
+        // For "1 Assets:10 Cash", this returns "10"
+        // For "1 Assets", this returns "1"
+        // For "2 Liabilities:220 Other:2210.001 Person", this returns "2210.001"
+        String accountName = extractAccountName(fullName);
+        
+        // Extract the leading number (including decimals) from the account name
+        String[] parts = accountName.split("\\s+", 2);
+        if (parts.length > 0 && parts[0].matches("\\d+(\\.\\d+)?")) {
             return parts[0];
         }
         return "0";
+    }
+    
+    private String extractAccountName(String fullName) {
+        // Extract just the account's own name (last segment) from the full hierarchical name
+        // For "1 Assets:10 Cash:100 Bank", this returns "100 Bank"
+        // For "1 Assets", this returns "1 Assets"
+        int lastColon = fullName.lastIndexOf(':');
+        return lastColon > 0 ? fullName.substring(lastColon + 1) : fullName;
     }
     
     private Account findParentAccount(String fullName, Map<String, Account> accountMap) {
@@ -224,6 +253,27 @@ public class JournalParser {
         if (lastColon > 0) {
             String parentName = fullName.substring(0, lastColon);
             return accountMap.get(parentName);
+        }
+        return null;
+    }
+    
+    private Account findOrCreateParentAccount(String fullName, Map<String, Account> accountMap, List<Account> accounts) {
+        // Find parent by removing the last segment after the last colon
+        int lastColon = fullName.lastIndexOf(':');
+        if (lastColon > 0) {
+            String parentName = fullName.substring(0, lastColon);
+            Account parent = accountMap.get(parentName);
+            
+            if (parent == null) {
+                // Parent doesn't exist, create it recursively
+                String parentNumber = extractAccountNumber(parentName);
+                Account grandparent = findOrCreateParentAccount(parentName, accountMap, accounts);
+                parent = new Account(parentNumber, parentName, AccountType.ASSET, null, grandparent);
+                accountMap.put(parentName, parent);
+                accounts.add(parent);
+            }
+            
+            return parent;
         }
         return null;
     }
