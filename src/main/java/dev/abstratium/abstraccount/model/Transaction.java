@@ -1,6 +1,5 @@
 package dev.abstratium.abstraccount.model;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
@@ -8,20 +7,20 @@ import java.util.stream.Collectors;
 import java.math.BigDecimal;
 
 /**
- * Represents a financial transaction with multiple postings.
- * All postings in a transaction must balance to zero for each commodity.
+ * Represents a financial transaction with multiple entries.
+ * All entries in a transaction must balance to zero for each commodity.
  */
 public record Transaction(
-    @JsonProperty("transactionDate") LocalDate transactionDate,
-    @JsonProperty("status") TransactionStatus status,
-    @JsonProperty("description") String description,
-    @JsonProperty("partnerId") String partnerId,
-    @JsonProperty("id") String id,
-    @JsonProperty("tags") List<Tag> tags,
-    @JsonProperty("postings") List<Posting> postings
+    LocalDate date,
+    TransactionStatus status,
+    String description,
+    String partnerId,
+    String id,
+    List<Tag> tags,
+    List<Entry> entries
 ) {
     public Transaction {
-        if (transactionDate == null) {
+        if (date == null) {
             throw new IllegalArgumentException("Transaction date cannot be null");
         }
         if (status == null) {
@@ -30,34 +29,34 @@ public record Transaction(
         if (description == null || description.isBlank()) {
             throw new IllegalArgumentException("Description cannot be null or blank");
         }
-        if (postings == null || postings.size() < 2) {
-            throw new IllegalArgumentException("Transaction must have at least 2 postings");
+        if (entries == null || entries.size() < 2) {
+            throw new IllegalArgumentException("Transaction must have at least 2 entries");
         }
         // Make collections immutable
         tags = tags == null ? List.of() : List.copyOf(tags);
-        postings = List.copyOf(postings);
+        entries = List.copyOf(entries);
     }
     
     /**
      * Creates a transaction with minimal information.
      */
-    public static Transaction simple(LocalDate date, TransactionStatus status, String description, List<Posting> postings) {
-        return new Transaction(date, status, description, null, null, List.of(), postings);
+    public static Transaction simple(LocalDate date, TransactionStatus status, String description, List<Entry> entries) {
+        return new Transaction(date, status, description, null, null, List.of(), entries);
     }
     
     /**
      * Creates a transaction with an ID.
      */
-    public static Transaction withId(LocalDate date, TransactionStatus status, String description, String id, List<Posting> postings) {
-        return new Transaction(date, status, description, null, id, List.of(), postings);
+    public static Transaction withId(LocalDate date, TransactionStatus status, String description, String id, List<Entry> entries) {
+        return new Transaction(date, status, description, null, id, List.of(), entries);
     }
     
     /**
-     * Validates that all postings balance to zero for each commodity.
+     * Validates that all entries balance to zero for each commodity.
      * Returns true if balanced, false otherwise.
      */
     public boolean isBalanced() {
-        Map<String, BigDecimal> balances = postings.stream()
+        Map<String, BigDecimal> balances = entries.stream()
             .collect(Collectors.groupingBy(
                 p -> p.amount().commodity(),
                 Collectors.reducing(

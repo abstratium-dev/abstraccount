@@ -6,7 +6,7 @@ import java.util.UUID;
 
 /**
  * JPA entity for Account.
- * Loaded without transactions/postings.
+ * Loaded without transactions/entries.
  */
 @Entity
 @Table(name = "T_account")
@@ -17,7 +17,7 @@ public class AccountEntity {
     private String id;
     
     @Column(name = "account_name")
-    private String accountName;
+    private String name;
     
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -44,17 +44,6 @@ public class AccountEntity {
         this.id = id;
     }
     
-    /** returns the first word of the account name, i.e. everything before the first space */
-    public String getAccountNumber() {
-        if (accountName == null) {
-            return null;
-        } else if (accountName.contains(" ")) {
-            return accountName.split(" ")[0];
-        } else {
-            return accountName;
-        }
-    }
-    
     public AccountType getType() {
         return type;
     }
@@ -79,12 +68,12 @@ public class AccountEntity {
         this.parentAccountId = parentAccountId;
     }
     
-    public String getAccountName() {
-        return accountName;
+    public String getName() {
+        return name;
     }
     
-    public void setAccountName(String accountName) {
-        this.accountName = accountName;
+    public void setName(String name) {
+        this.name = name;
     }
     
     public String getJournalId() {

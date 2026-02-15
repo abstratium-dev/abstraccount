@@ -1,6 +1,8 @@
-package dev.abstratium.abstraccount.model;
+package dev.abstratium.abstraccount.service;
 
 import jakarta.enterprise.context.ApplicationScoped;
+
+import dev.abstratium.abstraccount.model.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -23,7 +25,7 @@ public class JournalParser {
     private static final Pattern COMMODITY_PATTERN = Pattern.compile("^commodity\\s+(\\S+)\\s+(\\S+)$");
     private static final Pattern ACCOUNT_PATTERN = Pattern.compile("^account\\s+(.+)$");
     private static final Pattern TRANSACTION_PATTERN = Pattern.compile("^(\\d{4}-\\d{2}-\\d{2})\\s+([*!]?)\\s*(.+)$");
-    private static final Pattern POSTING_PATTERN = Pattern.compile("^\\s{4}(.+?)\\s{2,}(\\S+)\\s+(-?\\S+)$");
+    private static final Pattern ENTRY_PATTERN = Pattern.compile("^\\s{4}(.+?)\\s{2,}(\\S+)\\s+(-?\\S+)$");
     private static final Pattern ELLIPSIS_PATTERN = Pattern.compile("^\\s{4}\\.\\.\\.$");
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ISO_LOCAL_DATE;
     
@@ -87,8 +89,9 @@ public class JournalParser {
             // Parse account declarations
             Matcher accountMatcher = ACCOUNT_PATTERN.matcher(line.trim());
             if (accountMatcher.matches()) {
-                String fullName = accountMatcher.group(1);
-                String accountNumber = extractAccountNumber(fullName);
+                String fullPath = accountMatcher.group(1);
+                String accountId = extractAccountNumber(fullPath);
+                String accountName = extractAccountName(fullPath);
                 
                 // Look ahead for type and note
                 AccountType type = AccountType.ASSET; // default
@@ -110,10 +113,12 @@ public class JournalParser {
                 }
                 
                 // Determine parent account
-                Account parent = findParentAccount(fullName, accountMap);
-                Account account = new Account(accountNumber, fullName, type, note, parent);
+                Account parent = findParentAccount(fullPath, accountMap);
+                Account account = parent == null 
+                    ? Account.root(accountId, accountName, type, note)
+                    : Account.child(accountId, accountName, type, note, parent);
                 accounts.add(account);
-                accountMap.put(fullName, account);
+                accountMap.put(fullPath, account);
                 
                 i++;
                 continue;
@@ -125,19 +130,23 @@ public class JournalParser {
                 LocalDate date = LocalDate.parse(transactionMatcher.group(1), DATE_FORMATTER);
                 String statusStr = transactionMatcher.group(2);
                 TransactionStatus status = parseTransactionStatus(statusStr);
-                String description = transactionMatcher.group(3);
+                String fullDescription = transactionMatcher.group(3);
                 
-                // Extract partner ID from description (first word after pipe separator)
+                // Extract partner ID and description
+                // Format: "P00000002 IFJ Institut für Jungunternehmen AG | Pre-payment to IFJ"
+                // Partner is before the pipe, description is after
                 String partnerId = null;
-                if (description.contains("|")) {
-                    String[] parts = description.split("\\|", 2);
-                    if (parts.length > 1) {
-                        String partnerPart = parts[1].trim();
-                        if (!partnerPart.isEmpty()) {
-                            // Extract first word as partner ID
-                            String[] words = partnerPart.split("\\s+", 2);
-                            partnerId = words[0];
-                        }
+                String description = fullDescription;
+                
+                if (fullDescription.contains("|")) {
+                    String[] parts = fullDescription.split("\\|", 2);
+                    String partnerPart = parts[0].trim();
+                    description = parts.length > 1 ? parts[1].trim() : fullDescription;
+                    
+                    if (!partnerPart.isEmpty()) {
+                        // Extract first word as partner ID
+                        String[] words = partnerPart.split("\\s+", 2);
+                        partnerId = words[0];
                     }
                 }
                 
@@ -149,63 +158,78 @@ public class JournalParser {
                     i++;
                     String tagLine = lines[i].trim().substring(1).trim(); // Remove leading ;
                     
-                    // Parse tags
-                    if (tagLine.startsWith(":") && tagLine.endsWith(":")) {
-                        // Simple tag
-                        String tagKey = tagLine.substring(1, tagLine.length() - 1);
-                        transactionTags.add(Tag.simple(tagKey));
-                    } else {
-                        // Key-value tag
-                        Matcher tagMatcher = METADATA_PATTERN.matcher(";" + tagLine);
-                        if (tagMatcher.matches()) {
-                            String key = tagMatcher.group(1).trim();
-                            String value = tagMatcher.group(2).trim();
-                            
-                            if ("id".equalsIgnoreCase(key)) {
-                                transactionId = value;
+                    // Split by comma to handle multiple tags on one line
+                    String[] tagParts = tagLine.split(",");
+                    
+                    for (String tagPart : tagParts) {
+                        tagPart = tagPart.trim();
+                        if (tagPart.isEmpty()) {
+                            continue;
+                        }
+                        
+                        // Parse tags
+                        if (tagPart.startsWith(":") && tagPart.endsWith(":")) {
+                            // Simple tag
+                            String tagKey = tagPart.substring(1, tagPart.length() - 1);
+                            transactionTags.add(Tag.simple(tagKey));
+                        } else {
+                            // Key-value tag
+                            Matcher tagMatcher = METADATA_PATTERN.matcher(";" + tagPart);
+                            if (tagMatcher.matches()) {
+                                String key = tagMatcher.group(1).trim();
+                                String value = tagMatcher.group(2).trim();
+                                
+                                if ("id".equalsIgnoreCase(key)) {
+                                    transactionId = value;
+                                    // Don't add id tag to the tags list
+                                } else {
+                                    transactionTags.add(Tag.keyValue(key, value));
+                                }
                             }
-                            transactionTags.add(Tag.keyValue(key, value));
                         }
                     }
                 }
                 
-                // Parse postings
-                List<Posting> postings = new ArrayList<>();
+                // Parse entries
+                List<Entry> entries = new ArrayList<>();
                 while (i + 1 < lines.length) {
-                    String postingLine = lines[i + 1];
+                    String entryLine = lines[i + 1];
                     
                     // Check for ellipsis
-                    if (ELLIPSIS_PATTERN.matcher(postingLine).matches()) {
+                    if (ELLIPSIS_PATTERN.matcher(entryLine).matches()) {
                         i++;
                         continue;
                     }
                     
-                    Matcher postingMatcher = POSTING_PATTERN.matcher(postingLine);
-                    if (postingMatcher.matches()) {
-                        String accountName = postingMatcher.group(1).trim();
-                        String commodity = postingMatcher.group(2);
-                        String amountStr = postingMatcher.group(3);
+                    Matcher entryMatcher = ENTRY_PATTERN.matcher(entryLine);
+                    if (entryMatcher.matches()) {
+                        String accountName = entryMatcher.group(1).trim();
+                        String commodity = entryMatcher.group(2);
+                        String amountStr = entryMatcher.group(3);
                         
                         Account account = accountMap.get(accountName);
                         if (account == null) {
                             // Account not declared, create a minimal one
-                            String accNumber = extractAccountNumber(accountName);
+                            String accId = extractAccountNumber(accountName);
+                            String accName = extractAccountName(accountName);
                             Account parent = findOrCreateParentAccount(accountName, accountMap, accounts);
-                            account = new Account(accNumber, accountName, AccountType.ASSET, null, parent);
+                            account = parent == null
+                                ? Account.root(accId, accName, AccountType.ASSET, null)
+                                : Account.child(accId, accName, AccountType.ASSET, null, parent);
                             accountMap.put(accountName, account);
                             accounts.add(account);
                         }
                         
                         Amount amount = Amount.of(commodity, amountStr);
-                        postings.add(Posting.simple(account, amount));
+                        entries.add(Entry.simple(account, amount));
                         i++;
                     } else {
                         break;
                     }
                 }
                 
-                if (!postings.isEmpty()) {
-                    Transaction transaction = new Transaction(date, status, description, partnerId, transactionId, transactionTags, postings);
+                if (!entries.isEmpty()) {
+                    Transaction transaction = new Transaction(date, status, description, partnerId, transactionId, transactionTags, entries);
                     transactions.add(transaction);
                 }
                 
@@ -224,52 +248,65 @@ public class JournalParser {
         return new Journal(logo, title, subtitle, currency, commodities, accounts, transactions);
     }
     
-    private String extractAccountNumber(String fullName) {
+    private String extractAccountNumber(String fullPath) {
         // Extract the account number from the last segment after the last colon
         // For "1 Assets:10 Cash", this returns "10"
         // For "1 Assets", this returns "1"
         // For "2 Liabilities:220 Other:2210.001 Person", this returns "2210.001"
-        String accountName = extractAccountName(fullName);
+        int lastColon = fullPath.lastIndexOf(':');
+        String segment = lastColon > 0 ? fullPath.substring(lastColon + 1) : fullPath;
         
-        // Extract the leading number (including decimals) from the account name
-        String[] parts = accountName.split("\\s+", 2);
+        // Extract the leading number (including decimals) from the segment
+        String[] parts = segment.split("\\s+", 2);
         if (parts.length > 0 && parts[0].matches("\\d+(\\.\\d+)?")) {
             return parts[0];
         }
         return "0";
     }
     
-    private String extractAccountName(String fullName) {
-        // Extract just the account's own name (last segment) from the full hierarchical name
-        // For "1 Assets:10 Cash:100 Bank", this returns "100 Bank"
-        // For "1 Assets", this returns "1 Assets"
-        int lastColon = fullName.lastIndexOf(':');
-        return lastColon > 0 ? fullName.substring(lastColon + 1) : fullName;
+    private String extractAccountName(String fullPath) {
+        // Extract just the account's own name (last segment) from the full hierarchical path
+        // For "1 Assets:10 Cash:100 Bank", this returns "Bank"
+        // For "1 Assets", this returns "Assets"
+        int lastColon = fullPath.lastIndexOf(':');
+        String segment = lastColon > 0 ? fullPath.substring(lastColon + 1) : fullPath;
+        
+        // Remove the leading number from the segment
+        // "100 Bank" becomes "Bank"
+        // "1 Assets" becomes "Assets"
+        String[] parts = segment.split("\\s+", 2);
+        if (parts.length > 1 && parts[0].matches("\\d+(\\.\\d+)?")) {
+            return parts[1];
+        }
+        return segment;
     }
     
-    private Account findParentAccount(String fullName, Map<String, Account> accountMap) {
+    private Account findParentAccount(String fullPath, Map<String, Account> accountMap) {
         // Find parent by removing the last segment after the last colon
-        int lastColon = fullName.lastIndexOf(':');
+        int lastColon = fullPath.lastIndexOf(':');
         if (lastColon > 0) {
-            String parentName = fullName.substring(0, lastColon);
-            return accountMap.get(parentName);
+            String parentPath = fullPath.substring(0, lastColon);
+            return accountMap.get(parentPath);
         }
         return null;
     }
     
-    private Account findOrCreateParentAccount(String fullName, Map<String, Account> accountMap, List<Account> accounts) {
+    private Account findOrCreateParentAccount(String fullPath, Map<String, Account> accountMap, List<Account> accounts) {
         // Find parent by removing the last segment after the last colon
-        int lastColon = fullName.lastIndexOf(':');
+        int lastColon = fullPath.lastIndexOf(':');
         if (lastColon > 0) {
-            String parentName = fullName.substring(0, lastColon);
-            Account parent = accountMap.get(parentName);
+            String parentPath = fullPath.substring(0, lastColon);
+            Account parent = accountMap.get(parentPath);
             
             if (parent == null) {
                 // Parent doesn't exist, create it recursively
-                String parentNumber = extractAccountNumber(parentName);
-                Account grandparent = findOrCreateParentAccount(parentName, accountMap, accounts);
-                parent = new Account(parentNumber, parentName, AccountType.ASSET, null, grandparent);
-                accountMap.put(parentName, parent);
+                String parentId = extractAccountNumber(parentPath);
+                String parentName = extractAccountName(parentPath);
+                Account grandparent = findOrCreateParentAccount(parentPath, accountMap, accounts);
+                parent = grandparent == null
+                    ? Account.root(parentId, parentName, AccountType.ASSET, null)
+                    : Account.child(parentId, parentName, AccountType.ASSET, null, grandparent);
+                accountMap.put(parentPath, parent);
                 accounts.add(parent);
             }
             

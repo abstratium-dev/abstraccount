@@ -11,7 +11,7 @@ import java.util.UUID;
 
 /**
  * JPA entity for Transaction.
- * Eagerly loads postings and tags.
+ * Eagerly loads entries and tags.
  */
 @Entity
 @Table(name = "T_transaction")
@@ -41,8 +41,8 @@ public class TransactionEntity {
     private String journalId;
     
     @OneToMany(mappedBy = "transaction", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
-    @OrderBy("postingOrder ASC")
-    private List<PostingEntity> postings = new ArrayList<>();
+    @OrderBy("entryOrder ASC")
+    private List<EntryEntity> entries = new ArrayList<>();
     
     @OneToMany(mappedBy = "transaction", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     private Set<TagEntity> tags = new HashSet<>();
@@ -107,22 +107,22 @@ public class TransactionEntity {
         this.journalId = journalId;
     }
     
-    public List<PostingEntity> getPostings() {
-        return postings;
+    public List<EntryEntity> getEntries() {
+        return entries;
     }
     
-    public void setPostings(List<PostingEntity> postings) {
-        this.postings = postings;
+    public void setEntries(List<EntryEntity> entries) {
+        this.entries = entries;
     }
     
-    public void addPosting(PostingEntity posting) {
-        postings.add(posting);
-        posting.setTransaction(this);
+    public void addEntry(EntryEntity entry) {
+        entries.add(entry);
+        entry.setTransaction(this);
     }
     
-    public void removePosting(PostingEntity posting) {
-        postings.remove(posting);
-        posting.setTransaction(null);
+    public void removeEntry(EntryEntity entry) {
+        entries.remove(entry);
+        entry.setTransaction(null);
     }
     
     public Set<TagEntity> getTags() {

@@ -1,6 +1,5 @@
 package dev.abstratium.abstraccount.model;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import java.math.BigDecimal;
 
 /**
@@ -8,8 +7,8 @@ import java.math.BigDecimal;
  * Uses BigDecimal to avoid floating-point precision errors.
  */
 public record Amount(
-    @JsonProperty("commodity") String commodity,
-    @JsonProperty("quantity") BigDecimal quantity
+    String commodity,
+    BigDecimal quantity
 ) {
     public Amount {
         if (commodity == null || commodity.isBlank()) {

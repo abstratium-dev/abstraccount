@@ -1,6 +1,5 @@
 package dev.abstratium.abstraccount.model;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.List;
 import java.util.Optional;
 
@@ -9,13 +8,13 @@ import java.util.Optional;
  * Contains metadata, commodity declarations, account declarations, and transactions.
  */
 public record Journal(
-    @JsonProperty("logo") String logo,
-    @JsonProperty("title") String title,
-    @JsonProperty("subtitle") String subtitle,
-    @JsonProperty("currency") String currency,
-    @JsonProperty("commodities") List<Commodity> commodities,
-    @JsonProperty("accounts") List<Account> accounts,
-    @JsonProperty("transactions") List<Transaction> transactions
+    String logo,
+    String title,
+    String subtitle,
+    String currency,
+    List<Commodity> commodities,
+    List<Account> accounts,
+    List<Transaction> transactions
 ) {
     public Journal {
         // Make collections immutable
@@ -40,12 +39,9 @@ public record Journal(
             .findFirst();
     }
     
-    /**
-     * Finds an account by its account number.
-     */
-    public Optional<Account> findAccount(String accountNumber) {
+    public Optional<Account> findAccount(String accountId) {
         return accounts.stream()
-            .filter(a -> a.accountNumber().equals(accountNumber))
+            .filter(a -> a.id().equals(accountId))
             .findFirst();
     }
     

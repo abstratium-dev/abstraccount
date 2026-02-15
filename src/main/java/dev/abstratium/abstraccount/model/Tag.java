@@ -1,9 +1,7 @@
 package dev.abstratium.abstraccount.model;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-
 /**
- * Represents a metadata tag attached to transactions or postings.
+ * Represents a metadata tag attached to transactions or entries.
  * Tags can be simple (key only) or key-value pairs.
  * 
  * Examples:
@@ -11,8 +9,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  * - Key-value tag: invoice:PI00000017
  */
 public record Tag(
-    @JsonProperty("key") String key,
-    @JsonProperty("value") String value
+    String key,
+    String value
 ) {
     /**
      * Creates a simple tag with only a key.

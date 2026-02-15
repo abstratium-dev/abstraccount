@@ -1,14 +1,8 @@
-import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Component, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { JournalApiService, AccountSummaryDTO, PostingDTO, AccountBalanceDTO, JournalMetadataDTO } from './journal-api.service';
-
-interface GroupedTransaction {
-  date: string;
-  description: string;
-  tags: string[];
-  postings: PostingDTO[];
-}
+import { Controller, JournalMetadataDTO, TransactionDTO, EntryDTO } from '../controller';
+import { ConfirmDialogService } from '../core/confirm-dialog/confirm-dialog.service';
 
 @Component({
   selector: 'journal',
@@ -19,8 +13,7 @@ interface GroupedTransaction {
 export class JournalComponent implements OnInit {
   journals: JournalMetadataDTO[] = [];
   selectedJournal: JournalMetadataDTO | null = null;
-  postings: PostingDTO[] = [];
-  groupedTransactions: GroupedTransaction[] = [];
+  transactions: TransactionDTO[] = [];
   loading = false;
   error: string | null = null;
   
@@ -29,102 +22,74 @@ export class JournalComponent implements OnInit {
   endDate: string = '';
   status: string = '';
 
-  constructor(private journalApi: JournalApiService) {}
+  private confirmDialog = inject(ConfirmDialogService);
+
+  constructor(private controller: Controller) {}
 
   ngOnInit(): void {
     this.loadJournals();
   }
 
-  loadJournals(): void {
+  async loadJournals(): Promise<void> {
     this.loading = true;
     this.error = null;
     
-    this.journalApi.listJournals().subscribe({
-      next: (journals) => {
-        this.journals = journals;
-        this.loading = false;
-        // Auto-select if only one journal
-        if (journals.length === 1) {
-          this.selectedJournal = journals[0];
-          this.onJournalSelected();
-        }
-      },
-      error: (err) => {
-        this.error = 'Failed to load journals: ' + err.message;
-        this.loading = false;
+    try {
+      this.journals = await this.controller.listJournals();
+      this.loading = false;
+      
+      // Auto-select if only one journal
+      if (this.journals.length === 1) {
+        this.selectedJournal = this.journals[0];
+        await this.loadEntries();
       }
-    });
+    } catch (err: any) {
+      this.error = 'Failed to load journals: ' + err.message;
+      this.loading = false;
+    }
   }
 
   onJournalSelected(): void {
     if (this.selectedJournal) {
-      this.loadPostings();
+      this.loadEntries();
     } else {
-      this.postings = [];
+      this.transactions = [];
     }
   }
 
 
-  loadPostings(): void {
+  async loadEntries(): Promise<void> {
     if (!this.selectedJournal) return;
     
     this.loading = true;
     this.error = null;
     
-    // Load all postings for the journal (no account filter)
-    this.journalApi.getAllPostings(
-      this.startDate || undefined,
-      this.endDate || undefined,
-      this.status || undefined
-    ).subscribe({
-      next: (postings) => {
-        // Sort by date descending (newest first)
-        this.postings = postings.sort((a, b) => 
-          new Date(b.transactionDate).getTime() - new Date(a.transactionDate).getTime()
-        );
-        
-        // Group postings by transaction
-        this.groupedTransactions = this.groupPostingsByTransaction(this.postings);
-        this.loading = false;
-      },
-      error: (err) => {
-        this.error = 'Failed to load postings: ' + err.message;
-        this.loading = false;
-      }
-    });
-  }
-  
-  groupPostingsByTransaction(postings: PostingDTO[]): GroupedTransaction[] {
-    const transactionMap = new Map<string, GroupedTransaction>();
-    
-    for (const posting of postings) {
-      const key = `${posting.transactionDate}_${posting.transactionDescription}_${posting.transactionId || ''}`;
-      
-      if (!transactionMap.has(key)) {
-        transactionMap.set(key, {
-          date: posting.transactionDate,
-          description: posting.transactionDescription,
-          tags: [], // Tags would need to be added to PostingDTO if available
-          postings: []
-        });
-      }
-      
-      transactionMap.get(key)!.postings.push(posting);
+    try {
+      // Load transactions for the journal
+      this.transactions = await this.controller.getTransactions(
+        this.selectedJournal.id,
+        this.startDate || undefined,
+        this.endDate || undefined,
+        undefined, // partnerId
+        this.status || undefined
+      );
+      this.loading = false;
+    } catch (err: any) {
+      this.error = 'Failed to load transactions: ' + err.message;
+      this.loading = false;
     }
-    
-    return Array.from(transactionMap.values());
   }
 
 
   applyFilters(): void {
-    this.loadPostings();
+    this.loadEntries();
   }
 
   clearFilters(): void {
     this.startDate = '';
     this.endDate = '';
     this.status = '';
-    this.loadPostings();
+    this.loadEntries();
   }
 
   formatAmount(amount: number): string {
@@ -140,10 +105,76 @@ export class JournalComponent implements OnInit {
     return dateString;
   }
   
-  getShortAccountNumber(accountNumber: string): string {
-    // Extract just the parent account number (first part before space or colon)
+  getAccountNumberOnly(accountNumber: string): string {
+    // Extract just the account number (first word)
     const parts = accountNumber.split(/[\s:]/);
     return parts[0];
+  }
+  
+  getAccountHierarchy(accountNumber: string): string {
+    // Extract hierarchy from account number
+    // E.g., "1020" -> "1:10:100:1020"
+    // E.g., "6570.001" -> "6:65:657:6570:6570.001"
+    const num = accountNumber.trim();
+    if (num.length === 0) return num;
+    
+    // Split by dots to handle decimal parts
+    const segments = num.split('.');
+    const parts: string[] = [];
+    
+    // Process the main part (before any dot)
+    const mainPart = segments[0];
+    for (let i = 1; i <= mainPart.length; i++) {
+      parts.push(mainPart.substring(0, i));
+    }
+    
+    // Add the full number if it has decimal parts
+    if (segments.length > 1) {
+      parts.push(num);
+    }
+    
+    return parts.join(':');
+  }
+  
+  getAccountLeafName(accountName: string): string {
+    // Extract the leaf name from the full account name
+    // Format: "1020 Avoirs en banque / Bank Account (asset)"
+    // We want just "1020 Avoirs en banque / Bank Account (asset)"
+    // The accountName from the backend is already the leaf part
+    return accountName;
+  }
+
+  async deleteJournal(): Promise<void> {
+    if (!this.selectedJournal) return;
+
+    const confirmed = await this.confirmDialog.confirm({
+      title: 'Delete Journal',
+      message: `Are you sure you want to delete journal "${this.selectedJournal.title}"? This will permanently delete all accounts, transactions, entries, and tags associated with this journal. This action cannot be undone.`,
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      confirmClass: 'btn-danger'
+    });
+
+    if (!confirmed) return;
+
+    this.loading = true;
+    this.error = null;
+
+    try {
+      await this.controller.deleteJournal(this.selectedJournal.id);
+      
+      // Reload journals list
+      await this.loadJournals();
+      
+      // Clear selected journal and transactions
+      this.selectedJournal = null;
+      this.transactions = [];
+      
+    } catch (err: any) {
+      this.error = 'Failed to delete journal: ' + err.message;
+    } finally {
+      this.loading = false;
+    }
   }
 
 }

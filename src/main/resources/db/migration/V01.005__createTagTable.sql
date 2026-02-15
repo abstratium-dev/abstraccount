@@ -6,3 +6,6 @@ CREATE TABLE T_tag (
     tag_value VARCHAR(500),
     CONSTRAINT FK_tag_transaction FOREIGN KEY (transaction_id) REFERENCES T_transaction(id) ON DELETE CASCADE
 );
+
+CREATE INDEX I_tag_transaction ON T_tag(transaction_id);
+CREATE INDEX I_tag_tag_key ON T_tag(tag_key);

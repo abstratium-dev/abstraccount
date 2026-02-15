@@ -18,21 +18,21 @@ public class TransactionFilters {
      * Filter transactions on or before a specific date.
      */
     public static TransactionFilter onOrBefore(LocalDate date) {
-        return transaction -> !transaction.transactionDate().isAfter(date);
+        return transaction -> !transaction.date().isAfter(date);
     }
     
     /**
      * Filter transactions on or after a specific date.
      */
     public static TransactionFilter onOrAfter(LocalDate date) {
-        return transaction -> !transaction.transactionDate().isBefore(date);
+        return transaction -> !transaction.date().isBefore(date);
     }
     
     /**
      * Filter transactions on a specific date.
      */
     public static TransactionFilter onDate(LocalDate date) {
-        return transaction -> transaction.transactionDate().equals(date);
+        return transaction -> transaction.date().equals(date);
     }
     
     /**
@@ -53,16 +53,16 @@ public class TransactionFilters {
      * Filter transactions that affect a specific account.
      */
     public static TransactionFilter affectingAccount(Account account) {
-        return transaction -> transaction.postings().stream()
-            .anyMatch(posting -> posting.account().fullName().equals(account.fullName()));
+        return transaction -> transaction.entries().stream()
+            .anyMatch(entry -> entry.account().id().equals(account.id()));
     }
     
     /**
-     * Filter transactions that affect an account by account name.
+     * Filter transactions that affect an account by account id.
      */
-    public static TransactionFilter affectingAccountByName(String accountName) {
-        return transaction -> transaction.postings().stream()
-            .anyMatch(posting -> posting.account().fullName().equals(accountName));
+    public static TransactionFilter affectingAccountById(String accountId) {
+        return transaction -> transaction.entries().stream()
+            .anyMatch(entry -> entry.account().id().equals(accountId));
     }
     
     /**

@@ -1,6 +1,5 @@
 package dev.abstratium.abstraccount.model;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import java.math.BigDecimal;
 
 /**
@@ -10,8 +9,8 @@ import java.math.BigDecimal;
  * This declares CHF with 2 decimal places precision.
  */
 public record Commodity(
-    @JsonProperty("code") String code,
-    @JsonProperty("displayPrecision") BigDecimal displayPrecision
+    String code,
+    BigDecimal displayPrecision
 ) {
     public Commodity {
         if (code == null || code.isBlank()) {

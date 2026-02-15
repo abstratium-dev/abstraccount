@@ -1,5 +1,6 @@
 package dev.abstratium.abstraccount.model;
 
+import dev.abstratium.abstraccount.service.JournalSerializer;
 import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.Test;
 
@@ -54,8 +55,8 @@ class JournalSerializerTest {
     
     @Test
     void testSerializeAccount() {
-        Account rootAccount = Account.root("1", "1 Assets", AccountType.ASSET, "All assets");
-        Account childAccount = Account.child("10", "1 Assets:10 Current Assets", AccountType.ASSET, "Short-term", rootAccount);
+        Account rootAccount = Account.root("1", "Assets", AccountType.ASSET, "All assets");
+        Account childAccount = Account.child("10", "Current Assets", AccountType.ASSET, "Short-term", rootAccount);
         
         Journal journal = new Journal(
             null, null, null, "CHF",
@@ -76,12 +77,12 @@ class JournalSerializerTest {
     @Test
     void testSerializeAccountTypes() {
         List<Account> accounts = List.of(
-            Account.root("1", "1 Assets", AccountType.ASSET, null),
-            Account.root("2", "2 Liabilities", AccountType.LIABILITY, null),
-            Account.root("3", "3 Equity", AccountType.EQUITY, null),
-            Account.root("4", "4 Revenue", AccountType.REVENUE, null),
-            Account.root("5", "5 Expenses", AccountType.EXPENSE, null),
-            Account.root("6", "6 Cash", AccountType.CASH, null)
+            Account.root("1", "Assets", AccountType.ASSET, null),
+            Account.root("2", "Liabilities", AccountType.LIABILITY, null),
+            Account.root("3", "Equity", AccountType.EQUITY, null),
+            Account.root("4", "Revenue", AccountType.REVENUE, null),
+            Account.root("5", "Expenses", AccountType.EXPENSE, null),
+            Account.root("6", "Cash", AccountType.CASH, null)
         );
         
         Journal journal = new Journal(
@@ -103,17 +104,17 @@ class JournalSerializerTest {
     
     @Test
     void testSerializeSimpleTransaction() {
-        Account assets = Account.root("1", "1 Assets", AccountType.ASSET, null);
-        Account equity = Account.root("2", "2 Equity", AccountType.EQUITY, null);
+        Account assets = Account.root("1", "Assets", AccountType.ASSET, null);
+        Account equity = Account.root("2", "Equity", AccountType.EQUITY, null);
         
-        Posting posting1 = Posting.simple(assets, Amount.of("CHF", "1000.00"));
-        Posting posting2 = Posting.simple(equity, Amount.of("CHF", "-1000.00"));
+        Entry entry1 = Entry.simple(assets, Amount.of("CHF", "1000.00"));
+        Entry entry2 = Entry.simple(equity, Amount.of("CHF", "-1000.00"));
         
         Transaction transaction = Transaction.simple(
             LocalDate.of(2025, 1, 1),
             TransactionStatus.CLEARED,
             "Opening Balance",
-            List.of(posting1, posting2)
+            List.of(entry1, entry2)
         );
         
         Journal journal = new Journal(
@@ -134,11 +135,11 @@ class JournalSerializerTest {
     
     @Test
     void testSerializeTransactionWithId() {
-        Account assets = Account.root("1", "1 Assets", AccountType.ASSET, null);
-        Account liabilities = Account.root("2", "2 Liabilities", AccountType.LIABILITY, null);
+        Account assets = Account.root("1", "Assets", AccountType.ASSET, null);
+        Account liabilities = Account.root("2", "Liabilities", AccountType.LIABILITY, null);
         
-        Posting posting1 = Posting.simple(assets, Amount.of("CHF", "100.00"));
-        Posting posting2 = Posting.simple(liabilities, Amount.of("CHF", "-100.00"));
+        Entry entry1 = Entry.simple(assets, Amount.of("CHF", "100.00"));
+        Entry entry2 = Entry.simple(liabilities, Amount.of("CHF", "-100.00"));
         
         List<Tag> tags = List.of(
             Tag.keyValue("id", "bcba9da2-81be-4a78-b4a3-fbd856ad7dde"),
@@ -149,9 +150,10 @@ class JournalSerializerTest {
             LocalDate.of(2025, 1, 4),
             TransactionStatus.CLEARED,
             "Purchase",
+            null, // partnerId
             "bcba9da2-81be-4a78-b4a3-fbd856ad7dde",
             tags,
-            List.of(posting1, posting2)
+            List.of(entry1, entry2)
         );
         
         Journal journal = new Journal(
@@ -170,11 +172,11 @@ class JournalSerializerTest {
     
     @Test
     void testSerializeTransactionWithSimpleTags() {
-        Account assets = Account.root("1", "1 Assets", AccountType.ASSET, null);
-        Account equity = Account.root("2", "2 Equity", AccountType.EQUITY, null);
+        Account assets = Account.root("1", "Assets", AccountType.ASSET, null);
+        Account equity = Account.root("2", "Equity", AccountType.EQUITY, null);
         
-        Posting posting1 = Posting.simple(assets, Amount.of("CHF", "0.00"));
-        Posting posting2 = Posting.simple(equity, Amount.of("CHF", "0.00"));
+        Entry entry1 = Entry.simple(assets, Amount.of("CHF", "0.00"));
+        Entry entry2 = Entry.simple(equity, Amount.of("CHF", "0.00"));
         
         List<Tag> tags = List.of(Tag.simple("OpeningBalances"));
         
@@ -182,9 +184,10 @@ class JournalSerializerTest {
             LocalDate.of(2025, 1, 1),
             TransactionStatus.CLEARED,
             "Opening Balances",
-            null,
+            null, // partnerId
+            null, // id
             tags,
-            List.of(posting1, posting2)
+            List.of(entry1, entry2)
         );
         
         Journal journal = new Journal(
@@ -201,31 +204,31 @@ class JournalSerializerTest {
     
     @Test
     void testSerializeTransactionStatuses() {
-        Account assets = Account.root("1", "1 Assets", AccountType.ASSET, null);
-        Account equity = Account.root("2", "2 Equity", AccountType.EQUITY, null);
+        Account assets = Account.root("1", "Assets", AccountType.ASSET, null);
+        Account equity = Account.root("2", "Equity", AccountType.EQUITY, null);
         
-        Posting posting1 = Posting.simple(assets, Amount.of("CHF", "100.00"));
-        Posting posting2 = Posting.simple(equity, Amount.of("CHF", "-100.00"));
+        Entry entry1 = Entry.simple(assets, Amount.of("CHF", "100.00"));
+        Entry entry2 = Entry.simple(equity, Amount.of("CHF", "-100.00"));
         
         Transaction cleared = Transaction.simple(
             LocalDate.of(2025, 1, 1),
             TransactionStatus.CLEARED,
             "Cleared",
-            List.of(posting1, posting2)
+            List.of(entry1, entry2)
         );
         
         Transaction pending = Transaction.simple(
             LocalDate.of(2025, 1, 2),
             TransactionStatus.PENDING,
             "Pending",
-            List.of(posting1, posting2)
+            List.of(entry1, entry2)
         );
         
         Transaction uncleared = Transaction.simple(
             LocalDate.of(2025, 1, 3),
             TransactionStatus.UNCLEARED,
             "Uncleared",
-            List.of(posting1, posting2)
+            List.of(entry1, entry2)
         );
         
         Journal journal = new Journal(

@@ -1,7 +1,5 @@
 package dev.abstratium.abstraccount.model;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-
 /**
  * Represents an account in the chart of accounts with hierarchical structure.
  * Accounts are organized in a tree structure using colon (:) as separator.
@@ -12,18 +10,19 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  *   ; note:Current assets description
  */
 public record Account(
-    @JsonProperty("accountNumber") String accountNumber,
-    @JsonProperty("fullName") String fullName,
-    @JsonProperty("type") AccountType type,
-    @JsonProperty("note") String note,
-    @JsonProperty("parent") Account parent
+    String id,
+    String name,
+    AccountType type,
+    String note,
+    String parentId,
+    Account parent
 ) {
     public Account {
-        if (accountNumber == null || accountNumber.isBlank()) {
-            throw new IllegalArgumentException("Account number cannot be null or blank");
+        if (id == null || id.isBlank()) {
+            throw new IllegalArgumentException("Account id cannot be null or blank");
         }
-        if (fullName == null || fullName.isBlank()) {
-            throw new IllegalArgumentException("Full name cannot be null or blank");
+        if (name == null || name.isBlank()) {
+            throw new IllegalArgumentException("Account name cannot be null or blank");
         }
         if (type == null) {
             throw new IllegalArgumentException("Account type cannot be null");
@@ -33,15 +32,15 @@ public record Account(
     /**
      * Creates an account without a parent (root account).
      */
-    public static Account root(String accountNumber, String fullName, AccountType type, String note) {
-        return new Account(accountNumber, fullName, type, note, null);
+    public static Account root(String id, String name, AccountType type, String note) {
+        return new Account(id, name, type, note, null, null);
     }
     
     /**
      * Creates an account with a parent.
      */
-    public static Account child(String accountNumber, String fullName, AccountType type, String note, Account parent) {
-        return new Account(accountNumber, fullName, type, note, parent);
+    public static Account child(String id, String name, AccountType type, String note, Account parent) {
+        return new Account(id, name, type, note, parent.id(), parent);
     }
     
     /**

@@ -1,16 +1,26 @@
 package dev.abstratium.abstraccount.service;
 
-import dev.abstratium.abstraccount.entity.*;
-import dev.abstratium.abstraccount.model.*;
-import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
-import jakarta.transaction.Transactional;
-import org.jboss.logging.Logger;
-
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+
+import org.jboss.logging.Logger;
+
+import dev.abstratium.abstraccount.entity.AccountEntity;
+import dev.abstratium.abstraccount.entity.EntryEntity;
+import dev.abstratium.abstraccount.entity.JournalEntity;
+import dev.abstratium.abstraccount.entity.TagEntity;
+import dev.abstratium.abstraccount.entity.TransactionEntity;
+import dev.abstratium.abstraccount.model.Account;
+import dev.abstratium.abstraccount.model.Commodity;
+import dev.abstratium.abstraccount.model.Entry;
+import dev.abstratium.abstraccount.model.Journal;
+import dev.abstratium.abstraccount.model.Tag;
+import dev.abstratium.abstraccount.model.Transaction;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
+import jakarta.transaction.Transactional;
 
 /**
  * Service for persisting entire Journal models (from the model package) into JPA entities.
@@ -26,16 +36,13 @@ public class JournalModelPersistenceService {
     
     /**
      * Persists an entire journal model (journal metadata, accounts, and transactions)
-     * in a single transaction. This will delete all existing data first.
+     * in a single transaction.
      * 
      * @param journal the journal model to persist
      */
     @Transactional
     public void persistJournalModel(Journal journal) {
         LOG.infof("Persisting journal model: %s", journal.title());
-        
-        // Delete all existing data
-        persistenceService.deleteAll();
         
         // Create and save journal entity
         JournalEntity journalEntity = new JournalEntity();
@@ -55,79 +62,56 @@ public class JournalModelPersistenceService {
         String journalId = savedJournal.getId();
         LOG.infof("Saving journal metadata with ID: %s", journalId);
         
-        // Deduplicate accounts by full name (keep first occurrence)
+        LOG.infof("Saving %d accounts", journal.accounts().size());
+
+        // Deduplicate accounts by ID, keeping first occurrence
         Map<String, Account> uniqueAccounts = new LinkedHashMap<>();
         for (Account account : journal.accounts()) {
-            uniqueAccounts.putIfAbsent(account.fullName(), account);
+            uniqueAccounts.putIfAbsent(account.id(), account);
         }
-        
-        LOG.infof("Saving %d accounts (from %d total including duplicates)", uniqueAccounts.size(), journal.accounts().size());
         
         // Sort accounts by depth to ensure parents are saved before children
         List<Account> sortedAccounts = uniqueAccounts.values().stream()
             .sorted((a1, a2) -> Integer.compare(a1.getDepth(), a2.getDepth()))
             .toList();
         
-        // Map to track account full name -> entity ID for parent lookups
-        Map<String, String> accountIdMap = new HashMap<>();
+        // Map to track accounts -> entity ID for parent lookups
+        Map<String, AccountEntity> accountIdMap = new HashMap<>();
         
         // Save all unique accounts in depth order
         for (Account account : sortedAccounts) {
             AccountEntity accountEntity = new AccountEntity();
-            // Store as "accountNumber leafName" so getAccountNumber() returns the number
-            String leafName = extractAccountName(account.fullName());
-            // If leafName doesn't start with the account number, prepend it
-            String accountName = leafName.startsWith(account.accountNumber() + " ") ? 
-                leafName : account.accountNumber() + " " + leafName;
-            accountEntity.setAccountName(accountName);
+            accountEntity.setId(account.id());
+            accountEntity.setJournalId(journalId);
+            accountEntity.setName(account.name());
+            accountEntity.setParentAccountId(account.parent() == null ? null : account.parent().id());
             accountEntity.setType(account.type());
             accountEntity.setNote(account.note());
-            accountEntity.setJournalId(journalId);
-            
-            // Set parent account ID (foreign key to parent account)
-            if (account.parent() != null) {
-                String parentId = accountIdMap.get(account.parent().fullName());
-                if (parentId == null) {
-                    LOG.warnf("Parent account not found for '%s', parent='%s'", 
-                        account.fullName(), account.parent().fullName());
-                }
-                accountEntity.setParentAccountId(parentId);
-            }
-            
-            if (LOG.isDebugEnabled()) {
-                String parentInfo = account.parent() != null ? 
-                    String.format("parent='%s' (id=%s)", account.parent().fullName(), accountEntity.getParentAccountId()) : 
-                    "parent=null";
-                LOG.debugf("  Account: num=%s, name='%s', fullName='%s', type=%s, depth=%d, %s", 
-                    account.accountNumber(), accountEntity.getAccountName(), account.fullName(), 
-                    account.type(), account.getDepth(), parentInfo);
-            }
-            
             AccountEntity saved = persistenceService.saveAccount(accountEntity);
-            accountIdMap.put(account.fullName(), saved.getId());
+            accountIdMap.put(account.id(), saved);
         }
         
-        // Save all transactions with postings and tags
+        // Save all transactions with entries and tags
         for (Transaction transaction : journal.transactions()) {
             TransactionEntity transactionEntity = new TransactionEntity();
-            transactionEntity.setTransactionDate(transaction.transactionDate());
+            transactionEntity.setTransactionDate(transaction.date());
             transactionEntity.setStatus(transaction.status());
             transactionEntity.setDescription(transaction.description());
             transactionEntity.setPartnerId(transaction.partnerId());
             transactionEntity.setTransactionId(transaction.id());
             transactionEntity.setJournalId(journalId);
             
-            // Add postings
-            int postingOrder = 0;
-            for (Posting posting : transaction.postings()) {
-                PostingEntity postingEntity = new PostingEntity();
-                postingEntity.setAccountNumber(posting.account().accountNumber());
-                postingEntity.setCommodity(posting.amount().commodity());
-                postingEntity.setAmount(posting.amount().quantity());
-                postingEntity.setNote(posting.note());
-                postingEntity.setPostingOrder(postingOrder++);
+            // Add entries
+            int entryOrder = 0;
+            for (Entry entry : transaction.entries()) {
+                EntryEntity entryEntity = new EntryEntity();
+                entryEntity.setAccountId(entry.account().id());
+                entryEntity.setCommodity(entry.amount().commodity());
+                entryEntity.setAmount(entry.amount().quantity());
+                entryEntity.setNote(entry.note());
+                entryEntity.setEntryOrder(entryOrder++);
                 
-                transactionEntity.addPosting(postingEntity);
+                transactionEntity.addEntry(entryEntity);
             }
             
             // Add tags
@@ -144,14 +128,5 @@ public class JournalModelPersistenceService {
         LOG.infof("Saving %d transactions", journal.transactions().size());
         
         LOG.infof("Ready to persisted journal model");
-    }
-    
-    /**
-     * Extract just the account's own name (last segment) from the full hierarchical name.
-     * For example: "1 Assets:10 Cash:100 Bank" returns "100 Bank"
-     */
-    private String extractAccountName(String fullName) {
-        int lastColon = fullName.lastIndexOf(':');
-        return lastColon > 0 ? fullName.substring(lastColon + 1) : fullName;
     }
 }

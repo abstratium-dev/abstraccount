@@ -1,6 +1,8 @@
 package dev.abstratium.abstraccount.model;
 
+import dev.abstratium.abstraccount.service.JournalParser;
 import io.quarkus.test.junit.QuarkusTest;
+import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
@@ -11,7 +13,8 @@ import static org.junit.jupiter.api.Assertions.*;
 @QuarkusTest
 class JournalParserTest {
     
-    private final JournalParser parser = new JournalParser();
+    @Inject
+    JournalParser parser;
     
     @Test
     void testParseMetadata() {
@@ -62,15 +65,15 @@ class JournalParserTest {
         assertEquals(2, journal.accounts().size());
         
         Account rootAccount = journal.accounts().get(0);
-        assertEquals("1", rootAccount.accountNumber());
-        assertEquals("1 Assets", rootAccount.fullName());
+        assertEquals("1", rootAccount.id());
+        assertEquals("Assets", rootAccount.name());
         assertEquals(AccountType.ASSET, rootAccount.type());
         assertEquals("All company assets", rootAccount.note());
         assertNull(rootAccount.parent());
         
         Account childAccount = journal.accounts().get(1);
-        assertEquals("10", childAccount.accountNumber());
-        assertEquals("1 Assets:10 Current Assets", childAccount.fullName());
+        assertEquals("10", childAccount.id());
+        assertEquals("Current Assets", childAccount.name());
         assertEquals(AccountType.ASSET, childAccount.type());
         assertEquals("Short-term assets", childAccount.note());
         assertEquals(rootAccount, childAccount.parent());
@@ -122,21 +125,23 @@ class JournalParserTest {
         assertEquals(1, journal.transactions().size());
         
         Transaction transaction = journal.transactions().get(0);
-        assertEquals(LocalDate.of(2025, 1, 1), transaction.transactionDate());
+        assertEquals(LocalDate.of(2025, 1, 1), transaction.date());
         assertEquals(TransactionStatus.CLEARED, transaction.status());
         assertEquals("Opening Balance", transaction.description());
         assertNull(transaction.id());
-        assertEquals(2, transaction.postings().size());
+        assertEquals(2, transaction.entries().size());
         
-        Posting posting1 = transaction.postings().get(0);
-        assertEquals("1 Assets", posting1.account().fullName());
-        assertEquals("CHF", posting1.amount().commodity());
-        assertEquals(new BigDecimal("1000.00"), posting1.amount().quantity());
+        Entry entry1 = transaction.entries().get(0);
+        assertEquals("1", entry1.account().id());
+        assertEquals("Assets", entry1.account().name());
+        assertEquals("CHF", entry1.amount().commodity());
+        assertEquals(new BigDecimal("1000.00"), entry1.amount().quantity());
         
-        Posting posting2 = transaction.postings().get(1);
-        assertEquals("2 Equity", posting2.account().fullName());
-        assertEquals("CHF", posting2.amount().commodity());
-        assertEquals(new BigDecimal("-1000.00"), posting2.amount().quantity());
+        Entry entry2 = transaction.entries().get(1);
+        assertEquals("2", entry2.account().id());
+        assertEquals("Equity", entry2.account().name());
+        assertEquals("CHF", entry2.amount().commodity());
+        assertEquals(new BigDecimal("-1000.00"), entry2.amount().quantity());
     }
     
     @Test
@@ -158,13 +163,11 @@ class JournalParserTest {
         
         Transaction transaction = journal.transactions().get(0);
         assertEquals("bcba9da2-81be-4a78-b4a3-fbd856ad7dde", transaction.id());
-        assertEquals(2, transaction.tags().size());
+        assertEquals(1, transaction.tags().size());
         
-        assertEquals("id", transaction.tags().get(0).key());
-        assertEquals("bcba9da2-81be-4a78-b4a3-fbd856ad7dde", transaction.tags().get(0).value());
-        
-        assertEquals("invoice", transaction.tags().get(1).key());
-        assertEquals("PI00000017", transaction.tags().get(1).value());
+        // id tag should not be in tags list
+        assertEquals("invoice", transaction.tags().get(0).key());
+        assertEquals("PI00000017", transaction.tags().get(0).value());
     }
     
     @Test
@@ -278,7 +281,7 @@ class JournalParserTest {
     
     @Test
     void testAutoCreatedChildAccountsHaveParents() {
-        // Test that when a child account is used in a posting without being declared,
+        // Test that when a child account is used in a entry without being declared,
         // it and its parent are auto-created with proper parent-child relationships
         String content = """
             account 1 Assets
@@ -297,22 +300,22 @@ class JournalParserTest {
         
         // Find the accounts
         Account assets = journal.accounts().stream()
-            .filter(a -> a.fullName().equals("1 Assets"))
+            .filter(a -> a.id().equals("1") && a.name().equals("Assets"))
             .findFirst()
             .orElseThrow();
         
         Account cash = journal.accounts().stream()
-            .filter(a -> a.fullName().equals("1 Assets:10 Cash"))
+            .filter(a -> a.id().equals("10") && a.name().equals("Cash"))
             .findFirst()
             .orElseThrow();
         
         Account bank = journal.accounts().stream()
-            .filter(a -> a.fullName().equals("1 Assets:10 Cash:100 Bank"))
+            .filter(a -> a.id().equals("100") && a.name().equals("Bank"))
             .findFirst()
             .orElseThrow();
         
         Account equity = journal.accounts().stream()
-            .filter(a -> a.fullName().equals("2 Equity"))
+            .filter(a -> a.id().equals("2") && a.name().equals("Equity"))
             .findFirst()
             .orElseThrow();
         
@@ -322,10 +325,117 @@ class JournalParserTest {
         assertEquals(cash, bank.parent(), "Bank parent should be Cash");
         assertNull(equity.parent(), "Equity should have no parent");
         
-        // Verify account numbers (extracted from last segment)
-        assertEquals("1", assets.accountNumber());
-        assertEquals("10", cash.accountNumber());
-        assertEquals("100", bank.accountNumber());
-        assertEquals("2", equity.accountNumber());
+        // Verify account IDs (extracted from last segment)
+        assertEquals("1", assets.id());
+        assertEquals("10", cash.id());
+        assertEquals("100", bank.id());
+        assertEquals("2", equity.id());
+    }
+    
+    @Test
+    void testParseTransactionWithPartner() {
+        String content = """
+            account 1 Assets
+              ; type:Asset
+            account 2 Liabilities
+              ; type:Liability
+            
+            2024-05-27 * P00000002 IFJ Institut für Jungunternehmen AG | Pre-payment to IFJ for paying cantonal fees
+                1 Assets    CHF 100.00
+                2 Liabilities    CHF -100.00
+            """;
+        
+        Journal journal = parser.parse(content);
+        
+        assertEquals(1, journal.transactions().size());
+        Transaction transaction = journal.transactions().get(0);
+        
+        assertEquals(LocalDate.of(2024, 5, 27), transaction.date());
+        assertEquals(TransactionStatus.CLEARED, transaction.status());
+        assertEquals("P00000002", transaction.partnerId());
+        assertEquals("Pre-payment to IFJ for paying cantonal fees", transaction.description());
+    }
+    
+    @Test
+    void testParseTransactionWithoutPartner() {
+        String content = """
+            account 1 Assets
+              ; type:Asset
+            account 2 Liabilities
+              ; type:Liability
+            
+            2024-05-27 * Pre-payment to IFJ
+                1 Assets    CHF 100.00
+                2 Liabilities    CHF -100.00
+            """;
+        
+        Journal journal = parser.parse(content);
+        
+        assertEquals(1, journal.transactions().size());
+        Transaction transaction = journal.transactions().get(0);
+        
+        assertEquals(LocalDate.of(2024, 5, 27), transaction.date());
+        assertEquals(TransactionStatus.CLEARED, transaction.status());
+        assertNull(transaction.partnerId());
+        assertEquals("Pre-payment to IFJ", transaction.description());
+    }
+    
+    @Test
+    void testParseTransactionWithPartnerAndComplexDescription() {
+        String content = """
+            account 1 Assets
+              ; type:Asset
+            account 2 Liabilities
+              ; type:Liability
+            
+            2024-05-27 * P00000002 IFJ Institut für Jungunternehmen AG | Pre-payment to IFJ for paying cantonal fees, which they then paid to the canton
+                1 Assets    CHF 100.00
+                2 Liabilities    CHF -100.00
+            """;
+        
+        Journal journal = parser.parse(content);
+        
+        assertEquals(1, journal.transactions().size());
+        Transaction transaction = journal.transactions().get(0);
+        
+        assertEquals(LocalDate.of(2024, 5, 27), transaction.date());
+        assertEquals(TransactionStatus.CLEARED, transaction.status());
+        assertEquals("P00000002", transaction.partnerId());
+        assertEquals("Pre-payment to IFJ for paying cantonal fees, which they then paid to the canton", transaction.description());
+    }
+    
+    @Test
+    void testParseTransactionWithCommaSeparatedTags() {
+        String content = """
+            account 1 Assets
+              ; type:Asset
+            account 2 Liabilities
+              ; type:Liability
+            
+            2024-01-15 * Payment to supplier
+                ; :Payment:, invoice:PI00000002
+                1 Assets    CHF -324.30
+                2 Liabilities    CHF 324.30
+            """;
+        
+        Journal journal = parser.parse(content);
+        
+        assertEquals(1, journal.transactions().size());
+        Transaction transaction = journal.transactions().get(0);
+        
+        assertEquals(LocalDate.of(2024, 1, 15), transaction.date());
+        assertEquals(TransactionStatus.CLEARED, transaction.status());
+        assertEquals("Payment to supplier", transaction.description());
+        
+        // Verify tags
+        assertEquals(2, transaction.tags().size());
+        
+        // Check for simple tag "Payment"
+        assertTrue(transaction.tags().stream()
+            .anyMatch(tag -> tag.isSimple() && "Payment".equals(tag.key())));
+        
+        // Check for key-value tag "invoice:PI00000002"
+        assertTrue(transaction.tags().stream()
+            .anyMatch(tag -> !tag.isSimple() && "invoice".equals(tag.key()) && "PI00000002".equals(tag.value())));
     }
 }

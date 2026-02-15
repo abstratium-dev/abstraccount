@@ -1,6 +1,9 @@
 package dev.abstratium.abstraccount.model;
 
+import dev.abstratium.abstraccount.service.JournalParser;
+import dev.abstratium.abstraccount.service.JournalSerializer;
 import io.quarkus.test.junit.QuarkusTest;
+import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
@@ -12,8 +15,11 @@ import static org.junit.jupiter.api.Assertions.*;
 @QuarkusTest
 class JournalRoundTripTest {
     
-    private final JournalParser parser = new JournalParser();
-    private final JournalSerializer serializer = new JournalSerializer();
+    @Inject
+    JournalParser parser;
+    
+    @Inject
+    JournalSerializer serializer;
     
     @Test
     void testRoundTripSimpleJournal() {
@@ -57,8 +63,8 @@ class JournalRoundTripTest {
         for (int i = 0; i < journal1.accounts().size(); i++) {
             Account acc1 = journal1.accounts().get(i);
             Account acc2 = journal2.accounts().get(i);
-            assertEquals(acc1.accountNumber(), acc2.accountNumber());
-            assertEquals(acc1.fullName(), acc2.fullName());
+            assertEquals(acc1.id(), acc2.id());
+            assertEquals(acc1.name(), acc2.name());
             assertEquals(acc1.type(), acc2.type());
             assertEquals(acc1.note(), acc2.note());
         }
@@ -68,16 +74,17 @@ class JournalRoundTripTest {
         Transaction tx1 = journal1.transactions().get(0);
         Transaction tx2 = journal2.transactions().get(0);
         
-        assertEquals(tx1.transactionDate(), tx2.transactionDate());
+        assertEquals(tx1.date(), tx2.date());
         assertEquals(tx1.status(), tx2.status());
         assertEquals(tx1.description(), tx2.description());
-        assertEquals(tx1.postings().size(), tx2.postings().size());
+        assertEquals(tx1.entries().size(), tx2.entries().size());
         
-        // Verify postings
-        for (int i = 0; i < tx1.postings().size(); i++) {
-            Posting p1 = tx1.postings().get(i);
-            Posting p2 = tx2.postings().get(i);
-            assertEquals(p1.account().fullName(), p2.account().fullName());
+        // Verify entries
+        for (int i = 0; i < tx1.entries().size(); i++) {
+            Entry p1 = tx1.entries().get(i);
+            Entry p2 = tx2.entries().get(i);
+            assertEquals(p1.account().id(), p2.account().id());
+            assertEquals(p1.account().name(), p2.account().name());
             assertEquals(p1.amount().commodity(), p2.amount().commodity());
             assertEquals(0, p1.amount().quantity().compareTo(p2.amount().quantity()));
         }
@@ -149,10 +156,12 @@ class JournalRoundTripTest {
         Account cash1 = journal1.accounts().get(2);
         Account cash2 = journal2.accounts().get(2);
         
-        assertEquals(cash1.fullName(), cash2.fullName());
+        assertEquals(cash1.id(), cash2.id());
+        assertEquals(cash1.name(), cash2.name());
         assertNotNull(cash1.parent());
         assertNotNull(cash2.parent());
-        assertEquals(cash1.parent().fullName(), cash2.parent().fullName());
+        assertEquals(cash1.parent().id(), cash2.parent().id());
+        assertEquals(cash1.parent().name(), cash2.parent().name());
     }
     
     @Test
@@ -199,13 +208,13 @@ class JournalRoundTripTest {
     @Test
     void testSerializeToParseConsistency() {
         // Create a journal programmatically
-        Account assets = Account.root("1", "1 Assets", AccountType.ASSET, "All assets");
-        Account equity = Account.root("2", "2 Equity", AccountType.EQUITY, null);
+        Account assets = Account.root("1", "Assets", AccountType.ASSET, "All assets");
+        Account equity = Account.root("2", "Equity", AccountType.EQUITY, null);
         
         Commodity chf = new Commodity("CHF", new BigDecimal("1000.00"));
         
-        Posting posting1 = Posting.simple(assets, Amount.of("CHF", "1500.50"));
-        Posting posting2 = Posting.simple(equity, Amount.of("CHF", "-1500.50"));
+        Entry entry1 = Entry.simple(assets, Amount.of("CHF", "1500.50"));
+        Entry entry2 = Entry.simple(equity, Amount.of("CHF", "-1500.50"));
         
         List<Tag> tags = List.of(
             Tag.keyValue("id", "uuid-123"),
@@ -216,9 +225,10 @@ class JournalRoundTripTest {
             LocalDate.of(2025, 2, 15),
             TransactionStatus.CLEARED,
             "Initial Balance",
+            null, // partnerId
             "uuid-123",
             tags,
-            List.of(posting1, posting2)
+            List.of(entry1, entry2)
         );
         
         Journal original = new Journal(
@@ -248,15 +258,15 @@ class JournalRoundTripTest {
         Transaction originalTx = original.transactions().get(0);
         Transaction parsedTx = parsed.transactions().get(0);
         
-        assertEquals(originalTx.transactionDate(), parsedTx.transactionDate());
+        assertEquals(originalTx.date(), parsedTx.date());
         assertEquals(originalTx.status(), parsedTx.status());
         assertEquals(originalTx.description(), parsedTx.description());
         assertEquals(originalTx.id(), parsedTx.id());
         
         // Verify amounts are preserved exactly
         assertEquals(
-            originalTx.postings().get(0).amount().quantity(),
-            parsedTx.postings().get(0).amount().quantity()
+            originalTx.entries().get(0).amount().quantity(),
+            parsedTx.entries().get(0).amount().quantity()
         );
     }
     
@@ -315,8 +325,8 @@ class JournalRoundTripTest {
         String serialized = serializer.serialize(journal1);
         Journal journal2 = parser.parse(serialized);
         
-        BigDecimal amount1 = journal1.transactions().get(0).postings().get(0).amount().quantity();
-        BigDecimal amount2 = journal2.transactions().get(0).postings().get(0).amount().quantity();
+        BigDecimal amount1 = journal1.transactions().get(0).entries().get(0).amount().quantity();
+        BigDecimal amount2 = journal2.transactions().get(0).entries().get(0).amount().quantity();
         
         assertEquals(0, amount1.compareTo(amount2), "Decimal precision should be preserved");
         assertEquals(amount1.scale(), amount2.scale(), "Decimal scale should be preserved");

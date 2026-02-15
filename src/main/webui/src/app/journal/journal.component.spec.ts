@@ -1,331 +1,135 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { FormsModule } from '@angular/forms';
-import { of, throwError } from 'rxjs';
 import { JournalComponent } from './journal.component';
-import { JournalApiService, JournalMetadataDTO, AccountSummaryDTO, AccountBalanceDTO, PostingDTO } from './journal-api.service';
+import { Controller } from '../controller';
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
 
 describe('JournalComponent', () => {
   let component: JournalComponent;
   let fixture: ComponentFixture<JournalComponent>;
-  let mockJournalApi: jasmine.SpyObj<JournalApiService>;
-
-  const mockJournals: JournalMetadataDTO[] = [
-    {
-      id: 'journal-1',
-      title: 'Test Journal 2024',
-      subtitle: 'Test Subtitle',
-      currency: 'CHF',
-      commodities: { 'CHF': '1000.00' }
-    },
-    {
-      id: 'journal-2',
-      title: 'Test Journal 2025',
-      subtitle: null,
-      currency: 'USD',
-      commodities: { 'USD': '100.00' }
-    }
-  ];
-
-  const mockAccounts: AccountSummaryDTO[] = [
-    {
-      accountNumber: '1',
-      accountName: '1 Assets',
-      accountType: 'ASSET',
-      note: 'Asset account'
-    },
-    {
-      accountNumber: '2',
-      accountName: '2 Liabilities',
-      accountType: 'LIABILITY',
-      note: null
-    }
-  ];
-
-  const mockBalance: AccountBalanceDTO = {
-    accountNumber: '1',
-    accountName: '1 Assets',
-    accountType: 'ASSET',
-    balances: { 'CHF': 1000.50 }
-  };
-
-  const mockPostings: PostingDTO[] = [
-    {
-      transactionDate: '2024-01-01',
-      transactionStatus: 'CLEARED',
-      transactionDescription: 'Opening balance',
-      transactionId: 'tx-1',
-      accountNumber: '1',
-      accountName: '1 Assets',
-      accountType: 'ASSET',
-      commodity: 'CHF',
-      amount: 1000,
-      runningBalance: 1000
-    },
-    {
-      transactionDate: '2024-01-02',
-      transactionStatus: 'PENDING',
-      transactionDescription: 'Purchase',
-      transactionId: 'tx-2',
-      accountNumber: '1',
-      accountName: '1 Assets',
-      accountType: 'ASSET',
-      commodity: 'CHF',
-      amount: -50.25,
-      runningBalance: 949.75
-    }
-  ];
+  let controller: jasmine.SpyObj<Controller>;
 
   beforeEach(async () => {
-    mockJournalApi = jasmine.createSpyObj('JournalApiService', [
+    const controllerSpy = jasmine.createSpyObj('Controller', [
       'listJournals',
       'getJournalMetadata',
-      'getAccounts',
-      'getAccountBalance',
-      'getAccountPostings',
-      'getAllPostings',
-      'getAllBalances'
+      'getTransactions'
     ]);
 
     await TestBed.configureTestingModule({
       imports: [JournalComponent, FormsModule],
       providers: [
-        { provide: JournalApiService, useValue: mockJournalApi }
+        { provide: Controller, useValue: controllerSpy },
+        provideHttpClient(),
+        provideHttpClientTesting()
       ]
     }).compileComponents();
 
     fixture = TestBed.createComponent(JournalComponent);
     component = fixture.componentInstance;
+    controller = TestBed.inject(Controller) as jasmine.SpyObj<Controller>;
   });
 
   it('should create', () => {
     expect(component).toBeTruthy();
   });
 
-  describe('ngOnInit', () => {
-    it('should load journals on init', () => {
-      mockJournalApi.listJournals.and.returnValue(of(mockJournals));
+  it('should load journals on init', async () => {
+    const mockJournals = [
+      { id: '1', title: 'Journal 1', subtitle: null, currency: 'CHF', commodities: {} }
+    ];
+    controller.listJournals.and.returnValue(Promise.resolve(mockJournals));
 
-      fixture.detectChanges(); // triggers ngOnInit
+    await component.ngOnInit();
+    await fixture.whenStable();
 
-      expect(mockJournalApi.listJournals).toHaveBeenCalled();
-      expect(component.journals).toEqual(mockJournals);
-      expect(component.loading).toBe(false);
-    });
-
-    it('should auto-select journal if only one exists', () => {
-      const singleJournal = [mockJournals[0]];
-      mockJournalApi.listJournals.and.returnValue(of(singleJournal));
-      mockJournalApi.getAccounts.and.returnValue(of(mockAccounts));
-
-      fixture.detectChanges();
-
-      expect(component.selectedJournal).toEqual(singleJournal[0]);
-      expect(mockJournalApi.getAccounts).toHaveBeenCalled();
-    });
-
-    it('should not auto-select if multiple journals exist', () => {
-      mockJournalApi.listJournals.and.returnValue(of(mockJournals));
-
-      fixture.detectChanges();
-
-      expect(component.selectedJournal).toBeNull();
-      expect(mockJournalApi.getAccounts).not.toHaveBeenCalled();
-    });
-
-    it('should handle error loading journals', () => {
-      const error = new Error('Failed to load');
-      mockJournalApi.listJournals.and.returnValue(throwError(() => error));
-
-      fixture.detectChanges();
-
-      expect(component.error).toContain('Failed to load journals');
-      expect(component.loading).toBe(false);
-    });
+    expect(controller.listJournals).toHaveBeenCalled();
+    expect(component.journals).toEqual(mockJournals);
   });
 
-  describe('onJournalSelected', () => {
-    beforeEach(() => {
-      mockJournalApi.listJournals.and.returnValue(of(mockJournals));
-      fixture.detectChanges();
-    });
+  it('should auto-select journal if only one exists', async () => {
+    const mockJournals = [
+      { id: '1', title: 'Journal 1', subtitle: null, currency: 'CHF', commodities: {} }
+    ];
+    const mockTransactions: any[] = [];
+    controller.listJournals.and.returnValue(Promise.resolve(mockJournals));
+    controller.getTransactions.and.returnValue(Promise.resolve(mockTransactions));
 
-    it('should load accounts when journal is selected', () => {
-      mockJournalApi.getAccounts.and.returnValue(of(mockAccounts));
-      
-      component.selectedJournal = mockJournals[0];
-      component.onJournalSelected();
+    await component.ngOnInit();
+    await fixture.whenStable();
 
-      expect(mockJournalApi.getAccounts).toHaveBeenCalled();
-      expect(component.accounts).toEqual(mockAccounts);
-    });
-
-    it('should clear accounts when journal is deselected', () => {
-      component.accounts = mockAccounts;
-      component.selectedAccount = '1 Assets';
-      component.postings = mockPostings;
-      component.balance = mockBalance;
-
-      component.selectedJournal = null;
-      component.onJournalSelected();
-
-      expect(component.accounts).toEqual([]);
-      expect(component.selectedAccount).toBeNull();
-      expect(component.postings).toEqual([]);
-      expect(component.balance).toBeNull();
-    });
-
-    it('should handle error loading accounts', () => {
-      const error = new Error('Failed to load');
-      mockJournalApi.getAccounts.and.returnValue(throwError(() => error));
-
-      component.selectedJournal = mockJournals[0];
-      component.onJournalSelected();
-
-      expect(component.error).toContain('Failed to load accounts');
-      expect(component.loading).toBe(false);
-    });
+    expect(component.selectedJournal).toEqual(mockJournals[0]);
+    expect(controller.getTransactions).toHaveBeenCalled();
   });
 
-  describe('onAccountSelected', () => {
-    beforeEach(() => {
-      mockJournalApi.listJournals.and.returnValue(of(mockJournals));
-      mockJournalApi.getAccounts.and.returnValue(of(mockAccounts));
-      fixture.detectChanges();
-      component.selectedJournal = mockJournals[0];
-      component.onJournalSelected();
-    });
+  it('should load transactions when journal is selected', async () => {
+    const mockTransactions = [
+      {
+        id: 'tx1',
+        transactionDate: '2024-01-01',
+        status: 'CLEARED',
+        description: 'Test transaction',
+        partnerId: null,
+        tags: [],
+        entries: []
+      }
+    ];
+    controller.getTransactions.and.returnValue(Promise.resolve(mockTransactions));
 
-    it('should load postings and balance when account is selected', () => {
-      mockJournalApi.getAccountPostings.and.returnValue(of(mockPostings));
-      mockJournalApi.getAccountBalance.and.returnValue(of(mockBalance));
+    component.selectedJournal = { id: '1', title: 'Journal 1', subtitle: null, currency: 'CHF', commodities: {} };
+    await component.loadEntries();
+    await fixture.whenStable();
 
-      component.selectedAccount = '1 Assets';
-      component.onAccountSelected();
-
-      expect(mockJournalApi.getAccountPostings).toHaveBeenCalledWith('1 Assets', undefined, undefined, undefined);
-      expect(mockJournalApi.getAccountBalance).toHaveBeenCalledWith('1 Assets');
-      expect(component.postings).toEqual(mockPostings);
-      expect(component.balance).toEqual(mockBalance);
-    });
-
-    it('should clear postings and balance when account is deselected', () => {
-      component.postings = mockPostings;
-      component.balance = mockBalance;
-
-      component.selectedAccount = null;
-      component.onAccountSelected();
-
-      expect(component.postings).toEqual([]);
-      expect(component.balance).toBeNull();
-    });
-
-    it('should handle error loading postings', () => {
-      const error = new Error('Failed to load');
-      mockJournalApi.getAccountPostings.and.returnValue(throwError(() => error));
-      mockJournalApi.getAccountBalance.and.returnValue(of(mockBalance));
-
-      component.selectedAccount = '1 Assets';
-      component.onAccountSelected();
-
-      expect(component.error).toContain('Failed to load postings');
-      expect(component.loading).toBe(false);
-    });
+    expect(controller.getTransactions).toHaveBeenCalledWith('1', undefined, undefined, undefined, undefined);
+    expect(component.transactions).toEqual(mockTransactions);
   });
 
-  describe('applyFilters', () => {
-    beforeEach(() => {
-      mockJournalApi.listJournals.and.returnValue(of(mockJournals));
-      mockJournalApi.getAccounts.and.returnValue(of(mockAccounts));
-      mockJournalApi.getAccountPostings.and.returnValue(of(mockPostings));
-      mockJournalApi.getAccountBalance.and.returnValue(of(mockBalance));
-      fixture.detectChanges();
-      component.selectedJournal = mockJournals[0];
-      component.selectedAccount = '1 Assets';
-    });
+  it('should apply filters', async () => {
+    const mockTransactions: any[] = [];
+    controller.getTransactions.and.returnValue(Promise.resolve(mockTransactions));
 
-    it('should reload postings with filters', () => {
-      component.startDate = '2024-01-01';
-      component.endDate = '2024-12-31';
-      component.status = 'CLEARED';
+    component.selectedJournal = { id: '1', title: 'Journal 1', subtitle: null, currency: 'CHF', commodities: {} };
+    component.startDate = '2024-01-01';
+    component.endDate = '2024-12-31';
+    component.status = 'CLEARED';
 
-      component.applyFilters();
+    component.applyFilters();
+    await fixture.whenStable();
 
-      expect(mockJournalApi.getAccountPostings).toHaveBeenCalledWith(
-        '1 Assets',
-        '2024-01-01',
-        '2024-12-31',
-        'CLEARED'
-      );
-    });
+    expect(controller.getTransactions).toHaveBeenCalledWith('1', '2024-01-01', '2024-12-31', undefined, 'CLEARED');
   });
 
-  describe('clearFilters', () => {
-    beforeEach(() => {
-      mockJournalApi.listJournals.and.returnValue(of(mockJournals));
-      mockJournalApi.getAccounts.and.returnValue(of(mockAccounts));
-      mockJournalApi.getAccountPostings.and.returnValue(of(mockPostings));
-      mockJournalApi.getAccountBalance.and.returnValue(of(mockBalance));
-      fixture.detectChanges();
-      component.selectedJournal = mockJournals[0];
-      component.selectedAccount = '1 Assets';
-    });
+  it('should clear filters', () => {
+    component.startDate = '2024-01-01';
+    component.endDate = '2024-12-31';
+    component.status = 'CLEARED';
 
-    it('should clear filter values and reload postings', () => {
-      component.startDate = '2024-01-01';
-      component.endDate = '2024-12-31';
-      component.status = 'CLEARED';
+    component.clearFilters();
 
-      component.clearFilters();
-
-      expect(component.startDate).toBe('');
-      expect(component.endDate).toBe('');
-      expect(component.status).toBe('');
-      expect(mockJournalApi.getAccountPostings).toHaveBeenCalledWith('1 Assets', undefined, undefined, undefined);
-    });
+    expect(component.startDate).toBe('');
+    expect(component.endDate).toBe('');
+    expect(component.status).toBe('');
   });
 
-  describe('formatAmount', () => {
-    it('should format amount to 2 decimal places', () => {
-      expect(component.formatAmount(1000)).toBe('1000.00');
-      expect(component.formatAmount(50.5)).toBe('50.50');
-      expect(component.formatAmount(-123.456)).toBe('-123.46');
-    });
+  it('should handle errors when loading journals', async () => {
+    controller.listJournals.and.returnValue(Promise.reject(new Error('Network error')));
+
+    await component.loadJournals();
+    await fixture.whenStable();
+
+    expect(component.error).toContain('Failed to load journals');
+    expect(component.loading).toBe(false);
   });
 
-  describe('formatDate', () => {
-    it('should format date string to locale date', () => {
-      const formatted = component.formatDate('2024-01-15');
-      expect(formatted).toBeTruthy();
-      expect(typeof formatted).toBe('string');
-    });
-  });
+  it('should handle errors when loading transactions', async () => {
+    controller.getTransactions.and.returnValue(Promise.reject(new Error('Network error')));
 
-  describe('getBalanceString', () => {
-    it('should return empty string when no balance', () => {
-      component.balance = null;
-      expect(component.getBalanceString()).toBe('');
-    });
+    component.selectedJournal = { id: '1', title: 'Journal 1', subtitle: null, currency: 'CHF', commodities: {} };
+    await component.loadEntries();
+    await fixture.whenStable();
 
-    it('should format single commodity balance', () => {
-      component.balance = {
-        accountNumber: '1',
-        accountName: '1 Assets',
-        accountType: 'ASSET',
-        balances: { 'CHF': 1000.50 }
-      };
-      expect(component.getBalanceString()).toBe('CHF 1000.50');
-    });
-
-    it('should format multiple commodity balances', () => {
-      component.balance = {
-        accountNumber: '1',
-        accountName: '1 Assets',
-        accountType: 'ASSET',
-        balances: { 'CHF': 1000.50, 'USD': 500.25 }
-      };
-      const result = component.getBalanceString();
-      expect(result).toContain('CHF 1000.50');
-      expect(result).toContain('USD 500.25');
-    });
+    expect(component.error).toContain('Failed to load transactions');
+    expect(component.loading).toBe(false);
   });
 });

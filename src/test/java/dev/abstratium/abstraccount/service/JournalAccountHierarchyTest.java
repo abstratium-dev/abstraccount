@@ -2,7 +2,6 @@ package dev.abstratium.abstraccount.service;
 
 import dev.abstratium.abstraccount.entity.AccountEntity;
 import dev.abstratium.abstraccount.model.Journal;
-import dev.abstratium.abstraccount.model.JournalParser;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
@@ -110,8 +109,8 @@ class JournalAccountHierarchyTest {
         LOG.infof("Parsed journal with %d accounts", journal.accounts().size());
         for (var account : journal.accounts()) {
             LOG.debugf("Parsed account: %s (parent: %s)", 
-                account.fullName(), 
-                account.parent() != null ? account.parent().fullName() : "null");
+                account.id() + " " + account.name(), 
+                account.parent() != null ? account.parent().id() + " " + account.parent().name() : "null");
         }
         
         // Expected accounts (17 total):
@@ -137,13 +136,16 @@ class JournalAccountHierarchyTest {
         // Persist the journal
         modelPersistenceService.persistJournalModel(journal);
         
+        // Get the journal ID
+        String journalId = persistenceService.findAllJournals().get(0).getId();
+        
         // Retrieve all accounts from database
-        List<AccountEntity> savedAccounts = persistenceService.findAllAccounts();
+        List<AccountEntity> savedAccounts = persistenceService.loadAllAccounts(journalId);
         
         LOG.infof("Retrieved %d accounts from database", savedAccounts.size());
         for (AccountEntity account : savedAccounts) {
             LOG.debugf("Saved account: %s (parent: %s)", 
-                account.getAccountName(), 
+                account.getName(), 
                 account.getParentAccountId());
         }
         
@@ -156,41 +158,41 @@ class JournalAccountHierarchyTest {
         AccountEntity assets = findAccountByNumber(savedAccounts, "1");
         assertNotNull(assets, "Assets account should exist");
         assertNull(assets.getParentAccountId(), "Assets should have no parent");
-        assertEquals("1", assets.getAccountNumber());
+        assertEquals("1", assets.getId());
         
         // Level 1: 1 Actifs / Assets:10 Actif circulants / Current Assets
         AccountEntity currentAssets = findAccountByNumber(savedAccounts, "10");
         assertNotNull(currentAssets, "Current Assets account should exist");
         assertEquals(assets.getId(), currentAssets.getParentAccountId(), "Current Assets parent should be assets");
-        assertEquals("10", currentAssets.getAccountNumber());
+        assertEquals("10", currentAssets.getId());
         
         // Level 2: 1 Actifs / Assets:10 Actif circulants / Current Assets:100 Liquidites / Cash and Cash Equivalents
         AccountEntity cash = findAccountByNumber(savedAccounts, "100");
         assertNotNull(cash, "Cash account should exist");
         assertEquals(currentAssets.getId(), cash.getParentAccountId(), "Cash parent should be current assets");
-        assertEquals("100", cash.getAccountNumber());
+        assertEquals("100", cash.getId());
         
         // Level 3: 1 Actifs / Assets:10 Actif circulants / Current Assets:100 Liquidites / Cash and Cash Equivalents:1020 Banque / Bank
         AccountEntity bank = findAccountByNumber(savedAccounts, "1020");
         assertNotNull(bank, "Bank account should exist");
         assertEquals(cash.getId(), bank.getParentAccountId(), "Bank parent should be cash");
-        assertEquals("1020", bank.getAccountNumber());
+        assertEquals("1020", bank.getId());
         
         // Verify equity hierarchy
         AccountEntity equity = findAccountByNumber(savedAccounts, "2");
         assertNotNull(equity, "Equity account should exist");
         assertNull(equity.getParentAccountId(), "Equity should have no parent");
-        assertEquals("2", equity.getAccountNumber());
+        assertEquals("2", equity.getId());
         
         AccountEntity equityCapital = findAccountByNumber(savedAccounts, "20");
         assertNotNull(equityCapital, "Equity Capital account should exist");
         assertEquals(equity.getId(), equityCapital.getParentAccountId(), "Equity Capital parent should be equity");
-        assertEquals("20", equityCapital.getAccountNumber());
+        assertEquals("20", equityCapital.getId());
         
         AccountEntity shareCapital = findAccountByNumber(savedAccounts, "200");
         assertNotNull(shareCapital, "Share Capital account should exist");
         assertEquals(equityCapital.getId(), shareCapital.getParentAccountId(), "Share Capital parent should be equity capital");
-        assertEquals("200", shareCapital.getAccountNumber());
+        assertEquals("200", shareCapital.getId());
         
         // Verify all root accounts (those with no parent)
         long rootAccountCount = savedAccounts.stream()
@@ -198,17 +200,17 @@ class JournalAccountHierarchyTest {
             .count();
         assertEquals(7, rootAccountCount, "Should have 7 root accounts (1, 2, 3, 4, 5, 6, 8)");
         
-        // Verify that each account number is unique within the journal
-        long uniqueAccountNumbers = savedAccounts.stream()
-            .map(AccountEntity::getAccountNumber)
+        // Verify that each account ID is unique within the journal
+        long uniqueAccountIds = savedAccounts.stream()
+            .map(AccountEntity::getId)
             .distinct()
             .count();
-        assertEquals(16, uniqueAccountNumbers, "All 16 accounts should have unique account numbers");
+        assertEquals(16, uniqueAccountIds, "All 16 accounts should have unique IDs");
     }
     
     private AccountEntity findAccountByNumber(List<AccountEntity> accounts, String accountNumber) {
         return accounts.stream()
-            .filter(a -> accountNumber.equals(a.getAccountNumber()))
+            .filter(a -> accountNumber.equals(a.getId()))
             .findFirst()
             .orElse(null);
     }

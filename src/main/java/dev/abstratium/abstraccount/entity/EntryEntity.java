@@ -5,12 +5,12 @@ import java.math.BigDecimal;
 import java.util.UUID;
 
 /**
- * JPA entity for Posting.
+ * JPA entity for Entry.
  * Always loaded eagerly with its transaction.
  */
 @Entity
-@Table(name = "T_posting")
-public class PostingEntity {
+@Table(name = "T_entry")
+public class EntryEntity {
     
     @Id
     @Column(length = 36)
@@ -20,8 +20,8 @@ public class PostingEntity {
     @JoinColumn(name = "transaction_id", nullable = false)
     private TransactionEntity transaction;
     
-    @Column(name = "account_number", nullable = false)
-    private String accountNumber;
+    @Column(name = "account_id", nullable = false)
+    private String accountId;
     
     @Column(nullable = false)
     private String commodity;
@@ -32,10 +32,10 @@ public class PostingEntity {
     @Column(length = 1000)
     private String note;
     
-    @Column(name = "posting_order", nullable = false)
-    private Integer postingOrder;
+    @Column(name = "entry_order", nullable = false)
+    private Integer entryOrder;
     
-    public PostingEntity() {
+    public EntryEntity() {
         this.id = UUID.randomUUID().toString();
     }
     
@@ -55,12 +55,12 @@ public class PostingEntity {
         this.transaction = transaction;
     }
     
-    public String getAccountNumber() {
-        return accountNumber;
+    public String getAccountId() {
+        return accountId;
     }
     
-    public void setAccountNumber(String accountNumber) {
-        this.accountNumber = accountNumber;
+    public void setAccountId(String accountId) {
+        this.accountId = accountId;
     }
     
     public String getCommodity() {
@@ -87,11 +87,11 @@ public class PostingEntity {
         this.note = note;
     }
     
-    public Integer getPostingOrder() {
-        return postingOrder;
+    public Integer getEntryOrder() {
+        return entryOrder;
     }
     
-    public void setPostingOrder(Integer postingOrder) {
-        this.postingOrder = postingOrder;
+    public void setEntryOrder(Integer entryOrder) {
+        this.entryOrder = entryOrder;
     }
 }

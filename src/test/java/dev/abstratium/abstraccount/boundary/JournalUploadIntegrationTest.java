@@ -59,29 +59,30 @@ class JournalUploadIntegrationTest {
             .statusCode(200);
         
         // Verify journal metadata was saved
-        JournalEntity journal = persistenceService.loadJournal()
-            .orElseThrow(() -> new AssertionError("Journal should be saved"));
+        List<JournalEntity> journals = persistenceService.findAllJournals();
+        assertEquals(1, journals.size());
+        JournalEntity journal = journals.get(0);
         assertEquals("Test Equity Hierarchy", journal.getTitle());
         assertEquals("CHF", journal.getCurrency());
         assertNotNull(journal.getCommodities());
         assertTrue(journal.getCommodities().containsKey("CHF"));
         
         // Verify all accounts were saved
-        List<AccountEntity> accounts = persistenceService.findAllAccounts();
+        List<AccountEntity> accounts = persistenceService.loadAllAccounts(journal.getId());
         assertEquals(6, accounts.size(), "Should have 6 accounts");
         
         LOG.infof("Retrieved %d accounts from database", accounts.size());
         for (AccountEntity account : accounts) {
-            LOG.debugf("Account: num=%s, name='%s', parentId=%s", 
-                account.getAccountNumber(), 
-                account.getAccountName(), 
+            LOG.debugf("Account: id=%s, name='%s', parentId=%s", 
+                account.getId(), 
+                account.getName(), 
                 account.getParentAccountId());
         }
         
         // Verify root account: 2 Equity
         AccountEntity equity = findAccountByNumber(accounts, "2");
         assertNotNull(equity, "Root equity account should exist");
-        assertEquals("2", equity.getAccountNumber());
+        assertEquals("2", equity.getId());
         assertEquals(AccountType.EQUITY, equity.getType());
         assertEquals("Shareholders equity", equity.getNote());
         assertNull(equity.getParentAccountId(), "Root account should have no parent");
@@ -89,7 +90,7 @@ class JournalUploadIntegrationTest {
         // Verify level 1: 2 Equity:20 Reserves
         AccountEntity reserves = findAccountByNumber(accounts, "20");
         assertNotNull(reserves, "Reserves account should exist");
-        assertEquals("20", reserves.getAccountNumber());
+        assertEquals("20", reserves.getId());
         assertEquals(AccountType.EQUITY, reserves.getType());
         assertEquals("Reserves and retained earnings", reserves.getNote());
         assertEquals(equity.getId(), reserves.getParentAccountId(), "Reserves parent should be equity");
@@ -97,7 +98,7 @@ class JournalUploadIntegrationTest {
         // Verify level 2: 2 Equity:20 Reserves:200 Legal Reserves
         AccountEntity legalReserves = findAccountByNumber(accounts, "200");
         assertNotNull(legalReserves, "Legal Reserves account should exist");
-        assertEquals("200", legalReserves.getAccountNumber());
+        assertEquals("200", legalReserves.getId());
         assertEquals(AccountType.EQUITY, legalReserves.getType());
         assertEquals("Legal reserves from profit", legalReserves.getNote());
         assertEquals(reserves.getId(), legalReserves.getParentAccountId(), "Legal Reserves parent should be reserves");
@@ -105,7 +106,7 @@ class JournalUploadIntegrationTest {
         // Verify level 1: 2 Equity:28 Share Capital
         AccountEntity shareCapital = findAccountByNumber(accounts, "28");
         assertNotNull(shareCapital, "Share Capital account should exist");
-        assertEquals("28", shareCapital.getAccountNumber());
+        assertEquals("28", shareCapital.getId());
         assertEquals(AccountType.EQUITY, shareCapital.getType());
         assertEquals("Basic shareholder capital", shareCapital.getNote());
         assertEquals(equity.getId(), shareCapital.getParentAccountId(), "Share Capital parent should be equity");
@@ -113,7 +114,7 @@ class JournalUploadIntegrationTest {
         // Verify level 2: 2 Equity:28 Share Capital:280 Foundation Capital
         AccountEntity foundationCapital = findAccountByNumber(accounts, "280");
         assertNotNull(foundationCapital, "Foundation Capital account should exist");
-        assertEquals("280", foundationCapital.getAccountNumber());
+        assertEquals("280", foundationCapital.getId());
         assertEquals(AccountType.EQUITY, foundationCapital.getType());
         assertEquals("Foundation capital", foundationCapital.getNote());
         assertEquals(shareCapital.getId(), foundationCapital.getParentAccountId(), "Foundation Capital parent should be share capital");
@@ -121,7 +122,7 @@ class JournalUploadIntegrationTest {
         // Verify level 3: 2 Equity:28 Share Capital:280 Foundation Capital:2800 Basic Capital
         AccountEntity basicCapital = findAccountByNumber(accounts, "2800");
         assertNotNull(basicCapital, "Basic Capital account should exist");
-        assertEquals("2800", basicCapital.getAccountNumber());
+        assertEquals("2800", basicCapital.getId());
         assertEquals(AccountType.EQUITY, basicCapital.getType());
         assertEquals("Basic shareholder or foundation capital", basicCapital.getNote());
         assertEquals(foundationCapital.getId(), basicCapital.getParentAccountId(), "Basic Capital parent should be foundation capital");
@@ -132,12 +133,12 @@ class JournalUploadIntegrationTest {
             .count();
         assertEquals(1, rootAccounts, "Should have exactly 1 root account");
         
-        // Verify all account numbers are unique
-        long uniqueAccountNumbers = accounts.stream()
-            .map(AccountEntity::getAccountNumber)
+        // Verify all account IDs are unique
+        long uniqueAccountIds = accounts.stream()
+            .map(AccountEntity::getId)
             .distinct()
             .count();
-        assertEquals(6, uniqueAccountNumbers, "All 6 accounts should have unique account numbers");
+        assertEquals(6, uniqueAccountIds, "All 6 accounts should have unique IDs");
         
         LOG.infof("Successfully uploaded and verified journal with %d accounts", accounts.size());
     }
@@ -179,7 +180,7 @@ class JournalUploadIntegrationTest {
     
     private AccountEntity findAccountByNumber(List<AccountEntity> accounts, String accountNumber) {
         return accounts.stream()
-            .filter(a -> accountNumber.equals(a.getAccountNumber()))
+            .filter(a -> accountNumber.equals(a.getId()))
             .findFirst()
             .orElse(null);
     }

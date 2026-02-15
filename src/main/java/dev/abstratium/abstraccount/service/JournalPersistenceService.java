@@ -1,16 +1,20 @@
 package dev.abstratium.abstraccount.service;
 
-import dev.abstratium.abstraccount.entity.*;
-import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.NoResultException;
-import jakarta.persistence.TypedQuery;
-import jakarta.transaction.Transactional;
-
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
+
+import com.google.common.annotations.VisibleForTesting;
+
+import dev.abstratium.abstraccount.entity.AccountEntity;
+import dev.abstratium.abstraccount.entity.EntryEntity;
+import dev.abstratium.abstraccount.entity.JournalEntity;
+import dev.abstratium.abstraccount.entity.TransactionEntity;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.TypedQuery;
+import jakarta.transaction.Transactional;
 
 /**
  * Service for persisting and loading journal data.
@@ -21,25 +25,6 @@ public class JournalPersistenceService {
     
     @Inject
     EntityManager entityManager;
-    
-    /**
-     * Loads the journal metadata.
-     * Returns the first journal found, or empty if none exists.
-     * 
-     * @return Optional containing the journal, or empty if not found
-     */
-    @Transactional
-    public Optional<JournalEntity> loadJournal() {
-        TypedQuery<JournalEntity> query = entityManager.createQuery(
-            "SELECT j FROM JournalEntity j", JournalEntity.class);
-        query.setMaxResults(1);
-        
-        try {
-            return Optional.of(query.getSingleResult());
-        } catch (NoResultException e) {
-            return Optional.empty();
-        }
-    }
     
     /**
      * Finds all journals in the database.
@@ -66,60 +51,31 @@ public class JournalPersistenceService {
     }
     
     /**
-     * Loads all accounts.
-     * Accounts are loaded without their transactions/postings.
+     * Loads all accounts for a specific journal.
+     * Accounts are loaded without their transactions/entries.
      * 
      * @return List of all accounts
      */
     @Transactional
-    public List<AccountEntity> loadAllAccounts() {
+    public List<AccountEntity> loadAllAccounts(String journalId) {
         return entityManager.createQuery(
-            "SELECT a FROM AccountEntity a ORDER BY a.accountName", 
+            "SELECT a FROM AccountEntity a WHERE a.journalId = :journalId ORDER BY a.name", 
             AccountEntity.class)
+            .setParameter("journalId", journalId)
             .getResultList();
     }
     
     /**
-     * Loads an account by its account number.
-     * 
-     * @param accountNumber the account number
-     * @return Optional containing the account, or empty if not found
-     */
-    @Transactional
-    public Optional<AccountEntity> loadAccountByNumber(String accountNumber) {
-        // Account number is the first word of accountName
-        TypedQuery<AccountEntity> query = entityManager.createQuery(
-            "SELECT a FROM AccountEntity a WHERE a.accountName LIKE :accountNumber",
-            AccountEntity.class);
-        query.setParameter("accountNumber", accountNumber + " %");
-        
-        try {
-            return Optional.of(query.getSingleResult());
-        } catch (NoResultException e) {
-            // Try exact match (for accounts with no space in name)
-            try {
-                query = entityManager.createQuery(
-                    "SELECT a FROM AccountEntity a WHERE a.accountName = :accountNumber",
-                    AccountEntity.class);
-                query.setParameter("accountNumber", accountNumber);
-                return Optional.of(query.getSingleResult());
-            } catch (NoResultException e2) {
-                return Optional.empty();
-            }
-        }
-    }
-    
-    /**
-     * Loads postings within a date range.
+     * Loads entries within a date range.
      * The from date is inclusive, the to date is exclusive.
-     * Transactions, postings, and tags are all eagerly loaded.
+     * Transactions, entries, and tags are all eagerly loaded.
      * 
      * @param from the start date (inclusive)
      * @param to the end date (exclusive)
-     * @return List of postings within the date range
+     * @return List of entries within the date range
      */
     @Transactional
-    public List<PostingEntity> loadPostingsBetweenDates(LocalDate from, LocalDate to) {
+    public List<EntryEntity> loadEntriesBetweenDates(String journalId, LocalDate from, LocalDate to) {
         if (from == null || to == null) {
             throw new IllegalArgumentException("From and to dates must not be null");
         }
@@ -128,57 +84,14 @@ public class JournalPersistenceService {
         }
         
         return entityManager.createQuery(
-            "SELECT p FROM PostingEntity p " +
+            "SELECT p FROM EntryEntity p " +
             "JOIN FETCH p.transaction t " +
             "WHERE t.transactionDate >= :from AND t.transactionDate < :to " +
-            "ORDER BY t.transactionDate, t.id, p.postingOrder",
-            PostingEntity.class)
+            "ORDER BY t.transactionDate, t.id, p.entryOrder",
+            EntryEntity.class)
             .setParameter("from", from)
             .setParameter("to", to)
             .getResultList();
-    }
-    
-    /**
-     * Loads all transactions within a date range.
-     * The from date is inclusive, the to date is exclusive.
-     * Transactions, postings, and tags are all eagerly loaded.
-     * 
-     * @param from the start date (inclusive)
-     * @param to the end date (exclusive)
-     * @return List of transactions within the date range
-     */
-    @Transactional
-    public List<TransactionEntity> loadTransactionsBetweenDates(LocalDate from, LocalDate to) {
-        if (from == null || to == null) {
-            throw new IllegalArgumentException("From and to dates must not be null");
-        }
-        if (from.isAfter(to)) {
-            throw new IllegalArgumentException("From date must not be after to date");
-        }
-        
-        // First fetch transactions with postings
-        List<TransactionEntity> transactions = entityManager.createQuery(
-            "SELECT DISTINCT t FROM TransactionEntity t " +
-            "LEFT JOIN FETCH t.postings " +
-            "WHERE t.transactionDate >= :from AND t.transactionDate < :to " +
-            "ORDER BY t.transactionDate, t.id",
-            TransactionEntity.class)
-            .setParameter("from", from)
-            .setParameter("to", to)
-            .getResultList();
-        
-        // Then fetch tags for those transactions (if any exist)
-        if (!transactions.isEmpty()) {
-            entityManager.createQuery(
-                "SELECT DISTINCT t FROM TransactionEntity t " +
-                "LEFT JOIN FETCH t.tags " +
-                "WHERE t IN :transactions",
-                TransactionEntity.class)
-                .setParameter("transactions", transactions)
-                .getResultList();
-        }
-        
-        return transactions;
     }
     
     /**
@@ -195,18 +108,6 @@ public class JournalPersistenceService {
         } else {
             return entityManager.merge(journal);
         }
-    }
-    
-    /**
-     * Finds all accounts in the database.
-     * 
-     * @return list of all accounts
-     */
-    public List<AccountEntity> findAllAccounts() {
-        return entityManager.createQuery(
-            "SELECT a FROM AccountEntity a ORDER BY a.accountName",
-            AccountEntity.class)
-            .getResultList();
     }
     
     /**
@@ -242,15 +143,93 @@ public class JournalPersistenceService {
     }
     
     /**
-     * Deletes all data from the database.
+     * Queries entries with optional filters.
+     * Can also be used to search for transactions, by simply deduplicating the accounts that are in the result!
+     * 
+     * @param journalId the journal ID (required)
+     * @param startDate inclusive start date filter (optional)
+     * @param endDate exclusive end date filter (optional)
+     * @param partnerId partner ID filter (optional)
+     * @param status transaction status filter (optional)
+     * @param accountNumbers list of account numbers to filter by (optional)
+     * @return list of matching entries with their transactions eagerly loaded
+     */
+    @Transactional
+    public List<EntryEntity> queryEntriesWithFilters(
+            String journalId,
+            LocalDate startDate,
+            LocalDate endDate,
+            String partnerId,
+            String status,
+            List<String> accountNumbers) {
+        
+        StringBuilder jpql = new StringBuilder(
+            "SELECT p FROM EntryEntity p " +
+            "JOIN FETCH p.transaction t " +
+            "WHERE t.journalId = :journalId"
+        );
+        
+        if (startDate != null) {
+            jpql.append(" AND t.transactionDate >= :startDate");
+        }
+        if (endDate != null) {
+            jpql.append(" AND t.transactionDate < :endDate");
+        }
+        if (partnerId != null) {
+            jpql.append(" AND t.partnerId = :partnerId");
+        }
+        if (status != null) {
+            jpql.append(" AND t.status = :status");
+        }
+        if (accountNumbers != null && !accountNumbers.isEmpty()) {
+            jpql.append(" AND p.accountNumber IN :accountNumbers");
+        }
+
+        // TODO extend with tag filters too
+        
+        jpql.append(" ORDER BY t.transactionDate DESC, t.id, p.entryOrder");
+        
+        var query = entityManager.createQuery(jpql.toString(), EntryEntity.class)
+            .setParameter("journalId", journalId);
+        
+        if (startDate != null) {
+            query.setParameter("startDate", startDate);
+        }
+        if (endDate != null) {
+            query.setParameter("endDate", endDate);
+        }
+        if (partnerId != null) {
+            query.setParameter("partnerId", partnerId);
+        }
+        if (status != null) {
+            query.setParameter("status", dev.abstratium.abstraccount.model.TransactionStatus.valueOf(status));
+        }
+        if (accountNumbers != null && !accountNumbers.isEmpty()) {
+            query.setParameter("accountNumbers", accountNumbers);
+        }
+        
+        return query.getResultList();
+    }
+    
+    /**
+     * Deletes a specific journal and all its related data (accounts, transactions, entries, tags).
+     * Uses cascade deletion to delete all related data.
+     * 
+     * @param journalId the ID of the journal to delete
+     */
+    @Transactional
+    public void deleteJournal(String journalId) {
+        JournalEntity journal = entityManager.find(JournalEntity.class, journalId);
+        entityManager.remove(journal);
+    }
+    
+    /**
+     * Deletes all data from the database using cascade deletion.
      * Useful for testing.
      */
     @Transactional
+    @VisibleForTesting
     public void deleteAll() {
-        entityManager.createQuery("DELETE FROM PostingEntity").executeUpdate();
-        entityManager.createQuery("DELETE FROM TagEntity").executeUpdate();
-        entityManager.createQuery("DELETE FROM TransactionEntity").executeUpdate();
-        entityManager.createQuery("DELETE FROM AccountEntity").executeUpdate();
         entityManager.createQuery("DELETE FROM JournalEntity").executeUpdate();
     }
 }
