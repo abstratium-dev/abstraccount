@@ -32,6 +32,9 @@ public class AccountEntity {
     @Column(name = "journal_id", nullable = false, length = 36)
     private String journalId;
     
+    @Column(name = "account_order")
+    private Integer accountOrder;
+    
     public AccountEntity() {
         this.id = UUID.randomUUID().toString();
     }
@@ -82,5 +85,13 @@ public class AccountEntity {
     
     public void setJournalId(String journalId) {
         this.journalId = journalId;
+    }
+    
+    public Integer getAccountOrder() {
+        return accountOrder;
+    }
+    
+    public void setAccountOrder(Integer accountOrder) {
+        this.accountOrder = accountOrder;
     }
 }

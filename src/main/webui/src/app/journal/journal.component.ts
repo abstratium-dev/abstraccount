@@ -1,12 +1,13 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { Controller, JournalMetadataDTO, TransactionDTO, EntryDTO } from '../controller';
 import { ConfirmDialogService } from '../core/confirm-dialog/confirm-dialog.service';
 
 @Component({
   selector: 'journal',
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, RouterLink],
   templateUrl: './journal.component.html',
   styleUrl: './journal.component.scss'
 })
@@ -41,6 +42,7 @@ export class JournalComponent implements OnInit {
       // Auto-select if only one journal
       if (this.journals.length === 1) {
         this.selectedJournal = this.journals[0];
+        this.controller.setSelectedJournalId(this.selectedJournal.id);
         await this.loadEntries();
       }
     } catch (err: any) {
@@ -51,8 +53,10 @@ export class JournalComponent implements OnInit {
 
   onJournalSelected(): void {
     if (this.selectedJournal) {
+      this.controller.setSelectedJournalId(this.selectedJournal.id);
       this.loadEntries();
     } else {
+      this.controller.setSelectedJournalId(null);
       this.transactions = [];
     }
   }

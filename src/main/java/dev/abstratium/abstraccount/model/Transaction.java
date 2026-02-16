@@ -58,10 +58,10 @@ public record Transaction(
     public boolean isBalanced() {
         Map<String, BigDecimal> balances = entries.stream()
             .collect(Collectors.groupingBy(
-                p -> p.amount().commodity(),
+                e -> e.amount().commodity(),
                 Collectors.reducing(
                     BigDecimal.ZERO,
-                    p -> p.amount().quantity(),
+                    e -> e.amount().quantity(),
                     BigDecimal::add
                 )
             ));

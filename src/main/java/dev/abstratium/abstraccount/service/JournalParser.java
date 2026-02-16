@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -90,7 +91,7 @@ public class JournalParser {
             Matcher accountMatcher = ACCOUNT_PATTERN.matcher(line.trim());
             if (accountMatcher.matches()) {
                 String fullPath = accountMatcher.group(1);
-                String accountId = extractAccountNumber(fullPath);
+                String accountId = UUID.randomUUID().toString(); // Generate UUID for account ID
                 String accountName = extractAccountName(fullPath);
                 
                 // Look ahead for type and note
@@ -195,6 +196,12 @@ public class JournalParser {
                 while (i + 1 < lines.length) {
                     String entryLine = lines[i + 1];
                     
+                    // Skip comment lines between entries
+                    if (entryLine.trim().startsWith(";")) {
+                        i++;
+                        continue;
+                    }
+                    
                     // Check for ellipsis
                     if (ELLIPSIS_PATTERN.matcher(entryLine).matches()) {
                         i++;
@@ -209,8 +216,8 @@ public class JournalParser {
                         
                         Account account = accountMap.get(accountName);
                         if (account == null) {
-                            // Account not declared, create a minimal one
-                            String accId = extractAccountNumber(accountName);
+                            // Account not declared, create a minimal one with UUID
+                            String accId = UUID.randomUUID().toString();
                             String accName = extractAccountName(accountName);
                             Account parent = findOrCreateParentAccount(accountName, accountMap, accounts);
                             account = parent == null
@@ -248,37 +255,13 @@ public class JournalParser {
         return new Journal(logo, title, subtitle, currency, commodities, accounts, transactions);
     }
     
-    private String extractAccountNumber(String fullPath) {
-        // Extract the account number from the last segment after the last colon
-        // For "1 Assets:10 Cash", this returns "10"
-        // For "1 Assets", this returns "1"
-        // For "2 Liabilities:220 Other:2210.001 Person", this returns "2210.001"
-        int lastColon = fullPath.lastIndexOf(':');
-        String segment = lastColon > 0 ? fullPath.substring(lastColon + 1) : fullPath;
-        
-        // Extract the leading number (including decimals) from the segment
-        String[] parts = segment.split("\\s+", 2);
-        if (parts.length > 0 && parts[0].matches("\\d+(\\.\\d+)?")) {
-            return parts[0];
-        }
-        return "0";
-    }
-    
     private String extractAccountName(String fullPath) {
         // Extract just the account's own name (last segment) from the full hierarchical path
-        // For "1 Assets:10 Cash:100 Bank", this returns "Bank"
-        // For "1 Assets", this returns "Assets"
+        // The number is PART of the account name!
+        // For "1 Assets:10 Cash:100 Bank", this returns "100 Bank"
+        // For "1 Assets", this returns "1 Assets"
         int lastColon = fullPath.lastIndexOf(':');
-        String segment = lastColon > 0 ? fullPath.substring(lastColon + 1) : fullPath;
-        
-        // Remove the leading number from the segment
-        // "100 Bank" becomes "Bank"
-        // "1 Assets" becomes "Assets"
-        String[] parts = segment.split("\\s+", 2);
-        if (parts.length > 1 && parts[0].matches("\\d+(\\.\\d+)?")) {
-            return parts[1];
-        }
-        return segment;
+        return lastColon > 0 ? fullPath.substring(lastColon + 1) : fullPath;
     }
     
     private Account findParentAccount(String fullPath, Map<String, Account> accountMap) {
@@ -299,8 +282,8 @@ public class JournalParser {
             Account parent = accountMap.get(parentPath);
             
             if (parent == null) {
-                // Parent doesn't exist, create it recursively
-                String parentId = extractAccountNumber(parentPath);
+                // Parent doesn't exist, create it recursively with UUID
+                String parentId = UUID.randomUUID().toString();
                 String parentName = extractAccountName(parentPath);
                 Account grandparent = findOrCreateParentAccount(parentPath, accountMap, accounts);
                 parent = grandparent == null

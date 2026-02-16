@@ -145,12 +145,13 @@ public class JournalSerializer {
      * Builds the full hierarchical path for an account by traversing up to the root.
      * For example, if account is "100 Bank" with parent "10 Cash" with parent "1 Assets",
      * this returns "1 Assets:10 Cash:100 Bank".
+     * Note: Account names already include the number (e.g., "100 Bank"), so we just use the name.
      */
     private String buildFullPath(Account account) {
         List<String> segments = new ArrayList<>();
         Account current = account;
         while (current != null) {
-            segments.add(0, current.id() + " " + current.name());
+            segments.add(0, current.name()); // Name already includes number
             current = current.parent();
         }
         return String.join(":", segments);

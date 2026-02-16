@@ -98,12 +98,14 @@ commodity CHF 1000.00
 Represents an account in the chart of accounts with hierarchical structure.
 
 **Attributes:**
-- `id`: Account identifier/number (e.g., "1", "10", "100", "1000")
+- `id`: **UUID** - Unique identifier for the account (e.g., "550e8400-e29b-41d4-a716-446655440000")
 - `name`: Account name (e.g., "Assets", "Current Assets", "Cash")
 - `type`: Account type enumeration
 - `note`: Optional descriptive note
-- `parentId`: ID of parent account
+- `parentId`: UUID of parent account (null for root accounts)
 - `parent`: Reference to parent account (derived from hierarchy)
+
+**IMPORTANT:** Account IDs are always UUIDs, never account numbers. Account numbers (like "1", "10", "2", "20") are NOT unique and can be duplicated across different account hierarchies. For example, both "1 Assets:2 Equity" and "2 Liabilities:20 Current liabilities" can exist - the number "2" appears in both hierarchies but represents different accounts with different UUIDs.
 
 **Account Type Enumeration:**
 - `Asset`: Assets owned by the company
@@ -114,7 +116,7 @@ Represents an account in the chart of accounts with hierarchical structure.
 - `Cash`: Special type for cash flow reporting
 
 **Hierarchy:**
-Accounts use `:` as separator for hierarchy levels. The account number prefix indicates the level.
+Accounts use `:` as separator for hierarchy levels. The account number prefix in the journal file is for human readability only and does NOT determine the account ID.
 
 ### Transaction
 

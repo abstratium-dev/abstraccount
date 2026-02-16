@@ -115,7 +115,7 @@
             <td></td>
             <td></td>
             <td class="entry-description">
-              <span class="entry-account">{{ entry.accountId }}</span>
+              <a [routerLink]="['/account', entry.accountId, 'ledger']" class="entry-account">{{ entry.accountId }}</a>
               {{ entry.accountName }}
             </td>
             <td class="entry-amount" 

@@ -1,0 +1,86 @@
+<div class="ledger-container">
+  @if (account) {
+    <h1>{{ account.name }}</h1>
+    <div class="account-details">
+      <div class="detail-item">
+        <span class="label">Type:</span>
+        <span class="value">{{ account.type }}</span>
+      </div>
+      @if (account.note) {
+        <div class="detail-item">
+          <span class="label">Note:</span>
+          <span class="value">{{ account.note }}</span>
+        </div>
+      }
+      @if (entries.length > 0) {
+        <div class="detail-item">
+          <span class="label">Current Balance:</span>
+          <span class="value balance" [class.negative]="currentBalance < 0" [class.positive]="currentBalance > 0">
+            {{ currentBalance | number:'1.2-2' }}
+          </span>
+        </div>
+      }
+    </div>
+  }
+  
+  @if (loading) {
+    <p>Loading entries...</p>
+  }
+  
+  @if (error) {
+    <p class="error">{{ error }}</p>
+  }
+  
+  @if (!loading && !error && entries.length === 0) {
+    <p>No entries found for this account</p>
+  }
+  
+  @if (!loading && !error && entries.length > 0) {
+    <!-- Include children checkbox -->
+    <div class="filter-controls">
+      <label class="checkbox-label">
+        <input 
+          type="checkbox" 
+          [(ngModel)]="includeChildren" 
+          (change)="onIncludeChildrenChange()"
+        />
+        <span>Include entries from child accounts</span>
+      </label>
+    </div>
+    
+    <!-- Chart -->
+    <div class="chart-container">
+      <canvas #balanceChart></canvas>
+    </div>
+    
+    <!-- Entries table -->
+    <div class="entries-table">
+      <table>
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Description</th>
+            <th>Amount</th>
+            <th>Commodity</th>
+            <th class="balance-column">Running Balance</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (entry of reversedEntries; track entry.entryId) {
+            <tr>
+              <td>{{ entry.transactionDate }}</td>
+              <td>{{ entry.description }}</td>
+              <td [class.negative]="entry.amount < 0" [class.positive]="entry.amount > 0">
+                {{ entry.amount | number:'1.2-2' }}
+              </td>
+              <td>{{ entry.commodity }}</td>
+              <td class="balance-column" [class.negative]="entry.runningBalance < 0">
+                {{ entry.runningBalance | number:'1.2-2' }}
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</div>

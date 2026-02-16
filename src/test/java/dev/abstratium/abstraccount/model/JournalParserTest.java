@@ -65,15 +65,17 @@ class JournalParserTest {
         assertEquals(2, journal.accounts().size());
         
         Account rootAccount = journal.accounts().get(0);
-        assertEquals("1", rootAccount.id());
-        assertEquals("Assets", rootAccount.name());
+        assertNotNull(rootAccount.id()); // ID is a UUID
+        assertTrue(rootAccount.id().matches("[0-9a-f-]{36}")); // UUID format
+        assertEquals("1 Assets", rootAccount.name()); // Name includes number
         assertEquals(AccountType.ASSET, rootAccount.type());
         assertEquals("All company assets", rootAccount.note());
         assertNull(rootAccount.parent());
         
         Account childAccount = journal.accounts().get(1);
-        assertEquals("10", childAccount.id());
-        assertEquals("Current Assets", childAccount.name());
+        assertNotNull(childAccount.id()); // ID is a UUID
+        assertTrue(childAccount.id().matches("[0-9a-f-]{36}")); // UUID format
+        assertEquals("10 Current Assets", childAccount.name()); // Name includes number
         assertEquals(AccountType.ASSET, childAccount.type());
         assertEquals("Short-term assets", childAccount.note());
         assertEquals(rootAccount, childAccount.parent());
@@ -132,14 +134,16 @@ class JournalParserTest {
         assertEquals(2, transaction.entries().size());
         
         Entry entry1 = transaction.entries().get(0);
-        assertEquals("1", entry1.account().id());
-        assertEquals("Assets", entry1.account().name());
+        assertNotNull(entry1.account().id()); // ID is a UUID
+        assertTrue(entry1.account().id().matches("[0-9a-f-]{36}")); // UUID format
+        assertEquals("1 Assets", entry1.account().name()); // Name includes number
         assertEquals("CHF", entry1.amount().commodity());
         assertEquals(new BigDecimal("1000.00"), entry1.amount().quantity());
         
         Entry entry2 = transaction.entries().get(1);
-        assertEquals("2", entry2.account().id());
-        assertEquals("Equity", entry2.account().name());
+        assertNotNull(entry2.account().id()); // ID is a UUID
+        assertTrue(entry2.account().id().matches("[0-9a-f-]{36}")); // UUID format
+        assertEquals("2 Equity", entry2.account().name()); // Name includes number
         assertEquals("CHF", entry2.amount().commodity());
         assertEquals(new BigDecimal("-1000.00"), entry2.amount().quantity());
     }
@@ -298,24 +302,24 @@ class JournalParserTest {
         // 1 Assets:10 Cash:100 Bank (auto-created), 2 Equity (auto-created)
         assertEquals(4, journal.accounts().size());
         
-        // Find the accounts
+        // Find the accounts by name (names now include numbers)
         Account assets = journal.accounts().stream()
-            .filter(a -> a.id().equals("1") && a.name().equals("Assets"))
+            .filter(a -> a.name().equals("1 Assets"))
             .findFirst()
             .orElseThrow();
         
         Account cash = journal.accounts().stream()
-            .filter(a -> a.id().equals("10") && a.name().equals("Cash"))
+            .filter(a -> a.name().equals("10 Cash"))
             .findFirst()
             .orElseThrow();
         
         Account bank = journal.accounts().stream()
-            .filter(a -> a.id().equals("100") && a.name().equals("Bank"))
+            .filter(a -> a.name().equals("100 Bank"))
             .findFirst()
             .orElseThrow();
         
         Account equity = journal.accounts().stream()
-            .filter(a -> a.id().equals("2") && a.name().equals("Equity"))
+            .filter(a -> a.name().equals("2 Equity"))
             .findFirst()
             .orElseThrow();
         
@@ -325,11 +329,11 @@ class JournalParserTest {
         assertEquals(cash, bank.parent(), "Bank parent should be Cash");
         assertNull(equity.parent(), "Equity should have no parent");
         
-        // Verify account IDs (extracted from last segment)
-        assertEquals("1", assets.id());
-        assertEquals("10", cash.id());
-        assertEquals("100", bank.id());
-        assertEquals("2", equity.id());
+        // Verify account IDs are UUIDs
+        assertTrue(assets.id().matches("[0-9a-f-]{36}"));
+        assertTrue(cash.id().matches("[0-9a-f-]{36}"));
+        assertTrue(bank.id().matches("[0-9a-f-]{36}"));
+        assertTrue(equity.id().matches("[0-9a-f-]{36}"));
     }
     
     @Test
@@ -437,5 +441,51 @@ class JournalParserTest {
         // Check for key-value tag "invoice:PI00000002"
         assertTrue(transaction.tags().stream()
             .anyMatch(tag -> !tag.isSimple() && "invoice".equals(tag.key()) && "PI00000002".equals(tag.value())));
+    }
+    
+    @Test
+    void testParseTransactionWithCommentsBetweenEntries() {
+        String content = """
+            ; Currency: CHF
+            
+            account 1 Assets
+              ; type:Asset
+            account 2 Equity
+              ; type:Equity
+            account 2 Liabilities
+              ; type:Liability
+            
+            2024-01-01 * Opening Balances
+                ; id:fdde1faa-b9b9-45cf-959b-122a39cf72a3
+                ; Equity
+                2 Equity                CHF 0.00
+                2 Equity                CHF 0.00
+                2 Equity                CHF 0.00
+                ; Assets
+                1 Assets                CHF 0.00
+                1 Assets                CHF 0.00
+                1 Assets                CHF 0.00
+                1 Assets                CHF 0.00
+                1 Assets                CHF 0.00
+                ; Liabilities
+                2 Liabilities                CHF 0.00
+                2 Liabilities                CHF 0.00
+                2 Liabilities                CHF 0.00
+            """;
+        
+        Journal journal = parser.parse(content);
+        
+        assertEquals(1, journal.transactions().size());
+        Transaction transaction = journal.transactions().get(0);
+        
+        assertEquals(LocalDate.of(2024, 1, 1), transaction.date());
+        assertEquals(TransactionStatus.CLEARED, transaction.status());
+        assertEquals("Opening Balances", transaction.description());
+        
+        // Should have 11 entries (3 Equity + 5 Assets + 3 Liabilities)
+        assertEquals(11, transaction.entries().size(), "Transaction should have 11 entries despite comment lines between them");
+        
+        // Verify the transaction has the id tag
+        assertEquals("fdde1faa-b9b9-45cf-959b-122a39cf72a3", transaction.id());
     }
 }

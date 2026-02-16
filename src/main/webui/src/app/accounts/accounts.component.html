@@ -1,0 +1,137 @@
+<div class="accounts-container">
+  <h1>Chart of Accounts</h1>
+  
+  @if (loading) {
+    <p>Loading accounts...</p>
+  }
+  
+  @if (error) {
+    <p class="error">{{ error }}</p>
+  }
+  
+  @if (!loading && !error && accounts.length === 0) {
+    <p>No accounts found</p>
+  }
+  
+  @if (!loading && !error && accounts.length > 0) {
+    <div class="account-tree">
+      @for (account of accounts; track account.id) {
+        <div class="account-node">
+          <div class="account-info">
+            <span class="account-path">
+              @for (segment of buildHierarchicalPath(account, accounts); track segment.id; let isLast = $last) {
+                <a [routerLink]="['/account', segment.id, 'ledger']" class="path-segment">{{ segment.number }}</a>
+                @if (!isLast) {
+                  <span class="path-separator">:</span>
+                }
+              }
+            </span>
+            <a [routerLink]="['/account', account.id, 'ledger']" class="account-name">{{ account.name }}</a>
+            @if (account.note) {
+              <span class="account-note">{{ account.note }}</span>
+            }
+            <span class="account-type">{{ formatAccountType(account.type) }}</span>
+          </div>
+          @if (account.children && account.children.length > 0) {
+            <div class="account-children">
+              @for (child of account.children; track child.id) {
+                <div class="account-node child-level-1">
+                  <div class="account-info">
+                    <span class="account-path">
+                      @for (segment of buildHierarchicalPath(child, accounts); track segment.id; let isLast = $last) {
+                        <a [routerLink]="['/account', segment.id, 'ledger']" class="path-segment">{{ segment.number }}</a>
+                        @if (!isLast) {
+                          <span class="path-separator">:</span>
+                        }
+                      }
+                    </span>
+                    <a [routerLink]="['/account', child.id, 'ledger']" class="account-name">{{ child.name }}</a>
+                    @if (child.note) {
+                      <span class="account-note">{{ child.note }}</span>
+                    }
+                    <span class="account-type">{{ formatAccountType(child.type) }}</span>
+                  </div>
+                  @if (child.children && child.children.length > 0) {
+                    <div class="account-children">
+                      @for (grandchild of child.children; track grandchild.id) {
+                        <div class="account-node child-level-2">
+                          <div class="account-info">
+                            <span class="account-path">
+                              @for (segment of buildHierarchicalPath(grandchild, accounts); track segment.id; let isLast = $last) {
+                                <a [routerLink]="['/account', segment.id, 'ledger']" class="path-segment">{{ segment.number }}</a>
+                                @if (!isLast) {
+                                  <span class="path-separator">:</span>
+                                }
+                              }
+                            </span>
+                            <a [routerLink]="['/account', grandchild.id, 'ledger']" class="account-name">{{ grandchild.name }}</a>
+                            @if (grandchild.note) {
+                              <span class="account-note">{{ grandchild.note }}</span>
+                            }
+                            <span class="account-type">{{ formatAccountType(grandchild.type) }}</span>
+                          </div>
+                          @if (grandchild.children && grandchild.children.length > 0) {
+                            <div class="account-children">
+                              @for (greatGrandchild of grandchild.children; track greatGrandchild.id) {
+                                <div class="account-node child-level-3">
+                                  <div class="account-info">
+                                    <span class="account-path">
+                                      @for (segment of buildHierarchicalPath(greatGrandchild, accounts); track segment.id; let isLast = $last) {
+                                        <a [routerLink]="['/account', segment.id, 'ledger']" class="path-segment">{{ segment.number }}</a>
+                                        @if (!isLast) {
+                                          <span class="path-separator">:</span>
+                                        }
+                                      }
+                                    </span>
+                                    <a [routerLink]="['/account', greatGrandchild.id, 'ledger']" class="account-name">{{ greatGrandchild.name }}</a>
+                                    @if (greatGrandchild.note) {
+                                      <span class="account-note">{{ greatGrandchild.note }}</span>
+                                    }
+                                    <span class="account-type">{{ formatAccountType(greatGrandchild.type) }}</span>
+                                  </div>
+                                  @if (greatGrandchild.children && greatGrandchild.children.length > 0) {
+                                    <div class="account-children">
+                                      @for (greatGreatGrandchild of greatGrandchild.children; track greatGreatGrandchild.id) {
+                                        <div class="account-node child-level-4">
+                                          <div class="account-info">
+                                            <span class="account-path">
+                                              @for (segment of buildHierarchicalPath(greatGreatGrandchild, accounts); track segment.id; let isLast = $last) {
+                                                <a [routerLink]="['/account', segment.id, 'ledger']" class="path-segment">{{ segment.number }}</a>
+                                                @if (!isLast) {
+                                                  <span class="path-separator">:</span>
+                                                }
+                                              }
+                                            </span>
+                                            <a [routerLink]="['/account', greatGreatGrandchild.id, 'ledger']" class="account-name">{{ greatGreatGrandchild.name }}</a>
+                                            @if (greatGreatGrandchild.note) {
+                                              <span class="account-note">{{ greatGreatGrandchild.note }}</span>
+                                            }
+                                            <span class="account-type">{{ formatAccountType(greatGreatGrandchild.type) }}</span>
+                                          </div>
+                                          @if (greatGreatGrandchild.children && greatGreatGrandchild.children.length > 0) {
+                                            <div class="error-message">
+                                              ⚠️ Accounts nested deeper than 5 levels are not currently supported in this view. 
+                                              This is easy to fix by extending the template recursively.
+                                            </div>
+                                          }
+                                        </div>
+                                      }
+                                    </div>
+                                  }
+                                </div>
+                              }
+                            </div>
+                          }
+                        </div>
+                      }
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+          }
+        </div>
+      }
+    </div>
+  }
+</div>

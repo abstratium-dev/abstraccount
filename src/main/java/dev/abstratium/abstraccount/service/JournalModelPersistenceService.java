@@ -78,6 +78,12 @@ public class JournalModelPersistenceService {
         // Map to track accounts -> entity ID for parent lookups
         Map<String, AccountEntity> accountIdMap = new HashMap<>();
         
+        // Create a map to track original order from journal.accounts()
+        Map<String, Integer> accountOrderMap = new HashMap<>();
+        for (int i = 0; i < journal.accounts().size(); i++) {
+            accountOrderMap.put(journal.accounts().get(i).id(), i);
+        }
+        
         // Save all unique accounts in depth order
         for (Account account : sortedAccounts) {
             AccountEntity accountEntity = new AccountEntity();
@@ -87,6 +93,7 @@ public class JournalModelPersistenceService {
             accountEntity.setParentAccountId(account.parent() == null ? null : account.parent().id());
             accountEntity.setType(account.type());
             accountEntity.setNote(account.note());
+            accountEntity.setAccountOrder(accountOrderMap.get(account.id())); // Preserve import order
             AccountEntity saved = persistenceService.saveAccount(accountEntity);
             accountIdMap.put(account.id(), saved);
         }

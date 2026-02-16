@@ -37,6 +37,24 @@ export interface JournalMetadataDTO {
   commodities: { [key: string]: string };
 }
 
+export interface AccountTreeNode {
+  id: string;
+  name: string;
+  type: string;
+  note: string | null;
+  children: AccountTreeNode[];
+}
+
+export interface AccountEntryDTO {
+  entryId: string;
+  transactionId: string;
+  transactionDate: string;
+  description: string;
+  commodity: string;
+  amount: number;
+  runningBalance: number;
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -117,5 +135,37 @@ export class Controller {
       console.error('Error deleting journal:', error);
       throw error;
     }
+  }
+
+  async getAccountTree(journalId: string): Promise<AccountTreeNode[]> {
+    try {
+      return await firstValueFrom(
+        this.http.get<AccountTreeNode[]>(`/api/account/${journalId}/tree`)
+      );
+    } catch (error) {
+      console.error('Error getting account tree:', error);
+      throw error;
+    }
+  }
+
+  setSelectedJournalId(journalId: string | null): void {
+    this.modelService.setSelectedJournalId(journalId);
+  }
+
+  async getAccountDetails(journalId: string, accountId: string): Promise<AccountTreeNode> {
+    const response = await this.http.get<AccountTreeNode>(
+      `/api/account/${journalId}/account/${accountId}`
+    ).toPromise();
+    return response!;
+  }
+
+  async getAccountEntries(journalId: string, accountId: string, includeChildren: boolean = false): Promise<AccountEntryDTO[]> {
+    const url = `/api/account/${journalId}/account/${accountId}/entries`;
+    const params: any = {};
+    if (includeChildren) {
+      params.includeChildren = 'true';
+    }
+    const response = await this.http.get<AccountEntryDTO[]>(url, { params }).toPromise();
+    return response || [];
   }
 }

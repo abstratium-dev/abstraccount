@@ -610,4 +610,89 @@ class JournalPersistenceServiceTest {
         
         service.saveTransaction(transaction);
     }
+    
+    @Test
+    void testQueryEntriesWithAccountIdsFilter() {
+        // Create two accounts
+        AccountEntity account1 = new AccountEntity();
+        account1.setId("100");
+        account1.setName("Cash");
+        account1.setType(AccountType.ASSET);
+        account1.setJournalId(testJournalId);
+        AccountEntity savedAccount1 = service.saveAccount(account1);
+        
+        AccountEntity account2 = new AccountEntity();
+        account2.setId("200");
+        account2.setName("Bank");
+        account2.setType(AccountType.ASSET);
+        account2.setJournalId(testJournalId);
+        AccountEntity savedAccount2 = service.saveAccount(account2);
+        
+        // Create transactions with entries for both accounts
+        TransactionEntity tx1 = new TransactionEntity();
+        tx1.setTransactionId("tx1");
+        tx1.setTransactionDate(LocalDate.of(2024, 1, 1));
+        tx1.setStatus(TransactionStatus.CLEARED);
+        tx1.setDescription("Transaction 1");
+        tx1.setJournalId(testJournalId);
+        
+        EntryEntity entry1 = new EntryEntity();
+        entry1.setAccountId(savedAccount1.getId());
+        entry1.setCommodity("USD");
+        entry1.setAmount(new BigDecimal("100.00"));
+        entry1.setEntryOrder(0);
+        tx1.addEntry(entry1);
+        
+        EntryEntity entry2 = new EntryEntity();
+        entry2.setAccountId(savedAccount2.getId());
+        entry2.setCommodity("USD");
+        entry2.setAmount(new BigDecimal("-100.00"));
+        entry2.setEntryOrder(1);
+        tx1.addEntry(entry2);
+        
+        service.saveTransaction(tx1);
+        
+        // Query entries for account1 only
+        List<EntryEntity> entries = service.queryEntriesWithFilters(
+            testJournalId,
+            null,
+            null,
+            null,
+            null,
+            List.of(savedAccount1.getId())
+        );
+        
+        // Should only get entry1
+        assertEquals(1, entries.size());
+        assertEquals(savedAccount1.getId(), entries.get(0).getAccountId());
+        assertEquals(0, new BigDecimal("100.00").compareTo(entries.get(0).getAmount()));
+        
+        // Query entries for account2 only
+        entries = service.queryEntriesWithFilters(
+            testJournalId,
+            null,
+            null,
+            null,
+            null,
+            List.of(savedAccount2.getId())
+        );
+        
+        // Should only get entry2
+        assertEquals(1, entries.size());
+        assertEquals(savedAccount2.getId(), entries.get(0).getAccountId());
+        assertEquals(0, new BigDecimal("-100.00").compareTo(entries.get(0).getAmount()));
+        
+        // Query entries for both accounts
+        entries = service.queryEntriesWithFilters(
+            testJournalId,
+            null,
+            null,
+            null,
+            null,
+            List.of(savedAccount1.getId(), savedAccount2.getId())
+        );
+        
+        // Should get both entries
+        assertEquals(2, entries.size());
+    }
 }

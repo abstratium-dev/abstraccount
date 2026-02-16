@@ -84,10 +84,10 @@ public class JournalPersistenceService {
         }
         
         return entityManager.createQuery(
-            "SELECT p FROM EntryEntity p " +
-            "JOIN FETCH p.transaction t " +
+            "SELECT e FROM EntryEntity e " +
+            "JOIN FETCH e.transaction t " +
             "WHERE t.transactionDate >= :from AND t.transactionDate < :to " +
-            "ORDER BY t.transactionDate, t.id, p.entryOrder",
+            "ORDER BY t.transactionDate, t.id, e.entryOrder",
             EntryEntity.class)
             .setParameter("from", from)
             .setParameter("to", to)
@@ -161,11 +161,11 @@ public class JournalPersistenceService {
             LocalDate endDate,
             String partnerId,
             String status,
-            List<String> accountNumbers) {
+            List<String> accountIds) {
         
         StringBuilder jpql = new StringBuilder(
-            "SELECT p FROM EntryEntity p " +
-            "JOIN FETCH p.transaction t " +
+            "SELECT e FROM EntryEntity e " +
+            "JOIN FETCH e.transaction t " +
             "WHERE t.journalId = :journalId"
         );
         
@@ -181,13 +181,13 @@ public class JournalPersistenceService {
         if (status != null) {
             jpql.append(" AND t.status = :status");
         }
-        if (accountNumbers != null && !accountNumbers.isEmpty()) {
-            jpql.append(" AND p.accountNumber IN :accountNumbers");
+        if (accountIds != null && !accountIds.isEmpty()) {
+            jpql.append(" AND e.accountId IN :accountIds");
         }
 
         // TODO extend with tag filters too
         
-        jpql.append(" ORDER BY t.transactionDate DESC, t.id, p.entryOrder");
+        jpql.append(" ORDER BY t.transactionDate DESC, t.id, e.entryOrder");
         
         var query = entityManager.createQuery(jpql.toString(), EntryEntity.class)
             .setParameter("journalId", journalId);
@@ -204,8 +204,8 @@ public class JournalPersistenceService {
         if (status != null) {
             query.setParameter("status", dev.abstratium.abstraccount.model.TransactionStatus.valueOf(status));
         }
-        if (accountNumbers != null && !accountNumbers.isEmpty()) {
-            query.setParameter("accountNumbers", accountNumbers);
+        if (accountIds != null && !accountIds.isEmpty()) {
+            query.setParameter("accountIds", accountIds);
         }
         
         return query.getResultList();

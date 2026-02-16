@@ -14,7 +14,8 @@ describe('JournalComponent', () => {
     const controllerSpy = jasmine.createSpyObj('Controller', [
       'listJournals',
       'getJournalMetadata',
-      'getTransactions'
+      'getTransactions',
+      'setSelectedJournalId'
     ]);
 
     await TestBed.configureTestingModule({
@@ -66,8 +67,8 @@ describe('JournalComponent', () => {
   it('should load transactions when journal is selected', async () => {
     const mockTransactions = [
       {
-        id: 'tx1',
-        transactionDate: '2024-01-01',
+        id: '1',
+        date: '2024-01-01',
         status: 'CLEARED',
         description: 'Test transaction',
         partnerId: null,
