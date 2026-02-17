@@ -6,6 +6,7 @@ import { JournalComponent } from './journal/journal.component';
 import { UploadComponent } from './upload/upload.component';
 import { AccountsComponent } from './accounts/accounts.component';
 import { AccountLedgerComponent } from './account-ledger/account-ledger.component';
+import { SettingsComponent } from './settings/settings.component';
 
 export const routes: Routes = [
   { path: '',                          component: JournalComponent, canActivate: [authGuard] },
@@ -13,6 +14,7 @@ export const routes: Routes = [
   { path: 'accounts',                  component: AccountsComponent, canActivate: [authGuard] },
   { path: 'account/:accountId/ledger', component: AccountLedgerComponent, canActivate: [authGuard] },
   { path: 'upload',                    component: UploadComponent, canActivate: [authGuard] },
+  { path: 'settings',                  component: SettingsComponent, canActivate: [authGuard] },
   { path: 'signed-out',                component: SignedOutComponent },
   { path: '**',                        component: NotFoundComponent }
 ];

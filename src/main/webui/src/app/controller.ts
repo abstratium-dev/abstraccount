@@ -126,11 +126,30 @@ export class Controller {
     }
   }
 
+  async uploadJournal(content: string): Promise<any> {
+    try {
+      const result = await firstValueFrom(
+        this.http.post('/api/journal/upload', content, {
+          headers: { 'Content-Type': 'text/plain' }
+        })
+      );
+      // Refresh journal list after upload
+      await this.listJournals();
+      return result;
+    } catch (error) {
+      console.error('Error uploading journal:', error);
+      throw error;
+    }
+  }
+
   async deleteJournal(journalId: string): Promise<any> {
     try {
-      return await firstValueFrom(
+      const result = await firstValueFrom(
         this.http.delete(`/api/journal/${journalId}`)
       );
+      // Refresh journal list after deletion
+      await this.listJournals();
+      return result;
     } catch (error) {
       console.error('Error deleting journal:', error);
       throw error;
@@ -139,17 +158,24 @@ export class Controller {
 
   async getAccountTree(journalId: string): Promise<AccountTreeNode[]> {
     try {
-      return await firstValueFrom(
+      const accounts = await firstValueFrom(
         this.http.get<AccountTreeNode[]>(`/api/account/${journalId}/tree`)
       );
+      this.modelService.setAccounts(accounts);
+      return accounts;
     } catch (error) {
       console.error('Error getting account tree:', error);
+      this.modelService.setAccounts([]);
       throw error;
     }
   }
 
   setSelectedJournalId(journalId: string | null): void {
     this.modelService.setSelectedJournalId(journalId);
+  }
+
+  clearAccounts(): void {
+    this.modelService.setAccounts([]);
   }
 
   async getAccountDetails(journalId: string, accountId: string): Promise<AccountTreeNode> {

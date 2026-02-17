@@ -19,7 +19,7 @@
         <div class="account-node">
           <div class="account-info">
             <span class="account-path">
-              @for (segment of buildHierarchicalPath(account, accounts); track segment.id; let isLast = $last) {
+              @for (segment of accountService.buildHierarchicalPath(account.id, accounts); track segment.id; let isLast = $last) {
                 <a [routerLink]="['/account', segment.id, 'ledger']" class="path-segment">{{ segment.number }}</a>
                 @if (!isLast) {
                   <span class="path-separator">:</span>
@@ -38,7 +38,7 @@
                 <div class="account-node child-level-1">
                   <div class="account-info">
                     <span class="account-path">
-                      @for (segment of buildHierarchicalPath(child, accounts); track segment.id; let isLast = $last) {
+                      @for (segment of accountService.buildHierarchicalPath(child.id, accounts); track segment.id; let isLast = $last) {
                         <a [routerLink]="['/account', segment.id, 'ledger']" class="path-segment">{{ segment.number }}</a>
                         @if (!isLast) {
                           <span class="path-separator">:</span>
@@ -57,7 +57,7 @@
                         <div class="account-node child-level-2">
                           <div class="account-info">
                             <span class="account-path">
-                              @for (segment of buildHierarchicalPath(grandchild, accounts); track segment.id; let isLast = $last) {
+                              @for (segment of accountService.buildHierarchicalPath(grandchild.id, accounts); track segment.id; let isLast = $last) {
                                 <a [routerLink]="['/account', segment.id, 'ledger']" class="path-segment">{{ segment.number }}</a>
                                 @if (!isLast) {
                                   <span class="path-separator">:</span>
@@ -76,7 +76,7 @@
                                 <div class="account-node child-level-3">
                                   <div class="account-info">
                                     <span class="account-path">
-                                      @for (segment of buildHierarchicalPath(greatGrandchild, accounts); track segment.id; let isLast = $last) {
+                                      @for (segment of accountService.buildHierarchicalPath(greatGrandchild.id, accounts); track segment.id; let isLast = $last) {
                                         <a [routerLink]="['/account', segment.id, 'ledger']" class="path-segment">{{ segment.number }}</a>
                                         @if (!isLast) {
                                           <span class="path-separator">:</span>
@@ -95,7 +95,7 @@
                                         <div class="account-node child-level-4">
                                           <div class="account-info">
                                             <span class="account-path">
-                                              @for (segment of buildHierarchicalPath(greatGreatGrandchild, accounts); track segment.id; let isLast = $last) {
+                                              @for (segment of accountService.buildHierarchicalPath(greatGreatGrandchild.id, accounts); track segment.id; let isLast = $last) {
                                                 <a [routerLink]="['/account', segment.id, 'ledger']" class="path-segment">{{ segment.number }}</a>
                                                 @if (!isLast) {
                                                   <span class="path-separator">:</span>

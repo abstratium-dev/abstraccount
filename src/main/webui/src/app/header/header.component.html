@@ -21,13 +21,23 @@
             &nbsp;|&nbsp;
             <a id="home-link" routerLink="/" routerLinkActive="inactive-link">🏠</a>
             &nbsp;|&nbsp;
+            <select 
+              id="journal-select" 
+              [(ngModel)]="selectedJournalId" 
+              (change)="onJournalSelected()"
+              class="journal-selector">
+              <option [ngValue]="null">-- Select a journal --</option>
+              <option *ngFor="let journal of journals" [ngValue]="journal.id">
+                {{ journal.title }} ({{ journal.currency }})
+              </option>
+              <option [ngValue]="IMPORT_OPTION">➕ Import Journal...</option>
+            </select>
+            &nbsp;|&nbsp;
             <a id="journal" routerLink="/journal" routerLinkActive="inactive-link">journal</a>
             &nbsp;|&nbsp;
             <a id="accounts" routerLink="/accounts" routerLinkActive="inactive-link">accounts</a>
             &nbsp;|&nbsp;
-            <a id="upload" routerLink="/upload" routerLinkActive="inactive-link">upload</a>
-            &nbsp;|&nbsp;
-            <a id="TODO-link" routerLink="/TODO" routerLinkActive="inactive-link">TODO</a>
+            <a id="settings-link" routerLink="/settings" routerLinkActive="inactive-link">⚙️ settings</a>
             &nbsp;|&nbsp;
             <a id="signout-link" class="alink" (click)="signout()">Sign out</a>
         }

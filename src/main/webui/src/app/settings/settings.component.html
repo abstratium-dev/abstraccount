@@ -1,0 +1,65 @@
+<div class="settings-container">
+  <h1>Settings</h1>
+
+  @if (!selectedJournal) {
+    <p class="info-message">No journal selected. Please select a journal from the header.</p>
+  }
+
+  @if (selectedJournal) {
+    <div class="danger-zone">
+      <h2>⚠️ Danger Zone</h2>
+      
+      <div class="danger-content">
+        <h3>Delete Journal</h3>
+        <p>
+          Once you delete a journal, there is no going back. This action <strong>cannot be undone</strong>.
+        </p>
+        
+        <div class="journal-info">
+          <strong>Journal to delete:</strong> {{ selectedJournal.title }}
+          <br>
+          <strong>Currency:</strong> {{ selectedJournal.currency }}
+        </div>
+
+        <div class="confirmation-section">
+          <label for="confirmation-input">
+            Type <strong>{{ selectedJournal.title }}</strong> to confirm deletion:
+          </label>
+          <input 
+            type="text" 
+            id="confirmation-input"
+            [(ngModel)]="confirmationName"
+            [disabled]="deleting"
+            placeholder="Enter journal title"
+            class="confirmation-input"
+          />
+        </div>
+
+        @if (error) {
+          <div class="error-message">
+            {{ error }}
+          </div>
+        }
+
+        <div class="button-group">
+          <button 
+            (click)="deleteJournal()"
+            [disabled]="!isConfirmationValid || deleting"
+            class="btn-danger">
+            @if (deleting) {
+              Deleting...
+            } @else {
+              Delete Journal Permanently
+            }
+          </button>
+          <button 
+            (click)="cancel()"
+            [disabled]="deleting"
+            class="btn-secondary">
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+</div>

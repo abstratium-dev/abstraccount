@@ -9,7 +9,7 @@ the Angular source code is in the folder `src/main/webui`.
 
 The general design pattern used for this Angular project is that components write data to the model by using the `Controller` service and they subscribe to changes in the `ModelService` using its signals.
 
-It is the controller which should generally make backend calls. Exceptions to that are the AuthService. It should never expose / return Observable or Promise objects, rather store the results of an http request in the ModelService which should expose the model parts using signals which the interested components can subscribe to in order to read data out of the model.
+It is the controller which should generally make backend calls. Exceptions to that are the AuthService. The controller should store the results of an http request in the ModelService which should expose the model parts using signals which the interested components can subscribe to in order to read data out of the model. The controller may return Promises to allow components to wait before reading the model, but a better practise is to use the `effect` function to subscribe to model changes and react to them dynamically.
 
 Whenever making changes, remember to make sure that tests are updated and test them.
 

@@ -12,29 +12,6 @@
     <p>Loading...</p>
   </div>
 
-  <!-- Journal Selection -->
-  <div class="form-group" style="display: flex; gap: 1rem; align-items: flex-end;">
-    <div style="flex: 1;">
-      <label for="journal-select">Select Journal:</label>
-      <select 
-        id="journal-select" 
-        [(ngModel)]="selectedJournal" 
-        (change)="onJournalSelected()">
-        <option [ngValue]="null">-- Select a journal --</option>
-        <option *ngFor="let journal of journals" [ngValue]="journal">
-          {{ journal.title }} ({{ journal.currency }})
-        </option>
-      </select>
-    </div>
-    <button 
-      *ngIf="selectedJournal" 
-      (click)="deleteJournal()" 
-      class="btn-danger"
-      [disabled]="loading">
-      Delete Journal
-    </button>
-  </div>
-
   <!-- Filters -->
   <div *ngIf="selectedJournal" class="filter-section">
     <h3>Filters</h3>
@@ -115,8 +92,15 @@
             <td></td>
             <td></td>
             <td class="entry-description">
-              <a [routerLink]="['/account', entry.accountId, 'ledger']" class="entry-account">{{ entry.accountId }}</a>
-              {{ entry.accountName }}
+              <span class="entry-account-path">
+                @for (segment of accountService.buildHierarchicalPath(entry.accountId, modelService.getAccounts()); track segment.id; let isLast = $last) {
+                  <a [routerLink]="['/account', segment.id, 'ledger']" class="path-segment">{{ segment.number }}</a>
+                  @if (!isLast) {
+                    <span class="path-separator">:</span>
+                  }
+                }
+              </span>
+              <span class="entry-account-name">{{ entry.accountName }}</span>
             </td>
             <td class="entry-amount" 
                 [style.color]="entry.amount < 0 ? 'var(--color-error)' : 'var(--color-text-primary)'"
@@ -172,11 +156,30 @@
   padding-left: 2rem;
 }
 
-.journal-table .entry-account {
-  color: var(--color-link-primary);
+.journal-table .entry-account-path {
   font-family: monospace;
   font-size: 0.85rem;
   margin-right: 0.5rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+.journal-table .entry-account-path .path-segment {
+  color: var(--color-link);
+  text-decoration: none;
+}
+
+.journal-table .entry-account-path .path-segment:hover {
+  text-decoration: underline;
+}
+
+.journal-table .entry-account-path .path-separator {
+  color: var(--color-text-secondary);
+}
+
+.journal-table .entry-account-name {
+  color: var(--color-text-primary);
 }
 
 .journal-table .entry-amount {

@@ -1,9 +1,11 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, effect } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { Controller, JournalMetadataDTO, TransactionDTO, EntryDTO } from '../controller';
 import { ConfirmDialogService } from '../core/confirm-dialog/confirm-dialog.service';
+import { ModelService } from '../model.service';
+import { AccountService } from '../account.service';
 
 @Component({
   selector: 'journal',
@@ -12,7 +14,6 @@ import { ConfirmDialogService } from '../core/confirm-dialog/confirm-dialog.serv
   styleUrl: './journal.component.scss'
 })
 export class JournalComponent implements OnInit {
-  journals: JournalMetadataDTO[] = [];
   selectedJournal: JournalMetadataDTO | null = null;
   transactions: TransactionDTO[] = [];
   loading = false;
@@ -24,40 +25,31 @@ export class JournalComponent implements OnInit {
   status: string = '';
 
   private confirmDialog = inject(ConfirmDialogService);
+  modelService = inject(ModelService); // Public for template
+  accountService = inject(AccountService); // Public for template
 
-  constructor(private controller: Controller) {}
+  constructor(private controller: Controller) {
+    // Watch for selected journal changes
+    effect(() => {
+      const journalId = this.modelService.selectedJournalId$();
+      const journals = this.modelService.journals$();
+      
+      if (journalId && journals.length > 0) {
+        this.selectedJournal = journals.find(j => j.id === journalId) || null;
+        if (this.selectedJournal) {
+          this.loadEntries();
+        }
+      } else {
+        this.selectedJournal = null;
+        this.transactions = [];
+      }
+    });
+  }
 
   ngOnInit(): void {
-    this.loadJournals();
-  }
-
-  async loadJournals(): Promise<void> {
-    this.loading = true;
-    this.error = null;
-    
-    try {
-      this.journals = await this.controller.listJournals();
-      this.loading = false;
-      
-      // Auto-select if only one journal
-      if (this.journals.length === 1) {
-        this.selectedJournal = this.journals[0];
-        this.controller.setSelectedJournalId(this.selectedJournal.id);
-        await this.loadEntries();
-      }
-    } catch (err: any) {
-      this.error = 'Failed to load journals: ' + err.message;
-      this.loading = false;
-    }
-  }
-
-  onJournalSelected(): void {
-    if (this.selectedJournal) {
-      this.controller.setSelectedJournalId(this.selectedJournal.id);
-      this.loadEntries();
-    } else {
-      this.controller.setSelectedJournalId(null);
-      this.transactions = [];
+    // Load journals if not already loaded
+    if (this.modelService.journals$().length === 0) {
+      this.controller.listJournals();
     }
   }
 
@@ -146,39 +138,6 @@ export class JournalComponent implements OnInit {
     // We want just "1020 Avoirs en banque / Bank Account (asset)"
     // The accountName from the backend is already the leaf part
     return accountName;
-  }
-
-  async deleteJournal(): Promise<void> {
-    if (!this.selectedJournal) return;
-
-    const confirmed = await this.confirmDialog.confirm({
-      title: 'Delete Journal',
-      message: `Are you sure you want to delete journal "${this.selectedJournal.title}"? This will permanently delete all accounts, transactions, entries, and tags associated with this journal. This action cannot be undone.`,
-      confirmText: 'Delete',
-      cancelText: 'Cancel',
-      confirmClass: 'btn-danger'
-    });
-
-    if (!confirmed) return;
-
-    this.loading = true;
-    this.error = null;
-
-    try {
-      await this.controller.deleteJournal(this.selectedJournal.id);
-      
-      // Reload journals list
-      await this.loadJournals();
-      
-      // Clear selected journal and transactions
-      this.selectedJournal = null;
-      this.transactions = [];
-      
-    } catch (err: any) {
-      this.error = 'Failed to delete journal: ' + err.message;
-    } finally {
-      this.loading = false;
-    }
   }
 
 }

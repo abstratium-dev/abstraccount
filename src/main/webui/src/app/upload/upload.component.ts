@@ -1,7 +1,7 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
+import { Controller } from '../controller';
 
 @Component({
   selector: 'app-upload',
@@ -11,14 +11,12 @@ import { Router } from '@angular/router';
   styleUrl: './upload.component.scss'
 })
 export class UploadComponent {
+  private controller = inject(Controller);
+  private router = inject(Router);
+
   uploading = false;
   uploadResult: any = null;
   uploadError: string | null = null;
-
-  constructor(
-    private http: HttpClient,
-    private router: Router
-  ) {}
 
   onFileSelected(event: Event) {
     const input = event.target as HTMLInputElement;
@@ -28,27 +26,29 @@ export class UploadComponent {
     }
   }
 
-  uploadFile(file: File) {
+  async uploadFile(file: File) {
     this.uploading = true;
     this.uploadResult = null;
     this.uploadError = null;
 
     const reader = new FileReader();
-    reader.onload = () => {
+    reader.onload = async () => {
       const content = reader.result as string;
       
-      this.http.post('/api/journal/upload', content, {
-        headers: { 'Content-Type': 'text/plain' }
-      }).subscribe({
-        next: (result) => {
-          this.uploading = false;
-          this.uploadResult = result;
-        },
-        error: (error) => {
-          this.uploading = false;
-          this.uploadError = error.error?.message || 'Upload failed';
+      try {
+        const result = await this.controller.uploadJournal(content);
+        this.uploading = false;
+        this.uploadResult = result;
+        
+        // Set the uploaded journal as selected if it has an ID
+        if (result && result.journalId) {
+          this.controller.setSelectedJournalId(result.journalId);
+          await this.controller.getAccountTree(result.journalId);
         }
-      });
+      } catch (error: any) {
+        this.uploading = false;
+        this.uploadError = error.error?.message || 'Upload failed';
+      }
     };
     
     reader.onerror = () => {
