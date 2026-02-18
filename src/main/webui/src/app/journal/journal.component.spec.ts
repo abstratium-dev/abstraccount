@@ -15,6 +15,7 @@ describe('JournalComponent', () => {
       'listJournals',
       'getJournalMetadata',
       'getTransactions',
+      'getTags',
       'setSelectedJournalId'
     ]);
 
@@ -46,22 +47,22 @@ describe('JournalComponent', () => {
     await fixture.whenStable();
 
     expect(controller.listJournals).toHaveBeenCalled();
-    expect(component.journals).toEqual(mockJournals);
   });
 
-  it('should auto-select journal if only one exists', async () => {
-    const mockJournals = [
-      { id: '1', title: 'Journal 1', subtitle: null, currency: 'CHF', commodities: {} }
-    ];
+  it('should load tags and transactions when journal is selected', async () => {
+    const mockTags = [{ key: 'invoice', value: '1234' }];
     const mockTransactions: any[] = [];
-    controller.listJournals.and.returnValue(Promise.resolve(mockJournals));
+    controller.getTags.and.returnValue(Promise.resolve(mockTags));
     controller.getTransactions.and.returnValue(Promise.resolve(mockTransactions));
 
-    await component.ngOnInit();
+    component.selectedJournal = { id: '1', title: 'Journal 1', subtitle: null, currency: 'CHF', commodities: {} };
+    await component.loadTags();
+    await component.loadEntries();
     await fixture.whenStable();
 
-    expect(component.selectedJournal).toEqual(mockJournals[0]);
+    expect(controller.getTags).toHaveBeenCalledWith('1');
     expect(controller.getTransactions).toHaveBeenCalled();
+    expect(component.tags).toEqual(mockTags);
   });
 
   it('should load transactions when journal is selected', async () => {
@@ -82,45 +83,44 @@ describe('JournalComponent', () => {
     await component.loadEntries();
     await fixture.whenStable();
 
-    expect(controller.getTransactions).toHaveBeenCalledWith('1', undefined, undefined, undefined, undefined);
+    expect(controller.getTransactions).toHaveBeenCalledWith('1', undefined, undefined, undefined, undefined, undefined);
     expect(component.transactions).toEqual(mockTransactions);
   });
 
-  it('should apply filters', async () => {
+  it('should apply filter string', async () => {
     const mockTransactions: any[] = [];
     controller.getTransactions.and.returnValue(Promise.resolve(mockTransactions));
 
     component.selectedJournal = { id: '1', title: 'Journal 1', subtitle: null, currency: 'CHF', commodities: {} };
-    component.startDate = '2024-01-01';
-    component.endDate = '2024-12-31';
-    component.status = 'CLEARED';
+    const filterString = 'begin:20240101 end:20241231 invoice';
 
-    component.applyFilters();
+    component.onFilterChange(filterString);
     await fixture.whenStable();
 
-    expect(controller.getTransactions).toHaveBeenCalledWith('1', '2024-01-01', '2024-12-31', undefined, 'CLEARED');
+    expect(controller.getTransactions).toHaveBeenCalledWith('1', undefined, undefined, undefined, undefined, filterString);
+    expect(component.filterString).toBe(filterString);
   });
 
-  it('should clear filters', () => {
-    component.startDate = '2024-01-01';
-    component.endDate = '2024-12-31';
-    component.status = 'CLEARED';
+  it('should handle empty filter string', async () => {
+    const mockTransactions: any[] = [];
+    controller.getTransactions.and.returnValue(Promise.resolve(mockTransactions));
 
-    component.clearFilters();
-
-    expect(component.startDate).toBe('');
-    expect(component.endDate).toBe('');
-    expect(component.status).toBe('');
-  });
-
-  it('should handle errors when loading journals', async () => {
-    controller.listJournals.and.returnValue(Promise.reject(new Error('Network error')));
-
-    await component.loadJournals();
+    component.selectedJournal = { id: '1', title: 'Journal 1', subtitle: null, currency: 'CHF', commodities: {} };
+    component.onFilterChange('');
     await fixture.whenStable();
 
-    expect(component.error).toContain('Failed to load journals');
-    expect(component.loading).toBe(false);
+    expect(controller.getTransactions).toHaveBeenCalledWith('1', undefined, undefined, undefined, undefined, undefined);
+    expect(component.filterString).toBe('');
+  });
+
+  it('should handle errors when loading tags', async () => {
+    controller.getTags.and.returnValue(Promise.reject(new Error('Network error')));
+
+    component.selectedJournal = { id: '1', title: 'Journal 1', subtitle: null, currency: 'CHF', commodities: {} };
+    await component.loadTags();
+    await fixture.whenStable();
+
+    expect(component.tags).toEqual([]);
   });
 
   it('should handle errors when loading transactions', async () => {

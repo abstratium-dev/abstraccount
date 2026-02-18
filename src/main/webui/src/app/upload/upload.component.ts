@@ -39,12 +39,6 @@ export class UploadComponent {
         const result = await this.controller.uploadJournal(content);
         this.uploading = false;
         this.uploadResult = result;
-        
-        // Set the uploaded journal as selected if it has an ID
-        if (result && result.journalId) {
-          this.controller.setSelectedJournalId(result.journalId);
-          await this.controller.getAccountTree(result.journalId);
-        }
       } catch (error: any) {
         this.uploading = false;
         this.uploadError = error.error?.message || 'Upload failed';

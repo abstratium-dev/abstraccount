@@ -659,7 +659,11 @@ class JournalPersistenceServiceTest {
             null,
             null,
             null,
-            List.of(savedAccount1.getId())
+            List.of(savedAccount1.getId()),
+            null,
+            null,
+            null,
+            null
         );
         
         // Should only get entry1
@@ -674,7 +678,11 @@ class JournalPersistenceServiceTest {
             null,
             null,
             null,
-            List.of(savedAccount2.getId())
+            List.of(savedAccount2.getId()),
+            null,
+            null,
+            null,
+            null
         );
         
         // Should only get entry2
@@ -689,7 +697,11 @@ class JournalPersistenceServiceTest {
             null,
             null,
             null,
-            List.of(savedAccount1.getId(), savedAccount2.getId())
+            List.of(savedAccount1.getId(), savedAccount2.getId()),
+            null,
+            null,
+            null,
+            null
         );
         
         // Should get both entries

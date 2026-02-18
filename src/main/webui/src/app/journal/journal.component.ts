@@ -1,15 +1,15 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, inject, effect } from '@angular/core';
+import { Component, OnInit, effect, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
-import { Controller, JournalMetadataDTO, TransactionDTO, EntryDTO } from '../controller';
-import { ConfirmDialogService } from '../core/confirm-dialog/confirm-dialog.service';
-import { ModelService } from '../model.service';
+import { Router, RouterLink } from '@angular/router';
 import { AccountService } from '../account.service';
+import { Controller, JournalMetadataDTO, TransactionDTO, TagDTO } from '../controller';
+import { ModelService } from '../model.service';
+import { FilterInputComponent } from './filter-input/filter-input.component';
 
 @Component({
   selector: 'journal',
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink, FilterInputComponent],
   templateUrl: './journal.component.html',
   styleUrl: './journal.component.scss'
 })
@@ -18,17 +18,17 @@ export class JournalComponent implements OnInit {
   transactions: TransactionDTO[] = [];
   loading = false;
   error: string | null = null;
+  tags: TagDTO[] = [];
   
-  // Filters
-  startDate: string = '';
-  endDate: string = '';
-  status: string = '';
+  // Filter
+  filterString: string = '';
 
-  private confirmDialog = inject(ConfirmDialogService);
   modelService = inject(ModelService); // Public for template
   accountService = inject(AccountService); // Public for template
+  router = inject(Router);
+  controller = inject(Controller);
 
-  constructor(private controller: Controller) {
+  constructor() {
     // Watch for selected journal changes
     effect(() => {
       const journalId = this.modelService.selectedJournalId$();
@@ -37,22 +37,40 @@ export class JournalComponent implements OnInit {
       if (journalId && journals.length > 0) {
         this.selectedJournal = journals.find(j => j.id === journalId) || null;
         if (this.selectedJournal) {
+          this.loadTags();
           this.loadEntries();
         }
       } else {
         this.selectedJournal = null;
         this.transactions = [];
+        this.tags = [];
       }
     });
   }
 
-  ngOnInit(): void {
+  async ngOnInit(): Promise<void> {
     // Load journals if not already loaded
     if (this.modelService.journals$().length === 0) {
-      this.controller.listJournals();
+      let journals = await this.controller.listJournals();
+      if (journals.length === 0) {
+        this.router.navigate(['/upload']);
+      } else {
+        await this.controller.getAccountTree(this.modelService.selectedJournalId$()!);
+      }
     }
   }
 
+
+  async loadTags(): Promise<void> {
+    if (!this.selectedJournal) return;
+    
+    try {
+      this.tags = await this.controller.getTags(this.selectedJournal.id);
+    } catch (err: any) {
+      console.error('Failed to load tags:', err);
+      this.tags = [];
+    }
+  }
 
   async loadEntries(): Promise<void> {
     if (!this.selectedJournal) return;
@@ -64,10 +82,11 @@ export class JournalComponent implements OnInit {
       // Load transactions for the journal
       this.transactions = await this.controller.getTransactions(
         this.selectedJournal.id,
-        this.startDate || undefined,
-        this.endDate || undefined,
+        undefined, // startDate (handled by filter)
+        undefined, // endDate (handled by filter)
         undefined, // partnerId
-        this.status || undefined
+        undefined, // status
+        this.filterString || undefined
       );
       this.loading = false;
     } catch (err: any) {
@@ -77,14 +96,8 @@ export class JournalComponent implements OnInit {
   }
 
 
-  applyFilters(): void {
-    this.loadEntries();
-  }
-
-  clearFilters(): void {
-    this.startDate = '';
-    this.endDate = '';
-    this.status = '';
+  onFilterChange(filter: string): void {
+    this.filterString = filter;
     this.loadEntries();
   }
 
@@ -105,31 +118,6 @@ export class JournalComponent implements OnInit {
     // Extract just the account number (first word)
     const parts = accountNumber.split(/[\s:]/);
     return parts[0];
-  }
-  
-  getAccountHierarchy(accountNumber: string): string {
-    // Extract hierarchy from account number
-    // E.g., "1020" -> "1:10:100:1020"
-    // E.g., "6570.001" -> "6:65:657:6570:6570.001"
-    const num = accountNumber.trim();
-    if (num.length === 0) return num;
-    
-    // Split by dots to handle decimal parts
-    const segments = num.split('.');
-    const parts: string[] = [];
-    
-    // Process the main part (before any dot)
-    const mainPart = segments[0];
-    for (let i = 1; i <= mainPart.length; i++) {
-      parts.push(mainPart.substring(0, i));
-    }
-    
-    // Add the full number if it has decimal parts
-    if (segments.length > 1) {
-      parts.push(num);
-    }
-    
-    return parts.join(':');
   }
   
   getAccountLeafName(accountName: string): string {

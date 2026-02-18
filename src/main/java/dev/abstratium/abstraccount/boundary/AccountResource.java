@@ -149,7 +149,11 @@ public class AccountResource {
             null, // endDate
             null, // partnerId
             null, // status
-            accountIds
+            accountIds,
+            null, // no tag key filter
+            null, // no tag key-value filter
+            null, // no negated tag key filter
+            null  // no negated tag key-value filter
         );
         
         // Calculate running balance
@@ -158,8 +162,6 @@ public class AccountResource {
         
         for (EntryEntity entry : entries) {
             TransactionEntity tx = entry.getTransaction();
-            runningBalance = runningBalance.add(entry.getAmount());
-            
             result.add(new AccountEntryDTO(
                 entry.getId(),
                 tx.getTransactionId(),
@@ -167,7 +169,11 @@ public class AccountResource {
                 tx.getDescription(),
                 entry.getCommodity(),
                 entry.getAmount(),
-                runningBalance
+                runningBalance,
+                entry.getNote(),
+                entry.getAccountId(),
+                tx.getPartnerId(),
+                tx.getStatus()
             ));
         }
         

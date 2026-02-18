@@ -35,7 +35,7 @@
     <p>No entries found for this account</p>
   }
   
-  @if (!loading && !error && entries.length > 0) {
+  @if (!loading && !error) {
     <!-- Include children checkbox -->
     <div class="filter-controls">
       <label class="checkbox-label">
@@ -60,16 +60,24 @@
           <tr>
             <th>Date</th>
             <th>Description</th>
+            <th>Partner</th>
+            <th>Account</th>
+            <th>Note</th>
+            <th>Status</th>
             <th>Amount</th>
             <th>Commodity</th>
             <th class="balance-column">Running Balance</th>
           </tr>
         </thead>
         <tbody>
-          @for (entry of reversedEntries; track entry.entryId) {
+          @for (entry of reversedEntries; track entry.entryId; let i = $index) {
             <tr>
-              <td>{{ entry.transactionDate }}</td>
+              <td style="white-space: nowrap;">{{ entry.transactionDate }}</td>
               <td>{{ entry.description }}</td>
+              <td>{{ getPartnerName(entry.partnerId) }}</td>
+              <td>{{ getAccountName(entry.accountId) }}</td>
+              <td>{{ entry.note }}</td>
+              <td>{{ entry.status }}</td>
               <td [class.negative]="entry.amount < 0" [class.positive]="entry.amount > 0">
                 {{ entry.amount | number:'1.2-2' }}
               </td>

@@ -1,0 +1,50 @@
+<div class="filter-input-container">
+  <div class="input-wrapper">
+    <input 
+      #filterInput
+      type="text" 
+      class="filter-input"
+      [placeholder]="placeholder"
+      [value]="filterText()"
+      (input)="onInputChange($any($event.target).value)"
+      (keydown)="onKeyDown($event, filterInput)"
+      (focus)="onInputFocus(filterInput)"
+      (click)="onInputClick(filterInput)"
+    />
+    <button 
+      *ngIf="filterText()" 
+      class="clear-btn"
+      type="button"
+      (click)="clearFilter()"
+      title="Clear filter">
+      ✕
+    </button>
+    <button 
+      class="apply-btn"
+      type="button"
+      (click)="applyFilter()"
+      title="Apply filter">
+      Apply
+    </button>
+  </div>
+
+  <div *ngIf="showSuggestions() && suggestions().length > 0" class="suggestions-dropdown">
+    <div 
+      *ngFor="let suggestion of suggestions(); let i = index"
+      class="suggestion-item"
+      [class.highlighted]="i === selectedIndex()"
+      (mousedown)="selectSuggestion(suggestion, filterInput)">
+      <div class="suggestion-text">{{ suggestion.text }}</div>
+      <div *ngIf="suggestion.description" class="suggestion-description">{{ suggestion.description }}</div>
+    </div>
+  </div>
+
+  <div class="filter-help">
+    <small>
+      <strong>Tip:</strong> Use <code>begin:yyyyMMdd</code> and <code>end:yyyyMMdd</code> for dates, 
+      <code>partner:value</code> for partner IDs, tag names for keys, <code>tag:value</code> for exact matches, 
+      <code>tag:*value</code> for wildcards, <code>not:tag</code> to exclude. 
+      Press <kbd>Ctrl+Space</kbd> for suggestions.
+    </small>
+  </div>
+</div>

@@ -48,10 +48,6 @@ export class SettingsComponent {
 
     try {
       await this.controller.deleteJournal(this.selectedJournal.id);
-      
-      // Clear selection and navigate to home
-      this.controller.setSelectedJournalId(null);
-      this.controller.clearAccounts();
       this.router.navigate(['/']);
     } catch (err: any) {
       this.error = 'Failed to delete journal: ' + (err.message || 'Unknown error');

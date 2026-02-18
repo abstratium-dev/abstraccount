@@ -73,16 +73,9 @@ export class HeaderComponent implements OnInit {
             // Reset to previous selection
             this.selectedJournalId = this.modelService.getSelectedJournalId();
         } else if (this.selectedJournalId) {
-            this.controller.setSelectedJournalId(this.selectedJournalId);
-            // Load accounts for this journal - Controller updates the model
-            try {
-                await this.controller.getAccountTree(this.selectedJournalId);
-            } catch (error) {
-                console.error('Failed to load accounts:', error);
-            }
+            this.controller.selectJournal(this.journals.find(j => j.id === this.selectedJournalId)?.id || null);
         } else {
-            this.controller.setSelectedJournalId(null);
-            this.controller.clearAccounts();
+            this.controller.selectJournal(null);
         }
     }
 

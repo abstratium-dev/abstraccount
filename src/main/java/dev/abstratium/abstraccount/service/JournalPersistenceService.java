@@ -149,9 +149,13 @@ public class JournalPersistenceService {
      * @param journalId the journal ID (required)
      * @param startDate inclusive start date filter (optional)
      * @param endDate exclusive end date filter (optional)
-     * @param partnerId partner ID filter (optional)
+     * @param partnerId partner ID filter (optional, can contain SQL wildcards)
      * @param status transaction status filter (optional)
      * @param accountNumbers list of account numbers to filter by (optional)
+     * @param tagKeys list of tag keys to filter by (optional, matches if transaction has any of these keys)
+     * @param tagKeyValuePairs map of tag key-value pairs to filter by (optional, value can contain SQL wildcards)
+     * @param notTagKeys list of tag keys to exclude (optional, matches if transaction does NOT have these keys)
+     * @param notTagKeyValuePairs map of tag key-value pairs to exclude (optional, value can contain SQL wildcards)
      * @return list of matching entries with their transactions eagerly loaded
      */
     @Transactional
@@ -161,7 +165,11 @@ public class JournalPersistenceService {
             LocalDate endDate,
             String partnerId,
             String status,
-            List<String> accountIds) {
+            List<String> accountIds,
+            List<String> tagKeys,
+            java.util.Map<String, String> tagKeyValuePairs,
+            List<String> notTagKeys,
+            java.util.Map<String, String> notTagKeyValuePairs) {
         
         StringBuilder jpql = new StringBuilder(
             "SELECT e FROM EntryEntity e " +
@@ -176,7 +184,7 @@ public class JournalPersistenceService {
             jpql.append(" AND t.transactionDate < :endDate");
         }
         if (partnerId != null) {
-            jpql.append(" AND t.partnerId = :partnerId");
+            jpql.append(" AND t.partnerId LIKE :partnerId");
         }
         if (status != null) {
             jpql.append(" AND t.status = :status");
@@ -184,8 +192,43 @@ public class JournalPersistenceService {
         if (accountIds != null && !accountIds.isEmpty()) {
             jpql.append(" AND e.accountId IN :accountIds");
         }
-
-        // TODO extend with tag filters too
+        
+        // Positive tag filtering: transaction must have tags matching the criteria
+        if ((tagKeys != null && !tagKeys.isEmpty()) || (tagKeyValuePairs != null && !tagKeyValuePairs.isEmpty())) {
+            jpql.append(" AND EXISTS (SELECT tag FROM TagEntity tag WHERE tag.transaction = t");
+            
+            if (tagKeys != null && !tagKeys.isEmpty()) {
+                jpql.append(" AND tag.tagKey IN :tagKeys");
+            }
+            
+            if (tagKeyValuePairs != null && !tagKeyValuePairs.isEmpty()) {
+                int idx = 0;
+                for (var entry : tagKeyValuePairs.entrySet()) {
+                    jpql.append(" AND EXISTS (SELECT tag2 FROM TagEntity tag2 WHERE tag2.transaction = t");
+                    jpql.append(" AND tag2.tagKey = :tagKey").append(idx);
+                    jpql.append(" AND tag2.tagValue LIKE :tagValue").append(idx).append(")");
+                    idx++;
+                }
+            }
+            
+            jpql.append(")");
+        }
+        
+        // Negative tag filtering: transaction must NOT have tags matching the criteria
+        if (notTagKeys != null && !notTagKeys.isEmpty()) {
+            jpql.append(" AND NOT EXISTS (SELECT tag FROM TagEntity tag WHERE tag.transaction = t");
+            jpql.append(" AND tag.tagKey IN :notTagKeys)");
+        }
+        
+        if (notTagKeyValuePairs != null && !notTagKeyValuePairs.isEmpty()) {
+            int idx = 0;
+            for (var entry : notTagKeyValuePairs.entrySet()) {
+                jpql.append(" AND NOT EXISTS (SELECT tag FROM TagEntity tag WHERE tag.transaction = t");
+                jpql.append(" AND tag.tagKey = :notTagKey").append(idx);
+                jpql.append(" AND tag.tagValue LIKE :notTagValue").append(idx).append(")");
+                idx++;
+            }
+        }
         
         jpql.append(" ORDER BY t.transactionDate DESC, t.id, e.entryOrder");
         
@@ -207,8 +250,48 @@ public class JournalPersistenceService {
         if (accountIds != null && !accountIds.isEmpty()) {
             query.setParameter("accountIds", accountIds);
         }
+        if (tagKeys != null && !tagKeys.isEmpty()) {
+            query.setParameter("tagKeys", tagKeys);
+        }
+        if (tagKeyValuePairs != null && !tagKeyValuePairs.isEmpty()) {
+            int idx = 0;
+            for (var entry : tagKeyValuePairs.entrySet()) {
+                query.setParameter("tagKey" + idx, entry.getKey());
+                query.setParameter("tagValue" + idx, entry.getValue());
+                idx++;
+            }
+        }
+        if (notTagKeys != null && !notTagKeys.isEmpty()) {
+            query.setParameter("notTagKeys", notTagKeys);
+        }
+        if (notTagKeyValuePairs != null && !notTagKeyValuePairs.isEmpty()) {
+            int idx = 0;
+            for (var entry : notTagKeyValuePairs.entrySet()) {
+                query.setParameter("notTagKey" + idx, entry.getKey());
+                query.setParameter("notTagValue" + idx, entry.getValue());
+                idx++;
+            }
+        }
         
         return query.getResultList();
+    }
+    
+    /**
+     * Gets all distinct tag keys and values for a journal.
+     * Used for autocomplete functionality.
+     * 
+     * @param journalId the journal ID
+     * @return list of distinct tag key-value pairs
+     */
+    @Transactional
+    public List<Object[]> getDistinctTags(String journalId) {
+        return entityManager.createQuery(
+            "SELECT DISTINCT tag.tagKey, tag.tagValue FROM TagEntity tag " +
+            "WHERE tag.transaction.journalId = :journalId " +
+            "ORDER BY tag.tagKey, tag.tagValue",
+            Object[].class)
+            .setParameter("journalId", journalId)
+            .getResultList();
     }
     
     /**

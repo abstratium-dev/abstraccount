@@ -53,6 +53,19 @@ export interface AccountEntryDTO {
   commodity: string;
   amount: number;
   runningBalance: number;
+  note: string | null;
+  accountId: string;
+  partnerId: string | null;
+  status: string;
+}
+
+export interface JournalUploadSummary {
+  title: string;
+  accountCount: number;
+  transactionCount: number;
+  commodityCount: number;
+  status: string;
+  journalId: string;
 }
 
 @Injectable({
@@ -106,7 +119,8 @@ export class Controller {
     startDate?: string,
     endDate?: string,
     partnerId?: string,
-    status?: string
+    status?: string,
+    filter?: string
   ): Promise<TransactionDTO[]> {
     try {
       let params = new HttpParams();
@@ -114,6 +128,7 @@ export class Controller {
       if (endDate) params = params.set('endDate', endDate);
       if (partnerId) params = params.set('partnerId', partnerId);
       if (status) params = params.set('status', status);
+      if (filter) params = params.set('filter', filter);
       
       const transactions = await firstValueFrom(
         this.http.get<TransactionDTO[]>('/api/journal/' + journalId + '/transactions', { params })
@@ -126,15 +141,31 @@ export class Controller {
     }
   }
 
-  async uploadJournal(content: string): Promise<any> {
+  async getTags(journalId: string): Promise<TagDTO[]> {
+    try {
+      return await firstValueFrom(
+        this.http.get<TagDTO[]>(`/api/journal/${journalId}/tags`)
+      );
+    } catch (error) {
+      console.error('Error getting tags:', error);
+      throw error;
+    }
+  }
+
+  async uploadJournal(content: string): Promise<JournalUploadSummary> {
     try {
       const result = await firstValueFrom(
-        this.http.post('/api/journal/upload', content, {
+        this.http.post<JournalUploadSummary>('/api/journal/upload', content, {
           headers: { 'Content-Type': 'text/plain' }
         })
       );
+      this.modelService.setSelectedJournalId(result.journalId);
+
       // Refresh journal list after upload
       await this.listJournals();
+
+      await this.getAccountTree(result.journalId);
+
       return result;
     } catch (error) {
       console.error('Error uploading journal:', error);
@@ -149,6 +180,11 @@ export class Controller {
       );
       // Refresh journal list after deletion
       await this.listJournals();
+
+      // Clear selection and navigate to home
+      this.clearAccounts();
+      this.clearTransactions();
+
       return result;
     } catch (error) {
       console.error('Error deleting journal:', error);
@@ -170,12 +206,36 @@ export class Controller {
     }
   }
 
-  setSelectedJournalId(journalId: string | null): void {
-    this.modelService.setSelectedJournalId(journalId);
+  async selectJournal(journalId: string | null): Promise<void> {
+    this.clearAccounts();
+    this.clearTransactions();
+    if(journalId === null) {
+      this.modelService.setSelectedJournalId(null);
+    } else {
+      this.modelService.setSelectedJournalId(journalId);
+
+      // Load accounts for this journal - Controller updates the model
+      try {
+          await this.getAccountTree(journalId);
+      } catch (error) {
+          console.error('Failed to load accounts:', error);
+      }
+
+      // Load transactions for this journal - Controller updates the model
+      try {
+          await this.getTransactions(journalId);
+      } catch (error) {
+          console.error('Failed to load transactions:', error);
+      }
+    }
   }
 
-  clearAccounts(): void {
+  private clearAccounts(): void {
     this.modelService.setAccounts([]);
+  }
+
+  private clearTransactions(): void {
+    this.modelService.setTransactions([]);
   }
 
   async getAccountDetails(journalId: string, accountId: string): Promise<AccountTreeNode> {
@@ -191,7 +251,8 @@ export class Controller {
     if (includeChildren) {
       params.includeChildren = 'true';
     }
-    const response = await this.http.get<AccountEntryDTO[]>(url, { params }).toPromise();
-    return response || [];
+    const response = await this.http.get<AccountEntryDTO[]>(url, { params }).toPromise() || [];
+    let total = 0;
+    return response.reverse().map(e => ({ ...e, runningBalance: total += e.amount })).reverse();
   }
 }

@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, ViewChild, ElementRef, AfterViewInit } from '@angular/core';
+import { Component, OnInit, inject, ViewChild, ElementRef, AfterViewInit, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
@@ -32,13 +32,31 @@ export class AccountLedgerComponent implements OnInit, AfterViewInit {
   includeChildren = true; // Default to showing all children
   
   get currentBalance(): number {
-    // Current balance is the last entry (newest)
-    return this.entries.length > 0 ? this.entries[this.entries.length - 1].runningBalance : 0;
+    // Current balance is the first entry (newest)
+    return this.entries.length > 0 ? this.entries[0].runningBalance : 0;
   }
   
   get reversedEntries(): AccountEntryDTO[] {
-    // Display newest first, but keep original array in chronological order
-    return [...this.entries].reverse();
+    // they are already sorted in reverse order by the server
+    return this.entries;
+  }
+
+  constructor() {
+    TODO is this working?
+    TODO we need this to work on the transactions page too;
+    effect(() => {
+      const journalId = this.modelService.getSelectedJournalId();
+      if (journalId) {
+        this.loadAccountDetails();
+        this.loadEntries();
+      }
+    });
+  }
+
+  async ngOnInit() {
+    this.accountId = this.route.snapshot.paramMap.get('accountId') || '';
+    await this.loadAccountDetails();
+    await this.loadEntries();
   }
   
   async onIncludeChildrenChange() {
@@ -46,10 +64,14 @@ export class AccountLedgerComponent implements OnInit, AfterViewInit {
     await this.loadEntries();
   }
 
-  async ngOnInit() {
-    this.accountId = this.route.snapshot.paramMap.get('accountId') || '';
-    await this.loadAccountDetails();
-    await this.loadEntries();
+  getAccountName(accountId: string): string {
+    const account = this.modelService.getAccount(accountId);
+    return account ? account.name : accountId;
+  }
+
+  getPartnerName(partnerId: string | null): string {
+    // TODO resolve to name
+    return partnerId || '';
   }
   
   async loadAccountDetails() {
@@ -86,7 +108,7 @@ export class AccountLedgerComponent implements OnInit, AfterViewInit {
       
       // Keep entries in chronological order (oldest first) for correct running balance calculation
       this.entries = await this.controller.getAccountEntries(journalId, this.accountId, this.includeChildren);
-      
+
       // After entries are loaded, create chart after view updates
       setTimeout(() => {
         if (this.balanceChartRef) {

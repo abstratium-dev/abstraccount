@@ -57,6 +57,7 @@ public class JournalResource {
      * @param endDate optional exclusive end date filter (YYYY-MM-DD)
      * @param partnerId optional partner ID filter
      * @param status optional transaction status filter
+     * @param filter optional filter string (e.g., "begin:20240601 end:20241031 invoice invoice:*34")
      */
     @GET
     @Path("/{journalId}/transactions")
@@ -65,11 +66,74 @@ public class JournalResource {
             @QueryParam("startDate") String startDate,
             @QueryParam("endDate") String endDate,
             @QueryParam("partnerId") String partnerId,
-            @QueryParam("status") String status) {
+            @QueryParam("status") String status,
+            @QueryParam("filter") String filter) {
         
         // Parse dates
         LocalDate startLocalDate = startDate != null ? LocalDate.parse(startDate) : null;
         LocalDate endLocalDate = endDate != null ? LocalDate.parse(endDate) : null;
+        
+        // Parse filter string if provided
+        List<String> tagKeys = null;
+        Map<String, String> tagKeyValuePairs = null;
+        List<String> notTagKeys = null;
+        Map<String, String> notTagKeyValuePairs = null;
+        String partnerFilter = partnerId;
+        
+        if (filter != null && !filter.trim().isEmpty()) {
+            tagKeys = new ArrayList<>();
+            tagKeyValuePairs = new HashMap<>();
+            notTagKeys = new ArrayList<>();
+            notTagKeyValuePairs = new HashMap<>();
+            
+            String[] tokens = filter.trim().split("\\s+");
+            for (String token : tokens) {
+                boolean isNegated = false;
+                
+                // Check for 'not:' prefix
+                if (token.startsWith("not:")) {
+                    isNegated = true;
+                    token = token.substring(4); // Remove 'not:' prefix
+                }
+                
+                if (token.startsWith("begin:")) {
+                    String dateStr = token.substring(6);
+                    startLocalDate = parseCompactDate(dateStr);
+                } else if (token.startsWith("end:")) {
+                    String dateStr = token.substring(4);
+                    endLocalDate = parseCompactDate(dateStr);
+                } else if (token.startsWith("partner:")) {
+                    String partnerValue = token.substring(8);
+                    // Convert wildcard * to SQL LIKE pattern %
+                    partnerFilter = partnerValue.replace("*", "%");
+                } else if (token.contains(":")) {
+                    // Tag key-value pair
+                    int colonIdx = token.indexOf(':');
+                    String key = token.substring(0, colonIdx);
+                    String value = token.substring(colonIdx + 1);
+                    // Convert wildcard * to SQL LIKE pattern %
+                    value = value.replace("*", "%");
+                    
+                    if (isNegated) {
+                        notTagKeyValuePairs.put(key, value);
+                    } else {
+                        tagKeyValuePairs.put(key, value);
+                    }
+                } else {
+                    // Tag key only
+                    if (isNegated) {
+                        notTagKeys.add(token);
+                    } else {
+                        tagKeys.add(token);
+                    }
+                }
+            }
+            
+            if (tagKeys.isEmpty()) tagKeys = null;
+            if (tagKeyValuePairs.isEmpty()) tagKeyValuePairs = null;
+            if (notTagKeys.isEmpty()) notTagKeys = null;
+            if (notTagKeyValuePairs.isEmpty()) notTagKeyValuePairs = null;
+        }
         
         // Query entries from database (which eagerly loads transactions)
         List<dev.abstratium.abstraccount.entity.EntryEntity> entryEntities = 
@@ -77,9 +141,13 @@ public class JournalResource {
                 journalId,
                 startLocalDate,
                 endLocalDate,
-                partnerId,
+                partnerFilter,
                 status,
-                null // no account filter
+                null, // no account filter
+                tagKeys,
+                tagKeyValuePairs,
+                notTagKeys,
+                notTagKeyValuePairs
             );
         
         // Load all accounts for this journal to join with entries
@@ -136,6 +204,38 @@ public class JournalResource {
         }
         
         return transactionDTOs.stream().sorted((a, b) -> b.date().compareTo(a.date())).collect(Collectors.toList());
+    }
+    
+    /**
+     * Parses a compact date string in yyyyMMdd format.
+     * 
+     * @param dateStr the date string
+     * @return LocalDate
+     */
+    private LocalDate parseCompactDate(String dateStr) {
+        if (dateStr.length() != 8) {
+            throw new WebApplicationException("Invalid date format: " + dateStr + ". Expected yyyyMMdd", 400);
+        }
+        int year = Integer.parseInt(dateStr.substring(0, 4));
+        int month = Integer.parseInt(dateStr.substring(4, 6));
+        int day = Integer.parseInt(dateStr.substring(6, 8));
+        return LocalDate.of(year, month, day);
+    }
+    
+    /**
+     * Gets all distinct tags for a journal.
+     * Used for autocomplete functionality.
+     * 
+     * @param journalId the journal ID
+     * @return list of tag DTOs
+     */
+    @GET
+    @Path("/{journalId}/tags")
+    public List<TagDTO> getTags(@PathParam("journalId") String journalId) {
+        List<Object[]> tags = journalPersistenceService.getDistinctTags(journalId);
+        return tags.stream()
+            .map(row -> new TagDTO((String) row[0], (String) row[1]))
+            .collect(Collectors.toList());
     }
     
     /**
@@ -247,7 +347,7 @@ public class JournalResource {
             Journal journal = journalParser.parse(journalContent);
             
             // Persist to database
-            modelPersistenceService.persistJournalModel(journal);
+            String journalId = modelPersistenceService.persistJournalModel(journal);
             
             
             // Return summary
@@ -257,6 +357,7 @@ public class JournalResource {
             summary.put("transactionCount", journal.transactions().size());
             summary.put("commodityCount", journal.commodities().size());
             summary.put("status", "success");
+            summary.put("journalId", journalId);
             
             LOG.infof("Successfully uploaded journal: %s", journal.title());
             return summary;

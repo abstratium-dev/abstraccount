@@ -12,7 +12,7 @@ export class ModelService {
   private config = signal<Config | null>(null);
   private journals = signal<JournalMetadataDTO[]>([]);
   private transactions = signal<TransactionDTO[]>([]);
-  private selectedJournalId = signal<string | null>(null);
+  private selectedJournalId = signal<string | null>(localStorage.getItem("journalId") || null);
   private accounts = signal<AccountTreeNode[]>([]);
 
   config$: Signal<Config | null> = this.config.asReadonly();
@@ -27,6 +27,18 @@ export class ModelService {
 
   setJournals(journals: JournalMetadataDTO[]) {
     this.journals.set(journals);
+    if (journals.length > 0) {
+      // ensure that the selected id is valid
+      let selectedJournalId = this.getSelectedJournalId()
+      if (!selectedJournalId) {
+        selectedJournalId = journals[0].id;
+      } else {
+        if (!journals.some(j => j.id === selectedJournalId)) {
+          selectedJournalId = journals[0].id;
+        }
+      }
+      this.setSelectedJournalId(selectedJournalId);
+    }
   }
 
   setTransactions(transactions: TransactionDTO[]) {
@@ -35,14 +47,40 @@ export class ModelService {
 
   setSelectedJournalId(journalId: string | null) {
     this.selectedJournalId.set(journalId);
+    localStorage.setItem("journalId", journalId||'')
   }
 
   getSelectedJournalId(): string | null {
-    return this.selectedJournalId();
+    return this.selectedJournalId() || localStorage.getItem("journalId") || null;
   }
 
   getAccounts(): AccountTreeNode[] {
     return this.accounts();
+  }
+
+  /** searches recursively in the trees for the first account it finds with the given id */
+  getAccount(accountId: string): AccountTreeNode | null {
+    function search(account: AccountTreeNode): AccountTreeNode | null {
+      if (account.id === accountId) {
+        return account;
+      }
+      for (const child of account.children) {
+        const account = search(child);
+        if (account) {
+          return account;
+        }
+      }
+      return null;
+    }
+
+    const accounts = this.accounts();
+    for (const account of accounts) {
+      const a = search(account);
+      if (a) {
+        return a;
+      }
+    }
+    return null;
   }
 
   setAccounts(accounts: AccountTreeNode[]): void {

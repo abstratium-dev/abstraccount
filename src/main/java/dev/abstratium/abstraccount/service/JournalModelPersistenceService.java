@@ -39,9 +39,10 @@ public class JournalModelPersistenceService {
      * in a single transaction.
      * 
      * @param journal the journal model to persist
+     * @return the ID of the persisted journal
      */
     @Transactional
-    public void persistJournalModel(Journal journal) {
+    public String persistJournalModel(Journal journal) {
         LOG.infof("Persisting journal model: %s", journal.title());
         
         // Create and save journal entity
@@ -135,5 +136,6 @@ public class JournalModelPersistenceService {
         LOG.infof("Saving %d transactions", journal.transactions().size());
         
         LOG.infof("Ready to persisted journal model");
+        return journalId;
     }
 }
