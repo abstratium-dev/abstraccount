@@ -42,12 +42,14 @@ describe('AccountsComponent', () => {
         name: 'Assets',
         type: 'ASSET',
         note: null,
+        parentId: null,
         children: [
           {
             id: '10',
             name: 'Current Assets',
             type: 'ASSET',
             note: null,
+            parentId: '1',
             children: []
           }
         ]

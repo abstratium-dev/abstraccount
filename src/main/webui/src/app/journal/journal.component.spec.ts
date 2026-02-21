@@ -16,7 +16,8 @@ describe('JournalComponent', () => {
       'getJournalMetadata',
       'getTransactions',
       'getTags',
-      'setSelectedJournalId'
+      'setSelectedJournalId',
+      'getAccountTree'
     ]);
 
     await TestBed.configureTestingModule({

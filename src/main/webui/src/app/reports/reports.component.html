@@ -1,0 +1,152 @@
+<div class="reports-container">
+  <h1>Reports</h1>
+
+  <!-- Error message -->
+  <div *ngIf="error" class="error-message">
+    {{ error }}
+  </div>
+
+  <!-- Loading indicator -->
+  <div *ngIf="loading" class="loading">
+    Loading...
+  </div>
+
+  <!-- Template selection -->
+  <div class="report-controls">
+    <div class="form-group">
+      <label for="template-select">Select Report Template:</label>
+      <select 
+        id="template-select" 
+        [(ngModel)]="selectedTemplateId" 
+        (change)="onTemplateSelect()"
+        class="form-control">
+        <option [value]="null">-- Choose a report --</option>
+        <option *ngFor="let template of templates()" [value]="template.id">
+          {{ template.name }}
+        </option>
+      </select>
+    </div>
+
+    <!-- Filters -->
+    <div *ngIf="selectedTemplate" class="filter-section">
+      <h3>Filters</h3>
+      <filter-input 
+        [tags]="tags"
+        (filterChange)="onFilterChange($event)">
+      </filter-input>
+
+      <div class="form-group checkbox-group">
+        <label>
+          <input 
+            type="checkbox" 
+            [(ngModel)]="hideZeroBalances"
+            (change)="generateReport()">
+          Hide zero-balance accounts
+        </label>
+      </div>
+
+      <button (click)="generateReport()" class="btn btn-primary">
+        Generate Report
+      </button>
+    </div>
+  </div>
+
+  <!-- Template description -->
+  <div *ngIf="selectedTemplate" class="template-description">
+    <h2>{{ selectedTemplate.name }}</h2>
+    <p *ngIf="selectedTemplate.description">{{ selectedTemplate.description }}</p>
+  </div>
+
+  <!-- Report output -->
+  <div *ngIf="reportSections.length > 0" class="report-output">
+    <div *ngFor="let section of reportSections" class="report-section" [attr.data-level]="section.level">
+      <!-- Dynamic heading level -->
+      <h1 *ngIf="section.level === 1">{{ section.title }}</h1>
+      <h2 *ngIf="section.level === 2">{{ section.title }}</h2>
+      <h3 *ngIf="section.level === 3 || !section.level">{{ section.title }}</h3>
+      <h4 *ngIf="section.level === 4">{{ section.title }}</h4>
+
+      <!-- Partner details table -->
+      <table *ngIf="section.groupByPartner && section.partners && section.partners.length > 0" class="report-table">
+        <thead>
+          <tr>
+            <th>Partner</th>
+            <th class="amount-column">Income</th>
+            <th class="amount-column">Expenses</th>
+            <th class="amount-column">Net</th>
+            <th class="amount-column">Transactions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let partner of section.partners">
+            <td>{{ partner.partnerName }}</td>
+            <td class="amount-column">{{ formatCurrencyWithCommodity(partner.income, section.commodity) }}</td>
+            <td class="amount-column">{{ formatCurrencyWithCommodity(partner.expenses, section.commodity) }}</td>
+            <td class="amount-column" [class.negative]="partner.net < 0">
+              {{ formatCurrencyWithCommodity(partner.net, section.commodity) }}
+            </td>
+            <td class="amount-column">{{ partner.transactionCount }}</td>
+          </tr>
+        </tbody>
+        <tfoot *ngIf="section.partners.length > 0">
+          <tr class="subtotal-row">
+            <td><strong>Grand Total</strong></td>
+            <td class="amount-column"><strong>{{ formatCurrencyWithCommodity(getTotalIncome(section.partners), section.commodity) }}</strong></td>
+            <td class="amount-column"><strong>{{ formatCurrencyWithCommodity(getTotalExpenses(section.partners), section.commodity) }}</strong></td>
+            <td class="amount-column"><strong>{{ formatCurrencyWithCommodity(section.subtotal, section.commodity) }}</strong></td>
+            <td class="amount-column"><strong>{{ getTotalTransactions(section.partners) }}</strong></td>
+          </tr>
+        </tfoot>
+      </table>
+
+      <!-- Account details table -->
+      <table *ngIf="!section.groupByPartner && section.showAccounts && section.accounts.length > 0" class="report-table">
+        <thead>
+          <tr>
+            <th>Account</th>
+            <th class="amount-column">Balance</th>
+            <th *ngIf="section.showDebitsCredits" class="amount-column">Debit</th>
+            <th *ngIf="section.showDebitsCredits" class="amount-column">Credit</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let account of section.accounts">
+            <td>{{ account.accountName }}</td>
+            <td class="amount-column">{{ formatCurrencyWithCommodity(account.balance, section.commodity) }}</td>
+            <td *ngIf="section.showDebitsCredits" class="amount-column">
+              {{ formatCurrencyWithCommodity(account.debit, section.commodity) }}
+            </td>
+            <td *ngIf="section.showDebitsCredits" class="amount-column">
+              {{ formatCurrencyWithCommodity(account.credit, section.commodity) }}
+            </td>
+          </tr>
+        </tbody>
+        <tfoot *ngIf="section.accounts.length > 0">
+          <tr class="subtotal-row">
+            <td><strong>{{ section.title }} Total</strong></td>
+            <td class="amount-column"><strong>{{ formatCurrencyWithCommodity(section.subtotal, section.commodity) }}</strong></td>
+            <td *ngIf="section.showDebitsCredits"></td>
+            <td *ngIf="section.showDebitsCredits"></td>
+          </tr>
+        </tfoot>
+      </table>
+
+      <!-- Subtotal only (no account details) -->
+      <div *ngIf="!section.showAccounts && section.subtotal !== 0" class="total-line">
+        <span class="total-label"><strong>{{ section.title }}</strong></span>
+        <span class="total-amount"><strong>{{ formatCurrencyWithCommodity(section.subtotal, section.commodity) }}</strong></span>
+      </div>
+
+      <!-- Calculated value (e.g., net income) -->
+      <div *ngIf="section.showAccounts && section.accounts.length === 0 && section.subtotal !== 0" class="total-line">
+        <span class="total-label"><strong>{{ section.title.includes('Net Income') ? getNetIncomeLabel(section.subtotal) : section.title }}</strong></span>
+        <span class="total-amount"><strong>{{ formatCurrencyWithCommodity(Math.abs(section.subtotal), section.commodity) }}</strong></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- No data message -->
+  <div *ngIf="selectedTemplate && reportSections.length === 0 && !loading && !error" class="no-data">
+    Click "Generate Report" to view the report.
+  </div>
+</div>

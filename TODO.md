@@ -17,8 +17,23 @@ These TODOs are to be resolved by the developer, NOT THE LLM.
   - header of ledger page should show parent accounts with links to them
 - journal
   - links to accounts aren't shown until the accounts are loaded
+- add a pivot table
+- reports
+  - make all numbers positive in balance sheet
+  - partner report, showing in and out per partner
+  - account numbers shown in reports should use the standard format of displaying the parent account words at the start, and they should all be navigable so that the user can jump to the account ledger.
+  - balance sheets - both are showing wrong numbers coz of the net loss
+  - balance sheets - at least the swiss one shows zero net income for 2024 and 2025 which are closed years, so it should be showing no value
+  - swiss income statement still not showing the individual accounts
+  - partner report
+    - need to be able to hide if there is no activity (no in and no out) 
+  - filter still not working
+  - swiss reports should include french and english, see specs in docs folder
+  - trial balance still shows no revenue, even for 2026
+  - "Hide zero-balance accounts" should default to true and the checkbox needs to be next to the text
 
-- Reports based on templates
+
+
 - Inputs based on macros
 - Link to receipt documents
 - add a skill to abstracore so that the llm can read the database (show tables, desc table, select * from table with limit)
@@ -43,6 +58,8 @@ These TODOs are to be resolved by the developer, NOT THE LLM.
 - [ ] - Create favicon, store it in root as zip and put it in `src/main/webui/public`
 - [ ] - Update database migration files
 - [ ] - Update clear-test-db.sh
+
+- when adding new accounts, need to make sure that the user checks the reports, that they are added e.g. in the income statement, where the swiss template recommends it
 
 
 ## Later (not yet necessary for initial release)

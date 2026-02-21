@@ -69,6 +69,14 @@ export interface JournalUploadSummary {
   journalId: string;
 }
 
+export interface ReportTemplate {
+  id: string;
+  name: string;
+  description: string | null;
+  templateType: string;
+  templateContent: string;
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -255,5 +263,72 @@ export class Controller {
     const response = await this.http.get<AccountEntryDTO[]>(url, { params }).toPromise() || [];
     let total = 0;
     return response.reverse().map(e => ({ ...e, runningBalance: total += e.amount })).reverse();
+  }
+
+  async listReportTemplates(): Promise<ReportTemplate[]> {
+    try {
+      const templates = await firstValueFrom(
+        this.http.get<ReportTemplate[]>('/api/report/templates')
+      );
+      this.modelService.setReportTemplates(templates);
+      return templates;
+    } catch (error) {
+      console.error('Error listing report templates:', error);
+      throw error;
+    }
+  }
+
+  async getReportTemplate(templateId: string): Promise<ReportTemplate> {
+    try {
+      return await firstValueFrom(
+        this.http.get<ReportTemplate>(`/api/report/templates/${templateId}`)
+      );
+    } catch (error) {
+      console.error('Error getting report template:', error);
+      throw error;
+    }
+  }
+
+  async getEntriesForReport(
+    journalId: string,
+    startDate?: string,
+    endDate?: string,
+    accountTypes?: string[]
+  ): Promise<AccountEntryDTO[]> {
+    try {
+      // Use the existing transaction endpoint to get entries
+      // We'll need to extract entries from transactions
+      const transactions = await this.getTransactions(journalId, startDate, endDate);
+      
+      // Flatten entries from all transactions
+      const entries: AccountEntryDTO[] = [];
+      for (const tx of transactions) {
+        for (const entry of tx.entries) {
+          entries.push({
+            entryId: entry.id,
+            transactionId: tx.id,
+            transactionDate: tx.date,
+            description: tx.description,
+            commodity: entry.commodity,
+            amount: entry.amount,
+            runningBalance: 0, // Will be calculated later if needed
+            note: entry.note,
+            accountId: entry.accountId,
+            partnerId: tx.partnerId,
+            status: tx.status
+          });
+        }
+      }
+      
+      // Filter by account types if specified
+      if (accountTypes && accountTypes.length > 0) {
+        return entries.filter(e => accountTypes.includes(e.accountId));
+      }
+      
+      return entries;
+    } catch (error) {
+      console.error('Error getting entries for report:', error);
+      throw error;
+    }
   }
 }
