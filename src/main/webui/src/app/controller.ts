@@ -42,6 +42,7 @@ export interface AccountTreeNode {
   name: string;
   type: string;
   note: string | null;
+  parentId: string | null;
   children: AccountTreeNode[];
 }
 
@@ -239,10 +240,10 @@ export class Controller {
   }
 
   async getAccountDetails(journalId: string, accountId: string): Promise<AccountTreeNode> {
-    const response = await this.http.get<AccountTreeNode>(
-      `/api/account/${journalId}/account/${accountId}`
-    ).toPromise();
-    return response!;
+    const response = await firstValueFrom(
+      this.http.get<AccountTreeNode>(`/api/account/${journalId}/account/${accountId}`)
+    );
+    return response;
   }
 
   async getAccountEntries(journalId: string, accountId: string, includeChildren: boolean = false): Promise<AccountEntryDTO[]> {

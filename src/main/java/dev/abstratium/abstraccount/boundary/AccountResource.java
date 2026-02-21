@@ -86,6 +86,7 @@ public class AccountResource {
             account.getName(),
             account.getType().name(),
             account.getNote(),
+            account.getParentAccountId(),
             children
         );
     }
@@ -114,6 +115,7 @@ public class AccountResource {
             account.getName(),
             account.getType().name(),
             account.getNote(),
+            account.getParentAccountId(),
             List.of() // No children needed for single account view
         );
     }

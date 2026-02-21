@@ -11,6 +11,7 @@ public record AccountTreeDTO(
     String name,
     String type,
     String note,
+    String parentId,
     List<AccountTreeDTO> children
 ) {
 }

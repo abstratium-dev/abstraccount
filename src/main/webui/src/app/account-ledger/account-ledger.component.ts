@@ -1,11 +1,12 @@
-import { Component, OnInit, inject, ViewChild, ElementRef, AfterViewInit, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { AfterViewInit, Component, effect, ElementRef, inject, OnInit, ViewChild } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute } from '@angular/router';
-import { Controller, AccountEntryDTO, AccountTreeNode } from '../controller';
-import { ModelService } from '../model.service';
+import { ActivatedRoute, Router } from '@angular/router';
 import { Chart, registerables } from 'chart.js';
 import 'chartjs-adapter-date-fns';
+import { AccountEntryDTO, AccountTreeNode, Controller } from '../controller';
+import { ModelService } from '../model.service';
 
 Chart.register(...registerables);
 
@@ -22,7 +23,8 @@ export class AccountLedgerComponent implements OnInit, AfterViewInit {
   private controller = inject(Controller);
   private modelService = inject(ModelService);
   private route = inject(ActivatedRoute);
-  
+  private router = inject(Router);
+
   accountId: string = '';
   account: AccountTreeNode | null = null;
   entries: AccountEntryDTO[] = [];
@@ -30,6 +32,7 @@ export class AccountLedgerComponent implements OnInit, AfterViewInit {
   error: string | null = null;
   chart: Chart | null = null;
   includeChildren = true; // Default to showing all children
+  accountNamesToRoot: string[] = [];
   
   get currentBalance(): number {
     // Current balance is the first entry (newest)
@@ -42,30 +45,89 @@ export class AccountLedgerComponent implements OnInit, AfterViewInit {
   }
 
   constructor() {
-    TODO is this working?
-    TODO we need this to work on the transactions page too;
+    // Subscribe to route parameter changes to handle navigation between different accounts
+    // Note: ActivatedRoute observables are automatically cleaned up by Angular, but we use
+    // takeUntilDestroyed() to make this explicit and follow best practices
+    this.route.paramMap.pipe(
+      takeUntilDestroyed()
+    ).subscribe(params => {
+      const newAccountId = params.get('accountId') || '';
+      if (newAccountId && newAccountId !== this.accountId) {
+        console.log('[AccountLedgerComponent]: Route param changed from', this.accountId, 'to', newAccountId);
+        this.accountId = newAccountId;
+        this.reload();
+      } else if (newAccountId && !this.accountId) {
+        // Initial load
+        console.log('[AccountLedgerComponent]: Initial load with accountId', newAccountId);
+        this.accountId = newAccountId;
+        this.reload();
+      }
+    });
+
+    // Watch for selected journal changes and reload account data so that we can determine
+    // if the account still exists in the new journal
     effect(() => {
-      const journalId = this.modelService.getSelectedJournalId();
-      if (journalId) {
-        this.loadAccountDetails();
-        this.loadEntries();
+      const journalId = this.modelService.selectedJournalId$();
+      if (journalId && this.accountId) {
+        const pathBefore = [...this.accountNamesToRoot];
+        console.log('[AccountLedgerComponent]: Journal changed, accountId', this.accountId, 'pathBefore', pathBefore.map(name => name.substring(0, name.length > 5 ? 5 : name.length) + (name.length > 5 ? '...' : '')));
+        this.reload().then(() => {
+          let account = this.modelService.findAccount(this.accountId);
+          if(!account) {
+            console.log('[AccountLedgerComponent]: Account not found by id, more than '
+              + 'likely that the journal changed and we now need to use the path of '
+              + 'names to find the equivalent account');
+            account = this.modelService.findAccountByFullPath(pathBefore);
+            if (account) {
+              console.log('[AccountLedgerComponent]: Account found by path; navigating since accountId has changed from ' + this.accountId + ' to ' + account.id);
+              this.router.navigate(['/account', account.id, 'ledger']);
+            } else {
+              console.log('[AccountLedgerComponent]: Account not found by path either, navigating to journal');
+              this.router.navigate(['/journal']);
+            }
+          } else {
+            console.info('[AccountLedgerComponent]: Account found by id');
+          }
+        });
       }
     });
   }
 
-  async ngOnInit() {
-    this.accountId = this.route.snapshot.paramMap.get('accountId') || '';
-    await this.loadAccountDetails();
-    await this.loadEntries();
+  ngOnInit() {
+  }
+
+  async reload() {
+    console.log('[AccountLedgerComponent]: Reloading account ' + this.accountId);
+    await Promise.all([
+      this.loadAccountDetails(),
+      this.loadEntries()
+    ]);
+    this.setFullPathToRoot();
+  }
+
+  private setFullPathToRoot() {
+    // calculate the full path from the given account up to the root
+    this.accountNamesToRoot = [];
+    let currentAccountId = this.accountId;
+    while (currentAccountId) {
+      const account = this.modelService.findAccount(currentAccountId);
+      if (account) {
+        this.accountNamesToRoot.unshift(account.name);
+        currentAccountId = account.parentId || '';
+      } else {
+        break;
+      }
+    }
   }
   
+
   async onIncludeChildrenChange() {
     // Reload entries when checkbox changes
     await this.loadEntries();
   }
 
   getAccountName(accountId: string): string {
-    const account = this.modelService.getAccount(accountId);
+    const account = this.modelService.findAccount(accountId);
     return account ? account.name : accountId;
   }
 

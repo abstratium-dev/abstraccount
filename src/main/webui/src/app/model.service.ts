@@ -58,8 +58,27 @@ export class ModelService {
     return this.accounts();
   }
 
+  findAccountByFullPath(fullPath : string[]): AccountTreeNode | null {
+    // search through the accounts to find the one that matches the given path
+    const accounts = this.accounts();
+    for (const account of accounts) {
+      if (account.name === fullPath[0]) {
+        // found the root account, now search through its children
+        let currentAccount: AccountTreeNode | null = account;
+        for (let i = 1; i < fullPath.length; i++) {
+          if (!currentAccount) {
+            return null;
+          }
+          currentAccount = currentAccount.children.find(child => child.name === fullPath[i]) || null;
+        }
+        return currentAccount;
+      }
+    }
+    return null;
+  }
+
   /** searches recursively in the trees for the first account it finds with the given id */
-  getAccount(accountId: string): AccountTreeNode | null {
+  findAccount(accountId: string): AccountTreeNode | null {
     function search(account: AccountTreeNode): AccountTreeNode | null {
       if (account.id === accountId) {
         return account;

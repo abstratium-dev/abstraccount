@@ -9,6 +9,8 @@ These TODOs are to be resolved by the developer, NOT THE LLM.
 
 ## Today
 
+- make backend calculate running total, so that other services could profit from that logic.
+  - remove that logic from the ui
 - accounts
   - add link to account, if it isn't the same number
   - show partner name after importing them
