@@ -162,7 +162,7 @@ describe('ReportsComponent', () => {
 
   it('should clear report when template is deselected', async () => {
     component.selectedTemplateId = null;
-    component.reportSections = [{ title: 'Test', level: 3, accounts: [], subtotal: 0, commodity: 'CHF', showDebitsCredits: false, showAccounts: true, groupByPartner: false }];
+    component.reportSections = [{ title: 'Test', level: 3, accounts: [], subtotal: 0, commodity: 'CHF', showDebitsCredits: false, showAccounts: true, groupByPartner: false, invertSign: false }];
 
     await component.onTemplateSelect();
     await fixture.whenStable();

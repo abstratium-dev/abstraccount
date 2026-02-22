@@ -94,4 +94,5 @@ export interface ReportSectionResult {
   showDebitsCredits: boolean;
   showAccounts: boolean;
   groupByPartner: boolean;
+  invertSign: boolean; // Whether to invert signs for display only
 }

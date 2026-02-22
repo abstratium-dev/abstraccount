@@ -143,31 +143,31 @@ describe('Balance Sheet Structure', () => {
 
     // Cash section
     const cashEntries = context.getEntriesByAccountType('CASH');
-    const cashAccounts = groupEntriesByAccount(cashEntries, mockAccounts, false);
+    const cashAccounts = groupEntriesByAccount(cashEntries, mockAccounts);
     const cashTotal = cashAccounts.reduce((sum, acc) => sum + acc.balance, 0);
     expect(cashTotal).toBe(6000); // 1000 + 5000
 
     // Other Assets section
     const assetEntries = context.getEntriesByAccountType('ASSET');
-    const assetAccounts = groupEntriesByAccount(assetEntries, mockAccounts, false);
+    const assetAccounts = groupEntriesByAccount(assetEntries, mockAccounts);
     const assetTotal = assetAccounts.reduce((sum, acc) => sum + acc.balance, 0);
     expect(assetTotal).toBe(5000); // 2000 + 3000
 
     // Total Assets (Cash + Assets)
     const allAssetEntries = context.getEntriesByAccountTypes(['CASH', 'ASSET']);
-    const allAssetAccounts = groupEntriesByAccount(allAssetEntries, mockAccounts, false);
+    const allAssetAccounts = groupEntriesByAccount(allAssetEntries, mockAccounts);
     const totalAssets = allAssetAccounts.reduce((sum, acc) => sum + acc.balance, 0);
     expect(totalAssets).toBe(11000); // 6000 + 5000
 
     // Liabilities
     const liabilityEntries = context.getEntriesByAccountType('LIABILITY');
-    const liabilityAccounts = groupEntriesByAccount(liabilityEntries, mockAccounts, false);
+    const liabilityAccounts = groupEntriesByAccount(liabilityEntries, mockAccounts);
     const liabilityTotal = liabilityAccounts.reduce((sum, acc) => sum + acc.balance, 0);
     expect(liabilityTotal).toBe(-1500);
 
     // Equity
     const equityEntries = context.getEntriesByAccountType('EQUITY');
-    const equityAccounts = groupEntriesByAccount(equityEntries, mockAccounts, false);
+    const equityAccounts = groupEntriesByAccount(equityEntries, mockAccounts);
     const equityTotal = equityAccounts.reduce((sum, acc) => sum + acc.balance, 0);
     expect(equityTotal).toBe(-8500);
 

@@ -18,6 +18,8 @@ export class ReportsComponent implements OnInit {
   private controller = inject(Controller);
   private modelService = inject(ModelService);
 
+  readonly netIncomeLabel = 'Net Income';
+
   templates: Signal<ReportTemplate[]> = this.modelService.reportTemplates$;
   selectedTemplateId: string | null = null;
   selectedTemplate: ReportTemplate | null = null;
@@ -36,7 +38,7 @@ export class ReportsComponent implements OnInit {
   endDate: string | null = null;
   
   // Display options
-  hideZeroBalances = false;
+  hideZeroBalances = true;
   
   // Expose Math to template
   Math = Math;
@@ -252,26 +254,7 @@ export class ReportsComponent implements OnInit {
       // Group by account
       accountSummaries = groupEntriesByAccount(
         sectionEntries,
-        accounts,
-        section.invertSign || false
-      );
-
-      // Filter out zero balances if requested
-      if (this.hideZeroBalances) {
-        accountSummaries = accountSummaries.filter(acc => acc.balance !== 0);
-      }
-
-      // Calculate subtotal
-      subtotal = accountSummaries.reduce((sum, acc) => sum + acc.balance, 0);
-    } else if (section.accountTypes && section.accountTypes.length > 0) {
-      // Filter entries by account types
-      const sectionEntries = context.getEntriesByAccountTypes(section.accountTypes);
-      
-      // Group by account
-      accountSummaries = groupEntriesByAccount(
-        sectionEntries,
-        accounts,
-        section.invertSign || false
+        accounts
       );
 
       // Filter out zero balances if requested
@@ -283,7 +266,47 @@ export class ReportsComponent implements OnInit {
       subtotal = accountSummaries.reduce((sum, acc) => sum + acc.balance, 0);
 
       // Add net income if requested
-      if (section.includeNetIncome) {
+      if (section.includeNetIncome && context.netIncome !== 0) {
+        // Add net income as a visible line item (using raw value)
+        accountSummaries.push({
+          accountId: 'net-income',
+          accountName: this.netIncomeLabel,
+          accountType: 'EQUITY',
+          balance: context.netIncome,  // Use raw value, invert at display time
+          debit: 0,
+          credit: 0
+        });
+        subtotal += context.netIncome;
+      }
+    } else if (section.accountTypes && section.accountTypes.length > 0) {
+      // Filter entries by account types
+      const sectionEntries = context.getEntriesByAccountTypes(section.accountTypes);
+      
+      // Group by account
+      accountSummaries = groupEntriesByAccount(
+        sectionEntries,
+        accounts
+      );
+
+      // Filter out zero balances if requested
+      if (this.hideZeroBalances) {
+        accountSummaries = accountSummaries.filter(acc => acc.balance !== 0);
+      }
+
+      // Calculate subtotal
+      subtotal = accountSummaries.reduce((sum, acc) => sum + acc.balance, 0);
+
+      // Add net income if requested
+      if (section.includeNetIncome && context.netIncome !== 0) {
+        // Add net income as a visible line item (using raw value)
+        accountSummaries.push({
+          accountId: 'net-income',
+          accountName: this.netIncomeLabel,
+          accountType: 'EQUITY',
+          balance: context.netIncome,  // Use raw value, invert at display time
+          debit: 0,
+          credit: 0
+        });
         subtotal += context.netIncome;
       }
     }
@@ -297,8 +320,16 @@ export class ReportsComponent implements OnInit {
       commodity,
       showDebitsCredits: section.showDebitsCredits || false,
       showAccounts: section.showAccounts !== false, // Default to true
-      groupByPartner: section.groupByPartner || false
+      groupByPartner: section.groupByPartner || false,
+      invertSign: section.invertSign || false  // Pass through for display-time inversion
     };
+  }
+
+  /**
+   * Apply sign inversion for display if needed
+   */
+  applyDisplaySign(value: number, invertSign: boolean): number {
+    return invertSign ? -value : value;
   }
 
   formatCurrency(value: number): string {
@@ -315,9 +346,9 @@ export class ReportsComponent implements OnInit {
 
   getNetIncomeLabel(value: number): string {
     if (value < 0) {
-      return 'Net Loss';
+      return this.netIncomeLabel;
     }
-    return 'Net Income';
+    return 'Net Loss';
   }
 
   getTotalIncome(partners: PartnerSummary[]): number {

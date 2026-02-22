@@ -72,13 +72,14 @@ export function createReportingContext(
   const totalLiabilities = getBalanceByAccountType('LIABILITY');
   const totalEquity = getBalanceByAccountType('EQUITY');
   
-  // Revenue and expenses are typically stored as negative for increases
-  // We need to invert them for reporting purposes
-  const totalRevenue = -getBalanceByAccountType('REVENUE');
+  // Revenue and expenses - use raw values
+  // Revenue is typically negative (credit balance), expenses are positive (debit balance)
+  const totalRevenue = getBalanceByAccountType('REVENUE');
   const totalExpenses = getBalanceByAccountType('EXPENSE');
   
-  // Net income = Revenue - Expenses
-  const netIncome = totalRevenue - totalExpenses;
+  // Net income = Revenue + Expenses (both in raw form)
+  // Since revenue is negative and expenses are positive, this gives us the correct net income
+  const netIncome = totalRevenue + totalExpenses;
   
   return {
     entries,
@@ -104,8 +105,7 @@ export function createReportingContext(
  */
 export function groupEntriesByAccount(
   entries: AccountEntryDTO[],
-  accounts: AccountTreeNode[],
-  invertSign: boolean = false
+  accounts: AccountTreeNode[]
 ): AccountSummary[] {
   // Build account lookup map
   const accountMap = new Map<string, AccountTreeNode>();
@@ -134,7 +134,7 @@ export function groupEntriesByAccount(
     let credit = 0;
     
     accountEntries.forEach(entry => {
-      const amount = invertSign ? -entry.amount : entry.amount;
+      const amount = entry.amount;
       balance += amount;
       if (amount > 0) {
         debit += amount;

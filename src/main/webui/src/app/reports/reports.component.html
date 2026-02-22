@@ -35,22 +35,25 @@
         (filterChange)="onFilterChange($event)">
       </filter-input>
 
-      <div class="form-group checkbox-group">
-        <label>
-          <input 
-            type="checkbox" 
-            [(ngModel)]="hideZeroBalances"
-            (change)="generateReport()">
-          Hide zero-balance accounts
-        </label>
-      </div>
-
       <button (click)="generateReport()" class="btn btn-primary">
         Generate Report
       </button>
     </div>
-  </div>
+    
+    <div class="form-group checkbox-group">
+      <label for="hide-zero-balances">
+        Hide zero-balance accounts
+      </label>
+      <input
+        id="hide-zero-balances"
+        type="checkbox" 
+        [(ngModel)]="hideZeroBalances"
+        (change)="generateReport()">
+    </div>
 
+</div>    
+
+  
   <!-- Template description -->
   <div *ngIf="selectedTemplate" class="template-description">
     <h2>{{ selectedTemplate.name }}</h2>
@@ -112,19 +115,19 @@
         <tbody>
           <tr *ngFor="let account of section.accounts">
             <td>{{ account.accountName }}</td>
-            <td class="amount-column">{{ formatCurrencyWithCommodity(account.balance, section.commodity) }}</td>
+            <td class="amount-column">{{ formatCurrencyWithCommodity(applyDisplaySign(account.balance, section.invertSign), section.commodity) }}</td>
             <td *ngIf="section.showDebitsCredits" class="amount-column">
-              {{ formatCurrencyWithCommodity(account.debit, section.commodity) }}
+              {{ formatCurrencyWithCommodity(applyDisplaySign(account.debit, section.invertSign), section.commodity) }}
             </td>
             <td *ngIf="section.showDebitsCredits" class="amount-column">
-              {{ formatCurrencyWithCommodity(account.credit, section.commodity) }}
+              {{ formatCurrencyWithCommodity(applyDisplaySign(account.credit, section.invertSign), section.commodity) }}
             </td>
           </tr>
         </tbody>
         <tfoot *ngIf="section.accounts.length > 0">
           <tr class="subtotal-row">
             <td><strong>{{ section.title }} Total</strong></td>
-            <td class="amount-column"><strong>{{ formatCurrencyWithCommodity(section.subtotal, section.commodity) }}</strong></td>
+            <td class="amount-column"><strong>{{ formatCurrencyWithCommodity(applyDisplaySign(section.subtotal, section.invertSign), section.commodity) }}</strong></td>
             <td *ngIf="section.showDebitsCredits"></td>
             <td *ngIf="section.showDebitsCredits"></td>
           </tr>
@@ -132,15 +135,15 @@
       </table>
 
       <!-- Subtotal only (no account details) -->
-      <div *ngIf="!section.showAccounts && section.subtotal !== 0" class="total-line">
+      <div *ngIf="!section.showAccounts && section.subtotal !== 0" [ngClass]="{'total-line': true, 'level-1': section.level === 1, 'level-2': section.level === 2, 'level-3': section.level === 3}">
         <span class="total-label"><strong>{{ section.title }}</strong></span>
-        <span class="total-amount"><strong>{{ formatCurrencyWithCommodity(section.subtotal, section.commodity) }}</strong></span>
+        <span class="total-amount"><strong>{{ formatCurrencyWithCommodity(applyDisplaySign(section.subtotal, section.invertSign), section.commodity) }}</strong></span>
       </div>
 
       <!-- Calculated value (e.g., net income) -->
-      <div *ngIf="section.showAccounts && section.accounts.length === 0 && section.subtotal !== 0" class="total-line">
-        <span class="total-label"><strong>{{ section.title.includes('Net Income') ? getNetIncomeLabel(section.subtotal) : section.title }}</strong></span>
-        <span class="total-amount"><strong>{{ formatCurrencyWithCommodity(Math.abs(section.subtotal), section.commodity) }}</strong></span>
+      <div *ngIf="section.showAccounts && section.accounts.length === 0 && section.subtotal !== 0" [ngClass]="{'total-line': true, 'level-1': section.level === 1, 'level-2': section.level === 2, 'level-3': section.level === 3}">
+        <span class="total-label"><strong>{{ section.title.includes(netIncomeLabel) ? getNetIncomeLabel(section.subtotal) : section.title }}</strong></span>
+        <span class="total-amount"><strong>{{ formatCurrencyWithCommodity(applyDisplaySign(section.subtotal, section.invertSign), section.commodity) }}</strong></span>
       </div>
     </div>
   </div>

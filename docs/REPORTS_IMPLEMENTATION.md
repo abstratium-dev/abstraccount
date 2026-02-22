@@ -30,14 +30,31 @@ Each section can control:
 - `showAccounts`: Whether to display individual account details (default: true)
 - `showSubtotals`: Whether to show subtotals
 - `showDebitsCredits`: Display debit/credit columns
-- `invertSign`: Invert account balances (useful for revenue accounts)
-- `includeNetIncome`: Add net income to the section total
+- `invertSign`: Invert account balances (useful for liability, equity, and revenue accounts)
+- `includeNetIncome`: Add net income to the section total (used in balance sheets to include current period profit/loss in equity)
+- `calculated`: Display a calculated value like `netIncome` (used in income statements to show the final net income line)
 
-### 4. Zero-Balance Filtering
+### 4. Net Income Display
+
+There are two ways to display Net Income depending on the report type:
+
+**Balance Sheets** - Use `includeNetIncome: true`:
+- Adds the current period's net income to equity account totals
+- Automatically hidden when net income is zero
+- Used in sections like "Equity" and "Total Liabilities and Equity"
+- Example: `{"title":"Equity","accountTypes":["EQUITY"],"includeNetIncome":true,"invertSign":true}`
+
+**Income Statements** - Use `calculated: "netIncome"`:
+- Displays net income as a separate calculated line
+- Automatically hidden when net income is zero
+- Shows the final result of Revenue - Expenses
+- Example: `{"title":"Net Income","calculated":"netIncome"}`
+
+### 5. Zero-Balance Filtering
 
 Users can toggle a checkbox to hide accounts with zero balances, making reports cleaner.
 
-### 5. Filter Integration
+### 6. Filter Integration
 
 Reports use the same `FilterInputComponent` as the journal page, supporting:
 - Date ranges: `begin:20240101 end:20241231`
@@ -93,7 +110,16 @@ The Swiss Balance Sheet follows the KMU-Kontenplan standard format:
       "title": "Equity",
       "level": 2,
       "accountTypes": ["EQUITY"],
+      "invertSign": true,
       "includeNetIncome": true
+    },
+    {
+      "title": "Total Equity",
+      "level": 2,
+      "accountTypes": ["EQUITY"],
+      "showAccounts": false,
+      "includeNetIncome": true,
+      "invertSign": true
     },
     {
       "title": "Total Liabilities and Equity",
@@ -109,7 +135,7 @@ The Swiss Balance Sheet follows the KMU-Kontenplan standard format:
 
 ### Standard Balance Sheet
 
-Shows assets, liabilities, and equity with Cash accounts separated:
+Shows assets, liabilities, and equity with Cash accounts separated. Net income is automatically included in equity sections when `includeNetIncome: true` is set, and only displays when non-zero:
 
 ```json
 {
@@ -127,19 +153,34 @@ Shows assets, liabilities, and equity with Cash accounts separated:
     {
       "title": "Total Assets",
       "accountTypes": ["CASH", "ASSET"],
-      "showSubtotals": true,
-      "calculated": "totalAssets"
+      "showAccounts": false
     },
     {
       "title": "Liabilities",
       "accountTypes": ["LIABILITY"],
-      "showSubtotals": true
+      "showSubtotals": true,
+      "invertSign": true
     },
     {
       "title": "Equity",
       "accountTypes": ["EQUITY"],
       "showSubtotals": true,
+      "invertSign": true,
       "includeNetIncome": true
+    },
+    {
+      "title": "Total Equity",
+      "accountTypes": ["EQUITY"],
+      "showAccounts": false,
+      "includeNetIncome": true,
+      "invertSign": true
+    },
+    {
+      "title": "Total Liabilities and Equity",
+      "accountTypes": ["LIABILITY", "EQUITY"],
+      "showAccounts": false,
+      "includeNetIncome": true,
+      "invertSign": true
     }
   ]
 }
@@ -147,7 +188,7 @@ Shows assets, liabilities, and equity with Cash accounts separated:
 
 ### Income Statement
 
-Shows revenue and expenses with net income calculation:
+Shows revenue and expenses with net income calculation. The Net Income section uses `calculated: "netIncome"` and automatically hides when the value is zero:
 
 ```json
 {

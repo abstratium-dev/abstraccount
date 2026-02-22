@@ -19,7 +19,6 @@ These TODOs are to be resolved by the developer, NOT THE LLM.
   - links to accounts aren't shown until the accounts are loaded
 - add a pivot table
 - reports
-  - make all numbers positive in balance sheet
   - partner report, showing in and out per partner
   - account numbers shown in reports should use the standard format of displaying the parent account words at the start, and they should all be navigable so that the user can jump to the account ledger.
   - balance sheets - both are showing wrong numbers coz of the net loss
@@ -31,7 +30,8 @@ These TODOs are to be resolved by the developer, NOT THE LLM.
   - swiss reports should include french and english, see specs in docs folder
   - trial balance still shows no revenue, even for 2026
   - "Hide zero-balance accounts" should default to true and the checkbox needs to be next to the text
-
+  - the id of the selected report should be in the url so it can be shared and bookmarked
+  - the reports page should listen to changes in the selected journal and if it changes, call "generate report"
 
 
 - Inputs based on macros

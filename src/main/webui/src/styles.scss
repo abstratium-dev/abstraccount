@@ -324,6 +324,24 @@ h2 {
   border-top: 1px solid var(--color-border-primary);
 }
 
+.checkbox-group {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.checkbox-group label {
+  display: inline;
+  margin-bottom: 0;
+  white-space: nowrap;
+}
+
+.checkbox-group input[type="checkbox"] {
+  width: auto;
+  margin: 0;
+  cursor: pointer;
+}
+
 .centered-form {
   display: flex;
   flex-direction: column;
@@ -1598,7 +1616,11 @@ button {
   margin-top: 10px;
   font-size: 16px;
   color: var(--color-text-primary);
-  border-left: 4px solid var(--color-primary);
+
+  // Only level-1 sections get the blue bar
+  &.level-1 {
+    border-left: 4px solid var(--color-primary);
+  }
 
   .total-label {
     flex: 1;

@@ -172,7 +172,7 @@ describe('ReportingContext', () => {
 
   describe('groupEntriesByAccount', () => {
     it('should group entries by account', () => {
-      const summaries = groupEntriesByAccount(mockEntries, mockAccounts, false);
+      const summaries = groupEntriesByAccount(mockEntries, mockAccounts);
 
       expect(summaries.length).toBe(4);
       
@@ -183,7 +183,7 @@ describe('ReportingContext', () => {
     });
 
     it('should calculate debit and credit correctly', () => {
-      const summaries = groupEntriesByAccount(mockEntries, mockAccounts, false);
+      const summaries = groupEntriesByAccount(mockEntries, mockAccounts);
 
       const cashSummary = summaries.find(s => s.accountId === 'asset1');
       expect(cashSummary!.debit).toBe(1000);
@@ -195,7 +195,7 @@ describe('ReportingContext', () => {
     });
 
     it('should invert sign when requested', () => {
-      const summaries = groupEntriesByAccount(mockEntries, mockAccounts, true);
+      const summaries = groupEntriesByAccount(mockEntries, mockAccounts);
 
       const revenueSummary = summaries.find(s => s.accountId === 'revenue1');
       expect(revenueSummary!.balance).toBe(500); // Inverted from -500
@@ -204,7 +204,7 @@ describe('ReportingContext', () => {
     });
 
     it('should sort summaries by account name', () => {
-      const summaries = groupEntriesByAccount(mockEntries, mockAccounts, false);
+      const summaries = groupEntriesByAccount(mockEntries, mockAccounts);
 
       expect(summaries[0].accountName).toBe('Accounts Payable');
       expect(summaries[1].accountName).toBe('Cash');
@@ -213,7 +213,7 @@ describe('ReportingContext', () => {
     });
 
     it('should handle empty entries', () => {
-      const summaries = groupEntriesByAccount([], mockAccounts, false);
+      const summaries = groupEntriesByAccount([], mockAccounts);
 
       expect(summaries.length).toBe(0);
     });
@@ -236,7 +236,7 @@ describe('ReportingContext', () => {
         }
       ];
 
-      const summaries = groupEntriesByAccount(multipleEntries, mockAccounts, false);
+      const summaries = groupEntriesByAccount(multipleEntries, mockAccounts);
 
       const cashSummary = summaries.find(s => s.accountId === 'asset1');
       expect(cashSummary!.balance).toBe(1500); // 1000 + 500
