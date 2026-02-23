@@ -12,6 +12,7 @@ public record TransactionDTO(
     String status,
     String description,
     String partnerId,
+    String partnerName,
     List<TagDTO> tags,
     List<EntryDTO> entries
 ) {}

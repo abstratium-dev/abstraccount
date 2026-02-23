@@ -74,7 +74,7 @@
             <tr>
               <td style="white-space: nowrap;">{{ entry.transactionDate }}</td>
               <td>{{ entry.description }}</td>
-              <td>{{ getPartnerName(entry.partnerId) }}</td>
+              <td>{{ getPartnerDisplay(entry.partnerId, entry.partnerName) }}</td>
               <td>{{ getAccountName(entry.accountId) }}</td>
               <td>{{ entry.note }}</td>
               <td>{{ entry.status }}</td>

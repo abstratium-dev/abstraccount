@@ -1,11 +1,10 @@
 -- Insert Swiss Balance Sheet Report Template
 
-INSERT INTO T_report_template (id, name, description, template_type, template_content, created_at, updated_at)
+INSERT INTO T_report_template (id, name, description, template_content, created_at, updated_at)
 VALUES (
     'swiss-balance-sheet-001',
     'Swiss Balance Sheet (Bilan)',
     'Swiss SME standard balance sheet format (KMU-Kontenplan)',
-    'SWISS_BALANCE_SHEET',
     CONCAT(
         '{"sections":[',
         '{"title":"Assets","level":1,"showAccounts":false},',

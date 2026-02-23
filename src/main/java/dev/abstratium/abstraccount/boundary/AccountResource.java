@@ -1,6 +1,7 @@
 package dev.abstratium.abstraccount.boundary;
 
 import dev.abstratium.abstraccount.Roles;
+import dev.abstratium.abstraccount.adapters.PartnerDataAdapter;
 import dev.abstratium.abstraccount.entity.AccountEntity;
 import dev.abstratium.abstraccount.entity.EntryEntity;
 import dev.abstratium.abstraccount.entity.TransactionEntity;
@@ -40,6 +41,9 @@ public class AccountResource {
     
     @Inject
     jakarta.persistence.EntityManager em;
+    
+    @Inject
+    PartnerDataAdapter partnerDataAdapter;
     
     /**
      * Gets the account tree for a given journal.
@@ -164,6 +168,13 @@ public class AccountResource {
         
         for (EntryEntity entry : entries) {
             TransactionEntity tx = entry.getTransaction();
+            String partnerId = tx.getPartnerId();
+            String partnerName = partnerId != null 
+                ? partnerDataAdapter.getPartner(partnerId)
+                    .map(p -> p.name())
+                    .orElse(null)
+                : null;
+            
             result.add(new AccountEntryDTO(
                 entry.getId(),
                 tx.getTransactionId(),
@@ -174,7 +185,8 @@ public class AccountResource {
                 runningBalance,
                 entry.getNote(),
                 entry.getAccountId(),
-                tx.getPartnerId(),
+                partnerId,
+                partnerName,
                 tx.getStatus()
             ));
         }

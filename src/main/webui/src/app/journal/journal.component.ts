@@ -128,4 +128,10 @@ export class JournalComponent implements OnInit {
     return accountName;
   }
 
+  getPartnerDisplay(partnerId: string | null, partnerName: string | null): string {
+    if (!partnerId) return '';
+    if (partnerName) return `${partnerId} - ${partnerName}`;
+    return partnerId;
+  }
+
 }

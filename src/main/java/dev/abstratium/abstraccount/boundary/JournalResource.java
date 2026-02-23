@@ -10,6 +10,7 @@ import java.util.stream.Collectors;
 import org.jboss.logging.Logger;
 
 import dev.abstratium.abstraccount.Roles;
+import dev.abstratium.abstraccount.adapters.PartnerDataAdapter;
 import dev.abstratium.abstraccount.entity.JournalEntity;
 import dev.abstratium.abstraccount.model.Journal;
 import dev.abstratium.abstraccount.service.JournalParser;
@@ -47,6 +48,9 @@ public class JournalResource {
     
     @Inject
     JournalPersistenceService journalPersistenceService;
+    
+    @Inject
+    PartnerDataAdapter partnerDataAdapter;
     
     /**
      * Gets transactions with their entries and tags.
@@ -192,12 +196,20 @@ public class JournalResource {
                 })
                 .collect(Collectors.toList());
             
+            String txPartnerId = txEntity.getPartnerId();
+            String txPartnerName = txPartnerId != null 
+                ? partnerDataAdapter.getPartner(txPartnerId)
+                    .map(p -> p.name())
+                    .orElse(null)
+                : null;
+            
             transactionDTOs.add(new TransactionDTO(
                 txEntity.getTransactionId(),
                 txEntity.getTransactionDate(),
                 txEntity.getStatus().name(),
                 txEntity.getDescription(),
-                txEntity.getPartnerId(),
+                txPartnerId,
+                txPartnerName,
                 tags,
                 entries
             ));

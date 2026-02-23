@@ -74,6 +74,7 @@ describe('JournalComponent', () => {
         status: 'CLEARED',
         description: 'Test transaction',
         partnerId: null,
+      partnerName: null,
         tags: [],
         entries: []
       }

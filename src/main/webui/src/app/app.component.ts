@@ -13,4 +13,12 @@ import { ConfirmDialogComponent } from './core/confirm-dialog/confirm-dialog.com
 })
 export class AppComponent {
   title = 'abstraccount';
+  copyrightYear: any;
+
+  constructor() {
+    this.copyrightYear = new Date().getFullYear();
+    if(this.copyrightYear > 2026) {
+      this.copyrightYear = '2026 - ' + this.copyrightYear;
+    }
+  }
 }

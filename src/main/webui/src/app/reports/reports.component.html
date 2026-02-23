@@ -73,16 +73,26 @@
       <table *ngIf="section.groupByPartner && section.partners && section.partners.length > 0" class="report-table">
         <thead>
           <tr>
-            <th>Partner</th>
-            <th class="amount-column">Income</th>
-            <th class="amount-column">Expenses</th>
-            <th class="amount-column">Net</th>
-            <th class="amount-column">Transactions</th>
+            <th [class.sortable]="section.sortable" (click)="section.sortable && onColumnSort(reportSections.indexOf(section), 'partnerName')">
+              Partner{{ getSortIndicator(section, 'partnerName') }}
+            </th>
+            <th class="amount-column" [class.sortable]="section.sortable" (click)="section.sortable && onColumnSort(reportSections.indexOf(section), 'income')">
+              Income{{ getSortIndicator(section, 'income') }}
+            </th>
+            <th class="amount-column" [class.sortable]="section.sortable" (click)="section.sortable && onColumnSort(reportSections.indexOf(section), 'expenses')">
+              Expenses{{ getSortIndicator(section, 'expenses') }}
+            </th>
+            <th class="amount-column" [class.sortable]="section.sortable" (click)="section.sortable && onColumnSort(reportSections.indexOf(section), 'net')">
+              Net{{ getSortIndicator(section, 'net') }}
+            </th>
+            <th class="amount-column" [class.sortable]="section.sortable" (click)="section.sortable && onColumnSort(reportSections.indexOf(section), 'transactionCount')">
+              Transactions{{ getSortIndicator(section, 'transactionCount') }}
+            </th>
           </tr>
         </thead>
         <tbody>
           <tr *ngFor="let partner of section.partners">
-            <td>{{ partner.partnerName }}</td>
+            <td>{{ partner.partnerId }} - {{ partner.partnerName }}</td>
             <td class="amount-column">{{ formatCurrencyWithCommodity(partner.income, section.commodity) }}</td>
             <td class="amount-column">{{ formatCurrencyWithCommodity(partner.expenses, section.commodity) }}</td>
             <td class="amount-column" [class.negative]="partner.net < 0">

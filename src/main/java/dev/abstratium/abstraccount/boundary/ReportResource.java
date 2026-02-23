@@ -46,7 +46,6 @@ public class ReportResource {
                 t.getId(),
                 t.getName(),
                 t.getDescription(),
-                t.getTemplateType(),
                 t.getTemplateContent()
             ))
             .collect(Collectors.toList());
@@ -72,7 +71,6 @@ public class ReportResource {
             template.getId(),
             template.getName(),
             template.getDescription(),
-            template.getTemplateType(),
             template.getTemplateContent()
         );
     }

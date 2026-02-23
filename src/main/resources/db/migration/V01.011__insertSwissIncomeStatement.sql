@@ -1,11 +1,10 @@
 -- Insert Swiss Income Statement Report Template
 
-INSERT INTO T_report_template (id, name, description, template_type, template_content, created_at, updated_at)
+INSERT INTO T_report_template (id, name, description, template_content, created_at, updated_at)
 VALUES (
     'swiss-income-statement-001',
     'Swiss Income Statement (Compte de résultat)',
     'Swiss SME standard income statement format (KMU-Kontenplan)',
-    'SWISS_INCOME_STATEMENT',
     CONCAT(
         '{"sections":[',
         '{"title":"Revenue","level":1,"showAccounts":false},',

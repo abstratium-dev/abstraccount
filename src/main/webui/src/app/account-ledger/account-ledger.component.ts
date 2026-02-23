@@ -131,9 +131,10 @@ export class AccountLedgerComponent implements OnInit, AfterViewInit {
     return account ? account.name : accountId;
   }
 
-  getPartnerName(partnerId: string | null): string {
-    // TODO resolve to name
-    return partnerId || '';
+  getPartnerDisplay(partnerId: string | null, partnerName: string | null): string {
+    if (!partnerId) return '';
+    if (partnerName) return `${partnerId} - ${partnerName}`;
+    return partnerId;
   }
   
   async loadAccountDetails() {

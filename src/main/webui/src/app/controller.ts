@@ -9,6 +9,7 @@ export interface TransactionDTO {
   status: string;
   description: string;
   partnerId: string | null;
+  partnerName: string | null;
   tags: TagDTO[];
   entries: EntryDTO[];
 }
@@ -57,6 +58,7 @@ export interface AccountEntryDTO {
   note: string | null;
   accountId: string;
   partnerId: string | null;
+  partnerName: string | null;
   status: string;
 }
 
@@ -73,7 +75,6 @@ export interface ReportTemplate {
   id: string;
   name: string;
   description: string | null;
-  templateType: string;
   templateContent: string;
 }
 
@@ -315,6 +316,7 @@ export class Controller {
             note: entry.note,
             accountId: entry.accountId,
             partnerId: tx.partnerId,
+            partnerName: tx.partnerName,
             status: tx.status
           });
         }

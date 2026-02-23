@@ -49,6 +49,7 @@ describe('ReportingContext', () => {
       note: null,
       accountId: 'asset1',
       partnerId: null,
+      partnerName: null,
       status: 'CLEARED'
     },
     {
@@ -62,6 +63,7 @@ describe('ReportingContext', () => {
       note: null,
       accountId: 'revenue1',
       partnerId: null,
+      partnerName: null,
       status: 'CLEARED'
     },
     {
@@ -75,6 +77,7 @@ describe('ReportingContext', () => {
       note: null,
       accountId: 'expense1',
       partnerId: null,
+      partnerName: null,
       status: 'CLEARED'
     },
     {
@@ -88,6 +91,7 @@ describe('ReportingContext', () => {
       note: null,
       accountId: 'liability1',
       partnerId: null,
+      partnerName: null,
       status: 'CLEARED'
     }
   ];
@@ -232,6 +236,7 @@ describe('ReportingContext', () => {
           note: null,
           accountId: 'asset1',
           partnerId: null,
+      partnerName: null,
           status: 'CLEARED'
         }
       ];

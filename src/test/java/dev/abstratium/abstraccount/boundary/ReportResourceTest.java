@@ -23,7 +23,6 @@ class ReportResourceTest {
             .body("$", hasSize(greaterThan(0)))
             .body("[0].id", notNullValue())
             .body("[0].name", notNullValue())
-            .body("[0].templateType", notNullValue())
             .body("[0].templateContent", notNullValue());
     }
     
@@ -37,7 +36,6 @@ class ReportResourceTest {
             .statusCode(200)
             .body("id", equalTo("balance-sheet-001"))
             .body("name", equalTo("Balance Sheet"))
-            .body("templateType", equalTo("BALANCE_SHEET"))
             .body("templateContent", notNullValue());
     }
     
@@ -51,7 +49,6 @@ class ReportResourceTest {
             .statusCode(200)
             .body("id", equalTo("income-statement-001"))
             .body("name", equalTo("Income Statement"))
-            .body("templateType", equalTo("INCOME_STATEMENT"))
             .body("templateContent", notNullValue());
     }
     
@@ -65,7 +62,6 @@ class ReportResourceTest {
             .statusCode(200)
             .body("id", equalTo("trial-balance-001"))
             .body("name", equalTo("Trial Balance"))
-            .body("templateType", equalTo("TRIAL_BALANCE"))
             .body("templateContent", notNullValue());
     }
     
@@ -76,5 +72,47 @@ class ReportResourceTest {
             .when().get("/api/report/templates")
             .then()
             .statusCode(anyOf(equalTo(400), equalTo(401)));
+    }
+    
+    @Test
+    @TestSecurity(user = "testUser", roles = {"abstratium-abstraccount_user"})
+    void testGetPartnerReportTemplate() {
+        given()
+            .contentType(ContentType.JSON)
+            .when().get("/api/report/templates/partner-report-001")
+            .then()
+            .statusCode(200)
+            .body("id", equalTo("partner-report-001"))
+            .body("name", equalTo("Partner Activity Report"))
+            .body("templateContent", notNullValue())
+            .body("templateContent", containsString("groupByPartner"))
+            .body("templateContent", containsString("sortable"))
+            .body("templateContent", containsString("defaultSortColumn"))
+            .body("templateContent", containsString("defaultSortDirection"));
+    }
+    
+    @Test
+    @TestSecurity(user = "testUser", roles = {"abstratium-abstraccount_user"})
+    void testPartnerReportHasCorrectSortConfiguration() {
+        String templateContent = given()
+            .contentType(ContentType.JSON)
+            .when().get("/api/report/templates/partner-report-001")
+            .then()
+            .statusCode(200)
+            .extract().path("templateContent");
+        
+        // Verify the template content contains the expected sorting configuration
+        org.junit.jupiter.api.Assertions.assertTrue(
+            templateContent.contains("\"sortable\":true"),
+            "Template should have sortable set to true"
+        );
+        org.junit.jupiter.api.Assertions.assertTrue(
+            templateContent.contains("\"defaultSortColumn\":\"net\""),
+            "Template should have defaultSortColumn set to 'net'"
+        );
+        org.junit.jupiter.api.Assertions.assertTrue(
+            templateContent.contains("\"defaultSortDirection\":\"desc\""),
+            "Template should have defaultSortDirection set to 'desc'"
+        );
     }
 }

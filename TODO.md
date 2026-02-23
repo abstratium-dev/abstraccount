@@ -19,14 +19,14 @@ These TODOs are to be resolved by the developer, NOT THE LLM.
   - links to accounts aren't shown until the accounts are loaded
 - add a pivot table
 - reports
-  - partner report, showing in and out per partner
-  - account numbers shown in reports should use the standard format of displaying the parent account words at the start, and they should all be navigable so that the user can jump to the account ledger.
-  - balance sheets - both are showing wrong numbers coz of the net loss
-  - balance sheets - at least the swiss one shows zero net income for 2024 and 2025 which are closed years, so it should be showing no value
-  - swiss income statement still not showing the individual accounts
+  - configure which reports are added to the "reports bar" at the top, without having to be chosen from the dropdown, but simply clicked on.
+  - they need to be printable
   - partner report
     - need to be able to hide if there is no activity (no in and no out) 
-  - filter still not working
+  - account numbers shown in reports should use the standard format of displaying the parent account words at the start, and they should all be navigable so that the user can jump to the account ledger.
+  - balance sheets - at least the swiss one shows zero net income for 2024 and 2025 which are closed years, so it should be showing no value
+  - swiss income statement still not showing the individual accounts
+  - filter still not working, eg. remove closing from 2025
   - swiss reports should include french and english, see specs in docs folder
   - trial balance still shows no revenue, even for 2026
   - "Hide zero-balance accounts" should default to true and the checkbox needs to be next to the text

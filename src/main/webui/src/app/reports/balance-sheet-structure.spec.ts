@@ -66,6 +66,7 @@ describe('Balance Sheet Structure', () => {
       note: null,
       accountId: 'cash1',
       partnerId: null,
+      partnerName: null,
       status: 'CLEARED'
     },
     {
@@ -79,6 +80,7 @@ describe('Balance Sheet Structure', () => {
       note: null,
       accountId: 'cash2',
       partnerId: null,
+      partnerName: null,
       status: 'CLEARED'
     },
     // Asset accounts
@@ -93,6 +95,7 @@ describe('Balance Sheet Structure', () => {
       note: null,
       accountId: 'asset1',
       partnerId: null,
+      partnerName: null,
       status: 'CLEARED'
     },
     {
@@ -106,6 +109,7 @@ describe('Balance Sheet Structure', () => {
       note: null,
       accountId: 'asset2',
       partnerId: null,
+      partnerName: null,
       status: 'CLEARED'
     },
     // Liability
@@ -120,6 +124,7 @@ describe('Balance Sheet Structure', () => {
       note: null,
       accountId: 'liability1',
       partnerId: null,
+      partnerName: null,
       status: 'CLEARED'
     },
     // Equity
@@ -134,6 +139,7 @@ describe('Balance Sheet Structure', () => {
       note: null,
       accountId: 'equity1',
       partnerId: null,
+      partnerName: null,
       status: 'CLEARED'
     }
   ];

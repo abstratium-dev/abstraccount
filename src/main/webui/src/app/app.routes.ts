@@ -8,6 +8,7 @@ import { AccountsComponent } from './accounts/accounts.component';
 import { AccountLedgerComponent } from './account-ledger/account-ledger.component';
 import { SettingsComponent } from './settings/settings.component';
 import { ReportsComponent } from './reports/reports.component';
+import { PartnersComponent } from './partners/partners.component';
 
 export const routes: Routes = [
   { path: '',                          component: JournalComponent, canActivate: [authGuard] },
@@ -18,5 +19,6 @@ export const routes: Routes = [
   { path: 'settings',                  component: SettingsComponent, canActivate: [authGuard] },
   { path: 'signed-out',                component: SignedOutComponent },
   { path: 'reports',                   component: ReportsComponent, canActivate: [authGuard] },
+  { path: 'partners',                  component: PartnersComponent, canActivate: [authGuard] },
   { path: '**',                        component: NotFoundComponent }
 ];

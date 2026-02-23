@@ -1,0 +1,41 @@
+<div class="container">
+  <h1>Partners</h1>
+
+  <div class="info-box">
+    <p>This is a read-only view of partners that are referenced by the currently loaded transactions.</p>
+  </div>
+
+  <div *ngIf="partners.length === 0" class="info-message">
+    No partners found in the current transactions.
+  </div>
+
+  <table *ngIf="partners.length > 0" class="standard-table">
+    <thead>
+      <tr>
+        <th 
+          class="sortable" 
+          (click)="onColumnSort('partnerId')">
+          Partner Number{{ getSortIndicator('partnerId') }}
+        </th>
+        <th 
+          class="sortable" 
+          (click)="onColumnSort('partnerName')">
+          Partner Name{{ getSortIndicator('partnerName') }}
+        </th>
+        <th 
+          class="sortable" 
+          (click)="onColumnSort('transactionCount')"
+          style="text-align: right;">
+          Transaction Count{{ getSortIndicator('transactionCount') }}
+        </th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let partner of partners">
+        <td>{{ partner.partnerId }}</td>
+        <td>{{ partner.partnerName }}</td>
+        <td style="text-align: right;">{{ partner.transactionCount }}</td>
+      </tr>
+    </tbody>
+  </table>
+</div>

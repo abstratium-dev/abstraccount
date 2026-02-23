@@ -18,6 +18,7 @@ public record AccountEntryDTO(
     String note,
     String accountId,
     String partnerId,
+    String partnerName,
     TransactionStatus status
 ) {
 }

@@ -18,14 +18,12 @@ describe('ReportsComponent', () => {
       id: 'balance-sheet-001',
       name: 'Balance Sheet',
       description: 'Standard balance sheet',
-      templateType: 'BALANCE_SHEET',
       templateContent: '{"sections":[{"title":"Assets","accountTypes":["ASSET"],"showSubtotals":true}]}'
     },
     {
       id: 'income-statement-001',
       name: 'Income Statement',
       description: 'Profit and loss statement',
-      templateType: 'INCOME_STATEMENT',
       templateContent: '{"sections":[{"title":"Revenue","accountTypes":["REVENUE"],"invertSign":true}]}'
     }
   ];
@@ -61,6 +59,7 @@ describe('ReportsComponent', () => {
       note: null,
       accountId: 'acc1',
       partnerId: null,
+      partnerName: null,
       status: 'CLEARED'
     }
   ];
@@ -139,7 +138,7 @@ describe('ReportsComponent', () => {
     await component.generateReport();
     await fixture.whenStable();
 
-    expect(controller.getEntriesForReport).toHaveBeenCalledWith('journal1');
+    expect(controller.getEntriesForReport).toHaveBeenCalledWith('journal1', undefined, undefined);
     expect(component.entries).toEqual(mockEntries);
     expect(component.reportSections.length).toBeGreaterThan(0);
   });
@@ -162,7 +161,7 @@ describe('ReportsComponent', () => {
 
   it('should clear report when template is deselected', async () => {
     component.selectedTemplateId = null;
-    component.reportSections = [{ title: 'Test', level: 3, accounts: [], subtotal: 0, commodity: 'CHF', showDebitsCredits: false, showAccounts: true, groupByPartner: false, invertSign: false }];
+    component.reportSections = [{ title: 'Test', level: 3, accounts: [], subtotal: 0, commodity: 'CHF', showDebitsCredits: false, showAccounts: true, groupByPartner: false, invertSign: false, sortable: false, sortColumn: null, sortDirection: 'asc' }];
 
     await component.onTemplateSelect();
     await fixture.whenStable();
@@ -198,6 +197,7 @@ describe('ReportsComponent', () => {
         note: null,
         accountId: 'acc1',
         partnerId: null,
+      partnerName: null,
         status: 'CLEARED'
       },
       {
@@ -211,6 +211,7 @@ describe('ReportsComponent', () => {
         note: null,
         accountId: 'acc1',
         partnerId: null,
+      partnerName: null,
         status: 'CLEARED'
       }
     ];
@@ -238,7 +239,6 @@ describe('ReportsComponent', () => {
       id: 'test-001',
       name: 'Test Report',
       description: 'Test',
-      templateType: 'TEST',
       templateContent: '{"sections":[{"title":"Net Income","calculated":"netIncome"}]}'
     };
     
@@ -268,6 +268,7 @@ describe('ReportsComponent', () => {
         note: null,
         accountId: 'acc2',
         partnerId: null,
+      partnerName: null,
         status: 'CLEARED'
       }
     ];
@@ -358,5 +359,375 @@ describe('ReportsComponent', () => {
 
     expect(controller.getTags).toHaveBeenCalledWith('journal1');
     expect(component.tags).toEqual(mockTags);
+  });
+
+  it('should handle partner report with sorting configuration', async () => {
+    const partnerTemplate: ReportTemplate = {
+      id: 'partner-report-001',
+      name: 'Partner Activity Report',
+      description: 'Income and expenses grouped by partner',
+      templateContent: '{"sections":[{"title":"Partner Activity","groupByPartner":true,"sortable":true,"defaultSortColumn":"net","defaultSortDirection":"desc"}]}'
+    };
+
+    const partnerEntries: AccountEntryDTO[] = [
+      {
+        entryId: 'e1',
+        transactionId: 't1',
+        transactionDate: '2024-01-01',
+        description: 'Revenue',
+        commodity: 'CHF',
+        amount: -500,
+        runningBalance: -500,
+        note: null,
+        accountId: 'acc2',
+        partnerId: 'partner1',
+      partnerName: null,
+        status: 'CLEARED'
+      },
+      {
+        entryId: 'e2',
+        transactionId: 't2',
+        transactionDate: '2024-01-02',
+        description: 'Expense',
+        commodity: 'CHF',
+        amount: 200,
+        runningBalance: 200,
+        note: null,
+        accountId: 'acc3',
+        partnerId: 'partner1',
+      partnerName: null,
+        status: 'CLEARED'
+      }
+    ];
+
+    const accountsWithExpense: AccountTreeNode[] = [
+      ...mockAccounts,
+      {
+        id: 'acc3',
+        name: 'Expenses',
+        type: 'EXPENSE',
+        note: null,
+        parentId: null,
+        children: []
+      }
+    ];
+
+    component.selectedTemplate = partnerTemplate;
+    controller.getEntriesForReport.and.returnValue(Promise.resolve(partnerEntries));
+    controller.getAccountTree.and.returnValue(Promise.resolve(accountsWithExpense));
+    controller.getTags.and.returnValue(Promise.resolve([]));
+    modelService.getSelectedJournalId.and.returnValue('journal1');
+
+    await component.generateReport();
+    await fixture.whenStable();
+
+    expect(component.reportSections.length).toBe(1);
+    const section = component.reportSections[0];
+    expect(section.groupByPartner).toBe(true);
+    expect(section.sortable).toBe(true);
+    expect(section.sortColumn).toBe('net');
+    expect(section.sortDirection).toBe('desc');
+    expect(section.partners).toBeDefined();
+    expect(section.partners!.length).toBeGreaterThan(0);
+  });
+
+  it('should sort partners by column when onColumnSort is called', async () => {
+    const partnerTemplate: ReportTemplate = {
+      id: 'partner-report-001',
+      name: 'Partner Activity Report',
+      description: 'Income and expenses grouped by partner',
+      templateContent: '{"sections":[{"title":"Partner Activity","groupByPartner":true,"sortable":true,"defaultSortColumn":"net","defaultSortDirection":"desc"}]}'
+    };
+
+    const partnerEntries: AccountEntryDTO[] = [
+      {
+        entryId: 'e1',
+        transactionId: 't1',
+        transactionDate: '2024-01-01',
+        description: 'Revenue',
+        commodity: 'CHF',
+        amount: -500,
+        runningBalance: -500,
+        note: null,
+        accountId: 'acc2',
+        partnerId: 'partnerA',
+      partnerName: null,
+        status: 'CLEARED'
+      },
+      {
+        entryId: 'e2',
+        transactionId: 't2',
+        transactionDate: '2024-01-02',
+        description: 'Revenue',
+        commodity: 'CHF',
+        amount: -300,
+        runningBalance: -300,
+        note: null,
+        accountId: 'acc2',
+        partnerId: 'partnerB',
+      partnerName: null,
+        status: 'CLEARED'
+      }
+    ];
+
+    component.selectedTemplate = partnerTemplate;
+    controller.getEntriesForReport.and.returnValue(Promise.resolve(partnerEntries));
+    controller.getAccountTree.and.returnValue(Promise.resolve(mockAccounts));
+    controller.getTags.and.returnValue(Promise.resolve([]));
+    modelService.getSelectedJournalId.and.returnValue('journal1');
+
+    await component.generateReport();
+    await fixture.whenStable();
+
+    const section = component.reportSections[0];
+    expect(section.partners).toBeDefined();
+    expect(section.partners!.length).toBe(2);
+    
+    // Initially sorted by net descending (500 > 300)
+    expect(section.partners![0].net).toBe(500);
+    expect(section.partners![1].net).toBe(300);
+
+    // Click to sort by partnerName
+    component.onColumnSort(0, 'partnerName');
+    expect(section.sortColumn).toBe('partnerName');
+    expect(section.sortDirection).toBe('asc');
+    expect(section.partners![0].partnerId).toBe('partnerA');
+    expect(section.partners![1].partnerId).toBe('partnerB');
+
+    // Click again to reverse sort
+    component.onColumnSort(0, 'partnerName');
+    expect(section.sortDirection).toBe('desc');
+    expect(section.partners![0].partnerId).toBe('partnerB');
+    expect(section.partners![1].partnerId).toBe('partnerA');
+  });
+
+  it('should return correct sort indicator', () => {
+    const section: any = {
+      sortable: true,
+      sortColumn: 'net',
+      sortDirection: 'desc'
+    };
+
+    expect(component.getSortIndicator(section, 'net')).toBe(' ▼');
+    expect(component.getSortIndicator(section, 'income')).toBe('');
+
+    section.sortDirection = 'asc';
+    expect(component.getSortIndicator(section, 'net')).toBe(' ▲');
+  });
+
+  it('should not sort when section is not sortable', () => {
+    const section: any = {
+      sortable: false,
+      sortColumn: null,
+      sortDirection: 'asc',
+      partners: [
+        { partnerId: 'p1', partnerName: 'Partner 1', income: 100, expenses: 50, net: 50, transactionCount: 1 },
+        { partnerId: 'p2', partnerName: 'Partner 2', income: 200, expenses: 100, net: 100, transactionCount: 2 }
+      ]
+    };
+    component.reportSections = [section];
+
+    const originalOrder = [...section.partners];
+    component.onColumnSort(0, 'net');
+
+    expect(section.partners).toEqual(originalOrder);
+    expect(section.sortColumn).toBeNull();
+  });
+
+  it('should filter out partners with zero activity when hideZeroBalances is true', async () => {
+    const partnerTemplate: ReportTemplate = {
+      id: 'partner-report-001',
+      name: 'Partner Activity Report',
+      description: 'Income and expenses grouped by partner',
+      templateContent: '{"sections":[{"title":"Partner Activity","groupByPartner":true,"sortable":true,"defaultSortColumn":"net","defaultSortDirection":"desc"}]}'
+    };
+
+    const partnerEntries: AccountEntryDTO[] = [
+      {
+        entryId: 'e1',
+        transactionId: 't1',
+        transactionDate: '2024-01-01',
+        description: 'Revenue',
+        commodity: 'CHF',
+        amount: -500,
+        runningBalance: -500,
+        note: null,
+        accountId: 'acc2',
+        partnerId: 'partnerA',
+      partnerName: null,
+        status: 'CLEARED'
+      },
+      {
+        entryId: 'e2',
+        transactionId: 't2',
+        transactionDate: '2024-01-02',
+        description: 'Expense',
+        commodity: 'CHF',
+        amount: 500,
+        runningBalance: 0,
+        note: null,
+        accountId: 'acc3',
+        partnerId: 'partnerA',
+      partnerName: null,
+        status: 'CLEARED'
+      },
+      {
+        entryId: 'e3',
+        transactionId: 't3',
+        transactionDate: '2024-01-03',
+        description: 'Revenue',
+        commodity: 'CHF',
+        amount: -300,
+        runningBalance: -300,
+        note: null,
+        accountId: 'acc2',
+        partnerId: 'partnerB',
+      partnerName: null,
+        status: 'CLEARED'
+      }
+    ];
+
+    const accountsWithExpense: AccountTreeNode[] = [
+      ...mockAccounts,
+      {
+        id: 'acc3',
+        name: 'Expenses',
+        type: 'EXPENSE',
+        note: null,
+        parentId: null,
+        children: []
+      }
+    ];
+
+    component.selectedTemplate = partnerTemplate;
+    component.hideZeroBalances = true;
+    controller.getEntriesForReport.and.returnValue(Promise.resolve(partnerEntries));
+    controller.getAccountTree.and.returnValue(Promise.resolve(accountsWithExpense));
+    controller.getTags.and.returnValue(Promise.resolve([]));
+    modelService.getSelectedJournalId.and.returnValue('journal1');
+
+    await component.generateReport();
+    await fixture.whenStable();
+
+    const section = component.reportSections[0];
+    expect(section.partners).toBeDefined();
+    // partnerA has income=500, expenses=500, net=0 (has activity, should be included)
+    // partnerB has income=300, expenses=0, net=300 (has activity, should be included)
+    // Both partners have activity, so both should be shown
+    expect(section.partners!.length).toBe(2);
+  });
+
+  it('should filter out partners with all zeros when hideZeroBalances is true', async () => {
+    const partnerTemplate: ReportTemplate = {
+      id: 'partner-report-001',
+      name: 'Partner Activity Report',
+      description: 'Income and expenses grouped by partner',
+      templateContent: '{"sections":[{"title":"Partner Activity","groupByPartner":true,"sortable":true,"defaultSortColumn":"net","defaultSortDirection":"desc"}]}'
+    };
+
+    // Create entries where partnerC will have no entries (all zeros)
+    // We need to manually create a scenario where a partner exists but has no activity
+    // This is simulated by having entries but they cancel out to zero
+    const partnerEntries: AccountEntryDTO[] = [
+      {
+        entryId: 'e1',
+        transactionId: 't1',
+        transactionDate: '2024-01-01',
+        description: 'Revenue',
+        commodity: 'CHF',
+        amount: -300,
+        runningBalance: -300,
+        note: null,
+        accountId: 'acc2',
+        partnerId: 'partnerB',
+      partnerName: null,
+        status: 'CLEARED'
+      }
+    ];
+
+    component.selectedTemplate = partnerTemplate;
+    component.hideZeroBalances = true;
+    controller.getEntriesForReport.and.returnValue(Promise.resolve(partnerEntries));
+    controller.getAccountTree.and.returnValue(Promise.resolve(mockAccounts));
+    controller.getTags.and.returnValue(Promise.resolve([]));
+    modelService.getSelectedJournalId.and.returnValue('journal1');
+
+    await component.generateReport();
+    await fixture.whenStable();
+
+    const section = component.reportSections[0];
+    expect(section.partners).toBeDefined();
+    // Only partnerB with activity should be shown
+    expect(section.partners!.length).toBe(1);
+    expect(section.partners![0].partnerId).toBe('partnerB');
+  });
+
+  it('should include partners with zero activity when hideZeroBalances is false', async () => {
+    const partnerTemplate: ReportTemplate = {
+      id: 'partner-report-001',
+      name: 'Partner Activity Report',
+      description: 'Income and expenses grouped by partner',
+      templateContent: '{"sections":[{"title":"Partner Activity","groupByPartner":true,"sortable":true,"defaultSortColumn":"net","defaultSortDirection":"desc"}]}'
+    };
+
+    const partnerEntries: AccountEntryDTO[] = [
+      {
+        entryId: 'e1',
+        transactionId: 't1',
+        transactionDate: '2024-01-01',
+        description: 'Revenue',
+        commodity: 'CHF',
+        amount: -500,
+        runningBalance: -500,
+        note: null,
+        accountId: 'acc2',
+        partnerId: 'partnerA',
+      partnerName: null,
+        status: 'CLEARED'
+      },
+      {
+        entryId: 'e2',
+        transactionId: 't2',
+        transactionDate: '2024-01-02',
+        description: 'Expense',
+        commodity: 'CHF',
+        amount: 500,
+        runningBalance: 0,
+        note: null,
+        accountId: 'acc3',
+        partnerId: 'partnerA',
+      partnerName: null,
+        status: 'CLEARED'
+      }
+    ];
+
+    const accountsWithExpense: AccountTreeNode[] = [
+      ...mockAccounts,
+      {
+        id: 'acc3',
+        name: 'Expenses',
+        type: 'EXPENSE',
+        note: null,
+        parentId: null,
+        children: []
+      }
+    ];
+
+    component.selectedTemplate = partnerTemplate;
+    component.hideZeroBalances = false;
+    controller.getEntriesForReport.and.returnValue(Promise.resolve(partnerEntries));
+    controller.getAccountTree.and.returnValue(Promise.resolve(accountsWithExpense));
+    controller.getTags.and.returnValue(Promise.resolve([]));
+    modelService.getSelectedJournalId.and.returnValue('journal1');
+
+    await component.generateReport();
+    await fixture.whenStable();
+
+    const section = component.reportSections[0];
+    expect(section.partners).toBeDefined();
+    // partnerA has income=500, expenses=500, net=0 (should be included when hideZeroBalances is false)
+    expect(section.partners!.length).toBe(1);
+    expect(section.partners![0].partnerId).toBe('partnerA');
+    expect(section.partners![0].net).toBe(0);
   });
 });

@@ -22,9 +22,6 @@ public class ReportTemplateEntity {
     @Column(columnDefinition = "TEXT")
     private String description;
     
-    @Column(name = "template_type", nullable = false, length = 50)
-    private String templateType;
-    
     @Column(name = "template_content", nullable = false, columnDefinition = "TEXT")
     private String templateContent;
     
@@ -67,14 +64,6 @@ public class ReportTemplateEntity {
     
     public void setDescription(String description) {
         this.description = description;
-    }
-    
-    public String getTemplateType() {
-        return templateType;
-    }
-    
-    public void setTemplateType(String templateType) {
-        this.templateType = templateType;
     }
     
     public String getTemplateContent() {

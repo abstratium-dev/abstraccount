@@ -1641,3 +1641,14 @@ button {
   border-radius: 8px;
   margin-top: 20px;
 }
+
+.footer {
+  font-size: small;
+  font-style: italic;
+  color: var(--color-text-secondary);
+  text-align: center;
+
+  & a {
+    color: var(--color-text-secondary);
+  }
+}

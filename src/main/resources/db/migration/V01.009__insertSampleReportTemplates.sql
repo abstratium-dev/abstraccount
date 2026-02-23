@@ -1,12 +1,11 @@
 -- Insert sample report templates
 
 -- Balance Sheet Report
-INSERT INTO T_report_template (id, name, description, template_type, template_content, created_at, updated_at)
+INSERT INTO T_report_template (id, name, description, template_content, created_at, updated_at)
 VALUES (
     'balance-sheet-001',
     'Balance Sheet',
     'Standard balance sheet showing assets, liabilities, and equity',
-    'BALANCE_SHEET',
     CONCAT(
         '{"sections":[',
           '{ "title":"Assets",',
@@ -53,12 +52,11 @@ VALUES (
 );
 
 -- Income Statement Report
-INSERT INTO T_report_template (id, name, description, template_type, template_content, created_at, updated_at)
+INSERT INTO T_report_template (id, name, description, template_content, created_at, updated_at)
 VALUES (
     'income-statement-001',
     'Income Statement',
     'Profit and loss statement showing revenue and expenses',
-    'INCOME_STATEMENT',
     CONCAT(
         '{"sections":[',
           '{ "title":"Revenue",',
@@ -77,12 +75,11 @@ VALUES (
 );
 
 -- Trial Balance Report
-INSERT INTO T_report_template (id, name, description, template_type, template_content, created_at, updated_at)
+INSERT INTO T_report_template (id, name, description, template_content, created_at, updated_at)
 VALUES (
     'trial-balance-001',
     'Trial Balance',
     'Trial balance showing all accounts with debits and credits',
-    'TRIAL_BALANCE',
     CONCAT(
         '{"sections":[',
           '{ "title":"Cash",',

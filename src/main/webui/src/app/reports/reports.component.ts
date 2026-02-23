@@ -169,7 +169,7 @@ export class ReportsComponent implements OnInit {
     }
   }
 
-  private groupEntriesByPartner(entries: AccountEntryDTO[], accounts: AccountTreeNode[]): PartnerSummary[] {
+  private groupEntriesByPartner(entries: AccountEntryDTO[], accounts: AccountTreeNode[], sortColumn?: string, sortDirection?: 'asc' | 'desc'): PartnerSummary[] {
     // Filter out entries without partners
     const entriesWithPartners = entries.filter(e => e.partnerId);
     
@@ -206,9 +206,13 @@ export class ReportsComponent implements OnInit {
     // Convert to array and calculate net
     const result: PartnerSummary[] = [];
     for (const [partnerId, data] of partnerMap.entries()) {
+      // Find an entry with this partnerId to get the partnerName
+      const entryWithPartner = entriesWithPartners.find(e => e.partnerId === partnerId);
+      const partnerName = entryWithPartner?.partnerName || partnerId;
+      
       result.push({
         partnerId,
-        partnerName: partnerId, // Will be replaced with actual name if available
+        partnerName,
         income: data.income,
         expenses: data.expenses,
         net: data.income - data.expenses,
@@ -216,8 +220,8 @@ export class ReportsComponent implements OnInit {
       });
     }
     
-    // Sort by partner name
-    result.sort((a, b) => a.partnerName.localeCompare(b.partnerName));
+    // Apply sorting
+    this.sortPartners(result, sortColumn || 'partnerName', sortDirection || 'asc');
     
     return result;
   }
@@ -238,8 +242,16 @@ export class ReportsComponent implements OnInit {
     }
 
     if (section.groupByPartner) {
-      // Group entries by partner
-      partnerSummaries = this.groupEntriesByPartner(this.entries, accounts);
+      // Group entries by partner with default sorting
+      const sortColumn = section.defaultSortColumn || 'partnerName';
+      const sortDirection = section.defaultSortDirection || 'asc';
+      partnerSummaries = this.groupEntriesByPartner(this.entries, accounts, sortColumn, sortDirection);
+      
+      // Filter out partners with zero activity if requested
+      if (this.hideZeroBalances) {
+        partnerSummaries = partnerSummaries.filter(p => !(p.income === 0 && p.expenses === 0 && p.net === 0));
+      }
+      
       subtotal = partnerSummaries.reduce((sum, p) => sum + p.net, 0);
     } else if (section.calculated === 'netIncome') {
       // Special case for net income
@@ -321,7 +333,10 @@ export class ReportsComponent implements OnInit {
       showDebitsCredits: section.showDebitsCredits || false,
       showAccounts: section.showAccounts !== false, // Default to true
       groupByPartner: section.groupByPartner || false,
-      invertSign: section.invertSign || false  // Pass through for display-time inversion
+      invertSign: section.invertSign || false,  // Pass through for display-time inversion
+      sortable: section.sortable || false,
+      sortColumn: section.defaultSortColumn || null,
+      sortDirection: section.defaultSortDirection || 'asc'
     };
   }
 
@@ -361,5 +376,82 @@ export class ReportsComponent implements OnInit {
 
   getTotalTransactions(partners: PartnerSummary[]): number {
     return partners.reduce((sum, p) => sum + p.transactionCount, 0);
+  }
+
+  /**
+   * Sort partners by the specified column
+   */
+  private sortPartners(partners: PartnerSummary[], column: string, direction: 'asc' | 'desc') {
+    partners.sort((a, b) => {
+      let aVal: any;
+      let bVal: any;
+
+      switch (column) {
+        case 'partnerName':
+          aVal = a.partnerName;
+          bVal = b.partnerName;
+          break;
+        case 'income':
+          aVal = a.income;
+          bVal = b.income;
+          break;
+        case 'expenses':
+          aVal = a.expenses;
+          bVal = b.expenses;
+          break;
+        case 'net':
+          aVal = a.net;
+          bVal = b.net;
+          break;
+        case 'transactionCount':
+          aVal = a.transactionCount;
+          bVal = b.transactionCount;
+          break;
+        default:
+          aVal = a.partnerName;
+          bVal = b.partnerName;
+      }
+
+      if (typeof aVal === 'string' && typeof bVal === 'string') {
+        const comparison = aVal.localeCompare(bVal);
+        return direction === 'asc' ? comparison : -comparison;
+      } else {
+        const comparison = aVal - bVal;
+        return direction === 'asc' ? comparison : -comparison;
+      }
+    });
+  }
+
+  /**
+   * Handle column header click for sorting
+   */
+  onColumnSort(sectionIndex: number, column: string) {
+    const section = this.reportSections[sectionIndex];
+    if (!section.sortable) {
+      return;
+    }
+
+    // Toggle sort direction if clicking the same column
+    if (section.sortColumn === column) {
+      section.sortDirection = section.sortDirection === 'asc' ? 'desc' : 'asc';
+    } else {
+      section.sortColumn = column;
+      section.sortDirection = 'asc';
+    }
+
+    // Re-sort the data
+    if (section.partners) {
+      this.sortPartners(section.partners, section.sortColumn, section.sortDirection);
+    }
+  }
+
+  /**
+   * Get sort indicator for column header
+   */
+  getSortIndicator(section: ReportSectionResult, column: string): string {
+    if (!section.sortable || section.sortColumn !== column) {
+      return '';
+    }
+    return section.sortDirection === 'asc' ? ' ▲' : ' ▼';
   }
 }

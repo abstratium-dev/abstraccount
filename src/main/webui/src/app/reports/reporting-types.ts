@@ -7,7 +7,6 @@ export interface ReportTemplate {
   id: string;
   name: string;
   description: string | null;
-  templateType: string;
   templateContent: string;
 }
 
@@ -30,6 +29,9 @@ export interface ReportSection {
   includeNetIncome?: boolean;
   calculated?: string; // Special calculated values like 'netIncome', 'totalAssets'
   groupByPartner?: boolean; // Group entries by partner instead of account
+  sortable?: boolean; // Whether columns can be sorted by clicking headers
+  defaultSortColumn?: string; // Default column to sort by (e.g., 'net', 'income', 'partnerName')
+  defaultSortDirection?: 'asc' | 'desc'; // Default sort direction
 }
 
 /**
@@ -95,4 +97,7 @@ export interface ReportSectionResult {
   showAccounts: boolean;
   groupByPartner: boolean;
   invertSign: boolean; // Whether to invert signs for display only
+  sortable: boolean; // Whether columns can be sorted
+  sortColumn: string | null; // Current sort column
+  sortDirection: 'asc' | 'desc'; // Current sort direction
 }
