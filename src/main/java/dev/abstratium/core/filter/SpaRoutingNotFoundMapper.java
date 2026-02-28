@@ -74,11 +74,18 @@ public class SpaRoutingNotFoundMapper implements ExceptionMapper<NotFoundExcepti
 
     /**
      * Check if the path is an API endpoint that should return RFC-7807 Problem JSON.
+     * 
+     * Checks for both formats (with and without leading slash) because different
+     * JAX-RS implementations may return paths in different formats from UriInfo.getPath().
      */
     private boolean isApiPath(String path) {
-        return path.startsWith("api/") 
-            || path.startsWith("oauth/") 
+        return path.startsWith("/api/") 
+            || path.startsWith("api/")
+            || path.startsWith("/oauth/") 
+            || path.startsWith("oauth/")
+            || path.startsWith("/public/")
             || path.startsWith("public/")
+            || path.startsWith("/q/")
             || path.startsWith("q/");
     }
 }

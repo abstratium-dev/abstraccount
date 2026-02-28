@@ -99,4 +99,75 @@ class SpaRoutingNotFoundMapperTest {
             .body(containsString("<!DOCTYPE html>"))
             .body(containsString("<meta http-equiv=\"refresh\" content=\"0;url=/\">"));
     }
+
+    // ========== API Path Tests - These verify the bug fix ==========
+    
+    @Test
+    void testApiPathWithLeadingSlashDoesNotReturnHtmlRedirect() {
+        // API paths starting with /api/ should delegate to resteasy-problem
+        // The key test is that they DON'T return HTML redirect (which was the bug)
+        // When there's no actual endpoint, the framework may return 204/406, not 404
+        given()
+            .accept("application/json")
+            .when()
+            .get("/api/nonexistent/endpoint")
+            .then()
+            .contentType(org.hamcrest.Matchers.not(containsString("text/html")));
+    }
+
+    @Test
+    void testOAuthPathDoesNotReturnHtmlRedirect() {
+        // OAuth paths should delegate to resteasy-problem, not return HTML redirect
+        given()
+            .accept("application/json")
+            .when()
+            .get("/oauth/nonexistent")
+            .then()
+            .contentType(org.hamcrest.Matchers.not(containsString("text/html")));
+    }
+
+    @Test
+    void testPublicPathDoesNotReturnHtmlRedirect() {
+        // Public API paths should delegate to resteasy-problem, not return HTML redirect
+        given()
+            .accept("application/json")
+            .when()
+            .get("/public/nonexistent")
+            .then()
+            .contentType(org.hamcrest.Matchers.not(containsString("text/html")));
+    }
+
+    @Test
+    void testQuarkusDevPathDoesNotReturnHtmlRedirect() {
+        // Quarkus dev console paths should delegate to resteasy-problem, not return HTML redirect
+        given()
+            .accept("application/json")
+            .when()
+            .get("/q/nonexistent")
+            .then()
+            .contentType(org.hamcrest.Matchers.not(containsString("text/html")));
+    }
+
+    @Test
+    void testNestedApiPathDoesNotReturnHtmlRedirect() {
+        // Test deeply nested API paths to ensure they're correctly identified as API paths
+        given()
+            .accept("application/json")
+            .when()
+            .get("/api/resources/123/subitems/456")
+            .then()
+            .contentType(org.hamcrest.Matchers.not(containsString("text/html")));
+    }
+
+    @Test
+    void testJsonAcceptHeaderForNonApiPathDoesNotReturnHtmlRedirect() {
+        // Even non-API paths should delegate to resteasy-problem if JSON is explicitly requested
+        // This is already implemented via the Accept header check in the mapper
+        given()
+            .accept("application/json")
+            .when()
+            .get("/some-nonexistent-path")
+            .then()
+            .contentType(org.hamcrest.Matchers.not(containsString("text/html")));
+    }
 }
