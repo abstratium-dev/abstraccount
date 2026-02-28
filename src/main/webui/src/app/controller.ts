@@ -78,6 +78,33 @@ export interface ReportTemplate {
   templateContent: string;
 }
 
+export interface MacroParameterDTO {
+  name: string;
+  type: string;
+  prompt: string | null;
+  defaultValue: string | null;
+  required: boolean;
+  filter: string | null;
+}
+
+export interface MacroValidationDTO {
+  balanceCheck: boolean;
+  minPostings: number | null;
+}
+
+export interface MacroDTO {
+  id: string;
+  journalId: string;
+  name: string;
+  description: string | null;
+  parameters: MacroParameterDTO[];
+  template: string;
+  validation: MacroValidationDTO | null;
+  notes: string | null;
+  createdDate: string;
+  modifiedDate: string;
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -330,6 +357,72 @@ export class Controller {
       return entries;
     } catch (error) {
       console.error('Error getting entries for report:', error);
+      throw error;
+    }
+  }
+
+  // Macro methods
+  async listMacros(journalId: string): Promise<MacroDTO[]> {
+    try {
+      const macros = await firstValueFrom(
+        this.http.get<MacroDTO[]>(`/api/macro/${journalId}`)
+      );
+      this.modelService.setMacros(macros);
+      return macros;
+    } catch (error) {
+      console.error('Error listing macros:', error);
+      throw error;
+    }
+  }
+
+  async getMacro(journalId: string, macroId: string): Promise<MacroDTO> {
+    try {
+      return await firstValueFrom(
+        this.http.get<MacroDTO>(`/api/macro/${journalId}/macro/${macroId}`)
+      );
+    } catch (error) {
+      console.error('Error getting macro:', error);
+      throw error;
+    }
+  }
+
+  async createMacro(journalId: string, macro: Partial<MacroDTO>): Promise<MacroDTO> {
+    try {
+      const created = await firstValueFrom(
+        this.http.post<MacroDTO>(`/api/macro/${journalId}`, macro)
+      );
+      // Refresh macro list
+      await this.listMacros(journalId);
+      return created;
+    } catch (error) {
+      console.error('Error creating macro:', error);
+      throw error;
+    }
+  }
+
+  async updateMacro(journalId: string, macroId: string, macro: Partial<MacroDTO>): Promise<MacroDTO> {
+    try {
+      const updated = await firstValueFrom(
+        this.http.put<MacroDTO>(`/api/macro/${journalId}/macro/${macroId}`, macro)
+      );
+      // Refresh macro list
+      await this.listMacros(journalId);
+      return updated;
+    } catch (error) {
+      console.error('Error updating macro:', error);
+      throw error;
+    }
+  }
+
+  async deleteMacro(journalId: string, macroId: string): Promise<void> {
+    try {
+      await firstValueFrom(
+        this.http.delete<void>(`/api/macro/${journalId}/macro/${macroId}`)
+      );
+      // Refresh macro list
+      await this.listMacros(journalId);
+    } catch (error) {
+      console.error('Error deleting macro:', error);
       throw error;
     }
   }

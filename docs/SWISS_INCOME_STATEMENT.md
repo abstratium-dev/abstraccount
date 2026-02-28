@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document compares the Swiss SME standard income statement format (from KMU-Kontenplan-Französisch.pdf) with the hledger implementation in this codebase.
+This document compares the Swiss SME standard income statement format (from KMU-Kontenplan-Französisch.pdf) with the implementation in this codebase.
 
 ---
 

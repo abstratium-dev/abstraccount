@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document compares the Swiss SME standard balance sheet format (Bilan) with the hledger balance sheet implementation in this codebase.
+This document compares the Swiss SME standard balance sheet format (Bilan) with the balance sheet implementation in this codebase.
 
 ---
 

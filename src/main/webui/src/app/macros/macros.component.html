@@ -1,0 +1,97 @@
+<div class="macros-container">
+  <h1>Transaction Macros</h1>
+  
+  @if (errorMessage && !showExecuteDialog) {
+    <div class="error-message">{{ errorMessage }}</div>
+  }
+
+  @if (!selectedJournalId()) {
+    <div class="info-message">
+      Please select a journal to view macros.
+    </div>
+  } @else if (macros().length === 0) {
+    <div class="info-message">
+      No macros available for this journal.
+    </div>
+  } @else {
+    <div class="macros-grid">
+      @for (macro of macros(); track macro.id) {
+        <div class="macro-card" (click)="selectMacro(macro)">
+          <h3>{{ macro.name }}</h3>
+          @if (macro.description) {
+            <p class="macro-description">{{ macro.description }}</p>
+          }
+          @if (macro.notes) {
+            <p class="macro-notes">{{ macro.notes }}</p>
+          }
+          <div class="macro-params">
+            <strong>Parameters:</strong> {{ macro.parameters.length }}
+          </div>
+        </div>
+      }
+    </div>
+  }
+
+  <!-- Execute Macro Dialog -->
+  @if (showExecuteDialog && selectedMacro) {
+    <div class="modal-overlay" (click)="closeDialog()">
+      <div class="modal-content" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <h2>{{ selectedMacro.name }}</h2>
+          <button class="close-btn" (click)="closeDialog()">✕</button>
+        </div>
+
+        <div class="modal-body">
+          @if (selectedMacro.description) {
+            <p class="description">{{ selectedMacro.description }}</p>
+          }
+
+          @if (errorMessage) {
+            <div class="error-message">{{ errorMessage }}</div>
+          }
+
+          <div class="parameters-section">
+            <h3>Parameters</h3>
+            @for (param of selectedMacro.parameters; track param.name) {
+              <div class="parameter-field">
+                <label [for]="'param-' + param.name">
+                  {{ param.prompt || param.name }}
+                  @if (param.required) {
+                    <span class="required">*</span>
+                  }
+                </label>
+                <input
+                  [id]="'param-' + param.name"
+                  [type]="getParameterInputType(param)"
+                  [value]="getParameterValue(param.name)"
+                  (input)="setParameterValue(param.name, $any($event.target).value)"
+                  [required]="param.required"
+                  class="parameter-input"
+                />
+              </div>
+            }
+          </div>
+
+          <div class="actions">
+            <button class="btn btn-primary" (click)="generateTransaction()">
+              Generate Transaction
+            </button>
+          </div>
+
+          @if (generatedTransaction) {
+            <div class="generated-section">
+              <h3>Generated Transaction</h3>
+              <pre class="transaction-preview">{{ generatedTransaction }}</pre>
+              <button class="btn btn-secondary" (click)="copyToClipboard()">
+                📋 Copy to Clipboard
+              </button>
+              <div class="info-message">
+                Copy this transaction and paste it into your journal file.
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+  }
+</div>

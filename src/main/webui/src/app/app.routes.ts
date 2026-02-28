@@ -9,6 +9,7 @@ import { AccountLedgerComponent } from './account-ledger/account-ledger.componen
 import { SettingsComponent } from './settings/settings.component';
 import { ReportsComponent } from './reports/reports.component';
 import { PartnersComponent } from './partners/partners.component';
+import { MacrosComponent } from './macros/macros.component';
 
 export const routes: Routes = [
   { path: '',                          component: JournalComponent, canActivate: [authGuard] },
@@ -20,5 +21,6 @@ export const routes: Routes = [
   { path: 'signed-out',                component: SignedOutComponent },
   { path: 'reports',                   component: ReportsComponent, canActivate: [authGuard] },
   { path: 'partners',                  component: PartnersComponent, canActivate: [authGuard] },
+  { path: 'macros',                    component: MacrosComponent, canActivate: [authGuard] },
   { path: '**',                        component: NotFoundComponent }
 ];

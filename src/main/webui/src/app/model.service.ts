@@ -1,5 +1,5 @@
 import { Injectable, signal, Signal } from '@angular/core';
-import { JournalMetadataDTO, TransactionDTO, AccountTreeNode, ReportTemplate } from './controller';
+import { JournalMetadataDTO, TransactionDTO, AccountTreeNode, ReportTemplate, MacroDTO } from './controller';
 
 export interface Config {
   logLevel: string;
@@ -15,6 +15,7 @@ export class ModelService {
   private selectedJournalId = signal<string | null>(localStorage.getItem("journalId") || null);
   private accounts = signal<AccountTreeNode[]>([]);
   private reportTemplates = signal<ReportTemplate[]>([]);
+  private macros = signal<MacroDTO[]>([]);
 
   config$: Signal<Config | null> = this.config.asReadonly();
   journals$: Signal<JournalMetadataDTO[]> = this.journals.asReadonly();
@@ -22,6 +23,7 @@ export class ModelService {
   selectedJournalId$: Signal<string | null> = this.selectedJournalId.asReadonly();
   accounts$: Signal<AccountTreeNode[]> = this.accounts.asReadonly();
   reportTemplates$: Signal<ReportTemplate[]> = this.reportTemplates.asReadonly();
+  macros$: Signal<MacroDTO[]> = this.macros.asReadonly();
 
   setConfig(config: Config) {
     this.config.set(config);
@@ -110,5 +112,9 @@ export class ModelService {
 
   setReportTemplates(templates: ReportTemplate[]): void {
     this.reportTemplates.set(templates);
+  }
+
+  setMacros(macros: MacroDTO[]): void {
+    this.macros.set(macros);
   }
 }
