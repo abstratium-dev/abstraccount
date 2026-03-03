@@ -7,6 +7,7 @@ import java.util.UUID;
 /**
  * JPA entity for Macro.
  * Macros are transaction templates that can be executed through the UI.
+ * Macros are independent of journals and can be used across all journals.
  */
 @Entity
 @Table(name = "T_macro")
@@ -15,9 +16,6 @@ public class MacroEntity {
     @Id
     @Column(length = 36)
     private String id;
-    
-    @Column(name = "journal_id", nullable = false, length = 36)
-    private String journalId;
     
     @Column(nullable = false, length = 100)
     private String name;
@@ -56,14 +54,6 @@ public class MacroEntity {
     
     public void setId(String id) {
         this.id = id;
-    }
-    
-    public String getJournalId() {
-        return journalId;
-    }
-    
-    public void setJournalId(String journalId) {
-        this.journalId = journalId;
     }
     
     public String getName() {

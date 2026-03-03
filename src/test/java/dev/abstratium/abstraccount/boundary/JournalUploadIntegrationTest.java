@@ -82,7 +82,7 @@ class JournalUploadIntegrationTest {
         // Verify root account: 2 Equity
         AccountEntity equity = findAccountByNumber(accounts, "2");
         assertNotNull(equity, "Root equity account should exist");
-        assertEquals("2", equity.getId());
+        assertNotNull(equity.getId(), "Account should have UUID");
         assertEquals(AccountType.EQUITY, equity.getType());
         assertEquals("Shareholders equity", equity.getNote());
         assertNull(equity.getParentAccountId(), "Root account should have no parent");
@@ -90,7 +90,7 @@ class JournalUploadIntegrationTest {
         // Verify level 1: 2 Equity:20 Reserves
         AccountEntity reserves = findAccountByNumber(accounts, "20");
         assertNotNull(reserves, "Reserves account should exist");
-        assertEquals("20", reserves.getId());
+        assertNotNull(reserves.getId(), "Account should have UUID");
         assertEquals(AccountType.EQUITY, reserves.getType());
         assertEquals("Reserves and retained earnings", reserves.getNote());
         assertEquals(equity.getId(), reserves.getParentAccountId(), "Reserves parent should be equity");
@@ -98,7 +98,7 @@ class JournalUploadIntegrationTest {
         // Verify level 2: 2 Equity:20 Reserves:200 Legal Reserves
         AccountEntity legalReserves = findAccountByNumber(accounts, "200");
         assertNotNull(legalReserves, "Legal Reserves account should exist");
-        assertEquals("200", legalReserves.getId());
+        assertNotNull(legalReserves.getId(), "Account should have UUID");
         assertEquals(AccountType.EQUITY, legalReserves.getType());
         assertEquals("Legal reserves from profit", legalReserves.getNote());
         assertEquals(reserves.getId(), legalReserves.getParentAccountId(), "Legal Reserves parent should be reserves");
@@ -106,7 +106,7 @@ class JournalUploadIntegrationTest {
         // Verify level 1: 2 Equity:28 Share Capital
         AccountEntity shareCapital = findAccountByNumber(accounts, "28");
         assertNotNull(shareCapital, "Share Capital account should exist");
-        assertEquals("28", shareCapital.getId());
+        assertNotNull(shareCapital.getId(), "Account should have UUID");
         assertEquals(AccountType.EQUITY, shareCapital.getType());
         assertEquals("Basic shareholder capital", shareCapital.getNote());
         assertEquals(equity.getId(), shareCapital.getParentAccountId(), "Share Capital parent should be equity");
@@ -114,7 +114,7 @@ class JournalUploadIntegrationTest {
         // Verify level 2: 2 Equity:28 Share Capital:280 Foundation Capital
         AccountEntity foundationCapital = findAccountByNumber(accounts, "280");
         assertNotNull(foundationCapital, "Foundation Capital account should exist");
-        assertEquals("280", foundationCapital.getId());
+        assertNotNull(foundationCapital.getId(), "Account should have UUID");
         assertEquals(AccountType.EQUITY, foundationCapital.getType());
         assertEquals("Foundation capital", foundationCapital.getNote());
         assertEquals(shareCapital.getId(), foundationCapital.getParentAccountId(), "Foundation Capital parent should be share capital");
@@ -122,7 +122,7 @@ class JournalUploadIntegrationTest {
         // Verify level 3: 2 Equity:28 Share Capital:280 Foundation Capital:2800 Basic Capital
         AccountEntity basicCapital = findAccountByNumber(accounts, "2800");
         assertNotNull(basicCapital, "Basic Capital account should exist");
-        assertEquals("2800", basicCapital.getId());
+        assertNotNull(basicCapital.getId(), "Account should have UUID");
         assertEquals(AccountType.EQUITY, basicCapital.getType());
         assertEquals("Basic shareholder or foundation capital", basicCapital.getNote());
         assertEquals(foundationCapital.getId(), basicCapital.getParentAccountId(), "Basic Capital parent should be foundation capital");
@@ -180,7 +180,14 @@ class JournalUploadIntegrationTest {
     
     private AccountEntity findAccountByNumber(List<AccountEntity> accounts, String accountNumber) {
         return accounts.stream()
-            .filter(a -> accountNumber.equals(a.getId()))
+            .filter(a -> {
+                String name = a.getName();
+                if (name == null) return false;
+                // Extract first word from account name (e.g., "2" from "2 Equity")
+                int spaceIndex = name.indexOf(' ');
+                String firstWord = spaceIndex > 0 ? name.substring(0, spaceIndex) : name;
+                return accountNumber.equals(firstWord);
+            })
             .findFirst()
             .orElse(null);
     }

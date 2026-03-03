@@ -5,13 +5,9 @@
     <div class="error-message">{{ errorMessage }}</div>
   }
 
-  @if (!selectedJournalId()) {
+  @if (macros().length === 0) {
     <div class="info-message">
-      Please select a journal to view macros.
-    </div>
-  } @else if (macros().length === 0) {
-    <div class="info-message">
-      No macros available for this journal.
+      No macros available.
     </div>
   } @else {
     <div class="macros-grid">
@@ -60,36 +56,33 @@
                     <span class="required">*</span>
                   }
                 </label>
-                <input
-                  [id]="'param-' + param.name"
-                  [type]="getParameterInputType(param)"
-                  [value]="getParameterValue(param.name)"
-                  (input)="setParameterValue(param.name, $any($event.target).value)"
-                  [required]="param.required"
-                  class="parameter-input"
-                />
+                @if (usesAutocomplete(param)) {
+                  <abs-autocomplete
+                    [placeholder]="param.prompt || param.name"
+                    [required]="param.required"
+                    [fetchOptions]="getAutocompleteFetch(param)!"
+                    [ngModel]="getParameterValue(param.name)"
+                    (ngModelChange)="setParameterValue(param.name, $event)"
+                  />
+                } @else {
+                  <input
+                    [id]="'param-' + param.name"
+                    [type]="getParameterInputType(param)"
+                    [value]="getParameterValue(param.name)"
+                    (input)="setParameterValue(param.name, $any($event.target).value)"
+                    [required]="param.required"
+                    class="parameter-input"
+                  />
+                }
               </div>
             }
           </div>
 
           <div class="actions">
             <button class="btn btn-primary" (click)="generateTransaction()">
-              Generate Transaction
+              Execute Macro
             </button>
           </div>
-
-          @if (generatedTransaction) {
-            <div class="generated-section">
-              <h3>Generated Transaction</h3>
-              <pre class="transaction-preview">{{ generatedTransaction }}</pre>
-              <button class="btn btn-secondary" (click)="copyToClipboard()">
-                📋 Copy to Clipboard
-              </button>
-              <div class="info-message">
-                Copy this transaction and paste it into your journal file.
-              </div>
-            </div>
-          }
         </div>
       </div>
     </div>

@@ -4,10 +4,10 @@ import java.util.List;
 
 /**
  * DTO for Macro.
+ * Macros are independent of journals and can be used across all journals.
  */
 public record MacroDTO(
     String id,
-    String journalId,
     String name,
     String description,
     List<MacroParameterDTO> parameters,

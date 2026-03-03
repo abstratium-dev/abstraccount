@@ -20,7 +20,7 @@ Make sure that all tests contain assertions and not just for rudimentary things.
 
 It is EXTREMELY IMPORTANT that this project be tested using unit and integration tests.
 
-Coverage can be measured using `mvn verify`. The backend coverage results in xml files from the folder `target/jacoco-report`. Front end coverage results are part of the output which is written when mvn executes the Angular tests as part of `mvn verify`.
+Coverage can be measured using `mvn verify`. The backend coverage results in xml files from the folder `target/jacoco-report` (use grep to access the report if you cannot access the file because it is ignored by git). Front end coverage results are part of the output which is written when mvn executes the Angular tests as part of `mvn verify`.
 
 Tests annotated with `@QuarkusTest` are the primary kind of test for the backend.
 You can also write plain unit tests, in order to test edge cases.

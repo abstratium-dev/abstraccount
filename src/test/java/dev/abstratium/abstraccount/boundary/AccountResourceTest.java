@@ -135,23 +135,14 @@ class AccountResourceTest {
     }
     
     @Test
-    @Transactional
     @TestSecurity(user = "testuser", roles = {Roles.USER})
     void testGetAccountTree_withDuplicateAccountNumbers() {
         // Test that accounts with same number but different UUIDs work correctly
         // Example: "1 Assets:2 Equity" and "2 Liabilities:20 Current liabilities"
         // Both have "2" but are different accounts
         
-        // Create "2 Equity" under Assets
-        String equityId = UUID.randomUUID().toString();
-        AccountEntity equity = new AccountEntity();
-        equity.setId(equityId);
-        equity.setName("2 Equity"); // Name includes number
-        equity.setType(AccountType.EQUITY);
-        equity.setParentAccountId(assetsId);
-        equity.setJournalId(testJournalId);
-        em.persist(equity);
-        em.flush();
+        // Create "2 Equity" under Assets in a separate transaction
+        String equityId = createEquityAccount();
         
         // Verify tree structure - just check counts since order isn't guaranteed
         given()
@@ -162,7 +153,21 @@ class AccountResourceTest {
             .statusCode(200)
             .body("$", hasSize(2)) // Still 2 root accounts
             .body("name", hasItems("1 Assets", "2 Liabilities"))
-            .body("[0].children.size() + [1].children.size()", equalTo(4)); // Total 4 children across both roots
+            .body("[0].children", hasSize(3)) // Assets has 3 children (Current, Fixed, Equity)
+            .body("[1].children", hasSize(1)); // Liabilities has 1 child (Current)
+    }
+    
+    @Transactional
+    String createEquityAccount() {
+        String equityId = UUID.randomUUID().toString();
+        AccountEntity equity = new AccountEntity();
+        equity.setId(equityId);
+        equity.setName("2 Equity"); // Name includes number
+        equity.setType(AccountType.EQUITY);
+        equity.setParentAccountId(assetsId);
+        equity.setJournalId(testJournalId);
+        em.persist(equity);
+        return equityId;
     }
     
     @Test

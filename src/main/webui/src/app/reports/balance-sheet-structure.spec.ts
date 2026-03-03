@@ -50,6 +50,14 @@ describe('Balance Sheet Structure', () => {
       note: null,
       parentId: null,
       children: []
+    },
+    {
+      id: 'revenue1',
+      name: '3:30:300:3000 Sales Revenue',
+      type: 'REVENUE',
+      note: null,
+      parentId: null,
+      children: []
     }
   ];
 
@@ -138,6 +146,21 @@ describe('Balance Sheet Structure', () => {
       runningBalance: -8500,
       note: null,
       accountId: 'equity1',
+      partnerId: null,
+      partnerName: null,
+      status: 'CLEARED'
+    },
+    // Revenue to balance the sheet
+    {
+      entryId: 'e7',
+      transactionId: 't7',
+      transactionDate: '2024-01-07',
+      description: 'Revenue entry',
+      commodity: 'CHF',
+      amount: -1000,
+      runningBalance: -1000,
+      note: null,
+      accountId: 'revenue1',
       partnerId: null,
       partnerName: null,
       status: 'CLEARED'

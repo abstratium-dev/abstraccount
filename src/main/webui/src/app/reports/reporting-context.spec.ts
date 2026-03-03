@@ -103,9 +103,9 @@ describe('ReportingContext', () => {
       expect(context.entries).toEqual(mockEntries);
       expect(context.totalAssets).toBe(1000);
       expect(context.totalLiabilities).toBe(-200);
-      expect(context.totalRevenue).toBe(500); // Inverted from -500
+      expect(context.totalRevenue).toBe(-500); // Raw value (negative for credit)
       expect(context.totalExpenses).toBe(100);
-      expect(context.netIncome).toBe(400); // Revenue (500) - Expenses (100)
+      expect(context.netIncome).toBe(-400); // Revenue (-500) + Expenses (100)
     });
 
     it('should filter entries by account type', () => {
@@ -199,7 +199,7 @@ describe('ReportingContext', () => {
     });
 
     it('should invert sign when requested', () => {
-      const summaries = groupEntriesByAccount(mockEntries, mockAccounts);
+      const summaries = groupEntriesByAccount(mockEntries, mockAccounts, true);
 
       const revenueSummary = summaries.find(s => s.accountId === 'revenue1');
       expect(revenueSummary!.balance).toBe(500); // Inverted from -500

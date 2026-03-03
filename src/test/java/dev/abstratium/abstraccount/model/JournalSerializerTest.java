@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -55,8 +56,8 @@ class JournalSerializerTest {
     
     @Test
     void testSerializeAccount() {
-        Account rootAccount = Account.root("1", "Assets", AccountType.ASSET, "All assets");
-        Account childAccount = Account.child("10", "Current Assets", AccountType.ASSET, "Short-term", rootAccount);
+        Account rootAccount = Account.root(UUID.randomUUID().toString(), "1 Assets", AccountType.ASSET, "All assets");
+        Account childAccount = Account.child(UUID.randomUUID().toString(), "10 Current Assets", AccountType.ASSET, "Short-term", rootAccount);
         
         Journal journal = new Journal(
             null, null, null, "CHF",
@@ -104,8 +105,8 @@ class JournalSerializerTest {
     
     @Test
     void testSerializeSimpleTransaction() {
-        Account assets = Account.root("1", "Assets", AccountType.ASSET, null);
-        Account equity = Account.root("2", "Equity", AccountType.EQUITY, null);
+        Account assets = Account.root(UUID.randomUUID().toString(), "1 Assets", AccountType.ASSET, null);
+        Account equity = Account.root(UUID.randomUUID().toString(), "2 Equity", AccountType.EQUITY, null);
         
         Entry entry1 = Entry.simple(assets, Amount.of("CHF", "1000.00"));
         Entry entry2 = Entry.simple(equity, Amount.of("CHF", "-1000.00"));

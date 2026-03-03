@@ -266,7 +266,8 @@ export class ReportsComponent implements OnInit {
       // Group by account
       accountSummaries = groupEntriesByAccount(
         sectionEntries,
-        accounts
+        accounts,
+        section.invertSign || false
       );
 
       // Filter out zero balances if requested
@@ -297,7 +298,8 @@ export class ReportsComponent implements OnInit {
       // Group by account
       accountSummaries = groupEntriesByAccount(
         sectionEntries,
-        accounts
+        accounts,
+        section.invertSign || false
       );
 
       // Filter out zero balances if requested

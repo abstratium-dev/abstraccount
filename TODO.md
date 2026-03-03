@@ -33,6 +33,8 @@ These TODOs are to be resolved by the developer, NOT THE LLM.
 
 - add a skill to abstracore so that the llm can read the database (show tables, desc table, select * from table with limit)
 
+- create a function that uses simple select of entries, joined to parents, in order to extract raw data that is aggregated in the UI, to validate that reports are correct.
+
 - filters
   - date from, inclusive
   - date to, exclusive

@@ -158,41 +158,41 @@ class JournalAccountHierarchyTest {
         AccountEntity assets = findAccountByNumber(savedAccounts, "1");
         assertNotNull(assets, "Assets account should exist");
         assertNull(assets.getParentAccountId(), "Assets should have no parent");
-        assertEquals("1", assets.getId());
+        assertNotNull(assets.getId(), "Account should have UUID");
         
         // Level 1: 1 Actifs / Assets:10 Actif circulants / Current Assets
         AccountEntity currentAssets = findAccountByNumber(savedAccounts, "10");
         assertNotNull(currentAssets, "Current Assets account should exist");
         assertEquals(assets.getId(), currentAssets.getParentAccountId(), "Current Assets parent should be assets");
-        assertEquals("10", currentAssets.getId());
+        assertNotNull(currentAssets.getId(), "Account should have UUID");
         
         // Level 2: 1 Actifs / Assets:10 Actif circulants / Current Assets:100 Liquidites / Cash and Cash Equivalents
         AccountEntity cash = findAccountByNumber(savedAccounts, "100");
         assertNotNull(cash, "Cash account should exist");
         assertEquals(currentAssets.getId(), cash.getParentAccountId(), "Cash parent should be current assets");
-        assertEquals("100", cash.getId());
+        assertNotNull(cash.getId(), "Account should have UUID");
         
         // Level 3: 1 Actifs / Assets:10 Actif circulants / Current Assets:100 Liquidites / Cash and Cash Equivalents:1020 Banque / Bank
         AccountEntity bank = findAccountByNumber(savedAccounts, "1020");
         assertNotNull(bank, "Bank account should exist");
         assertEquals(cash.getId(), bank.getParentAccountId(), "Bank parent should be cash");
-        assertEquals("1020", bank.getId());
+        assertNotNull(bank.getId(), "Account should have UUID");
         
         // Verify equity hierarchy
         AccountEntity equity = findAccountByNumber(savedAccounts, "2");
         assertNotNull(equity, "Equity account should exist");
         assertNull(equity.getParentAccountId(), "Equity should have no parent");
-        assertEquals("2", equity.getId());
+        assertNotNull(equity.getId(), "Account should have UUID");
         
         AccountEntity equityCapital = findAccountByNumber(savedAccounts, "20");
         assertNotNull(equityCapital, "Equity Capital account should exist");
         assertEquals(equity.getId(), equityCapital.getParentAccountId(), "Equity Capital parent should be equity");
-        assertEquals("20", equityCapital.getId());
+        assertNotNull(equityCapital.getId(), "Account should have UUID");
         
         AccountEntity shareCapital = findAccountByNumber(savedAccounts, "200");
         assertNotNull(shareCapital, "Share Capital account should exist");
         assertEquals(equityCapital.getId(), shareCapital.getParentAccountId(), "Share Capital parent should be equity capital");
-        assertEquals("200", shareCapital.getId());
+        assertNotNull(shareCapital.getId(), "Account should have UUID");
         
         // Verify all root accounts (those with no parent)
         long rootAccountCount = savedAccounts.stream()
@@ -210,7 +210,14 @@ class JournalAccountHierarchyTest {
     
     private AccountEntity findAccountByNumber(List<AccountEntity> accounts, String accountNumber) {
         return accounts.stream()
-            .filter(a -> accountNumber.equals(a.getId()))
+            .filter(a -> {
+                String name = a.getName();
+                if (name == null) return false;
+                // Extract first word from account name (e.g., "1" from "1 Actifs / Assets")
+                int spaceIndex = name.indexOf(' ');
+                String firstWord = spaceIndex > 0 ? name.substring(0, spaceIndex) : name;
+                return accountNumber.equals(firstWord);
+            })
             .findFirst()
             .orElse(null);
     }

@@ -47,6 +47,11 @@ export interface AccountTreeNode {
   children: AccountTreeNode[];
 }
 
+export interface PartnerDTO {
+  partnerNumber: string;
+  name: string;
+}
+
 export interface AccountEntryDTO {
   entryId: string;
   transactionId: string;
@@ -94,7 +99,6 @@ export interface MacroValidationDTO {
 
 export interface MacroDTO {
   id: string;
-  journalId: string;
   name: string;
   description: string | null;
   parameters: MacroParameterDTO[];
@@ -362,10 +366,10 @@ export class Controller {
   }
 
   // Macro methods
-  async listMacros(journalId: string): Promise<MacroDTO[]> {
+  async listMacros(): Promise<MacroDTO[]> {
     try {
       const macros = await firstValueFrom(
-        this.http.get<MacroDTO[]>(`/api/macro/${journalId}`)
+        this.http.get<MacroDTO[]>('/api/macro')
       );
       this.modelService.setMacros(macros);
       return macros;
@@ -375,10 +379,10 @@ export class Controller {
     }
   }
 
-  async getMacro(journalId: string, macroId: string): Promise<MacroDTO> {
+  async getMacro(macroId: string): Promise<MacroDTO> {
     try {
       return await firstValueFrom(
-        this.http.get<MacroDTO>(`/api/macro/${journalId}/macro/${macroId}`)
+        this.http.get<MacroDTO>(`/api/macro/${macroId}`)
       );
     } catch (error) {
       console.error('Error getting macro:', error);
@@ -386,13 +390,13 @@ export class Controller {
     }
   }
 
-  async createMacro(journalId: string, macro: Partial<MacroDTO>): Promise<MacroDTO> {
+  async createMacro(macro: Partial<MacroDTO>): Promise<MacroDTO> {
     try {
       const created = await firstValueFrom(
-        this.http.post<MacroDTO>(`/api/macro/${journalId}`, macro)
+        this.http.post<MacroDTO>('/api/macro', macro)
       );
       // Refresh macro list
-      await this.listMacros(journalId);
+      await this.listMacros();
       return created;
     } catch (error) {
       console.error('Error creating macro:', error);
@@ -400,13 +404,13 @@ export class Controller {
     }
   }
 
-  async updateMacro(journalId: string, macroId: string, macro: Partial<MacroDTO>): Promise<MacroDTO> {
+  async updateMacro(macroId: string, macro: Partial<MacroDTO>): Promise<MacroDTO> {
     try {
       const updated = await firstValueFrom(
-        this.http.put<MacroDTO>(`/api/macro/${journalId}/macro/${macroId}`, macro)
+        this.http.put<MacroDTO>(`/api/macro/${macroId}`, macro)
       );
       // Refresh macro list
-      await this.listMacros(journalId);
+      await this.listMacros();
       return updated;
     } catch (error) {
       console.error('Error updating macro:', error);
@@ -414,15 +418,71 @@ export class Controller {
     }
   }
 
-  async deleteMacro(journalId: string, macroId: string): Promise<void> {
+  async deleteMacro(macroId: string): Promise<void> {
     try {
       await firstValueFrom(
-        this.http.delete<void>(`/api/macro/${journalId}/macro/${macroId}`)
+        this.http.delete<void>(`/api/macro/${macroId}`)
       );
       // Refresh macro list
-      await this.listMacros(journalId);
+      await this.listMacros();
     } catch (error) {
       console.error('Error deleting macro:', error);
+      throw error;
+    }
+  }
+
+  async executeMacro(macroId: string, journalId: string, parameters: Record<string, string>): Promise<string> {
+    try {
+      const transactionId = await firstValueFrom(
+        this.http.post<string>('/api/macro/execute', {
+          macroId,
+          journalId,
+          parameters
+        }, { responseType: 'text' as 'json' })
+      );
+      // Refresh transactions
+      await this.getTransactions(journalId);
+      return transactionId;
+    } catch (error) {
+      console.error('Error executing macro:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Search for partners.
+   */
+  async searchPartners(searchTerm: string): Promise<PartnerDTO[]> {
+    try {
+      let params = new HttpParams();
+      if (searchTerm) {
+        params = params.set('q', searchTerm);
+      }
+      
+      return await firstValueFrom(
+        this.http.get<PartnerDTO[]>('/api/partners/search', { params })
+      );
+    } catch (error) {
+      console.error('Error searching partners:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Search for invoice numbers.
+   */
+  async searchInvoices(journalId: string, prefix?: string): Promise<string[]> {
+    try {
+      let params = new HttpParams().set('journalId', journalId);
+      if (prefix) {
+        params = params.set('prefix', prefix);
+      }
+      
+      return await firstValueFrom(
+        this.http.get<string[]>('/api/invoices/search', { params })
+      );
+    } catch (error) {
+      console.error('Error searching invoices:', error);
       throw error;
     }
   }

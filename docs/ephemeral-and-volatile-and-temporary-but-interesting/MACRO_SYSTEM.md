@@ -61,9 +61,6 @@ public class MacroEntity {
     @Id
     private String id;
     
-    @Column(name = "journal_id", nullable = false)
-    private String journalId;
-    
     @Column(nullable = false, length = 100)
     private String name;
     
@@ -95,7 +92,6 @@ public class MacroEntity {
 ```java
 public record MacroDTO(
     String id,
-    String journalId,
     String name,
     String description,
     List<MacroParameterDTO> parameters,
@@ -108,7 +104,7 @@ public record MacroDTO(
 
 public record MacroParameterDTO(
     String name,
-    String type,  // account, amount, text, date, payee, code, status, uuid
+    String type,  // account, amount, text, date, partner, code, status
     String prompt,
     String defaultValue,
     boolean required,
@@ -125,9 +121,8 @@ public record MacroValidationDTO(
 
 | Type | Description | UI Component | Validation |
 |------|-------------|--------------|------------|
-| `uuid` | Auto-generated UUID | None (auto-filled) | UUID format |
 | `date` | Date in YYYY-MM-DD | Date picker | Valid date |
-| `payee` | Payee name | Dropdown from partners | Non-empty |
+| `partner` | Partner name | Dropdown from partners | Non-empty |
 | `code` | Transaction code | Text input | Optional |
 | `amount` | Monetary amount | Number input | Positive number |
 | `text` | Free text | Text input | Non-empty if required |
@@ -166,8 +161,8 @@ sequenceDiagram
     participant MS as MacroService
     participant TR as TransactionResource
     
-    UI->>MR: GET /api/macro/{journalId}
-    MR->>MS: loadAllMacros(journalId)
+    UI->>MR: GET /api/macro/
+    MR->>MS: loadAllMacros()
     MS-->>MR: List<MacroEntity>
     MR-->>UI: List<MacroDTO>
     
@@ -192,7 +187,7 @@ public class MacroService {
     EntityManager em;
     
     @Transactional
-    public List<MacroEntity> loadAllMacros(String journalId);
+    public List<MacroEntity> loadAllMacros();
     
     @Transactional
     public MacroEntity loadMacro(String macroId);
@@ -219,34 +214,27 @@ public class MacroService {
 public class MacroResource {
     
     @GET
-    @Path("/{journalId}")
-    public List<MacroDTO> getAllMacros(@PathParam("journalId") String journalId);
+    public List<MacroDTO> getAllMacros();
     
     @GET
-    @Path("/{journalId}/macro/{macroId}")
+    @Path("/macro/{macroId}")
     public MacroDTO getMacro(
-        @PathParam("journalId") String journalId,
         @PathParam("macroId") String macroId);
     
     @POST
-    @Path("/{journalId}")
     @Consumes(MediaType.APPLICATION_JSON)
-    public MacroDTO createMacro(
-        @PathParam("journalId") String journalId,
-        MacroDTO macro);
+    public MacroDTO createMacro(MacroDTO macro);
     
     @PUT
-    @Path("/{journalId}/macro/{macroId}")
+    @Path("/macro/{macroId}")
     @Consumes(MediaType.APPLICATION_JSON)
     public MacroDTO updateMacro(
-        @PathParam("journalId") String journalId,
         @PathParam("macroId") String macroId,
         MacroDTO macro);
     
     @DELETE
-    @Path("/{journalId}/macro/{macroId}")
+    @Path("/macro/{macroId}")
     public void deleteMacro(
-        @PathParam("journalId") String journalId,
         @PathParam("macroId") String macroId);
 }
 ```
@@ -258,11 +246,6 @@ public class MacroResource {
 ```json
 [
   {
-    "name": "id",
-    "type": "uuid",
-    "required": true
-  },
-  {
     "name": "date",
     "type": "date",
     "prompt": "Transaction date",
@@ -271,7 +254,7 @@ public class MacroResource {
   },
   {
     "name": "partner",
-    "type": "payee",
+    "type": "partner",
     "prompt": "Partner (supplier)",
     "required": true
   },
@@ -306,10 +289,9 @@ public class MacroResource {
 
 1. **User selects macro** from dropdown
 2. **System displays form** with all required parameters
-   - UUID parameters are auto-generated (hidden)
    - Date parameters default to `{today}` if specified
    - Account parameters show filtered dropdown
-   - Payee parameters show partner dropdown
+   - Partner parameters show partner dropdown
 3. **User fills in parameters** with client-side validation
 4. **System generates transaction preview** by substituting placeholders
 5. **User reviews** generated transaction

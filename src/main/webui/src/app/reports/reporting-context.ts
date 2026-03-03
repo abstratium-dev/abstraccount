@@ -105,7 +105,8 @@ export function createReportingContext(
  */
 export function groupEntriesByAccount(
   entries: AccountEntryDTO[],
-  accounts: AccountTreeNode[]
+  accounts: AccountTreeNode[],
+  invertSign: boolean = false
 ): AccountSummary[] {
   // Build account lookup map
   const accountMap = new Map<string, AccountTreeNode>();
@@ -143,13 +144,18 @@ export function groupEntriesByAccount(
       }
     });
     
+    // Apply sign inversion if requested
+    const finalBalance = invertSign ? -balance : balance;
+    const finalDebit = invertSign ? credit : debit;
+    const finalCredit = invertSign ? debit : credit;
+    
     summaries.push({
       accountId,
       accountName: account.name,
       accountType: account.type,
-      balance,
-      debit,
-      credit
+      balance: finalBalance,
+      debit: finalDebit,
+      credit: finalCredit
     });
   });
   
