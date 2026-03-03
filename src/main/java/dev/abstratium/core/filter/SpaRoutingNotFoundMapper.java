@@ -20,16 +20,16 @@ import org.jboss.logging.Logger;
  * The problem this solves:
  * - quarkus-resteasy-problem extension converts ALL NotFoundException to RFC-7807 Problem JSON
  * - This prevents Quinoa's SPA routing from working for Angular routes like /addresses
- * - When accessing http://localhost:808x/addresses directly, browser receives
+ * - When accessing http://localhost:8083/addresses directly, browser receives
  *   {"status":404,"title":"Not Found",...} instead of the Angular application
  * 
  * How it works:
  * - Runs with priority 1 (very high) to execute BEFORE resteasy-problem's mapper
- * - For API paths (/api/*, /oauth/*, /public/*, /q/*): returns null to delegate to resteasy-problem
- * - For non-API paths: serves index.html to let Angular's router handle the route
+ * - For API paths (/api/*, /oauth/*, /public/*, /q/*): returns proper 404 JSON response
+ * - For non-API paths: serves HTML redirect to let Angular's router handle the route
  * 
  * This allows:
- * - API endpoints to return proper RFC-7807 Problem JSON on 404
+ * - API endpoints to return proper 404 JSON responses
  * - Angular routes to work when accessed directly in the browser
  */
 @Provider
@@ -48,10 +48,13 @@ public class SpaRoutingNotFoundMapper implements ExceptionMapper<NotFoundExcepti
     public Response toResponse(NotFoundException exception) {
         String path = uriInfo.getPath();
         
-        // For API paths, return null to delegate to resteasy-problem
+        // For API paths, return a proper 404 JSON response
         if (isApiPath(path)) {
-            LOG.debugf("API path 404, delegating to resteasy-problem: %s", path);
-            return null;
+            LOG.debugf("API path 404, returning 404 status: %s", path);
+            return Response.status(Response.Status.NOT_FOUND)
+                .type(MediaType.APPLICATION_JSON)
+                .entity("{\"status\":404,\"title\":\"Not Found\",\"detail\":\"" + exception.getMessage() + "\"}")
+                .build();
         }
 
         // Check if the request explicitly accepts JSON (likely an API call)
@@ -59,8 +62,11 @@ public class SpaRoutingNotFoundMapper implements ExceptionMapper<NotFoundExcepti
         if (acceptHeader != null && 
             (acceptHeader.contains(MediaType.APPLICATION_JSON) || 
              acceptHeader.contains("application/problem+json"))) {
-            LOG.debugf("JSON request 404, delegating to resteasy-problem: %s", path);
-            return null;
+            LOG.debugf("JSON request 404, returning 404 status: %s", path);
+            return Response.status(Response.Status.NOT_FOUND)
+                .type(MediaType.APPLICATION_JSON)
+                .entity("{\"status\":404,\"title\":\"Not Found\",\"detail\":\"" + exception.getMessage() + "\"}")
+                .build();
         }
 
         // For non-API paths, redirect to root to let Angular handle routing
