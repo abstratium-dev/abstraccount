@@ -1,0 +1,201 @@
+<div class="container">
+  <h1>Entry Search</h1>
+
+  <!-- Error Display -->
+  <div *ngIf="error" class="error-message">
+    <h2>Error</h2>
+    <p>{{ error }}</p>
+  </div>
+
+  <!-- Loading Indicator -->
+  <div *ngIf="loading" class="loading">
+    <p>Loading...</p>
+  </div>
+
+  <!-- Filters Section -->
+  <div class="filter-section">
+    <h3>Filters</h3>
+    <p class="filter-info">Showing entries for journal: <strong>{{ getSelectedJournalName() }}</strong></p>
+    <div class="filter-grid">
+      <div class="filter-item filter-item-wide">
+        <label for="accountSearch">Account (ID or Name):</label>
+        <abs-autocomplete
+          id="accountSearch"
+          [placeholder]="'Search by account ID or name (supports regex)'"
+          [minSearchLength]="0"
+          [fetchOptions]="fetchAccountOptions"
+          (optionSelected)="onAccountSelected($event)"
+          [(ngModel)]="selectedAccountId"
+        ></abs-autocomplete>
+        <div class="checkbox-group" style="margin-top: 0.25rem;">
+          <input 
+            type="checkbox" 
+            id="includeChildren" 
+            [(ngModel)]="includeChildAccounts"
+            (change)="loadEntries()"
+          />
+          <label for="includeChildren">Include child accounts</label>
+        </div>
+      </div>
+      
+      <div class="filter-item">
+        <label for="transactionId">Transaction ID:</label>
+        <input id="transactionId" type="text" [(ngModel)]="filters.transactionId" placeholder="Transaction ID">
+      </div>
+      
+      <div class="filter-item">
+        <label for="startDate">Start Date:</label>
+        <input id="startDate" type="date" [(ngModel)]="filters.startDate">
+      </div>
+      
+      <div class="filter-item">
+        <label for="endDate">End Date:</label>
+        <input id="endDate" type="date" [(ngModel)]="filters.endDate">
+      </div>
+      
+      <div class="filter-item filter-item-wide">
+        <label for="partnerSearch">Partner:</label>
+        <abs-autocomplete
+          id="partnerSearch"
+          [placeholder]="'Search by partner name or number'"
+          [minSearchLength]="1"
+          [fetchOptions]="fetchPartnerOptions"
+          (optionSelected)="onPartnerSelected($event)"
+          [(ngModel)]="selectedPartnerId"
+        ></abs-autocomplete>
+      </div>
+      
+      <div class="filter-item">
+        <label for="status">Status:</label>
+        <select id="status" [(ngModel)]="filters.status">
+          <option value="">All</option>
+          <option value="CLEARED">CLEARED</option>
+          <option value="PENDING">PENDING</option>
+          <option value="RECONCILED">RECONCILED</option>
+        </select>
+      </div>
+      
+      <div class="filter-item">
+        <label for="commodity">Commodity:</label>
+        <input id="commodity" type="text" [(ngModel)]="filters.commodity" placeholder="e.g., EUR, USD">
+      </div>
+      
+      <div class="filter-item">
+        <label for="minAmount">Min Amount:</label>
+        <input id="minAmount" type="number" step="0.01" [(ngModel)]="filters.minAmount" placeholder="Min">
+      </div>
+      
+      <div class="filter-item">
+        <label for="maxAmount">Max Amount:</label>
+        <input id="maxAmount" type="number" step="0.01" [(ngModel)]="filters.maxAmount" placeholder="Max">
+      </div>
+      
+      <div class="filter-item">
+        <label for="accountType">Account Type:</label>
+        <select id="accountType" [(ngModel)]="filters.accountType">
+          <option value="">All</option>
+          <option value="Asset">Asset</option>
+          <option value="Liability">Liability</option>
+          <option value="Equity">Equity</option>
+          <option value="Revenue">Revenue</option>
+          <option value="Expense">Expense</option>
+        </select>
+      </div>
+      
+      <div class="filter-item filter-item-wide">
+        <label for="tagSearch">Tag (key:value):</label>
+        <abs-autocomplete
+          id="tagSearch"
+          [placeholder]="'Search by tag (supports regex)'"
+          [minSearchLength]="0"
+          [fetchOptions]="fetchTagOptions"
+          (optionSelected)="onTagSelected($event)"
+          [(ngModel)]="selectedTag"
+        ></abs-autocomplete>
+      </div>
+    </div>
+    
+    <div class="filter-actions">
+      <button (click)="loadEntries()" class="btn-primary">Apply Filters</button>
+      <button (click)="clearFilters()" class="btn-secondary">Clear Filters</button>
+    </div>
+  </div>
+
+  <!-- Entries Table -->
+  <div *ngIf="!loading && entries.length > 0">
+    <div class="entries-summary">
+      <h3>Entries ({{ entries.length }})</h3>
+      <div class="totals-summary">
+        <strong>Totals:</strong>
+        <span *ngFor="let item of getCommodityTotals() | keyvalue" class="commodity-total">
+          {{ item.value.formatted }} {{ item.key }}
+        </span>
+      </div>
+    </div>
+    <div class="table-wrapper">
+      <table class="standard-table entry-search-table">
+        <thead>
+          <tr>
+            <th>Entry ID</th>
+            <th>Order</th>
+            <th>Date</th>
+            <th>Transaction</th>
+            <th>Account</th>
+            <th>Type</th>
+            <th>Amount</th>
+            <th>Commodity</th>
+            <th>Partner</th>
+            <th>Status</th>
+            <th>Tags</th>
+            <th>Journal</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let entry of entries">
+            <td class="mono-text">{{ entry.entryId ? entry.entryId.substring(0, 8) + '...' : 'N/A' }}</td>
+            <td>{{ entry.entryOrder }}</td>
+            <td>{{ formatDate(entry.transactionDate) }}</td>
+            <td>
+              <div class="cell-content">
+                <div class="mono-text small-text">{{ entry.transactionId ? entry.transactionId.substring(0, 8) + '...' : 'N/A' }}</div>
+                <div>{{ entry.transactionDescription }}</div>
+              </div>
+            </td>
+            <td>
+              <div class="cell-content">
+                <div class="mono-text small-text">{{ entry.accountId }}</div>
+                <div>{{ entry.accountName }}</div>
+              </div>
+            </td>
+            <td>{{ entry.accountType }}</td>
+            <td class="amount-cell" [style.color]="entry.entryAmount < 0 ? 'var(--color-error)' : 'var(--color-text-primary)'">
+              {{ formatAmount(entry.entryAmount) }}
+            </td>
+            <td>{{ entry.entryCommodity }}</td>
+            <td>
+              <div *ngIf="entry.transactionPartnerId" class="cell-content">
+                <div class="mono-text small-text">{{ entry.transactionPartnerId }}</div>
+                <div *ngIf="entry.transactionPartnerName">{{ entry.transactionPartnerName }}</div>
+              </div>
+            </td>
+            <td>{{ entry.transactionStatus }}</td>
+            <td class="tags-cell">
+              <span class="small-text">{{ getTagsDisplay(entry.transactionTags) }}</span>
+            </td>
+            <td>
+              <div class="cell-content">
+                <div class="mono-text small-text">{{ entry.journalId ? entry.journalId.substring(0, 8) + '...' : 'N/A' }}</div>
+                <div>{{ entry.journalTitle }}</div>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- No Results -->
+  <div *ngIf="!loading && entries.length === 0 && !error" class="no-results">
+    <p>No entries found matching the current filters.</p>
+  </div>
+</div>

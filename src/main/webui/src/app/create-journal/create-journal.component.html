@@ -1,0 +1,143 @@
+<div class="create-journal-container">
+  <div class="create-journal-card">
+    <h1>Create New Journal</h1>
+    
+    <!-- Form -->
+    <form *ngIf="!creating && !createResult" (ngSubmit)="onSubmit()" #journalForm="ngForm">
+      <div class="form-group">
+        <label for="title">Title <span class="required">*</span></label>
+        <input 
+          type="text" 
+          id="title" 
+          name="title"
+          [(ngModel)]="title" 
+          required
+          placeholder="Enter journal title"
+          class="form-input"
+        />
+      </div>
+
+      <div class="form-group">
+        <label for="subtitle">Subtitle</label>
+        <input 
+          type="text" 
+          id="subtitle" 
+          name="subtitle"
+          [(ngModel)]="subtitle" 
+          placeholder="Enter journal subtitle (optional)"
+          class="form-input"
+        />
+      </div>
+
+      <div class="form-group">
+        <label for="currency">Currency <span class="required">*</span></label>
+        <input 
+          type="text" 
+          id="currency" 
+          name="currency"
+          [(ngModel)]="currency" 
+          required
+          placeholder="e.g., USD, EUR, CHF"
+          class="form-input"
+        />
+      </div>
+
+      <div class="form-group">
+        <label for="logo">Logo URL</label>
+        <input 
+          type="text" 
+          id="logo" 
+          name="logo"
+          [(ngModel)]="logo" 
+          placeholder="Enter logo URL (optional)"
+          class="form-input"
+        />
+      </div>
+
+      <div class="form-group">
+        <label>Commodities</label>
+        <div class="commodities-list">
+          <div *ngFor="let commodity of commodities; let i = index" class="commodity-row">
+            <input 
+              type="text" 
+              [(ngModel)]="commodity.code" 
+              [name]="'commodity-code-' + i"
+              placeholder="Code (e.g., CHF)"
+              class="form-input commodity-code"
+            />
+            <input 
+              type="text" 
+              [(ngModel)]="commodity.precision" 
+              [name]="'commodity-precision-' + i"
+              placeholder="Precision (e.g., 1000.00)"
+              class="form-input commodity-precision"
+            />
+            <button 
+              type="button" 
+              (click)="removeCommodity(i)" 
+              class="btn-icon btn-danger"
+              title="Remove commodity"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+          </div>
+        </div>
+        <button type="button" (click)="addCommodity()" class="btn-secondary btn-add">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+          Add Commodity
+        </button>
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" [disabled]="!journalForm.valid" class="btn-primary">
+          Create Journal
+        </button>
+      </div>
+    </form>
+
+    <!-- Creating state -->
+    <div class="creating" *ngIf="creating">
+      <div class="spinner"></div>
+      <p>Creating journal...</p>
+    </div>
+
+    <!-- Success state -->
+    <div class="create-success" *ngIf="createResult && !createError">
+      <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="success-icon">
+        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+        <polyline points="22 4 12 14.01 9 11.01"></polyline>
+      </svg>
+      <h2>Journal Created Successfully!</h2>
+      <div class="result-details">
+        <p><strong>Title:</strong> {{ createResult.title }}</p>
+        <p *ngIf="createResult.subtitle"><strong>Subtitle:</strong> {{ createResult.subtitle }}</p>
+        <p><strong>Currency:</strong> {{ createResult.currency }}</p>
+        <p *ngIf="createResult.commodities && Object.keys(createResult.commodities).length > 0">
+          <strong>Commodities:</strong> {{ Object.keys(createResult.commodities).join(', ') }}
+        </p>
+      </div>
+      <div class="button-group">
+        <button class="btn-primary" (click)="viewJournal()">View Journal</button>
+        <button class="btn-secondary" (click)="resetForm()">Create Another</button>
+      </div>
+    </div>
+
+    <!-- Error state -->
+    <div class="create-error" *ngIf="createError">
+      <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="error-icon">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="15" y1="9" x2="9" y2="15"></line>
+        <line x1="9" y1="9" x2="15" y2="15"></line>
+      </svg>
+      <h2>Creation Failed</h2>
+      <p class="error-message">{{ createError }}</p>
+      <button class="btn-secondary" (click)="createError = null">Try Again</button>
+    </div>
+  </div>
+</div>

@@ -25,6 +25,7 @@ export class HeaderComponent implements OnInit {
     journals: JournalMetadataDTO[] = [];
     selectedJournalId: string | null = null;
     readonly IMPORT_OPTION = '__IMPORT__';
+    readonly CREATE_OPTION = '__CREATE__';
 
     constructor() {
         effect(() => {
@@ -70,6 +71,11 @@ export class HeaderComponent implements OnInit {
         if (this.selectedJournalId === this.IMPORT_OPTION) {
             // Navigate to upload page
             this.router.navigate(['/upload']);
+            // Reset to previous selection
+            this.selectedJournalId = this.modelService.getSelectedJournalId();
+        } else if (this.selectedJournalId === this.CREATE_OPTION) {
+            // Navigate to create journal page
+            this.router.navigate(['/create-journal']);
             // Reset to previous selection
             this.selectedJournalId = this.modelService.getSelectedJournalId();
         } else if (this.selectedJournalId) {

@@ -341,6 +341,54 @@ public class JournalResource {
     }
     
     /**
+     * Creates a new journal with the provided metadata.
+     * Only users with USER role can create journals.
+     * 
+     * @param request the journal creation request
+     * @return the created journal metadata
+     */
+    @POST
+    @Path("/create")
+    @RolesAllowed({Roles.USER})
+    public JournalDTO createJournal(CreateJournalRequest request) {
+        LOG.infof("Creating new journal: %s", request.title());
+        
+        try {
+            // Create journal entity
+            JournalEntity journalEntity = new JournalEntity();
+            journalEntity.setLogo(request.logo());
+            journalEntity.setTitle(request.title());
+            journalEntity.setSubtitle(request.subtitle());
+            journalEntity.setCurrency(request.currency());
+            journalEntity.setCommodities(request.commodities() != null ? request.commodities() : new HashMap<>());
+            
+            // Save to database
+            JournalEntity savedJournal = journalPersistenceService.saveJournal(journalEntity);
+            
+            LOG.infof("Successfully created journal: %s with ID: %s", savedJournal.getTitle(), savedJournal.getId());
+            
+            return new JournalDTO(
+                savedJournal.getId(),
+                savedJournal.getTitle(),
+                savedJournal.getSubtitle(),
+                savedJournal.getCurrency(),
+                savedJournal.getCommodities()
+            );
+            
+        } catch (Exception e) {
+            LOG.error("Failed to create journal", e);
+            Map<String, Object> error = new HashMap<>();
+            error.put("status", "error");
+            error.put("message", e.getMessage());
+            throw new WebApplicationException(
+                jakarta.ws.rs.core.Response.status(jakarta.ws.rs.core.Response.Status.BAD_REQUEST)
+                    .entity(error)
+                    .build()
+            );
+        }
+    }
+    
+    /**
      * Uploads and persists a journal file.
      * Parses the journal content and stores all data (journal metadata, accounts, transactions) in the database.
      * 

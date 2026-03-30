@@ -109,6 +109,36 @@ export interface MacroDTO {
   modifiedDate: string;
 }
 
+export interface EntrySearchDTO {
+  // Entry fields
+  entryId: string;
+  entryOrder: number;
+  entryCommodity: string;
+  entryAmount: number;
+  entryNote: string | null;
+  
+  // Account fields
+  accountId: string;
+  accountName: string;
+  accountType: string;
+  accountNote: string | null;
+  accountParentId: string | null;
+  
+  // Transaction fields
+  transactionId: string;
+  transactionDate: string;
+  transactionStatus: string;
+  transactionDescription: string;
+  transactionPartnerId: string | null;
+  transactionPartnerName: string | null;
+  transactionTags: TagDTO[];
+  
+  // Journal fields
+  journalId: string;
+  journalTitle: string;
+  journalCurrency: string;
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -189,6 +219,31 @@ export class Controller {
       );
     } catch (error) {
       console.error('Error getting tags:', error);
+      throw error;
+    }
+  }
+
+  async createJournal(request: {
+    logo: string | null;
+    title: string;
+    subtitle: string | null;
+    currency: string;
+    commodities: { [key: string]: string };
+  }): Promise<JournalMetadataDTO> {
+    try {
+      const result = await firstValueFrom(
+        this.http.post<JournalMetadataDTO>('/api/journal/create', request)
+      );
+      
+      // Refresh journal list after creation
+      await this.listJournals();
+      
+      // Set as selected journal
+      this.modelService.setSelectedJournalId(result.id);
+      
+      return result;
+    } catch (error) {
+      console.error('Error creating journal:', error);
       throw error;
     }
   }
@@ -464,6 +519,62 @@ export class Controller {
       );
     } catch (error) {
       console.error('Error searching partners:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get all entries with filtering for entry search.
+   */
+  async getEntrySearchResults(filters: {
+    journalId?: string;
+    accountId?: string;
+    transactionId?: string;
+    startDate?: string;
+    endDate?: string;
+    partnerId?: string;
+    status?: string;
+    commodity?: string;
+    minAmount?: number;
+    maxAmount?: number;
+    accountType?: string;
+    tagPattern?: string;
+  }): Promise<EntrySearchDTO[]> {
+    try {
+      let params = new HttpParams();
+      if (filters.journalId) params = params.set('journalId', filters.journalId);
+      if (filters.accountId) params = params.set('accountId', filters.accountId);
+      if (filters.transactionId) params = params.set('transactionId', filters.transactionId);
+      if (filters.startDate) params = params.set('startDate', filters.startDate);
+      if (filters.endDate) params = params.set('endDate', filters.endDate);
+      if (filters.partnerId) params = params.set('partnerId', filters.partnerId);
+      if (filters.status) params = params.set('status', filters.status);
+      if (filters.commodity) params = params.set('commodity', filters.commodity);
+      if (filters.minAmount !== undefined) params = params.set('minAmount', filters.minAmount.toString());
+      if (filters.maxAmount !== undefined) params = params.set('maxAmount', filters.maxAmount.toString());
+      if (filters.accountType) params = params.set('accountType', filters.accountType);
+      if (filters.tagPattern) params = params.set('tagPattern', filters.tagPattern);
+      
+      return await firstValueFrom(
+        this.http.get<EntrySearchDTO[]>('/api/entry-search/entries', { params })
+      );
+    } catch (error) {
+      console.error('Error getting entry search results:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get all unique tags for a journal for entry search.
+   */
+  async getEntrySearchTags(journalId: string): Promise<string[]> {
+    try {
+      const params = new HttpParams().set('journalId', journalId);
+      return await firstValueFrom(
+        this.http.get<string[]>('/api/entry-search/tags', { params })
+      );
+    } catch (error) {
+      console.error('Error getting entry search tags:', error);
       throw error;
     }
   }

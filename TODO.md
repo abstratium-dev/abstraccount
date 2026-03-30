@@ -14,7 +14,7 @@ These TODOs are to be resolved by the developer, NOT THE LLM.
 - accounts
   - add link to account, if it isn't the same number
   - header of ledger page should show parent accounts with links to them
-- add a pivot table
+- add a pivot table based on the entry search
 - reports
   - configure which reports are added to the "reports bar" at the top, without having to be chosen from the dropdown, but simply clicked on.
   - they need to be printable
@@ -32,8 +32,6 @@ These TODOs are to be resolved by the developer, NOT THE LLM.
 - Link to receipt documents
 
 - add a skill to abstracore so that the llm can read the database (show tables, desc table, select * from table with limit)
-
-- create a function that uses simple select of entries, joined to parents, in order to extract raw data that is aggregated in the UI, to validate that reports are correct.
 
 - filters
   - date from, inclusive

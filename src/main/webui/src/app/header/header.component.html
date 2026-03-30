@@ -30,7 +30,8 @@
               <option *ngFor="let journal of journals" [ngValue]="journal.id">
                 {{ journal.title }} ({{ journal.currency }})
               </option>
-              <option [ngValue]="IMPORT_OPTION">➕ Import Journal...</option>
+              <option [ngValue]="CREATE_OPTION">➕ Create New Journal...</option>
+              <option [ngValue]="IMPORT_OPTION">📤 Import Journal...</option>
             </select>
             &nbsp;|&nbsp;
             <a id="journal" routerLink="/journal" routerLinkActive="inactive-link">journal</a>
@@ -42,6 +43,8 @@
             <a id="partners" routerLink="/partners" routerLinkActive="inactive-link">partners</a>
             &nbsp;|&nbsp;
             <a id="macros" routerLink="/macros" routerLinkActive="inactive-link">macros</a>
+            &nbsp;|&nbsp;
+            <a id="entry-search" routerLink="/entry-search" routerLinkActive="inactive-link">entries</a>
             &nbsp;|&nbsp;
             <a id="settings-link" routerLink="/settings" routerLinkActive="inactive-link">⚙️ settings</a>
             &nbsp;|&nbsp;
