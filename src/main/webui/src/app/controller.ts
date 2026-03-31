@@ -139,6 +139,42 @@ export interface EntrySearchDTO {
   journalCurrency: string;
 }
 
+export interface CreateEntryRequest {
+  entryOrder: number;
+  accountId: string;
+  commodity: string;
+  amount: number;
+  note: string | null;
+}
+
+export interface CreateTransactionRequest {
+  journalId: string;
+  date: string;
+  status: string;
+  description: string;
+  partnerId: string | null;
+  tags: TagDTO[];
+  entries: CreateEntryRequest[];
+}
+
+export interface UpdateEntryRequest {
+  id: string | null;
+  entryOrder: number;
+  accountId: string;
+  commodity: string;
+  amount: number;
+  note: string | null;
+}
+
+export interface UpdateTransactionRequest {
+  date: string;
+  status: string;
+  description: string;
+  partnerId: string | null;
+  tags: TagDTO[];
+  entries: UpdateEntryRequest[];
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -594,6 +630,85 @@ export class Controller {
       );
     } catch (error) {
       console.error('Error searching invoices:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Create a new transaction.
+   */
+  async createTransaction(request: CreateTransactionRequest): Promise<TransactionDTO> {
+    try {
+      const transaction = await firstValueFrom(
+        this.http.post<TransactionDTO>('/api/transaction', request)
+      );
+      // Refresh transactions for the journal
+      await this.getTransactions(request.journalId);
+      return transaction;
+    } catch (error) {
+      console.error('Error creating transaction:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get a single transaction by ID.
+   */
+  async getTransaction(transactionId: string): Promise<TransactionDTO> {
+    try {
+      return await firstValueFrom(
+        this.http.get<TransactionDTO>(`/api/transaction/${transactionId}`)
+      );
+    } catch (error) {
+      console.error('Error getting transaction:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update an existing transaction.
+   */
+  async updateTransaction(transactionId: string, journalId: string, request: UpdateTransactionRequest): Promise<TransactionDTO> {
+    try {
+      const transaction = await firstValueFrom(
+        this.http.put<TransactionDTO>(`/api/transaction/${transactionId}`, request)
+      );
+      // Refresh transactions for the journal
+      await this.getTransactions(journalId);
+      return transaction;
+    } catch (error) {
+      console.error('Error updating transaction:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Delete a transaction.
+   */
+  async deleteTransaction(transactionId: string, journalId: string): Promise<void> {
+    try {
+      await firstValueFrom(
+        this.http.delete(`/api/transaction/${transactionId}`)
+      );
+      // Refresh transactions for the journal
+      await this.getTransactions(journalId);
+    } catch (error) {
+      console.error('Error deleting transaction:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get all distinct tag keys across all journals.
+   * Useful for autocomplete suggestions.
+   */
+  async getAllTagKeys(): Promise<string[]> {
+    try {
+      return await firstValueFrom(
+        this.http.get<string[]>('/api/core/tags/keys')
+      );
+    } catch (error) {
+      console.error('Error getting all tag keys:', error);
       throw error;
     }
   }

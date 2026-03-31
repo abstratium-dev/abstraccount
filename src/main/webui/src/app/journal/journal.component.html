@@ -1,5 +1,10 @@
 <div class="container">
-  <h1>Journal Viewer</h1>
+  <div class="page-header">
+    <h1>Journal Viewer</h1>
+    <button *ngIf="selectedJournal" class="btn-add" (click)="openAddTransactionModal()">
+      Add Transaction
+    </button>
+  </div>
 
   <!-- Error Display -->
   <div *ngIf="error" class="error-message">
@@ -32,6 +37,7 @@
           <th style="width: 150px">Partner</th>
           <th>Description</th>
           <th style="text-align: right; width: 150px">Amount</th>
+          <th style="width: 50px"></th>
         </tr>
       </thead>
       <tbody>
@@ -43,6 +49,9 @@
             <td>{{ getPartnerDisplay(transaction.partnerId, transaction.partnerName) }}</td>
             <td>{{ transaction.description }}</td>
             <td></td>
+            <td>
+              <button class="context-menu-trigger" (click)="openContextMenu($event, transaction.id)">⋮</button>
+            </td>
           </tr>
           
           <!-- Tags Sub-row (if any) -->
@@ -55,6 +64,7 @@
                 {{ tag.value ? tag.key + ':' + tag.value : tag.key }}
               </span>
             </td>
+            <td></td>
             <td></td>
           </tr>
           
@@ -88,6 +98,7 @@
                 style="text-align: right; font-family: monospace">
               {{ entry.commodity }} {{ formatAmount(entry.amount) }}
             </td>
+            <td></td>
           </tr>
         </ng-container>
       </tbody>
@@ -108,6 +119,30 @@
     Please select a journal to begin.
   </div>
 </div>
+
+<!-- Transaction Edit Modal -->
+<app-transaction-edit-modal
+  *ngIf="showTransactionModal && selectedJournal"
+  [transactionId]="editingTransactionId"
+  [journalId]="selectedJournal.id"
+  (close)="closeTransactionModal()"
+  (saved)="onTransactionSaved()">
+</app-transaction-edit-modal>
+
+<!-- Context Menu -->
+<div *ngIf="contextMenuTransactionId" 
+     class="context-menu" 
+     [style.position]="'fixed'"
+     [style.left.px]="contextMenuPosition.x" 
+     [style.top.px]="contextMenuPosition.y">
+  <button class="context-menu-item" (click)="openEditTransactionModal(contextMenuTransactionId)">Edit</button>
+  <button class="context-menu-item danger" (click)="deleteTransaction(contextMenuTransactionId)">Delete</button>
+</div>
+
+<!-- Click outside to close context menu -->
+<div *ngIf="contextMenuTransactionId" 
+     (click)="closeContextMenu()" 
+     style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 999"></div>
 
 <style>
 .journal-table .transaction-row {

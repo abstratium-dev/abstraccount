@@ -6,10 +6,11 @@ import { AccountService } from '../account.service';
 import { Controller, JournalMetadataDTO, TransactionDTO, TagDTO } from '../controller';
 import { ModelService } from '../model.service';
 import { FilterInputComponent } from './filter-input/filter-input.component';
+import { TransactionEditModalComponent } from '../transaction-edit-modal/transaction-edit-modal.component';
 
 @Component({
   selector: 'journal',
-  imports: [CommonModule, FormsModule, RouterLink, FilterInputComponent],
+  imports: [CommonModule, FormsModule, RouterLink, FilterInputComponent, TransactionEditModalComponent],
   templateUrl: './journal.component.html',
   styleUrl: './journal.component.scss'
 })
@@ -22,6 +23,14 @@ export class JournalComponent implements OnInit {
   
   // Filter
   filterString: string = '';
+
+  // Transaction modal
+  showTransactionModal = false;
+  editingTransactionId: string | null = null;
+
+  // Context menu
+  contextMenuTransactionId: string | null = null;
+  contextMenuPosition = { x: 0, y: 0 };
 
   modelService = inject(ModelService); // Public for template
   accountService = inject(AccountService); // Public for template
@@ -132,6 +141,55 @@ export class JournalComponent implements OnInit {
     if (!partnerId) return '';
     if (partnerName) return `${partnerId} - ${partnerName}`;
     return partnerId;
+  }
+
+  // Transaction modal methods
+  openAddTransactionModal(): void {
+    this.editingTransactionId = null;
+    this.showTransactionModal = true;
+  }
+
+  openEditTransactionModal(transactionId: string): void {
+    this.editingTransactionId = transactionId;
+    this.showTransactionModal = true;
+    this.contextMenuTransactionId = null;
+  }
+
+  closeTransactionModal(): void {
+    this.showTransactionModal = false;
+    this.editingTransactionId = null;
+  }
+
+  onTransactionSaved(): void {
+    this.loadEntries();
+  }
+
+  // Context menu methods
+  openContextMenu(event: MouseEvent, transactionId: string): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.contextMenuTransactionId = transactionId;
+    this.contextMenuPosition = { x: event.clientX, y: event.clientY };
+  }
+
+  closeContextMenu(): void {
+    this.contextMenuTransactionId = null;
+  }
+
+  async deleteTransaction(transactionId: string): Promise<void> {
+    if (!this.selectedJournal) return;
+    
+    if (!confirm('Are you sure you want to delete this transaction?')) {
+      return;
+    }
+
+    try {
+      await this.controller.deleteTransaction(transactionId, this.selectedJournal.id);
+      this.contextMenuTransactionId = null;
+      await this.loadEntries();
+    } catch (err: any) {
+      this.error = 'Failed to delete transaction: ' + err.message;
+    }
   }
 
 }

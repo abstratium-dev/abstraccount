@@ -9,6 +9,8 @@ These TODOs are to be resolved by the developer, NOT THE LLM.
 
 ## Today
 
+- add, edit, delete accounts
+
 - make backend calculate running total, so that other services could profit from that logic.
   - remove that logic from the ui
 - accounts

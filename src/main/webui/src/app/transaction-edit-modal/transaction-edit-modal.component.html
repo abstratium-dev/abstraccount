@@ -1,0 +1,135 @@
+<div class="modal-overlay" (click)="cancel()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>{{ isNew ? 'Add Transaction' : 'Edit Transaction' }}</h2>
+    </div>
+
+    <div class="modal-body">
+      <div *ngIf="loading" class="loading">
+        <p>Loading...</p>
+      </div>
+
+      <div *ngIf="error" class="error-box">
+        {{ error }}
+      </div>
+
+      <form *ngIf="!loading">
+        <!-- Basic transaction fields -->
+        <div class="form-row">
+          <div class="form-group">
+            <label for="date">Date *</label>
+            <input type="date" id="date" [(ngModel)]="date" name="date" required>
+          </div>
+
+          <div class="form-group">
+            <label for="status">Status *</label>
+            <select id="status" [(ngModel)]="status" name="status" required>
+              <option *ngFor="let s of availableStatuses" [value]="s">{{ s }}</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="description">Description *</label>
+          <input type="text" id="description" [(ngModel)]="description" name="description" required>
+        </div>
+
+        <div class="form-group">
+          <label for="partnerId">Partner</label>
+          <abs-autocomplete
+            id="partnerId"
+            [placeholder]="'Search by partner name or number'"
+            [minSearchLength]="1"
+            [fetchOptions]="fetchPartnerOptions"
+            (optionSelected)="onPartnerSelected($event)"
+            [(ngModel)]="partnerId"
+            name="partnerId">
+          </abs-autocomplete>
+        </div>
+
+        <!-- Tags section -->
+        <div class="form-group">
+          <label>Tags</label>
+          <div class="tag-input-wrapper">
+            <abs-autocomplete
+              [placeholder]="'key:value or key'"
+              [minSearchLength]="0"
+              [fetchOptions]="fetchTagOptions"
+              (optionSelected)="onTagSelected($event)"
+              [(ngModel)]="tagInput"
+              name="tagInput">
+            </abs-autocomplete>
+            <button type="button" class="btn-add-small" (click)="addTag()">Add Tag</button>
+          </div>
+          <div class="badge-list" *ngIf="tags.length > 0">
+            <span *ngFor="let tag of tags; let i = index" class="badge badge-secondary">
+              {{ tag.value ? tag.key + ':' + tag.value : tag.key }}
+              <button type="button" class="btn-icon btn-icon-danger" (click)="removeTag(i)" style="margin-left: 0.5rem">×</button>
+            </span>
+          </div>
+        </div>
+
+        <!-- Entries section -->
+        <div class="form-group">
+          <div class="sub-tiles-header">
+            <label>Entries *</label>
+            <button type="button" class="btn-add-small" (click)="addEntry()">Add Entry</button>
+          </div>
+          
+          <div class="entries-list">
+            <div *ngFor="let entry of entries; let i = index" class="entry-item">
+              <div class="entry-header">
+                <span class="entry-number">Entry {{ i + 1 }}</span>
+                <button type="button" class="btn-icon btn-icon-danger" (click)="removeEntry(i)" *ngIf="entries.length > 1">×</button>
+              </div>
+              
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Account *</label>
+                  <abs-autocomplete
+                    [placeholder]="'Search by account name or ID'"
+                    [minSearchLength]="0"
+                    [fetchOptions]="fetchAccountOptions"
+                    (optionSelected)="onAccountSelected(i, $event)"
+                    [(ngModel)]="entry.accountId"
+                    [name]="'accountId_' + i">
+                  </abs-autocomplete>
+                </div>
+                
+                <div class="form-group">
+                  <label>Commodity</label>
+                  <input type="text" [(ngModel)]="entry.commodity" [name]="'commodity_' + i" required>
+                </div>
+              </div>
+              
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Amount *</label>
+                  <input type="number" step="0.01" [(ngModel)]="entry.amount" [name]="'amount_' + i" required>
+                </div>
+                
+                <div class="form-group">
+                  <label>Note</label>
+                  <input type="text" [(ngModel)]="entry.note" [name]="'note_' + i" placeholder="Optional">
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="balance-info" [class.balanced]="isBalanced()" [class.unbalanced]="!isBalanced()">
+            <strong>Balance:</strong> {{ getBalance().toFixed(2) }}
+            <span *ngIf="isBalanced()" class="badge badge-success" style="margin-left: 0.5rem">✓ Balanced</span>
+            <span *ngIf="!isBalanced()" class="badge badge-secondary" style="margin-left: 0.5rem">⚠ Unbalanced</span>
+          </div>
+        </div>
+      </form>
+    </div>
+
+    <div class="modal-footer">
+      <button type="button" class="btn-secondary" (click)="cancel()" [disabled]="loading">Cancel</button>
+      <button type="button" class="btn-primary" (click)="save()" [disabled]="loading">
+        {{ isNew ? 'Create' : 'Save' }}
+      </button>
+    </div>
+  </div>
+</div>

@@ -278,7 +278,6 @@ public class JournalPersistenceService {
     
     /**
      * Gets all distinct tag keys and values for a journal.
-     * Used for autocomplete functionality.
      * 
      * @param journalId the journal ID
      * @return list of distinct tag key-value pairs
@@ -291,6 +290,21 @@ public class JournalPersistenceService {
             "ORDER BY tag.tagKey, tag.tagValue",
             Object[].class)
             .setParameter("journalId", journalId)
+            .getResultList();
+    }
+    
+    /**
+     * Gets all distinct tag keys across all journals.
+     * Returns only the unique tag keys, regardless of their values.
+     * 
+     * @return list of distinct tag keys
+     */
+    @Transactional
+    public List<String> getAllDistinctTagKeys() {
+        return entityManager.createQuery(
+            "SELECT DISTINCT tag.tagKey FROM TagEntity tag " +
+            "ORDER BY tag.tagKey",
+            String.class)
             .getResultList();
     }
     
