@@ -28,4 +28,6 @@ You can also write plain unit tests, in order to test edge cases.
 NEVER disable tests e.g. with the @org.junit.jupiter.api.Disabled annotation.
 NEVER delete tests just because you cannot make them work.
 Do ask for help if you are going in circles and not getting the tests to pass.
+NEVER run `quarkus dev` or `mvn quarkus:dev` yourself. If you need the server to be running, ask the user to start it.
+NEVER kill quarkus yourself, always ask the user to do that.
 
