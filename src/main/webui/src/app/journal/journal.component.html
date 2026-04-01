@@ -129,6 +129,11 @@
   (saved)="onTransactionSaved()">
 </app-transaction-edit-modal>
 
+<!-- Click outside to close context menu -->
+<div *ngIf="contextMenuTransactionId" 
+     (click)="closeContextMenu()" 
+     style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 999"></div>
+
 <!-- Context Menu -->
 <div *ngIf="contextMenuTransactionId" 
      class="context-menu" 
@@ -138,11 +143,6 @@
   <button class="context-menu-item" (click)="openEditTransactionModal(contextMenuTransactionId)">Edit</button>
   <button class="context-menu-item danger" (click)="deleteTransaction(contextMenuTransactionId)">Delete</button>
 </div>
-
-<!-- Click outside to close context menu -->
-<div *ngIf="contextMenuTransactionId" 
-     (click)="closeContextMenu()" 
-     style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 999"></div>
 
 <style>
 .journal-table .transaction-row {

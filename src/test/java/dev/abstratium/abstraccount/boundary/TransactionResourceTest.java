@@ -234,7 +234,7 @@ public class TransactionResourceTest {
     }
 
     @Transactional
-    private TransactionEntity createTestTransaction() {
+    TransactionEntity createTestTransaction() {
         TransactionEntity transaction = new TransactionEntity();
         transaction.setJournalId(journalId);
         transaction.setTransactionDate(LocalDate.of(2024, 1, 15));

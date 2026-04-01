@@ -1,0 +1,18 @@
+// Issue 3: Allow parent account select options to wrap
+// Note: Option wrapping support varies by browser
+.parent-select {
+  min-height: 2.5rem;
+  
+  option {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    padding: 0.5rem;
+    line-height: 1.4;
+  }
+}
+
+// Alternative: Show full text on hover/focus
+.parent-select:focus option {
+  white-space: normal;
+}

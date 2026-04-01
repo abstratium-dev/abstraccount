@@ -34,6 +34,7 @@ describe('TransactionEditModalComponent', () => {
 
   it('should initialize with default values for new transaction', () => {
     component.transactionId = null;
+    component.entries = []; // Reset entries before re-initializing
     component.ngOnInit();
     
     expect(component.isNew).toBe(true);
@@ -197,7 +198,7 @@ describe('TransactionEditModalComponent', () => {
     expect(component.tagInput).toBe('');
   });
 
-  it('should fetch and filter account options', async () => {
+  it('should fetch and filter account options using regex', async () => {
     // Mock account tree structure
     const mockAccounts = [
       {
@@ -233,8 +234,94 @@ describe('TransactionEditModalComponent', () => {
     
     expect(options.length).toBe(1);
     expect(options[0].value).toBe('acc2');
-    expect(options[0].label).toContain('Cash');
-    expect(options[0].label).toContain('Assets > Cash');
+    expect(options[0].label).toBe('Assets > Cash');
+    expect(options[0].label).not.toContain('acc2'); // ID should not be in label
+  });
+
+  it('should support regex patterns in account search', async () => {
+    const mockAccounts = [
+      {
+        id: 'acc1',
+        name: 'Assets',
+        type: 'ASSET',
+        note: null,
+        parentId: null,
+        children: [
+          {
+            id: 'acc2',
+            name: 'Cash',
+            type: 'ASSET',
+            note: null,
+            parentId: 'acc1',
+            children: []
+          },
+          {
+            id: 'acc3',
+            name: 'Bank',
+            type: 'ASSET',
+            note: null,
+            parentId: 'acc1',
+            children: []
+          }
+        ]
+      }
+    ];
+
+    spyOn(component.modelService, 'getAccounts').and.returnValue(mockAccounts);
+
+    // Test regex pattern: match accounts starting with 'C'
+    const options = await component.fetchAccountOptions('^Assets > C');
+    
+    expect(options.length).toBe(1);
+    expect(options[0].label).toBe('Assets > Cash');
+  });
+
+  it('should match accounts with pattern A.*et', async () => {
+    const mockAccounts = [
+      {
+        id: 'acc1',
+        name: 'Assets',
+        type: 'ASSET',
+        note: null,
+        parentId: null,
+        children: [
+          {
+            id: 'acc2',
+            name: 'Cash',
+            type: 'ASSET',
+            note: null,
+            parentId: 'acc1',
+            children: []
+          }
+        ]
+      },
+      {
+        id: 'acc3',
+        name: 'Liabilities',
+        type: 'LIABILITY',
+        note: null,
+        parentId: null,
+        children: []
+      },
+      {
+        id: 'acc4',
+        name: 'Expenses',
+        type: 'EXPENSE',
+        note: null,
+        parentId: null,
+        children: []
+      }
+    ];
+
+    spyOn(component.modelService, 'getAccounts').and.returnValue(mockAccounts);
+
+    // Test regex pattern: A.*et should match "Assets" and any child
+    const options = await component.fetchAccountOptions('A.*et');
+    
+    // Should match "Assets" and "Assets > Cash"
+    expect(options.length).toBe(2);
+    expect(options.some(opt => opt.label === 'Assets')).toBe(true);
+    expect(options.some(opt => opt.label === 'Assets > Cash')).toBe(true);
   });
 
   it('should update entry account when selected from autocomplete', () => {
@@ -253,7 +340,7 @@ describe('TransactionEditModalComponent', () => {
       { id: null, entryOrder: 0, accountId: '', accountName: '', commodity: 'CHF', amount: 0, note: '' }
     ];
 
-    component.onAccountSelected(0, { value: 'acc1', label: 'Cash (acc1)' });
+    component.onAccountSelected(0, { value: 'acc1', label: 'Cash' });
 
     expect(component.entries[0].accountId).toBe('acc1');
     expect(component.entries[0].accountName).toBe('Cash');

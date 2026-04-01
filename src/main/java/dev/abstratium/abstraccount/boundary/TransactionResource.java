@@ -354,7 +354,7 @@ public class TransactionResource {
             : null;
         
         return new TransactionDTO(
-            transaction.getTransactionId(),
+            transaction.getId(),
             transaction.getTransactionDate(),
             transaction.getStatus().name(),
             transaction.getDescription(),

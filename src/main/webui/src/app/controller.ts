@@ -47,6 +47,23 @@ export interface AccountTreeNode {
   children: AccountTreeNode[];
 }
 
+export interface CreateAccountRequest {
+  name: string;
+  type: string;
+  note: string | null;
+  parentAccountId: string | null;
+  journalId: string;
+  accountOrder: number | null;
+}
+
+export interface UpdateAccountRequest {
+  name: string;
+  type: string;
+  note: string | null;
+  parentAccountId: string | null;
+  accountOrder: number | null;
+}
+
 export interface PartnerDTO {
   partnerNumber: string;
   name: string;
@@ -709,6 +726,71 @@ export class Controller {
       );
     } catch (error) {
       console.error('Error getting all tag keys:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Create a new account.
+   */
+  async createAccount(request: CreateAccountRequest): Promise<AccountTreeNode> {
+    try {
+      const account = await firstValueFrom(
+        this.http.post<AccountTreeNode>('/api/account', request)
+      );
+      // Refresh account tree for the journal
+      await this.getAccountTree(request.journalId);
+      return account;
+    } catch (error) {
+      console.error('Error creating account:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update an existing account.
+   */
+  async updateAccount(accountId: string, journalId: string, request: UpdateAccountRequest): Promise<AccountTreeNode> {
+    try {
+      const account = await firstValueFrom(
+        this.http.put<AccountTreeNode>(`/api/account/${accountId}`, request)
+      );
+      // Refresh account tree for the journal
+      await this.getAccountTree(journalId);
+      return account;
+    } catch (error) {
+      console.error('Error updating account:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Delete an account. Only leaf accounts can be deleted.
+   */
+  async deleteAccount(journalId: string, accountId: string): Promise<void> {
+    try {
+      await firstValueFrom(
+        this.http.delete(`/api/account/${journalId}/account/${accountId}`)
+      );
+      // Refresh account tree for the journal
+      await this.getAccountTree(journalId);
+    } catch (error) {
+      console.error('Error deleting account:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Check if an account is a leaf account (has no children).
+   */
+  async isLeafAccount(accountId: string): Promise<boolean> {
+    try {
+      const response = await firstValueFrom(
+        this.http.get<{isLeaf: boolean}>(`/api/account/${accountId}/is-leaf`)
+      );
+      return response.isLeaf;
+    } catch (error) {
+      console.error('Error checking if account is leaf:', error);
       throw error;
     }
   }

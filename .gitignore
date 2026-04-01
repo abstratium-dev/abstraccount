@@ -58,5 +58,6 @@ e2e-tests/playwright/.auth/
 **/*.journal
 .ant/partners.csv
 .ant/*.py
+.playwright-cli
 
 

@@ -1,3 +1,30 @@
+.header-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  
+  h1 {
+    margin: 0;
+  }
+}
+
+.account-actions {
+  position: relative;
+  margin-left: auto;
+  z-index: 2;
+  
+  .context-menu {
+    right: 0;
+    top: 100%;
+  }
+}
+
+// When menu is open, ensure the entire actions container has higher z-index
+.menu-open .account-actions {
+  z-index: 10000;
+}
+
 .accounts-container {
   padding: 2rem;
   max-width: 1200px;
@@ -20,10 +47,17 @@ h1 {
   background-color: var(--color-bg-secondary);
   border-radius: 8px;
   padding: 1rem;
+  overflow: visible;
 }
 
 .account-node {
   margin-bottom: 0.25rem;
+  overflow: visible;
+  
+  &.menu-open {
+    position: relative;
+    z-index: 9999;
+  }
 }
 
 .account-info {
@@ -32,6 +66,8 @@ h1 {
   padding: 0.3rem 0.5rem;
   border-radius: 4px;
   background-color: var(--color-bg-primary);
+  overflow: visible;
+  position: relative;
 }
 
 .account-id {
@@ -91,21 +127,8 @@ h1 {
   margin-top: 0.5rem;
 }
 
-.child-level-1 {
-  opacity: 0.95;
-}
-
-.child-level-2 {
-  opacity: 0.9;
-}
-
-.child-level-3 {
-  opacity: 0.85;
-}
-
-.child-level-4 {
-  opacity: 0.8;
-}
+// Note: Opacity was removed from child-level-* classes because it creates stacking contexts
+// that prevent z-index from working, which was causing context menus to be unclickable
 
 .error-message {
   color: var(--color-warning);

@@ -94,7 +94,7 @@ public class TagsResourceTest {
     }
 
     @Transactional
-    private void createTransactionWithTags(String journalId, String accountId, String tagKey, String tagValue) {
+    void createTransactionWithTags(String journalId, String accountId, String tagKey, String tagValue) {
         TransactionEntity transaction = new TransactionEntity();
         transaction.setJournalId(journalId);
         transaction.setTransactionDate(LocalDate.now());

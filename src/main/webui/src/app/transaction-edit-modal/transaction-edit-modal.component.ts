@@ -300,12 +300,11 @@ export class TransactionEditModalComponent implements OnInit {
 
   /**
    * Fetch account options for autocomplete based on search term.
-   * Flattens the account tree and searches by account name or ID.
+   * Flattens the account tree and filters using regex pattern matching.
    */
   fetchAccountOptions = async (searchTerm: string): Promise<AutocompleteOption[]> => {
     try {
       const accounts = this.modelService.getAccounts();
-      const lowerSearch = searchTerm.toLowerCase();
       
       // Flatten the account tree
       const flatAccounts: Array<{ id: string; name: string; fullPath: string }> = [];
@@ -326,17 +325,41 @@ export class TransactionEditModalComponent implements OnInit {
       
       accounts.forEach(account => flatten(account));
       
-      // Filter accounts that match the search term
-      const matchingAccounts = flatAccounts.filter(account => 
-        account.id.toLowerCase().includes(lowerSearch) ||
-        account.name.toLowerCase().includes(lowerSearch) ||
-        account.fullPath.toLowerCase().includes(lowerSearch)
-      );
+      // Build regex pattern
+      let pattern = searchTerm;
+      if (searchTerm) {
+        // Check if the search term contains regex metacharacters (excluding ^ and $ at start/end)
+        const hasRegexChars = /[.*+?{}()|[\]\\]/.test(searchTerm);
+        
+        if (!hasRegexChars && !searchTerm.startsWith('^') && !searchTerm.endsWith('$')) {
+          // Simple text search - add implicit wildcards and escape special chars
+          const escapedTerm = searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          pattern = '.*' + escapedTerm + '.*';
+        }
+        // Otherwise, treat as regex pattern (user is using regex syntax)
+      }
+      
+      // Filter accounts using regex pattern
+      let matchingAccounts = flatAccounts;
+      if (searchTerm) {
+        try {
+          const regex = new RegExp(pattern, 'i');
+          matchingAccounts = flatAccounts.filter(account => 
+            regex.test(account.fullPath)
+          );
+        } catch (e) {
+          // Invalid regex, fall back to simple substring match
+          const lowerSearch = searchTerm.toLowerCase();
+          matchingAccounts = flatAccounts.filter(account => 
+            account.fullPath.toLowerCase().includes(lowerSearch)
+          );
+        }
+      }
       
       // Limit to first 50 results
       return matchingAccounts.slice(0, 50).map(account => ({
         value: account.id,
-        label: `${account.fullPath} (${account.id})`
+        label: account.fullPath
       }));
     } catch (error) {
       console.error('Error fetching account options:', error);

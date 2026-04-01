@@ -125,4 +125,101 @@ public class AccountService {
         
         return String.join(":", codes);
     }
+    
+    /**
+     * Creates a new account.
+     * 
+     * @param account the account entity to create
+     * @return the created account entity
+     */
+    @Transactional
+    public AccountEntity createAccount(AccountEntity account) {
+        LOG.debugf("Creating account: %s in journal: %s", account.getName(), account.getJournalId());
+        em.persist(account);
+        em.flush();
+        return account;
+    }
+    
+    /**
+     * Updates an existing account.
+     * 
+     * @param accountId the account ID
+     * @param updatedAccount the updated account data
+     * @return the updated account entity
+     */
+    @Transactional
+    public AccountEntity updateAccount(String accountId, AccountEntity updatedAccount) {
+        LOG.debugf("Updating account: %s", accountId);
+        
+        AccountEntity account = em.find(AccountEntity.class, accountId);
+        if (account == null) {
+            throw new IllegalArgumentException("Account not found: " + accountId);
+        }
+        
+        account.setName(updatedAccount.getName());
+        account.setType(updatedAccount.getType());
+        account.setNote(updatedAccount.getNote());
+        account.setParentAccountId(updatedAccount.getParentAccountId());
+        account.setAccountOrder(updatedAccount.getAccountOrder());
+        
+        em.merge(account);
+        em.flush();
+        return account;
+    }
+    
+    /**
+     * Deletes an account. Only leaf accounts (accounts without children) can be deleted.
+     * 
+     * @param accountId the account ID
+     * @param journalId the journal ID (for validation)
+     * @throws IllegalArgumentException if account has children or doesn't exist
+     */
+    @Transactional
+    public void deleteAccount(String accountId, String journalId) {
+        LOG.debugf("Deleting account: %s from journal: %s", accountId, journalId);
+        
+        AccountEntity account = em.find(AccountEntity.class, accountId);
+        if (account == null) {
+            throw new IllegalArgumentException("Account not found: " + accountId);
+        }
+        
+        if (!account.getJournalId().equals(journalId)) {
+            throw new IllegalArgumentException("Account does not belong to the specified journal");
+        }
+        
+        // Check if account has children
+        List<AccountEntity> children = em.createQuery(
+            "SELECT a FROM AccountEntity a WHERE a.parentAccountId = :accountId",
+            AccountEntity.class
+        )
+        .setParameter("accountId", accountId)
+        .getResultList();
+        
+        if (!children.isEmpty()) {
+            throw new IllegalArgumentException(
+                "Cannot delete account with children. Account has " + children.size() + " child account(s)."
+            );
+        }
+        
+        em.remove(account);
+        em.flush();
+    }
+    
+    /**
+     * Checks if an account is a leaf account (has no children).
+     * 
+     * @param accountId the account ID
+     * @return true if the account has no children, false otherwise
+     */
+    @Transactional
+    public boolean isLeafAccount(String accountId) {
+        long childCount = em.createQuery(
+            "SELECT COUNT(a) FROM AccountEntity a WHERE a.parentAccountId = :accountId",
+            Long.class
+        )
+        .setParameter("accountId", accountId)
+        .getSingleResult();
+        
+        return childCount == 0;
+    }
 }
