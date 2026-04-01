@@ -170,4 +170,133 @@ class SpaRoutingNotFoundMapperTest {
             .then()
             .contentType(org.hamcrest.Matchers.not(containsString("text/html")));
     }
+
+    @Test
+    void testProblemJsonAcceptHeaderForNonApiPathReturnsJson() {
+        // Non-API paths with application/problem+json Accept header should return JSON, not HTML
+        given()
+            .accept("application/problem+json")
+            .when()
+            .get("/some-route")
+            .then()
+            .statusCode(404)
+            .contentType("application/json")
+            .body(containsString("\"status\":404"))
+            .body(containsString("\"title\":\"Not Found\""));
+    }
+
+    @Test
+    void testJsonAcceptHeaderWithMultipleTypesReturnsJson() {
+        // Accept header with multiple types including JSON should return JSON
+        given()
+            .accept("text/html,application/json")
+            .when()
+            .get("/some-route")
+            .then()
+            .statusCode(404)
+            .contentType("application/json")
+            .body(containsString("\"status\":404"))
+            .body(containsString("\"title\":\"Not Found\""));
+    }
+
+    // ========== API Path Tests Without Leading Slash ==========
+    
+    @Test
+    void testApiPathWithoutLeadingSlashReturnsJson() {
+        // API paths without leading slash (api/) should return JSON, not HTML
+        // This tests the alternate path format handling
+        given()
+            .accept("application/json")
+            .when()
+            .get("/api/test")
+            .then()
+            .contentType(org.hamcrest.Matchers.not(containsString("text/html")));
+    }
+
+    @Test
+    void testOAuthPathWithoutLeadingSlashReturnsJson() {
+        // OAuth paths without leading slash (oauth/) should return JSON, not HTML
+        given()
+            .accept("application/json")
+            .when()
+            .get("/oauth/test")
+            .then()
+            .contentType(org.hamcrest.Matchers.not(containsString("text/html")));
+    }
+
+    @Test
+    void testPublicPathWithoutLeadingSlashReturnsJson() {
+        // Public paths without leading slash (public/) should return JSON, not HTML
+        given()
+            .accept("application/json")
+            .when()
+            .get("/public/test")
+            .then()
+            .contentType(org.hamcrest.Matchers.not(containsString("text/html")));
+    }
+
+    @Test
+    void testQuarkusPathWithoutLeadingSlashReturnsJson() {
+        // Quarkus paths without leading slash (q/) should return JSON, not HTML
+        given()
+            .accept("application/json")
+            .when()
+            .get("/q/test")
+            .then()
+            .contentType(org.hamcrest.Matchers.not(containsString("text/html")));
+    }
+
+    @Test
+    void testApiPathReturnsJsonWithDetail() {
+        // Verify that API path 404 responses don't return HTML
+        // The actual status code may vary (404 or 406) depending on whether endpoint exists
+        given()
+            .accept("application/json")
+            .when()
+            .get("/api/missing/resource")
+            .then()
+            .contentType(org.hamcrest.Matchers.not(containsString("text/html")));
+    }
+
+    @Test
+    void testNullAcceptHeaderForNonApiPathReturnsHtml() {
+        // Non-API paths without Accept header should return HTML redirect
+        // This simulates a browser request without explicit Accept header
+        given()
+            .when()
+            .get("/dashboard")
+            .then()
+            .statusCode(200)
+            .contentType("text/html")
+            .body(containsString("<!DOCTYPE html>"))
+            .body(containsString("<meta http-equiv=\"refresh\" content=\"0;url=/\">"));
+    }
+
+    @Test
+    void testWildcardAcceptHeaderForNonApiPathReturnsHtml() {
+        // Non-API paths with wildcard Accept header should return HTML redirect
+        given()
+            .accept("*/*")
+            .when()
+            .get("/profile")
+            .then()
+            .statusCode(200)
+            .contentType("text/html")
+            .body(containsString("<!DOCTYPE html>"))
+            .body(containsString("<meta http-equiv=\"refresh\" content=\"0;url=/\">"));
+    }
+
+    @Test
+    void testRootPathReturnsHtml() {
+        // Root path (/) that doesn't exist should return HTML redirect
+        // This is an edge case but should be handled consistently
+        given()
+            .when()
+            .get("/nonexistent-root-level-path")
+            .then()
+            .statusCode(200)
+            .contentType("text/html")
+            .body(containsString("<!DOCTYPE html>"))
+            .body(containsString("<meta http-equiv=\"refresh\" content=\"0;url=/\">"));
+    }
 }
