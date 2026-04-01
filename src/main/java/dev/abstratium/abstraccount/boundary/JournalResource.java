@@ -204,7 +204,7 @@ public class JournalResource {
                 : null;
             
             transactionDTOs.add(new TransactionDTO(
-                txEntity.getTransactionId(),
+                txEntity.getId(),
                 txEntity.getTransactionDate(),
                 txEntity.getStatus().name(),
                 txEntity.getDescription(),

@@ -168,11 +168,12 @@ public class AccountService {
     }
     
     /**
-     * Deletes an account. Only leaf accounts (accounts without children) can be deleted.
+     * Deletes an account. Only leaf accounts (accounts without children) that are not
+     * referenced by any transaction entries can be deleted.
      * 
      * @param accountId the account ID
      * @param journalId the journal ID (for validation)
-     * @throws IllegalArgumentException if account has children or doesn't exist
+     * @throws IllegalArgumentException if account has children, is referenced by transactions, or doesn't exist
      */
     @Transactional
     public void deleteAccount(String accountId, String journalId) {
@@ -198,6 +199,20 @@ public class AccountService {
         if (!children.isEmpty()) {
             throw new IllegalArgumentException(
                 "Cannot delete account with children. Account has " + children.size() + " child account(s)."
+            );
+        }
+        
+        // Check if any transaction entries reference this account
+        Long entryCount = em.createQuery(
+            "SELECT COUNT(e) FROM EntryEntity e WHERE e.accountId = :accountId",
+            Long.class
+        )
+        .setParameter("accountId", accountId)
+        .getSingleResult();
+        
+        if (entryCount > 0) {
+            throw new IllegalArgumentException(
+                "Cannot delete account that is referenced by " + entryCount + " transaction entry/entries."
             );
         }
         

@@ -182,7 +182,7 @@ public class TransactionResource {
                     if (entryReq.id() != null) {
                         // Try to reuse existing entry if ID is provided
                         entry = entityManager.find(EntryEntity.class, entryReq.id());
-                        if (entry == null || !entry.getTransaction().getId().equals(transactionId)) {
+                        if (entry == null || entry.getTransaction() == null || !entry.getTransaction().getId().equals(transactionId)) {
                             // Create new if not found or belongs to different transaction
                             entry = new EntryEntity();
                         }
