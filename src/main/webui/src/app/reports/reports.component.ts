@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, Signal } from '@angular/core';
+import { Component, inject, OnInit, Signal, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Controller, ReportTemplate, AccountEntryDTO, AccountTreeNode, TagDTO } from '../controller';
@@ -21,6 +21,7 @@ export class ReportsComponent implements OnInit {
   readonly netIncomeLabel = 'Net Income';
 
   templates: Signal<ReportTemplate[]> = this.modelService.reportTemplates$;
+  selectedJournalId: Signal<string | null> = this.modelService.selectedJournalId$;
   selectedTemplateId: string | null = null;
   selectedTemplate: ReportTemplate | null = null;
   
@@ -43,17 +44,32 @@ export class ReportsComponent implements OnInit {
   // Expose Math to template
   Math = Math;
 
+  constructor() {
+    // React to changes in selected journal
+    effect(() => {
+      const journalId = this.selectedJournalId();
+      if (journalId) {
+        this.onJournalChange(journalId);
+      }
+    });
+  }
+
   async ngOnInit() {
     await this.loadTemplates();
-    
-    // Load tags for autocomplete
-    const journalId = this.modelService.getSelectedJournalId();
-    if (journalId) {
-      try {
-        this.tags = await this.controller.getTags(journalId);
-      } catch (err) {
-        console.error('Failed to load tags:', err);
-      }
+  }
+
+  private async onJournalChange(journalId: string) {
+    // Load tags for the new journal
+    try {
+      this.tags = await this.controller.getTags(journalId);
+    } catch (err) {
+      console.error('Failed to load tags:', err);
+      this.tags = [];
+    }
+
+    // Regenerate the report if a template is selected
+    if (this.selectedTemplate) {
+      await this.generateReport();
     }
   }
 

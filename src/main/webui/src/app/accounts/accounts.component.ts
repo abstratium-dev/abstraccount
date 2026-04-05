@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { Controller, AccountTreeNode } from '../controller';
@@ -30,12 +30,25 @@ export class AccountsComponent implements OnInit {
   // Context menu state
   openMenuId: string | null = null;
 
+  constructor() {
+    // Watch for selected journal changes
+    effect(() => {
+      const journalId = this.modelService.selectedJournalId$();
+      
+      if (journalId) {
+        this.loadAccounts();
+      } else {
+        this.error = null;
+      }
+    });
+  }
+
   isMenuOpen(accountId: string): boolean {
     return this.openMenuId === accountId;
   }
 
   async ngOnInit() {
-    await this.loadAccounts();
+    // Accounts will be loaded by the effect when journal is available
   }
 
   async loadAccounts() {

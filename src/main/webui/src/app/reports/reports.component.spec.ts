@@ -78,7 +78,8 @@ describe('ReportsComponent', () => {
       'getAccounts',
       'setReportTemplates'
     ], {
-      reportTemplates$: signal(mockTemplates)
+      reportTemplates$: signal(mockTemplates),
+      selectedJournalId$: signal('journal1')
     });
 
     await TestBed.configureTestingModule({
@@ -729,5 +730,40 @@ describe('ReportsComponent', () => {
     expect(section.partners!.length).toBe(1);
     expect(section.partners![0].partnerId).toBe('partnerA');
     expect(section.partners![0].net).toBe(0);
+  });
+
+  it('should regenerate report when selected journal changes', async () => {
+    // Set up initial state with a template selected
+    const selectedTemplate = mockTemplates[0];
+    component.selectedTemplate = selectedTemplate;
+    
+    controller.getTags.and.returnValue(Promise.resolve([]));
+    controller.getEntriesForReport.and.returnValue(Promise.resolve(mockEntries));
+    controller.getAccountTree.and.returnValue(Promise.resolve(mockAccounts));
+    modelService.getSelectedJournalId.and.returnValue('journal1');
+
+    // Generate initial report
+    await component.generateReport();
+    await fixture.whenStable();
+
+    expect(controller.getTags).toHaveBeenCalledWith('journal1');
+    expect(controller.getEntriesForReport).toHaveBeenCalledWith('journal1', undefined, undefined);
+    
+    const initialCallCount = controller.getEntriesForReport.calls.count();
+
+    // Simulate journal change by updating the signal
+    // Note: In the actual test, the effect will trigger when the signal changes
+    // For this test, we'll manually call the onJournalChange method
+    controller.getTags.calls.reset();
+    controller.getEntriesForReport.calls.reset();
+    modelService.getSelectedJournalId.and.returnValue('journal2');
+    
+    // Manually trigger the journal change (simulating the effect)
+    await (component as any).onJournalChange('journal2');
+    await fixture.whenStable();
+
+    // Verify that tags and report were reloaded for the new journal
+    expect(controller.getTags).toHaveBeenCalledWith('journal2');
+    expect(controller.getEntriesForReport).toHaveBeenCalledWith('journal2', undefined, undefined);
   });
 });

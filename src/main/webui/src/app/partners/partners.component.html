@@ -1,15 +1,19 @@
 <div class="container">
   <h1>Partners</h1>
 
-  <div class="info-box">
-    <p>This is a read-only view of partners that are referenced by the currently loaded transactions.</p>
+  <div *ngIf="loading" class="info-message">
+    Loading partners...
   </div>
 
-  <div *ngIf="partners.length === 0" class="info-message">
-    No partners found in the current transactions.
+  <div *ngIf="error" class="error-message">
+    {{ error }}
   </div>
 
-  <table *ngIf="partners.length > 0" class="standard-table">
+  <div *ngIf="!loading && !error && partners.length === 0" class="info-message">
+    No partners found.
+  </div>
+
+  <table *ngIf="!loading && !error && partners.length > 0" class="standard-table">
     <thead>
       <tr>
         <th 

@@ -2,6 +2,30 @@
     <div class="header-left">
         <img src="https://abstratium.dev/abstratium-logo-small.png" alt="Abstratium Logo" class="logo">
         <span class="brand-name">ABSTRATIUM</span>
+        
+        <!-- Print-only journal information -->
+        <div class="print-header-info" style="display: none;">
+            @if(selectedJournalId && journals.length > 0) {
+                @for(journal of journals; track journal.id) {
+                    @if(journal.id === selectedJournalId) {
+                        <div style="margin-top: 0.5rem; display: flex; align-items: center; gap: 1rem;">
+                            @if(journal.logo) {
+                                <img [src]="journal.logo" alt="Journal Logo" style="height: 48px; width: auto;">
+                            }
+                            <div>
+                                @if(journal.subtitle) {
+                                    <div style="font-size: 1.2rem; font-weight: 600;">{{ journal.title }}</div>
+                                    <div style="font-size: 0.9rem; color: #666;">{{ journal.subtitle }}</div>
+                                } @else {
+                                    <div style="font-size: 1.2rem; font-weight: 600;">{{ journal.title }}</div>
+                                }
+                                <div style="font-size: 0.85rem; margin-top: 0.25rem;">Currency: {{ journal.currency }}</div>
+                            </div>
+                        </div>
+                    }
+                }
+            }
+        </div>
     </div>
 
     <div class="header-right">

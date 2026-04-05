@@ -28,6 +28,7 @@ export class AutocompleteComponent implements ControlValueAccessor {
   @Input() noResultsText = 'No results found';
   @Input() searchingText = 'Searching...';
   @Input() required = false;
+  @Input() allowFreeText = false; // If true, ngModel updates on every keystroke
   
   // Function to fetch options based on search term
   @Input() fetchOptions!: (searchTerm: string) => Promise<AutocompleteOption[]>;
@@ -96,6 +97,12 @@ export class AutocompleteComponent implements ControlValueAccessor {
     this.searchTerm.set(value);
     this.showDropdown.set(true);
     this.highlightedIndex.set(-1);
+    
+    // If allowFreeText is true, update ngModel with typed text
+    if (this.allowFreeText) {
+      this.selectedValue.set(value);
+      this.onChange(value);
+    }
   }
 
   onInputFocus(): void {

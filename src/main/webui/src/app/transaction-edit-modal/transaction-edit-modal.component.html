@@ -57,6 +57,7 @@
               [fetchOptions]="fetchTagOptions"
               (optionSelected)="onTagSelected($event)"
               [(ngModel)]="tagInput"
+              [allowFreeText]="true"
               name="tagInput">
             </abs-autocomplete>
             <button type="button" class="btn-add-small" (click)="addTag()">Add Tag</button>

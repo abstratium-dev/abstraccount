@@ -24,6 +24,15 @@
       [tags]="tags"
       (filterChange)="onFilterChange($event)">
     </filter-input>
+    
+    <!-- Print-only filter display -->
+    <div class="print-filter-display" style="display: none;">
+      @if(filterString) {
+        <strong>Applied filter:</strong> {{ filterString }}
+      } @else {
+        <em>No filter applied</em>
+      }
+    </div>
   </div>
 
   <!-- Transactions Table -->
@@ -96,7 +105,7 @@
             <td class="entry-amount" 
                 [style.color]="entry.amount < 0 ? 'var(--color-error)' : 'var(--color-text-primary)'"
                 style="text-align: right; font-family: monospace">
-              {{ entry.commodity }} {{ formatAmount(entry.amount) }}
+              {{ formatAmount(entry.amount) }} {{ entry.commodity }}
             </td>
             <td></td>
           </tr>

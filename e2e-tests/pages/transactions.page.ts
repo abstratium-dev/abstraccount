@@ -200,9 +200,30 @@ export async function verifyBalanced(page: Page): Promise<void> {
  */
 export async function saveTransaction(page: Page): Promise<void> {
   console.log('Saving transaction...');
+  
+  // Check for any error messages before saving
+  const errorBox = page.locator('.error-box');
+  const hasError = await errorBox.isVisible().catch(() => false);
+  if (hasError) {
+    const errorText = await errorBox.textContent();
+    console.error('Error before saving:', errorText);
+  }
+  
   // The button text is "Create" for new transactions and "Save" for edits
   const saveButton = page.locator('button:has-text("Create"), button:has-text("Save")').first();
   await saveButton.click();
+  
+  // Wait a moment for any error to appear
+  await page.waitForTimeout(1000);
+  
+  // Check for error after clicking save
+  const hasErrorAfterSave = await errorBox.isVisible().catch(() => false);
+  if (hasErrorAfterSave) {
+    const errorText = await errorBox.textContent();
+    console.error('Error after clicking save:', errorText);
+    throw new Error(`Failed to save transaction: ${errorText}`);
+  }
+  
   // Wait for the modal overlay to close
   await page.waitForSelector('.modal-overlay', { state: 'hidden', timeout: 10000 });
   console.log('Transaction saved successfully');

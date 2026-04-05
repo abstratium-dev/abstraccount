@@ -93,6 +93,35 @@ public class TransactionResourceTest {
     }
 
     @Test
+    public void testCreateTransactionWithEmptyTagValue() {
+        CreateTransactionRequest request = new CreateTransactionRequest(
+            journalId,
+            LocalDate.of(2024, 1, 15),
+            "CLEARED",
+            "Test transaction with tag without value",
+            null,
+            List.of(new TagDTO("OpeningBalances", "")),
+            List.of(
+                new CreateEntryRequest(0, accountId1, "CHF", new BigDecimal("100.00"), "Debit entry"),
+                new CreateEntryRequest(1, accountId2, "CHF", new BigDecimal("-100.00"), "Credit entry")
+            )
+        );
+
+        given()
+            .contentType(ContentType.JSON)
+            .body(request)
+        .when()
+            .post("/api/transaction")
+        .then()
+            .statusCode(200)
+            .body("description", equalTo("Test transaction with tag without value"))
+            .body("tags.size()", equalTo(1))
+            .body("tags[0].key", equalTo("OpeningBalances"))
+            .body("tags[0].value", equalTo(""))
+            .body("entries.size()", equalTo(2));
+    }
+
+    @Test
     public void testGetTransaction() {
         // Create a transaction first
         TransactionEntity transaction = createTestTransaction();

@@ -950,7 +950,7 @@ button {
 
       // Remove default borders from all rows
       border: none;
-      
+
       // Add top border only to transaction-row
       &.transaction-row td {
         border-top: 1px solid var(--color-border-light);
@@ -961,7 +961,6 @@ button {
     }
 
     td {
-      padding: 1rem;
       color: var(--color-text-dark);
       border: none;
     }
@@ -1263,11 +1262,6 @@ button {
 
   .standard-table {
     font-size: 0.875rem;
-
-    thead th,
-    tbody td {
-      padding: 0.75rem 0.5rem;
-    }
   }
 
   .account-picture {
@@ -2008,4 +2002,107 @@ button {
 .journal-table .entry-amount {
   font-weight: 500;
   white-space: nowrap;
+}
+
+/* ===== PRINT STYLES ===== */
+@media print {
+  /* Hide elements that shouldn't be printed */
+  .page-header,
+  .btn-add,
+  .filter-input-wrapper,
+  .filter-help,
+  .context-menu-trigger,
+  .context-menu,
+  button,
+  .theme-toggle-btn,
+  .header-right a,
+  .header-right select,
+  .journal-selector {
+    display: none !important;
+  }
+
+  /* Simplify header for print */
+  .header {
+    padding: 1rem;
+    border-bottom: 2px solid #000;
+    background: white;
+  }
+
+  .header-left {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .header-right {
+    display: none !important;
+  }
+
+  /* Show print-only header content */
+  .print-header-info {
+    display: block !important;
+  }
+
+  /* Simplify filter section for print */
+  .filter-section {
+    padding: 0.5rem;
+    margin-bottom: 1rem;
+    background: white;
+    border: 1px solid #000;
+  }
+
+  .filter-section h3 {
+    margin: 0 0 0.25rem 0;
+    font-size: 0.9rem;
+  }
+
+  .print-filter-display {
+    display: block !important;
+    font-family: monospace;
+    font-size: 0.85rem;
+  }
+
+  /* Optimize table for print */
+  .standard-table {
+    box-shadow: none;
+    background: white;
+  }
+
+  .standard-table thead th {
+    background: white;
+    border-bottom: 2px solid #000;
+  }
+
+  .standard-table tbody tr {
+    page-break-inside: avoid;
+  }
+
+  .standard-table tbody td {
+    border: none;
+  }
+
+  .standard-table .transaction-row td {
+    border-top: 1px solid #000;
+  }
+
+  /* Remove colors for print */
+  body {
+    background: white;
+    color: black;
+  }
+
+  .container {
+    max-width: 100%;
+    padding: 0.5rem;
+  }
+
+  /* Ensure links are visible in print */
+  a {
+    color: black;
+    text-decoration: none;
+  }
+
+  .path-segment {
+    color: black !important;
+  }
 }

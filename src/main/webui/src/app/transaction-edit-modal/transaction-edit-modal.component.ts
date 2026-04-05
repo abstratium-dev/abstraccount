@@ -105,7 +105,9 @@ export class TransactionEditModalComponent implements OnInit {
     
     const parts = this.tagInput.split(':');
     const key = parts[0].trim();
-    const value = parts.length > 1 ? parts.slice(1).join(':').trim() : '';
+    const valueStr = parts.length > 1 ? parts.slice(1).join(':').trim() : '';
+    // Use empty string for value (not null) to match TagDTO structure
+    const value = valueStr;
     
     if (key) {
       this.tags.push({ key, value });
@@ -168,6 +170,7 @@ export class TransactionEditModalComponent implements OnInit {
           }))
         };
         
+        console.log('Creating transaction with request:', JSON.stringify(request, null, 2));
         await this.controller.createTransaction(request);
       } else {
         const request: UpdateTransactionRequest = {

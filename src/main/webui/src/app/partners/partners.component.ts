@@ -1,11 +1,13 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, OnInit, Signal, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ModelService } from '../model.service';
+import { Controller, PartnerDTO } from '../controller';
 
 interface PartnerInfo {
   partnerId: string;
   partnerName: string;
   transactionCount: number;
+  hasTransactions: boolean;
 }
 
 @Component({
@@ -17,37 +19,71 @@ interface PartnerInfo {
 })
 export class PartnersComponent implements OnInit {
   private modelService = inject(ModelService);
+  private controller = inject(Controller);
 
+  selectedJournalId: Signal<string | null> = this.modelService.selectedJournalId$;
   partners: PartnerInfo[] = [];
   sortColumn: 'partnerId' | 'partnerName' | 'transactionCount' = 'partnerName';
   sortDirection: 'asc' | 'desc' = 'asc';
+  loading = false;
+  error: string | null = null;
 
-  ngOnInit() {
-    this.loadPartners();
+  constructor() {
+    // React to changes in selected journal and transactions
+    effect(() => {
+      const journalId = this.selectedJournalId();
+      // Also track transactions to reload when they change
+      const transactions = this.modelService.transactions$();
+      
+      if (journalId) {
+        this.loadPartners();
+      } else {
+        this.partners = [];
+      }
+    });
   }
 
-  loadPartners() {
-    const transactions = this.modelService.transactions$();
-    
-    // Extract unique partners from transactions
-    const partnerMap = new Map<string, PartnerInfo>();
-    
-    for (const transaction of transactions) {
-      if (transaction.partnerId) {
-        if (!partnerMap.has(transaction.partnerId)) {
-          partnerMap.set(transaction.partnerId, {
-            partnerId: transaction.partnerId,
-            partnerName: transaction.partnerName || transaction.partnerId,
-            transactionCount: 0
-          });
+  ngOnInit() {
+    // Partners will be loaded by the effect when journal is available
+  }
+
+  async loadPartners() {
+    this.loading = true;
+    this.error = null;
+
+    try {
+      // Load all partners from backend
+      const allPartners = await this.controller.searchPartners('');
+      
+      // Get transaction counts from loaded transactions
+      const transactions = this.modelService.transactions$();
+      const transactionCountMap = new Map<string, number>();
+      
+      for (const transaction of transactions) {
+        if (transaction.partnerId) {
+          transactionCountMap.set(
+            transaction.partnerId,
+            (transactionCountMap.get(transaction.partnerId) || 0) + 1
+          );
         }
-        const partner = partnerMap.get(transaction.partnerId)!;
-        partner.transactionCount++;
       }
+      
+      // Combine partner data with transaction counts
+      this.partners = allPartners.map(partner => ({
+        partnerId: partner.partnerNumber,
+        partnerName: partner.name,
+        transactionCount: transactionCountMap.get(partner.partnerNumber) || 0,
+        hasTransactions: transactionCountMap.has(partner.partnerNumber)
+      }));
+      
+      this.sortPartners();
+    } catch (err) {
+      console.error('Failed to load partners:', err);
+      this.error = 'Failed to load partners';
+      this.partners = [];
+    } finally {
+      this.loading = false;
     }
-    
-    this.partners = Array.from(partnerMap.values());
-    this.sortPartners();
   }
 
   onColumnSort(column: 'partnerId' | 'partnerName' | 'transactionCount') {

@@ -32,6 +32,7 @@ export interface EntryDTO {
 
 export interface JournalMetadataDTO {
   id: string;
+  logo: string | null;
   title: string;
   subtitle: string | null;
   currency: string;

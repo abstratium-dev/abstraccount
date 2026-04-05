@@ -88,6 +88,11 @@ test.describe('Opening Balances Transaction', () => {
     // Add tag "OpeningBalances"
     await transactionsPage.addTag(page, 'OpeningBalances');
     
+    // Verify the tag is visible in the modal (within the badge-list)
+    const tagBadge = page.locator('.badge-list .badge:has-text("OpeningBalances")');
+    await expect(tagBadge).toBeVisible({ timeout: 2000 });
+    console.log('✓ Tag "OpeningBalances" is visible in the modal');
+    
     console.log('Transaction details filled');
     
     // ========================================================================
@@ -196,10 +201,34 @@ test.describe('Opening Balances Transaction', () => {
     // Try to verify the tag is displayed (it may be in a sub-row)
     const tagVisible = await page.locator('.badge:has-text("OpeningBalances")').isVisible({ timeout: 2000 }).catch(() => false);
     if (tagVisible) {
-      console.log('✓ Transaction tag verified');
+      console.log('✓ Transaction tag verified in list view');
     } else {
       console.log('ℹ Tag not immediately visible in list view (may be in collapsed sub-row)');
     }
+    
+    // ========================================================================
+    // Step 10: Verify tag is persisted by re-opening the transaction
+    // ========================================================================
+    console.log('--- Step 10: Verifying Tag Persistence ---');
+    
+    // Find the transaction row and click the context menu button (use .last() to get the most recently created)
+    const transactionRow = page.locator('tr.transaction-row:has-text("Opening Balances")').last();
+    const contextMenuButton = transactionRow.locator('button.context-menu-trigger');
+    await contextMenuButton.click();
+    console.log('Context menu opened');
+    
+    // Click the Edit button in the context menu
+    await page.click('button.context-menu-item:has-text("Edit")');
+    await transactionsPage.waitForTransactionModal(page);
+    console.log('Transaction modal opened for editing');
+    
+    // Verify the tag is present in the modal (within the badge-list)
+    const tagBadgeAfterSave = page.locator('.badge-list .badge:has-text("OpeningBalances")');
+    await expect(tagBadgeAfterSave).toBeVisible({ timeout: 2000 });
+    console.log('✓ Tag "OpeningBalances" is persisted in the database');
+    
+    // Close the modal
+    await page.click('button:has-text("Cancel")');
     
     console.log('=== Test 2 Complete: Opening Balances Transaction Created Successfully ===');
   });

@@ -265,6 +265,7 @@ public class JournalResource {
         return journals.stream()
             .map(j -> new JournalDTO(
                 j.getId(),
+                j.getLogo(),
                 j.getTitle(),
                 j.getSubtitle(),
                 j.getCurrency(),
@@ -289,6 +290,7 @@ public class JournalResource {
         
         return new JournalDTO(
             journal.getId(),
+            journal.getLogo(),
             journal.getTitle(),
             journal.getSubtitle(),
             journal.getCurrency(),
@@ -369,6 +371,7 @@ public class JournalResource {
             
             return new JournalDTO(
                 savedJournal.getId(),
+                savedJournal.getLogo(),
                 savedJournal.getTitle(),
                 savedJournal.getSubtitle(),
                 savedJournal.getCurrency(),

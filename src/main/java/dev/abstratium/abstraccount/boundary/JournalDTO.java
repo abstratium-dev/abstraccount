@@ -7,6 +7,7 @@ import java.util.Map;
  */
 public record JournalDTO(
     String id,
+    String logo,
     String title,
     String subtitle,
     String currency,

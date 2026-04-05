@@ -40,7 +40,7 @@ describe('JournalComponent', () => {
 
   it('should load journals on init', async () => {
     const mockJournals = [
-      { id: '1', title: 'Journal 1', subtitle: null, currency: 'CHF', commodities: {} }
+      { id: '1', title: 'Journal 1', subtitle: null, currency: 'CHF', commodities: {}, logo: null }
     ];
     controller.listJournals.and.returnValue(Promise.resolve(mockJournals));
 
@@ -56,7 +56,7 @@ describe('JournalComponent', () => {
     controller.getTags.and.returnValue(Promise.resolve(mockTags));
     controller.getTransactions.and.returnValue(Promise.resolve(mockTransactions));
 
-    component.selectedJournal = { id: '1', title: 'Journal 1', subtitle: null, currency: 'CHF', commodities: {} };
+    component.selectedJournal = { id: '1', title: 'Journal 1', subtitle: null, currency: 'CHF', commodities: {}, logo: null };
     await component.loadTags();
     await component.loadEntries();
     await fixture.whenStable();
@@ -81,7 +81,7 @@ describe('JournalComponent', () => {
     ];
     controller.getTransactions.and.returnValue(Promise.resolve(mockTransactions));
 
-    component.selectedJournal = { id: '1', title: 'Journal 1', subtitle: null, currency: 'CHF', commodities: {} };
+    component.selectedJournal = { id: '1', title: 'Journal 1', subtitle: null, currency: 'CHF', commodities: {}, logo: null };
     await component.loadEntries();
     await fixture.whenStable();
 
@@ -93,7 +93,7 @@ describe('JournalComponent', () => {
     const mockTransactions: any[] = [];
     controller.getTransactions.and.returnValue(Promise.resolve(mockTransactions));
 
-    component.selectedJournal = { id: '1', title: 'Journal 1', subtitle: null, currency: 'CHF', commodities: {} };
+    component.selectedJournal = { id: '1', title: 'Journal 1', subtitle: null, currency: 'CHF', commodities: {}, logo: null };
     const filterString = 'begin:20240101 end:20241231 invoice';
 
     component.onFilterChange(filterString);
@@ -107,7 +107,7 @@ describe('JournalComponent', () => {
     const mockTransactions: any[] = [];
     controller.getTransactions.and.returnValue(Promise.resolve(mockTransactions));
 
-    component.selectedJournal = { id: '1', title: 'Journal 1', subtitle: null, currency: 'CHF', commodities: {} };
+    component.selectedJournal = { id: '1', title: 'Journal 1', subtitle: null, currency: 'CHF', commodities: {}, logo: null };
     component.onFilterChange('');
     await fixture.whenStable();
 
@@ -118,7 +118,7 @@ describe('JournalComponent', () => {
   it('should handle errors when loading tags', async () => {
     controller.getTags.and.returnValue(Promise.reject(new Error('Network error')));
 
-    component.selectedJournal = { id: '1', title: 'Journal 1', subtitle: null, currency: 'CHF', commodities: {} };
+    component.selectedJournal = { id: '1', title: 'Journal 1', subtitle: null, currency: 'CHF', commodities: {}, logo: null };
     await component.loadTags();
     await fixture.whenStable();
 
@@ -128,11 +128,30 @@ describe('JournalComponent', () => {
   it('should handle errors when loading transactions', async () => {
     controller.getTransactions.and.returnValue(Promise.reject(new Error('Network error')));
 
-    component.selectedJournal = { id: '1', title: 'Journal 1', subtitle: null, currency: 'CHF', commodities: {} };
+    component.selectedJournal = { id: '1', title: 'Journal 1', subtitle: null, currency: 'CHF', commodities: {}, logo: null };
     await component.loadEntries();
     await fixture.whenStable();
 
     expect(component.error).toContain('Failed to load transactions');
     expect(component.loading).toBe(false);
+  });
+
+  it('should react to journal changes via effect', async () => {
+    const mockTags = [{ key: 'invoice', value: '1234' }];
+    const mockTransactions: any[] = [];
+    controller.getTags.and.returnValue(Promise.resolve(mockTags));
+    controller.getTransactions.and.returnValue(Promise.resolve(mockTransactions));
+
+    // Simulate journal change by setting selectedJournal
+    component.selectedJournal = { id: '1', title: 'Journal 1', subtitle: null, currency: 'CHF', commodities: {}, logo: null };
+    
+    await component.loadTags();
+    await component.loadEntries();
+    await fixture.whenStable();
+
+    expect(controller.getTags).toHaveBeenCalledWith('1');
+    expect(controller.getTransactions).toHaveBeenCalled();
+    expect(component.tags).toEqual(mockTags);
+    expect(component.transactions).toEqual(mockTransactions);
   });
 });
