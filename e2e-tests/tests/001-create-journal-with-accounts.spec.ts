@@ -120,7 +120,7 @@ test.describe('Journal and Account Management', () => {
       page,
       'Cash and cash equivalents',
       '1000 Cash',
-      'ASSET'
+      'CASH'
     );
     await accountsPage.verifyAccountExists(page, '1000');
     
@@ -129,7 +129,7 @@ test.describe('Journal and Account Management', () => {
       page,
       'Cash and cash equivalents',
       '1020 Bank Account',
-      'ASSET'
+      'CASH'
     );
     await accountsPage.verifyAccountExists(page, '1020');
     

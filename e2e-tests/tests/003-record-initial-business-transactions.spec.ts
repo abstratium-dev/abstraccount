@@ -4,6 +4,7 @@ import * as authSignInPage from '../pages/auth-signin.page';
 import * as authApprovalPage from '../pages/auth-approval.page';
 import * as headerPage from '../pages/header.page';
 import * as transactionsPage from '../pages/transactions.page';
+import * as reportsPage from '../pages/reports.page';
 import { TEST_JOURNAL_NAME, TEST_USER_EMAIL, TEST_USER_PASSWORD } from './test-constants';
 
 /**
@@ -354,14 +355,12 @@ test.describe('Initial Business Transactions', () => {
     console.log('=== All Account Balances Verified Successfully ===');
   });
 
-  test('should verify balance sheet is correct', async ({ page }) => {
+  test('should verify Balance Sheet report is correct', async ({ page }) => {
     test.setTimeout(120_000);
     console.log('=== Starting Balance Sheet Verification ===');
     
-    // Navigate to the application
+    // Navigate and authenticate
     await page.goto('/');
-    
-    // Check if we need to sign in
     const journalSelector = page.locator('#journal-select');
     const isSignedIn = await journalSelector.isVisible({ timeout: 2000 }).catch(() => false);
     
@@ -378,83 +377,54 @@ test.describe('Initial Business Transactions', () => {
     }
     
     await headerPage.waitForHeader(page);
-    
-    // Select the journal
     await headerPage.selectJournal(page, TEST_JOURNAL_NAME);
     
     // Navigate to reports page
     console.log('--- Navigating to Reports Page ---');
     await page.click('a#reports');
-    await page.waitForLoadState('networkidle');
+    await reportsPage.waitForReportsPage(page);
     
-    // Select Balance Sheet report
-    console.log('--- Selecting Balance Sheet Report ---');
-    await page.waitForSelector('select#template-select', { state: 'visible' });
+    // Select and generate Balance Sheet report
+    await reportsPage.selectReportTemplate(page, 'Balance Sheet');
+    await reportsPage.generateReport(page);
     
-    // Get all options and find the Balance Sheet one
-    const options = await page.locator('select#template-select option').allTextContents();
-    console.log('Available report templates:', options);
+    // Verify report structure and values
+    console.log('--- Verifying Balance Sheet ---');
     
-    // Find the Balance Sheet option (trim spaces)
-    const balanceSheetLabel = options.find(opt => opt.trim().match(/Balance.*Sheet/i));
-    if (!balanceSheetLabel) {
-      throw new Error('Balance Sheet report template not found');
-    }
+    // Expected values based on transactions:
+    // Assets: 1020 Bank = 1,985.00
+    // Liabilities: 2210.001 John Smith = 38.50
+    // Equity: 2800 Share Capital = 2,000.00
+    // Net Loss: 53.50 (expenses: 38.50 + 15.00)
+    // Total L+E: 38.50 + 2,000.00 - 53.50 = 1,985.00 (must equal Total Assets)
     
-    // Select by visible text (use trimmed version)
-    await page.selectOption('select#template-select', { label: balanceSheetLabel.trim() });
-    await page.waitForLoadState('networkidle');
+    await reportsPage.verifySectionExists(page, 'Cash and Cash Equivalents');
+    await reportsPage.verifyAccountBalance(page, '1020', '1,985.00');
     
-    // Click Generate Report button
-    await page.click('button:has-text("Generate Report")');
-    await page.waitForLoadState('networkidle');
+    await reportsPage.verifySectionExists(page, 'Liabilities');
+    await reportsPage.verifyAccountBalance(page, '2210.001', '38.50');
     
-    // Verify key balance sheet items
-    console.log('--- Verifying Balance Sheet Items ---');
+    await reportsPage.verifySectionExists(page, 'Equity');
+    await reportsPage.verifyAccountBalance(page, '2800', '2,000.00');
     
-    // Wait for report content to appear
-    await page.waitForSelector('.report-output', { state: 'visible', timeout: 10000 });
+    await reportsPage.verifyReportMatches(page, /Net.*Loss.*53\.50\s*CHF/, 'Net Loss');
     
-    const pageContent = await page.content();
-    console.log('Balance sheet report generated');
+    // Verify the balance sheet balances
+    await reportsPage.verifyBalanceSheetBalances(page, '1,985.00');
     
-    // Check for the presence of key account numbers and amounts
-    const checks = [
-      { name: 'Cash account (1000)', pattern: /1000/},
-      { name: 'Bank Account (1020)', pattern: /1020/ },
-      { name: 'Accounts payable (2000)', pattern: /2000/ },
-      { name: 'John Smith liability (2210.001)', pattern: /2210\.001/ },
-      { name: 'Share capital (2800)', pattern: /2800/ },
-      { name: 'Bank balance 1,985', pattern: /1[,\s]?985/ },
-      { name: 'Share capital 2,000', pattern: /2[,\s]?000/ }
-    ];
+    // Verify no negative signs in Liabilities section (sign inversion bug check)
+    await reportsPage.verifyNoNegativeValues(page, 'Liabilities');
     
-    let allChecksPass = true;
-    for (const check of checks) {
-      if (check.pattern.test(pageContent)) {
-        console.log(`✓ Found: ${check.name}`);
-      } else {
-        console.warn(`⚠ Not found: ${check.name}`);
-        allChecksPass = false;
-      }
-    }
-    
-    if (!allChecksPass) {
-      console.warn('Some balance sheet items were not found, but continuing...');
-    }
-    
-    console.log('✓ Balance Sheet verified successfully');
+    console.log('✓ Balance Sheet verified successfully!');
     console.log('=== Balance Sheet Verification Complete ===');
   });
 
-  test('should verify income statement is correct', async ({ page }) => {
+  test('should verify Income Statement report is correct', async ({ page }) => {
     test.setTimeout(120_000);
     console.log('=== Starting Income Statement Verification ===');
     
-    // Navigate to the application
+    // Navigate and authenticate
     await page.goto('/');
-    
-    // Check if we need to sign in
     const journalSelector = page.locator('#journal-select');
     const isSignedIn = await journalSelector.isVisible({ timeout: 2000 }).catch(() => false);
     
@@ -471,56 +441,296 @@ test.describe('Initial Business Transactions', () => {
     }
     
     await headerPage.waitForHeader(page);
-    
-    // Select the journal
     await headerPage.selectJournal(page, TEST_JOURNAL_NAME);
     
     // Navigate to reports page
     console.log('--- Navigating to Reports Page ---');
     await page.click('a#reports');
-    await page.waitForLoadState('networkidle');
+    await reportsPage.waitForReportsPage(page);
     
-    // Select Income Statement report
-    console.log('--- Selecting Income Statement Report ---');
-    await page.waitForSelector('select#template-select', { state: 'visible' });
+    // Select and generate Income Statement report
+    await reportsPage.selectReportTemplate(page, 'Income Statement');
+    await reportsPage.generateReport(page);
     
-    // Get all options and find the Income Statement one
-    const options = await page.locator('select#template-select option').allTextContents();
-    console.log('Available report templates:', options);
+    // Verify report structure and values
+    console.log('--- Verifying Income Statement ---');
     
-    // Find the Income Statement option (trim spaces)
-    const incomeStatementLabel = options.find(opt => opt.trim().match(/Income.*Statement/i));
-    if (!incomeStatementLabel) {
-      throw new Error('Income Statement report template not found');
-    }
+    // Expected: No revenue, Expenses: 6570 (38.50) + 6900 (15.00) = 53.50 total
+    await reportsPage.verifySectionExists(page, 'Expenses');
+    await reportsPage.verifyAccountBalance(page, '6570', '38.50');
+    await reportsPage.verifyAccountBalance(page, '6900', '15.00');
     
-    // Select by visible text (use trimmed version)
-    await page.selectOption('select#template-select', { label: incomeStatementLabel.trim() });
-    await page.waitForLoadState('networkidle');
+    // Verify Net Loss (no revenue, so expenses = net loss)
+    await reportsPage.verifyReportMatches(page, /Net.*Loss.*53\.50\s*CHF/, 'Net Loss of 53.50');
     
-    // Click Generate Report button
-    await page.click('button:has-text("Generate Report")');
-    await page.waitForLoadState('networkidle');
-    
-    // Verify key income statement items
-    console.log('--- Verifying Income Statement Items ---');
-    
-    // Expenses
-    await page.locator('text=6570').waitFor({ state: 'visible' });
-    await page.locator('text=6900 Financial expense').waitFor({ state: 'visible' });
-    
-    const pageContent = await page.content();
-    console.log('Income statement loaded successfully');
-    
-    // Check for the presence of expense amounts
-    if (!pageContent.includes('38.50') && !pageContent.includes('38,50')) {
-      console.warn('Warning: IT expenses 38.50 not found in income statement');
-    }
-    if (!pageContent.includes('15.00') && !pageContent.includes('15,00')) {
-      console.warn('Warning: Financial expense 15.00 not found in income statement');
-    }
-    
-    console.log('✓ Income Statement verified successfully');
+    console.log('✓ Income Statement verified successfully!');
     console.log('=== Income Statement Verification Complete ===');
+  });
+
+  test('should verify Swiss Balance Sheet (Bilan) report is correct', async ({ page }) => {
+    test.setTimeout(120_000);
+    console.log('=== Starting Swiss Balance Sheet (Bilan) Verification ===');
+    
+    // Navigate and authenticate
+    await page.goto('/');
+    const journalSelector = page.locator('#journal-select');
+    const isSignedIn = await journalSelector.isVisible({ timeout: 2000 }).catch(() => false);
+    
+    if (!isSignedIn) {
+      console.log('Not signed in, performing authentication...');
+      await signedOutPage.waitForSignedOutPage(page);
+      await signedOutPage.clickSignIn(page);
+      await authSignInPage.waitForAuthSignInPage(page);
+      await authSignInPage.signIn(page, TEST_USER_EMAIL, TEST_USER_PASSWORD);
+      await authApprovalPage.waitForAuthApprovalPage(page);
+      await authApprovalPage.approveApplication(page, true);
+      await page.waitForURL(/http:\/\/localhost:8083/, { timeout: 10000 });
+      console.log('Authentication complete');
+    }
+    
+    await headerPage.waitForHeader(page);
+    await headerPage.selectJournal(page, TEST_JOURNAL_NAME);
+    
+    // Navigate to reports page
+    console.log('--- Navigating to Reports Page ---');
+    await page.click('a#reports');
+    await reportsPage.waitForReportsPage(page);
+    
+    // Select and generate Swiss Balance Sheet report
+    await reportsPage.selectReportTemplate(page, 'Swiss Balance Sheet');
+    await reportsPage.generateReport(page);
+    
+    // Verify report structure and all values
+    console.log('--- Verifying Swiss Balance Sheet ---');
+    
+    // Verify key sections exist
+    await reportsPage.verifySectionExists(page, 'Assets');
+    await reportsPage.verifySectionExists(page, 'Liabilities');
+    await reportsPage.verifySectionExists(page, 'Equity');
+    
+    // Verify all account balances
+    await reportsPage.verifyAccountBalance(page, '1020', '1,985.00'); // Bank account
+    await reportsPage.verifyAccountBalance(page, '2210.001', '38.50'); // John Smith liability
+    await reportsPage.verifyAccountBalance(page, '2800', '2,000.00'); // Share capital
+    
+    // Swiss Balance Sheet includes net income in equity, not as separate line
+    // So we just verify the accounts and that it balances
+    
+    // Verify no negative signs in liability and equity sections (sign inversion check)
+    await reportsPage.verifyNoNegativeValues(page, 'Liabilities');
+    await reportsPage.verifyNoNegativeValues(page, 'Equity');
+    
+    // Verify the balance sheet balances (Assets = Liabilities + Equity)
+    await reportsPage.verifyBalanceSheetBalances(page, '1,985.00');
+    
+    console.log('✓ Swiss Balance Sheet verified successfully!');
+    console.log('=== Swiss Balance Sheet Verification Complete ===');
+  });
+
+  test('should verify Swiss Income Statement (Compte de résultat) report is correct', async ({ page }) => {
+    test.setTimeout(120_000);
+    console.log('=== Starting Swiss Income Statement Verification ===');
+    
+    // Navigate and authenticate
+    await page.goto('/');
+    const journalSelector = page.locator('#journal-select');
+    const isSignedIn = await journalSelector.isVisible({ timeout: 2000 }).catch(() => false);
+    
+    if (!isSignedIn) {
+      console.log('Not signed in, performing authentication...');
+      await signedOutPage.waitForSignedOutPage(page);
+      await signedOutPage.clickSignIn(page);
+      await authSignInPage.waitForAuthSignInPage(page);
+      await authSignInPage.signIn(page, TEST_USER_EMAIL, TEST_USER_PASSWORD);
+      await authApprovalPage.waitForAuthApprovalPage(page);
+      await authApprovalPage.approveApplication(page, true);
+      await page.waitForURL(/http:\/\/localhost:8083/, { timeout: 10000 });
+      console.log('Authentication complete');
+    }
+    
+    await headerPage.waitForHeader(page);
+    await headerPage.selectJournal(page, TEST_JOURNAL_NAME);
+    
+    // Navigate to reports page
+    console.log('--- Navigating to Reports Page ---');
+    await page.click('a#reports');
+    await reportsPage.waitForReportsPage(page);
+    
+    // Select and generate Swiss Income Statement report
+    await reportsPage.selectReportTemplate(page, 'Compte de résultat');
+    await reportsPage.generateReport(page);
+    
+    // Verify report structure and all values
+    console.log('--- Verifying Swiss Income Statement ---');
+    
+    // Verify main sections exist
+    await reportsPage.verifySectionExists(page, 'Revenue');
+    await reportsPage.verifySectionExists(page, 'Expenses');
+    
+    // Swiss Income Statement groups expenses by category (4xxx, 5xxx, 6xxx)
+    // It shows subtotals per category with specific labels based on KMU-Kontenplan
+    
+    // Verify the report contains expense data and net income
+    const content = await reportsPage.getReportContent(page);
+    
+    // Check that expenses section has data (should show 53.50 total)
+    if (!content.includes('Expenses')) {
+      throw new Error('Expenses section not found in Swiss Income Statement');
+    }
+    console.log('✓ Expenses section found');
+    
+    // Verify Net Income appears with the correct amount (53.50)
+    const hasNetIncome = content.includes('Net Income') || content.includes('Net Loss');
+    const hasAmount = content.includes('53.50') || content.includes('53,50');
+    
+    if (!hasNetIncome) {
+      throw new Error('Net Income/Loss label not found in Swiss Income Statement');
+    }
+    if (!hasAmount) {
+      throw new Error('Amount 53.50 CHF not found in Swiss Income Statement');
+    }
+    console.log('✓ Net Income/Loss: 53.50 CHF verified');
+    
+    console.log('✓ Swiss Income Statement verified with all values');
+    
+    console.log('✓ Swiss Income Statement verified successfully!');
+    console.log('=== Swiss Income Statement Verification Complete ===');
+  });
+
+  test('should verify Trial Balance report is correct', async ({ page }) => {
+    test.setTimeout(120_000);
+    console.log('=== Starting Trial Balance Verification ===');
+    
+    // Navigate and authenticate
+    await page.goto('/');
+    const journalSelector = page.locator('#journal-select');
+    const isSignedIn = await journalSelector.isVisible({ timeout: 2000 }).catch(() => false);
+    
+    if (!isSignedIn) {
+      console.log('Not signed in, performing authentication...');
+      await signedOutPage.waitForSignedOutPage(page);
+      await signedOutPage.clickSignIn(page);
+      await authSignInPage.waitForAuthSignInPage(page);
+      await authSignInPage.signIn(page, TEST_USER_EMAIL, TEST_USER_PASSWORD);
+      await authApprovalPage.waitForAuthApprovalPage(page);
+      await authApprovalPage.approveApplication(page, true);
+      await page.waitForURL(/http:\/\/localhost:8083/, { timeout: 10000 });
+      console.log('Authentication complete');
+    }
+    
+    await headerPage.waitForHeader(page);
+    await headerPage.selectJournal(page, TEST_JOURNAL_NAME);
+    
+    // Navigate to reports page
+    console.log('--- Navigating to Reports Page ---');
+    await page.click('a#reports');
+    await reportsPage.waitForReportsPage(page);
+    
+    // Select and generate Trial Balance report
+    await reportsPage.selectReportTemplate(page, 'Trial Balance');
+    await reportsPage.generateReport(page);
+    
+    // Verify report structure and values
+    console.log('--- Verifying Trial Balance ---');
+    
+    // Trial balance should show all accounts with debits and credits
+    await reportsPage.verifySectionExists(page, 'Cash');
+    await reportsPage.verifySectionExists(page, 'Assets');
+    await reportsPage.verifySectionExists(page, 'Liabilities');
+    await reportsPage.verifySectionExists(page, 'Equity');
+    await reportsPage.verifySectionExists(page, 'Expenses');
+    
+    // Verify key accounts with their debit/credit balances
+    // Account 1020: Debit 2000, Credit 15 = Net Debit 1,985.00
+    await reportsPage.verifyReportContains(page, '1020', 'Bank Account');
+    await reportsPage.verifyReportContains(page, '1,985.00', 'Bank balance');
+    
+    // Account 2210.001: Credit 38.50
+    await reportsPage.verifyReportContains(page, '2210.001', 'John Smith liability');
+    await reportsPage.verifyReportContains(page, '38.50', 'John Smith balance');
+    
+    // Account 2800: Credit 2,000.00
+    await reportsPage.verifyReportContains(page, '2800', 'Share Capital');
+    await reportsPage.verifyReportContains(page, '2,000.00', 'Share Capital balance');
+    
+    // Account 6570: Debit 38.50 (34.30 + 4.20)
+    await reportsPage.verifyReportContains(page, '6570', 'IT expenses');
+    await reportsPage.verifyReportContains(page, '38.50', 'IT expenses balance');
+    
+    // Account 6900: Debit 15.00
+    await reportsPage.verifyReportContains(page, '6900', 'Financial expense');
+    await reportsPage.verifyReportContains(page, '15.00', 'Financial expense balance');
+    
+    console.log('✓ Trial Balance verified successfully!');
+    console.log('=== Trial Balance Verification Complete ===');
+  });
+
+  test('should verify Partner Activity Report is correct', async ({ page }) => {
+    test.setTimeout(120_000);
+    console.log('=== Starting Partner Activity Report Verification ===');
+    
+    // Navigate and authenticate
+    await page.goto('/');
+    const journalSelector = page.locator('#journal-select');
+    const isSignedIn = await journalSelector.isVisible({ timeout: 2000 }).catch(() => false);
+    
+    if (!isSignedIn) {
+      console.log('Not signed in, performing authentication...');
+      await signedOutPage.waitForSignedOutPage(page);
+      await signedOutPage.clickSignIn(page);
+      await authSignInPage.waitForAuthSignInPage(page);
+      await authSignInPage.signIn(page, TEST_USER_EMAIL, TEST_USER_PASSWORD);
+      await authApprovalPage.waitForAuthApprovalPage(page);
+      await authApprovalPage.approveApplication(page, true);
+      await page.waitForURL(/http:\/\/localhost:8083/, { timeout: 10000 });
+      console.log('Authentication complete');
+    }
+    
+    await headerPage.waitForHeader(page);
+    await headerPage.selectJournal(page, TEST_JOURNAL_NAME);
+    
+    // Navigate to reports page
+    console.log('--- Navigating to Reports Page ---');
+    await page.click('a#reports');
+    await reportsPage.waitForReportsPage(page);
+    
+    // Select and generate Partner Activity Report
+    await reportsPage.selectReportTemplate(page, 'Partner Activity');
+    await reportsPage.generateReport(page);
+    
+    // Verify report structure and all partner values
+    console.log('--- Verifying Partner Activity Report ---');
+    
+    // Verify the report shows column headers
+    await reportsPage.verifyReportContains(page, 'Income', 'Income column');
+    await reportsPage.verifyReportContains(page, 'Expenses', 'Expenses column');
+    await reportsPage.verifyReportContains(page, 'Net', 'Net column');
+    
+    // Verify key expense amounts appear in the report
+    // Partner Activity Report shows income and expenses, not equity transactions
+    // P00000002 - Startup Help GmbH: Expenses 34.30
+    await reportsPage.verifyReportContains(page, '34.30', 'Startup Help expense');
+    
+    // P00000003 - Swiss Post: Expenses 4.20
+    await reportsPage.verifyReportContains(page, '4.20', 'Swiss Post expense');
+    
+    // P00000004 - PostFinance: Expenses 15.00
+    await reportsPage.verifyReportContains(page, '15.00', 'PostFinance expense');
+    
+    // Verify total expenses appear (sum of all partner expenses)
+    await reportsPage.verifyReportContains(page, '53.50', 'Total expenses across all partners');
+    
+    // Verify at least some partner identifiers appear
+    const content = await reportsPage.getReportContent(page);
+    const hasPartnerData = content.includes('Smith') || content.includes('GmbH') || 
+                          content.includes('Post') || content.includes('Finance') ||
+                          content.includes('P00000');
+    if (!hasPartnerData) {
+      throw new Error('No partner identifiers found in Partner Activity Report');
+    }
+    console.log('✓ Partner data and all expense values verified');
+    
+    console.log('✓ Partner Activity Report verified successfully!');
+    console.log('=== Partner Activity Report Verification Complete ===');
   });
 });

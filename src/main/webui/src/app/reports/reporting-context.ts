@@ -101,7 +101,9 @@ export function createReportingContext(
 }
 
 /**
- * Groups entries by account and calculates summaries
+ * Groups entries by account and calculates summaries.
+ * Note: This function does NOT apply sign inversion - that is handled at display time
+ * by the applyDisplaySign function in the component.
  */
 export function groupEntriesByAccount(
   entries: AccountEntryDTO[],
@@ -144,18 +146,14 @@ export function groupEntriesByAccount(
       }
     });
     
-    // Apply sign inversion if requested
-    const finalBalance = invertSign ? -balance : balance;
-    const finalDebit = invertSign ? credit : debit;
-    const finalCredit = invertSign ? debit : credit;
-    
+    // Store raw values - sign inversion is applied at display time
     summaries.push({
       accountId,
       accountName: account.name,
       accountType: account.type,
-      balance: finalBalance,
-      debit: finalDebit,
-      credit: finalCredit
+      balance: balance,
+      debit: debit,
+      credit: credit
     });
   });
   
