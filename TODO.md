@@ -9,8 +9,10 @@ These TODOs are to be resolved by the developer, NOT THE LLM.
 
 ## Today
 
-- add, edit, delete accounts
-
+- add more links
+  - each tag that is displayed should link to the journal with a filter
+  - each partner that is displayed should link to the journal with a filter
+  - each day that is displayed should link to the journal with a filter
 - make backend calculate running total, so that other services could profit from that logic.
   - remove that logic from the ui
 - accounts
@@ -28,6 +30,9 @@ These TODOs are to be resolved by the developer, NOT THE LLM.
   - trial balance still shows no revenue, even for 2026
   - the id of the selected report should be in the url so it can be shared and bookmarked
   - the reports page should listen to changes in the selected journal and if it changes, call "generate report"
+
+- printing
+  - journal page should make it clearer what each transaction is, and not print the header, but add a date/time field
 
 - Inputs based on macros
 

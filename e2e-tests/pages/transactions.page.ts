@@ -1,0 +1,271 @@
+import { Page, expect } from '@playwright/test';
+
+/**
+ * Page Object Model for the Transactions/Journal page
+ */
+
+/**
+ * Wait for the journal/transactions page to load
+ */
+export async function waitForJournalPage(page: Page): Promise<void> {
+  console.log('Waiting for journal page to load...');
+  await page.waitForSelector('h1:has-text("Journal Viewer")', { timeout: 10000 });
+  console.log('Journal page loaded');
+}
+
+/**
+ * Click the "Add Transaction" button to open the transaction modal
+ */
+export async function clickAddTransaction(page: Page): Promise<void> {
+  console.log('Clicking Add Transaction button...');
+  await page.click('button:has-text("Add Transaction")');
+  await waitForTransactionModal(page);
+  console.log('Transaction modal opened');
+}
+
+/**
+ * Wait for the transaction edit modal to be visible
+ */
+export async function waitForTransactionModal(page: Page): Promise<void> {
+  console.log('Waiting for transaction modal...');
+  // Wait for the modal overlay to be visible (the modal uses a .modal-overlay wrapper)
+  await page.waitForSelector('.modal-overlay', { state: 'visible', timeout: 10000 });
+  await page.waitForSelector('h2:has-text("Transaction")', { timeout: 5000 });
+  console.log('Transaction modal visible');
+}
+
+/**
+ * Fill in the transaction date field
+ */
+export async function fillTransactionDate(page: Page, date: string): Promise<void> {
+  console.log(`Filling transaction date: ${date}`);
+  await page.fill('input[name="date"]', date);
+}
+
+/**
+ * Fill in the transaction description field
+ */
+export async function fillTransactionDescription(page: Page, description: string): Promise<void> {
+  console.log(`Filling transaction description: ${description}`);
+  await page.fill('input[name="description"]', description);
+}
+
+/**
+ * Set the transaction status
+ */
+export async function setTransactionStatus(page: Page, status: string): Promise<void> {
+  console.log(`Setting transaction status: ${status}`);
+  await page.selectOption('select[name="status"]', status);
+}
+
+/**
+ * Add a tag to the transaction by typing in the tag input and clicking Add Tag
+ */
+export async function addTag(page: Page, tag: string): Promise<void> {
+  console.log(`Adding tag: ${tag}`);
+  // Find the tag input field - it's the autocomplete input with placeholder "key:value or key"
+  const tagInput = page.locator('abs-autocomplete[name="tagInput"] input.autocomplete-input');
+  await tagInput.fill(tag);
+  // Click the Add Tag button
+  await page.click('button:has-text("Add Tag")');
+  // Wait a moment for the tag to be added
+  await page.waitForTimeout(500);
+  console.log(`Tag "${tag}" added`);
+}
+
+/**
+ * Click the "Add Entry" button to add a new entry to the transaction
+ */
+export async function clickAddEntry(page: Page): Promise<void> {
+  console.log('Clicking Add Entry button...');
+  await page.click('button:has-text("Add Entry")');
+  // Wait a moment for the entry to be added to the DOM
+  await page.waitForTimeout(200);
+  console.log('Entry added');
+}
+
+/**
+ * Fill in an entry's account by searching for the account number
+ * @param page - Playwright page object
+ * @param entryIndex - 0-based index of the entry
+ * @param accountNumber - Account number to search for (e.g., "1000", "2800")
+ */
+export async function fillEntryAccount(page: Page, entryIndex: number, accountNumber: string): Promise<void> {
+  console.log(`Filling entry ${entryIndex + 1} account with: ${accountNumber}`);
+  
+  // Find the entry item first, then find the account autocomplete within it
+  const entryItem = page.locator('.entry-item').nth(entryIndex);
+  const accountInput = entryItem.locator('abs-autocomplete input.autocomplete-input').first();
+  
+  // Click to focus and trigger the dropdown
+  await accountInput.click();
+  
+  // Wait a moment for the dropdown to appear
+  await page.waitForTimeout(300);
+  
+  // Type the account number
+  await accountInput.fill(accountNumber);
+  
+  // Wait for autocomplete results to appear and debounce to complete
+  await page.waitForSelector('.dropdown .dropdown-item:not(.loading):not(.no-results):not(.hint)', { timeout: 10000 });
+  await page.waitForTimeout(500); // Wait for debounce to complete
+  
+  // Find the dropdown item that contains the exact account number followed by a space or colon
+  // This ensures we select "2800 Basic..." instead of "1 Assets" when searching for "2800"
+  // The regex ensures we match the account number as a complete token
+  const dropdownItems = page.locator('.dropdown .dropdown-item:not(.loading):not(.no-results):not(.hint)');
+  const count = await dropdownItems.count();
+  
+  let foundItem = null;
+  for (let i = 0; i < count; i++) {
+    const item = dropdownItems.nth(i);
+    const text = await item.textContent();
+    if (text) {
+      // Check if the text contains the account number followed by a space, colon, or is at the end
+      const regex = new RegExp(`(^|[>:\\s])${accountNumber.replace(/\./g, '\\.')}(\\s|:|$)`);
+      if (regex.test(text)) {
+        foundItem = item;
+        break;
+      }
+    }
+  }
+  
+  if (foundItem) {
+    await foundItem.click();
+  } else {
+    throw new Error(`Could not find dropdown item for account number: ${accountNumber}`);
+  }
+  
+  console.log(`Entry ${entryIndex + 1} account filled`);
+}
+
+/**
+ * Fill in an entry's amount
+ * @param page - Playwright page object
+ * @param entryIndex - 0-based index of the entry
+ * @param amount - Amount value (can be positive or negative)
+ */
+export async function fillEntryAmount(page: Page, entryIndex: number, amount: number): Promise<void> {
+  console.log(`Filling entry ${entryIndex + 1} amount: ${amount}`);
+  const entryItem = page.locator('.entry-item').nth(entryIndex);
+  const amountInput = entryItem.locator('input[type="number"]').first();
+  await amountInput.fill(amount.toString());
+}
+
+/**
+ * Fill in an entry's commodity
+ * @param page - Playwright page object
+ * @param entryIndex - 0-based index of the entry
+ * @param commodity - Commodity code (e.g., "CHF", "USD")
+ */
+export async function fillEntryCommodity(page: Page, entryIndex: number, commodity: string): Promise<void> {
+  console.log(`Filling entry ${entryIndex + 1} commodity: ${commodity}`);
+  const entryItem = page.locator('.entry-item').nth(entryIndex);
+  const commodityInput = entryItem.locator('input[type="text"]').first();
+  await commodityInput.fill(commodity);
+}
+
+/**
+ * Fill in an entry's note
+ * @param page - Playwright page object
+ * @param entryIndex - 0-based index of the entry
+ * @param note - Note text
+ */
+export async function fillEntryNote(page: Page, entryIndex: number, note: string): Promise<void> {
+  console.log(`Filling entry ${entryIndex + 1} note: ${note}`);
+  const entryItem = page.locator('.entry-item').nth(entryIndex);
+  const noteInput = entryItem.locator('input[placeholder="Optional"]');
+  await noteInput.fill(note);
+}
+
+/**
+ * Get the current balance displayed in the transaction form
+ */
+export async function getBalance(page: Page): Promise<string> {
+  const balanceText = await page.textContent('.balance-info strong');
+  return balanceText || '0.00';
+}
+
+/**
+ * Verify that the transaction is balanced
+ */
+export async function verifyBalanced(page: Page): Promise<void> {
+  console.log('Verifying transaction is balanced...');
+  await page.waitForSelector('.badge-success:has-text("Balanced")', { timeout: 5000 });
+  console.log('Transaction is balanced ✓');
+}
+
+/**
+ * Click the Save/Create button to save the transaction
+ */
+export async function saveTransaction(page: Page): Promise<void> {
+  console.log('Saving transaction...');
+  // The button text is "Create" for new transactions and "Save" for edits
+  const saveButton = page.locator('button:has-text("Create"), button:has-text("Save")').first();
+  await saveButton.click();
+  // Wait for the modal overlay to close
+  await page.waitForSelector('.modal-overlay', { state: 'hidden', timeout: 10000 });
+  console.log('Transaction saved successfully');
+}
+
+/**
+ * Click the Cancel button to close the modal without saving
+ */
+export async function cancelTransaction(page: Page): Promise<void> {
+  console.log('Cancelling transaction...');
+  await page.click('button:has-text("Cancel")');
+  await page.waitForSelector('app-transaction-edit-modal', { state: 'hidden', timeout: 5000 });
+  console.log('Transaction modal closed');
+}
+
+/**
+ * Verify that a transaction exists in the transactions list
+ * @param page - Playwright page object
+ * @param description - Transaction description to look for
+ */
+export async function verifyTransactionExists(page: Page, description: string): Promise<void> {
+  console.log(`Verifying transaction exists: ${description}`);
+  await page.waitForSelector(`td:has-text("${description}")`, { timeout: 5000 });
+  console.log(`Transaction "${description}" found in list`);
+}
+
+/**
+ * Count the number of entries in the current transaction form
+ */
+export async function countEntries(page: Page): Promise<number> {
+  const entries = await page.locator('.entry-item').count();
+  console.log(`Current number of entries: ${entries}`);
+  return entries;
+}
+
+/**
+ * Create a complete transaction entry
+ * Helper function that combines all entry-related actions
+ */
+export async function createEntry(
+  page: Page,
+  entryIndex: number,
+  accountNumber: string,
+  amount: number,
+  commodity: string = 'CHF',
+  note?: string
+): Promise<void> {
+  console.log(`Creating entry ${entryIndex + 1}: account=${accountNumber}, amount=${amount}, commodity=${commodity}`);
+  
+  await fillEntryAccount(page, entryIndex, accountNumber);
+  await fillEntryAmount(page, entryIndex, amount);
+  
+  // Only fill commodity if it's different from default
+  const entryItem = page.locator('.entry-item').nth(entryIndex);
+  const commodityInput = entryItem.locator('input[type="text"]').first();
+  const currentCommodity = await commodityInput.inputValue();
+  if (currentCommodity !== commodity) {
+    await fillEntryCommodity(page, entryIndex, commodity);
+  }
+  
+  if (note) {
+    await fillEntryNote(page, entryIndex, note);
+  }
+  
+  console.log(`Entry ${entryIndex + 1} created`);
+}

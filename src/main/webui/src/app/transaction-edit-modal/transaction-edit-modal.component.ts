@@ -301,20 +301,28 @@ export class TransactionEditModalComponent implements OnInit {
   /**
    * Fetch account options for autocomplete based on search term.
    * Flattens the account tree and filters using regex pattern matching.
+   * Prioritizes matches on account number.
    */
   fetchAccountOptions = async (searchTerm: string): Promise<AutocompleteOption[]> => {
     try {
       const accounts = this.modelService.getAccounts();
       
       // Flatten the account tree
-      const flatAccounts: Array<{ id: string; name: string; fullPath: string }> = [];
+      const flatAccounts: Array<{ id: string; name: string; number: string; fullPath: string }> = [];
       
       const flatten = (account: any, path: string[] = []) => {
         const currentPath = [...path, account.name];
         const fullPath = currentPath.join(' > ');
+        
+        // Extract account number (part before first space in account name)
+        const accountNumber = account.name.indexOf(' ') > 0 
+          ? account.name.substring(0, account.name.indexOf(' '))
+          : account.name;
+        
         flatAccounts.push({
           id: account.id,
           name: account.name,
+          number: accountNumber,
           fullPath: fullPath
         });
         
@@ -325,34 +333,45 @@ export class TransactionEditModalComponent implements OnInit {
       
       accounts.forEach(account => flatten(account));
       
-      // Build regex pattern
-      let pattern = searchTerm;
-      if (searchTerm) {
-        // Check if the search term contains regex metacharacters (excluding ^ and $ at start/end)
-        const hasRegexChars = /[.*+?{}()|[\]\\]/.test(searchTerm);
-        
-        if (!hasRegexChars && !searchTerm.startsWith('^') && !searchTerm.endsWith('$')) {
-          // Simple text search - add implicit wildcards and escape special chars
-          const escapedTerm = searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-          pattern = '.*' + escapedTerm + '.*';
-        }
-        // Otherwise, treat as regex pattern (user is using regex syntax)
-      }
-      
-      // Filter accounts using regex pattern
+      // Filter accounts
       let matchingAccounts = flatAccounts;
       if (searchTerm) {
-        try {
-          const regex = new RegExp(pattern, 'i');
+        const lowerSearch = searchTerm.toLowerCase();
+        
+        // Check if search term looks like a number (account number search)
+        const isNumericSearch = /^[\d.]+$/.test(searchTerm);
+        
+        if (isNumericSearch) {
+          // For numeric searches, prioritize exact account number matches
           matchingAccounts = flatAccounts.filter(account => 
-            regex.test(account.fullPath)
+            account.number.toLowerCase().startsWith(lowerSearch)
           );
-        } catch (e) {
-          // Invalid regex, fall back to simple substring match
-          const lowerSearch = searchTerm.toLowerCase();
-          matchingAccounts = flatAccounts.filter(account => 
-            account.fullPath.toLowerCase().includes(lowerSearch)
-          );
+        } else {
+          // For text searches, search in full path
+          // Check if the search term contains regex metacharacters
+          const hasRegexChars = /[.*+?{}()|[\]\\]/.test(searchTerm);
+          
+          if (!hasRegexChars && !searchTerm.startsWith('^') && !searchTerm.endsWith('$')) {
+            // Simple text search
+            matchingAccounts = flatAccounts.filter(account => 
+              account.fullPath.toLowerCase().includes(lowerSearch)
+            );
+          } else {
+            // Regex pattern search
+            try {
+              const escapedTerm = searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+              const pattern = '.*' + escapedTerm + '.*';
+              const regex = new RegExp(pattern, 'i');
+              matchingAccounts = flatAccounts.filter(account => 
+                regex.test(account.fullPath)
+              );
+            } catch (e) {
+              // Invalid regex, fall back to simple substring match
+              matchingAccounts = flatAccounts.filter(account => 
+                account.fullPath.toLowerCase().includes(lowerSearch)
+              );
+            }
+          }
         }
       }
       

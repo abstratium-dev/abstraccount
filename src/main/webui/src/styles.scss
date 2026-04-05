@@ -936,18 +936,26 @@ button {
       font-weight: 600;
       color: var(--color-text-muted);
       border-bottom: 2px solid var(--color-border-light);
+      border-left: none;
+      border-right: none;
+      border-top: none;
     }
   }
 
   tbody {
     tr {
-      border-bottom: 1px solid var(--color-border-light);
-
       &:hover {
         background: var(--color-bg-tertiary);
       }
 
-      &:last-child {
+      // Remove default borders from all rows
+      border: none;
+      
+      // Add top border only to transaction-row
+      &.transaction-row td {
+        border-top: 1px solid var(--color-border-light);
+        border-left: none;
+        border-right: none;
         border-bottom: none;
       }
     }
@@ -955,6 +963,7 @@ button {
     td {
       padding: 1rem;
       color: var(--color-text-dark);
+      border: none;
     }
   }
 }
@@ -1998,4 +2007,5 @@ button {
 
 .journal-table .entry-amount {
   font-weight: 500;
+  white-space: nowrap;
 }

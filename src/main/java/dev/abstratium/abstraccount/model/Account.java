@@ -42,7 +42,7 @@ public record Account(
     public static Account child(String id, String name, AccountType type, String note, Account parent) {
         return new Account(id, name, type, note, parent.id(), parent);
     }
-    
+
     /**
      * Checks if this is a root account (no parent).
      */

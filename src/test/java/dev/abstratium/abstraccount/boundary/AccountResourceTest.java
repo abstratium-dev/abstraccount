@@ -59,6 +59,7 @@ class AccountResourceTest {
         assets.setName("1 Assets"); // Name includes number
         assets.setType(AccountType.ASSET);
         assets.setJournalId(testJournalId);
+        assets.setAccountOrder(1);
         em.persist(assets);
         
         currentAssetsId = UUID.randomUUID().toString();
@@ -68,6 +69,7 @@ class AccountResourceTest {
         currentAssets.setType(AccountType.ASSET);
         currentAssets.setParentAccountId(assetsId);
         currentAssets.setJournalId(testJournalId);
+        currentAssets.setAccountOrder(10);
         em.persist(currentAssets);
         
         AccountEntity cash = new AccountEntity();
@@ -76,6 +78,7 @@ class AccountResourceTest {
         cash.setType(AccountType.CASH);
         cash.setParentAccountId(currentAssetsId);
         cash.setJournalId(testJournalId);
+        cash.setAccountOrder(100);
         em.persist(cash);
         
         AccountEntity bank = new AccountEntity();
@@ -84,6 +87,7 @@ class AccountResourceTest {
         bank.setType(AccountType.ASSET);
         bank.setParentAccountId(currentAssetsId);
         bank.setJournalId(testJournalId);
+        bank.setAccountOrder(110);
         em.persist(bank);
         
         AccountEntity fixedAssets = new AccountEntity();
@@ -92,6 +96,7 @@ class AccountResourceTest {
         fixedAssets.setType(AccountType.ASSET);
         fixedAssets.setParentAccountId(assetsId);
         fixedAssets.setJournalId(testJournalId);
+        fixedAssets.setAccountOrder(14);
         em.persist(fixedAssets);
         
         liabilitiesId = UUID.randomUUID().toString();
@@ -100,6 +105,7 @@ class AccountResourceTest {
         liabilities.setName("2 Liabilities"); // Name includes number
         liabilities.setType(AccountType.LIABILITY);
         liabilities.setJournalId(testJournalId);
+        liabilities.setAccountOrder(2);
         em.persist(liabilities);
         
         AccountEntity currentLiabilities = new AccountEntity();
@@ -108,6 +114,7 @@ class AccountResourceTest {
         currentLiabilities.setType(AccountType.LIABILITY);
         currentLiabilities.setParentAccountId(liabilitiesId);
         currentLiabilities.setJournalId(testJournalId);
+        currentLiabilities.setAccountOrder(20);
         em.persist(currentLiabilities);
         
         em.flush();
@@ -168,6 +175,41 @@ class AccountResourceTest {
         equity.setJournalId(testJournalId);
         em.persist(equity);
         return equityId;
+    }
+    
+    @Test
+    @TestSecurity(user = "testuser", roles = {Roles.USER})
+    void testGetAccountTree_respectsAccountOrder() {
+        // Create a new account with order that should place it before Current Assets (order 10)
+        String earlyAssetsId = createAccountWithOrder("5 Early Assets", AccountType.ASSET, assetsId, 5);
+        
+        given()
+            .contentType(ContentType.JSON)
+        .when()
+            .get("/api/account/" + testJournalId + "/tree")
+        .then()
+            .statusCode(200)
+            .body("$", hasSize(2)) // 2 root accounts
+            .body("[0].id", equalTo(assetsId)) // Assets first (order 1)
+            .body("[1].id", equalTo(liabilitiesId)) // Liabilities second (order 2)
+            .body("[0].children[0].id", equalTo(earlyAssetsId)) // Early Assets first (order 5)
+            .body("[0].children[0].name", equalTo("5 Early Assets"))
+            .body("[0].children[1].id", equalTo(currentAssetsId)); // Current Assets second (order 10)
+    }
+    
+    @Transactional
+    String createAccountWithOrder(String name, AccountType type, String parentId, Integer order) {
+        String id = UUID.randomUUID().toString();
+        AccountEntity account = new AccountEntity();
+        account.setId(id);
+        account.setName(name);
+        account.setType(type);
+        account.setParentAccountId(parentId);
+        account.setJournalId(testJournalId);
+        account.setAccountOrder(order);
+        em.persist(account);
+        em.flush();
+        return id;
     }
     
     @Test

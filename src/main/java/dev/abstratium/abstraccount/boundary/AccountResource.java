@@ -70,24 +70,24 @@ public class AccountResource {
             accountMap.put(account.getId(), account);
         }
         
-        // Build the tree
+        // Build the tree - pass ordered accounts list
         List<AccountTreeDTO> roots = new ArrayList<>();
         for (AccountEntity account : accounts) {
             if (account.getParentAccountId() == null) {
-                roots.add(buildTree(account, accountMap));
+                roots.add(buildTree(account, accountMap, accounts));
             }
         }
         
         return roots;
     }
     
-    private AccountTreeDTO buildTree(AccountEntity account, Map<String, AccountEntity> accountMap) {
+    private AccountTreeDTO buildTree(AccountEntity account, Map<String, AccountEntity> accountMap, List<AccountEntity> orderedAccounts) {
         List<AccountTreeDTO> children = new ArrayList<>();
         
-        // Find all children of this account
-        for (AccountEntity potential : accountMap.values()) {
+        // Find all children of this account in order
+        for (AccountEntity potential : orderedAccounts) {
             if (account.getId().equals(potential.getParentAccountId())) {
-                children.add(buildTree(potential, accountMap));
+                children.add(buildTree(potential, accountMap, orderedAccounts));
             }
         }
         
