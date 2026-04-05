@@ -51,6 +51,54 @@ export async function fillTransactionDescription(page: Page, description: string
 }
 
 /**
+ * Fill in the partner field by searching for partner number (e.g., P00000001)
+ * IMPORTANT: Always use partner number, not name
+ */
+export async function fillTransactionPartner(page: Page, partnerNumber: string): Promise<void> {
+  console.log(`Filling transaction partner: ${partnerNumber}`);
+  
+  // Find the partner autocomplete input
+  const partnerInput = page.locator('abs-autocomplete[name="partnerId"] input.autocomplete-input');
+  
+  // Click to focus and trigger the dropdown
+  await partnerInput.click();
+  
+  // Wait a moment for the dropdown to appear
+  await page.waitForTimeout(300);
+  
+  // Type the partner number
+  await partnerInput.fill(partnerNumber);
+  
+  // Wait for autocomplete results to appear and debounce to complete
+  await page.waitForSelector('.dropdown .dropdown-item:not(.loading):not(.no-results):not(.hint)', { timeout: 10000 });
+  await page.waitForTimeout(500); // Wait for debounce to complete
+  
+  // Find and click the dropdown item that contains the partner number
+  const dropdownItems = page.locator('.dropdown .dropdown-item:not(.loading):not(.no-results):not(.hint)');
+  const count = await dropdownItems.count();
+  
+  let foundItem = null;
+  for (let i = 0; i < count; i++) {
+    const item = dropdownItems.nth(i);
+    const text = await item.textContent();
+    if (text && text.includes(partnerNumber)) {
+      foundItem = item;
+      break;
+    }
+  }
+  
+  if (foundItem) {
+    // Click the dropdown item to select it
+    await foundItem.click({ force: true });
+    // Wait for the dropdown to close and the value to be set
+    await page.waitForTimeout(500);
+    console.log(`Partner ${partnerNumber} selected`);
+  } else {
+    throw new Error(`Could not find dropdown item for partner: ${partnerNumber}`);
+  }
+}
+
+/**
  * Set the transaction status
  */
 export async function setTransactionStatus(page: Page, status: string): Promise<void> {
@@ -108,13 +156,14 @@ export async function fillEntryAccount(page: Page, entryIndex: number, accountNu
   
   // Wait for autocomplete results to appear and debounce to complete
   await page.waitForSelector('.dropdown .dropdown-item:not(.loading):not(.no-results):not(.hint)', { timeout: 10000 });
-  await page.waitForTimeout(500); // Wait for debounce to complete
+  await page.waitForTimeout(800); // Wait for debounce to complete and results to stabilize
   
   // Find the dropdown item that contains the exact account number followed by a space or colon
   // This ensures we select "2800 Basic..." instead of "1 Assets" when searching for "2800"
   // The regex ensures we match the account number as a complete token
   const dropdownItems = page.locator('.dropdown .dropdown-item:not(.loading):not(.no-results):not(.hint)');
   const count = await dropdownItems.count();
+  console.log(`Found ${count} dropdown items for account search: ${accountNumber}`);
   
   let foundItem = null;
   for (let i = 0; i < count; i++) {
@@ -124,6 +173,7 @@ export async function fillEntryAccount(page: Page, entryIndex: number, accountNu
       // Check if the text contains the account number followed by a space, colon, or is at the end
       const regex = new RegExp(`(^|[>:\\s])${accountNumber.replace(/\./g, '\\.')}(\\s|:|$)`);
       if (regex.test(text)) {
+        console.log(`Matched dropdown item: "${text}"`);
         foundItem = item;
         break;
       }
@@ -131,8 +181,19 @@ export async function fillEntryAccount(page: Page, entryIndex: number, accountNu
   }
   
   if (foundItem) {
-    await foundItem.click();
+    // Click the dropdown item to select it
+    // Use force: true to bypass actionability checks since the dropdown might be closing
+    await foundItem.click({ force: true });
+    // Wait for the dropdown to close and the value to be set
+    await page.waitForTimeout(500);
+    console.log(`Account selection completed for ${accountNumber}`);
   } else {
+    console.error(`Could not find dropdown item for account number: ${accountNumber}`);
+    console.error(`Available items:`);
+    for (let i = 0; i < count; i++) {
+      const text = await dropdownItems.nth(i).textContent();
+      console.error(`  - "${text}"`);
+    }
     throw new Error(`Could not find dropdown item for account number: ${accountNumber}`);
   }
   
@@ -161,7 +222,10 @@ export async function fillEntryAmount(page: Page, entryIndex: number, amount: nu
 export async function fillEntryCommodity(page: Page, entryIndex: number, commodity: string): Promise<void> {
   console.log(`Filling entry ${entryIndex + 1} commodity: ${commodity}`);
   const entryItem = page.locator('.entry-item').nth(entryIndex);
-  const commodityInput = entryItem.locator('input[type="text"]').first();
+  // Find the commodity input - it's in the first form-row, second form-group
+  // We need to skip the autocomplete input and find the regular text input for commodity
+  const commodityInput = entryItem.locator('.form-row').first().locator('.form-group').nth(1).locator('input[type="text"]');
+  await commodityInput.waitFor({ state: 'visible', timeout: 5000 });
   await commodityInput.fill(commodity);
 }
 
@@ -276,13 +340,8 @@ export async function createEntry(
   await fillEntryAccount(page, entryIndex, accountNumber);
   await fillEntryAmount(page, entryIndex, amount);
   
-  // Only fill commodity if it's different from default
-  const entryItem = page.locator('.entry-item').nth(entryIndex);
-  const commodityInput = entryItem.locator('input[type="text"]').first();
-  const currentCommodity = await commodityInput.inputValue();
-  if (currentCommodity !== commodity) {
-    await fillEntryCommodity(page, entryIndex, commodity);
-  }
+  // Fill commodity (always, to ensure it's set correctly)
+  await fillEntryCommodity(page, entryIndex, commodity);
   
   if (note) {
     await fillEntryNote(page, entryIndex, note);
