@@ -71,13 +71,24 @@ export class AutocompleteComponent implements ControlValueAccessor {
           if (option) {
             this.selectedLabel.set(option.label);
             this.searchTerm.set(option.label);
+          } else {
+            // Value not found in options - display it as-is (e.g., for placeholders like {next_invoice_SI})
+            this.selectedLabel.set(value);
+            this.searchTerm.set(value);
           }
         } catch (error) {
           console.error('Error fetching options for value:', error);
+          // On error, display the value as-is
+          this.selectedLabel.set(value);
+          this.searchTerm.set(value);
         }
       } else if (option) {
         this.selectedLabel.set(option.label);
         this.searchTerm.set(option.label);
+      } else {
+        // Value not found in current options - display it as-is
+        this.selectedLabel.set(value);
+        this.searchTerm.set(value);
       }
     } else {
       this.selectedLabel.set(null);

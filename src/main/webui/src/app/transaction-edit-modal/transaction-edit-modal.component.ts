@@ -119,6 +119,23 @@ export class TransactionEditModalComponent implements OnInit {
     this.tags.splice(index, 1);
   }
 
+  removeTagByValue(tag: TagDTO): void {
+    const index = this.tags.findIndex(t => t.key === tag.key && t.value === tag.value);
+    if (index !== -1) {
+      this.tags.splice(index, 1);
+    }
+  }
+
+  getSortedTags(): TagDTO[] {
+    return [...this.tags].sort((a, b) => {
+      // First compare by key
+      const keyCompare = a.key.localeCompare(b.key);
+      if (keyCompare !== 0) return keyCompare;
+      // If keys are equal, compare by value
+      return a.value.localeCompare(b.value);
+    });
+  }
+
   async save(): Promise<void> {
     this.error = null;
     

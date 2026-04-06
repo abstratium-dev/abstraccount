@@ -74,7 +74,7 @@ test.describe('Initial Business Transactions', () => {
     await transactionsPage.fillTransactionDescription(page, 'Short term loan from John Smith, to start company');
     await transactionsPage.fillTransactionPartner(page, 'P00000001');
     await transactionsPage.setTransactionStatus(page, 'CLEARED');
-    await transactionsPage.addTag(page, 'invoice:I00000001');
+    await transactionsPage.addTag(page, 'invoice:PI00000001');
     
     // Entry 1: Debit Cash CHF 38.50
     await transactionsPage.createEntry(page, 0, '1000', 38.50, 'CHF');
@@ -99,7 +99,7 @@ test.describe('Initial Business Transactions', () => {
     await transactionsPage.fillTransactionDescription(page, 'Fee to create Sàrl paid to Startup Help GmbH');
     await transactionsPage.fillTransactionPartner(page, 'P00000002');
     await transactionsPage.setTransactionStatus(page, 'CLEARED');
-    await transactionsPage.addTag(page, 'invoice:I00000002');
+    await transactionsPage.addTag(page, 'invoice:PI00000002');
     
     // Entry 1: Debit IT expenses CHF 34.30 (using 6570 since 6500 doesn't exist)
     await transactionsPage.createEntry(page, 0, '6570', 34.30, 'CHF');
@@ -124,7 +124,7 @@ test.describe('Initial Business Transactions', () => {
     await transactionsPage.fillTransactionDescription(page, 'Payment of fee to create Sàrl paid to Startup Help GmbH');
     await transactionsPage.fillTransactionPartner(page, 'P00000002');
     await transactionsPage.setTransactionStatus(page, 'CLEARED');
-    await transactionsPage.addTag(page, 'invoice:I00000002');
+    await transactionsPage.addTag(page, 'invoice:PI00000002');
     await transactionsPage.addTag(page, 'Payment');
     
     // Entry 1: Debit Accounts payable CHF 34.30
@@ -150,7 +150,7 @@ test.describe('Initial Business Transactions', () => {
     await transactionsPage.fillTransactionDescription(page, 'Receipt for sending founding docs eingeschrieben');
     await transactionsPage.fillTransactionPartner(page, 'P00000003');
     await transactionsPage.setTransactionStatus(page, 'CLEARED');
-    await transactionsPage.addTag(page, 'invoice:I00000003');
+    await transactionsPage.addTag(page, 'invoice:PI00000003');
     
     // Entry 1: Debit IT expenses CHF 4.20 (using 6570 since 6700 doesn't exist)
     await transactionsPage.createEntry(page, 0, '6570', 4.20, 'CHF');
@@ -175,7 +175,7 @@ test.describe('Initial Business Transactions', () => {
     await transactionsPage.fillTransactionDescription(page, 'Receipt for sending founding docs eingeschrieben');
     await transactionsPage.fillTransactionPartner(page, 'P00000003');
     await transactionsPage.setTransactionStatus(page, 'CLEARED');
-    await transactionsPage.addTag(page, 'invoice:I00000003');
+    await transactionsPage.addTag(page, 'invoice:PI00000003');
     await transactionsPage.addTag(page, 'Payment');
     
     // Entry 1: Debit Accounts payable CHF 4.20
@@ -201,7 +201,7 @@ test.describe('Initial Business Transactions', () => {
     await transactionsPage.fillTransactionDescription(page, 'Capital payment into abstratium paid into PF');
     await transactionsPage.fillTransactionPartner(page, 'P00000001');
     await transactionsPage.setTransactionStatus(page, 'CLEARED');
-    await transactionsPage.addTag(page, 'invoice:I00000004');
+    await transactionsPage.addTag(page, 'invoice:PI00000004');
     
     // Entry 1: Debit Bank Account CHF 2,000.00
     await transactionsPage.createEntry(page, 0, '1020', 2000.00, 'CHF');
@@ -226,7 +226,7 @@ test.describe('Initial Business Transactions', () => {
     await transactionsPage.fillTransactionDescription(page, 'PRIX POUR LA GESTION DU COMPTE CONSIGNATION DU CAPITAL CRÉATION D\'ENTREPRISE');
     await transactionsPage.fillTransactionPartner(page, 'P00000004');
     await transactionsPage.setTransactionStatus(page, 'CLEARED');
-    await transactionsPage.addTag(page, 'invoice:I00000005');
+    await transactionsPage.addTag(page, 'invoice:PI00000005');
     
     // Entry 1: Debit Financial expense CHF 15.00
     await transactionsPage.createEntry(page, 0, '6900', 15.00, 'CHF');
@@ -251,7 +251,7 @@ test.describe('Initial Business Transactions', () => {
     await transactionsPage.fillTransactionDescription(page, 'PRIX POUR LA GESTION DU COMPTE CONSIGNATION DU CAPITAL CRÉATION D\'ENTREPRISE');
     await transactionsPage.fillTransactionPartner(page, 'P00000004');
     await transactionsPage.setTransactionStatus(page, 'CLEARED');
-    await transactionsPage.addTag(page, 'invoice:I00000005');
+    await transactionsPage.addTag(page, 'invoice:PI00000005');
     await transactionsPage.addTag(page, 'Payment');
     
     // Entry 1: Debit Accounts payable CHF 15.00

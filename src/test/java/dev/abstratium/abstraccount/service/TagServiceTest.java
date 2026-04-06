@@ -73,4 +73,43 @@ class TagServiceTest {
         List<String> ciInvoices = tagService.searchTagValues(journalId, "invoice", "CI");
         assertEquals(List.of("CI00000001"), ciInvoices);
     }
+
+    @Test
+    @Transactional
+    void searchTagValues_supportsRegexPatterns() {
+        String journalId = createJournal();
+
+        createTransactionWithTag(journalId, "invoice", "SI00000001");
+        createTransactionWithTag(journalId, "invoice", "SI00000002");
+        createTransactionWithTag(journalId, "invoice", "SI00000011");
+        createTransactionWithTag(journalId, "invoice", "SI00000021");
+        createTransactionWithTag(journalId, "invoice", "CI00000001");
+        createTransactionWithTag(journalId, "invoice", "PI00000001");
+
+        // Test regex pattern: invoices ending in 01
+        List<String> endingIn01 = tagService.searchTagValues(journalId, "invoice", ".*01$");
+        assertEquals(3, endingIn01.size());
+        assertTrue(endingIn01.contains("SI00000001"));
+        assertTrue(endingIn01.contains("CI00000001"));
+        assertTrue(endingIn01.contains("PI00000001"));
+
+        // Test regex pattern: invoices starting with SI
+        List<String> startingWithSI = tagService.searchTagValues(journalId, "invoice", "^SI.*");
+        assertEquals(4, startingWithSI.size());
+        assertTrue(startingWithSI.contains("SI00000001"));
+        assertTrue(startingWithSI.contains("SI00000002"));
+        assertTrue(startingWithSI.contains("SI00000011"));
+        assertTrue(startingWithSI.contains("SI00000021"));
+
+        // Test regex pattern: invoices ending in 1 (not 01)
+        List<String> endingIn1 = tagService.searchTagValues(journalId, "invoice", ".*[^0]1$");
+        assertEquals(2, endingIn1.size());
+        assertTrue(endingIn1.contains("SI00000011"));
+        assertTrue(endingIn1.contains("SI00000021"));
+
+        // Test regex pattern: SI invoices ending in 2
+        List<String> siEndingIn2 = tagService.searchTagValues(journalId, "invoice", "^SI.*2$");
+        assertEquals(1, siEndingIn2.size());
+        assertTrue(siEndingIn2.contains("SI00000002"));
+    }
 }

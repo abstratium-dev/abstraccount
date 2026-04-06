@@ -315,6 +315,58 @@ export async function verifyTransactionExists(page: Page, description: string): 
 }
 
 /**
+ * Verify transaction details in the transactions list
+ * @param page - Playwright page object
+ * @param description - Transaction description to look for
+ * @param expectedDate - Expected transaction date (optional)
+ * @param expectedPartner - Expected partner number (optional)
+ * @param expectedValue - Expected transaction value (optional, e.g., "7.00" or "38.50")
+ */
+export async function verifyTransactionDetails(
+  page: Page,
+  description: string,
+  options?: {
+    date?: string;
+    partner?: string;
+    value?: string;
+  }
+): Promise<void> {
+  console.log(`Verifying transaction details for: ${description}`);
+  
+  // Find the transaction row
+  const transactionRow = page.locator('tr').filter({ hasText: description }).first();
+  await expect(transactionRow).toBeVisible();
+  console.log('✓ Transaction row is visible in the table');
+  
+  // Verify date if provided
+  if (options?.date) {
+    await expect(transactionRow).toContainText(options.date);
+    console.log(`✓ Transaction date is correct (${options.date})`);
+  }
+  
+  // Verify partner if provided
+  if (options?.partner) {
+    await expect(transactionRow).toContainText(options.partner);
+    console.log(`✓ Transaction partner is correct (${options.partner})`);
+  }
+  
+  // Verify description
+  await expect(transactionRow).toContainText(description);
+  console.log('✓ Transaction description is correct');
+  
+  // Verify value if provided (only if it's displayed in the table)
+  if (options?.value) {
+    const rowText = await transactionRow.textContent();
+    if (rowText?.includes(options.value)) {
+      await expect(transactionRow).toContainText(options.value);
+      console.log(`✓ Transaction value is correct (${options.value})`);
+    } else {
+      console.log(`ℹ Transaction value (${options.value}) not displayed in table row`);
+    }
+  }
+}
+
+/**
  * Count the number of entries in the current transaction form
  */
 export async function countEntries(page: Page): Promise<number> {

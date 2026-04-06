@@ -69,7 +69,7 @@
             <td></td>
             <td></td>
             <td class="tags-cell">
-              <span *ngFor="let tag of transaction.tags" class="badge badge-secondary" style="margin-right: 0.5rem">
+              <span *ngFor="let tag of sortTags(transaction.tags)" class="badge badge-secondary" style="margin-right: 0.5rem">
                 {{ tag.value ? tag.key + ':' + tag.value : tag.key }}
               </span>
             </td>

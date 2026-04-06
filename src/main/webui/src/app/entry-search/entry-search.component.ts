@@ -400,7 +400,13 @@ export class EntrySearchComponent implements OnInit {
 
   getTagsDisplay(tags: any[]): string {
     if (!tags || tags.length === 0) return '';
-    return tags.map(tag => tag.value ? `${tag.key}:${tag.value}` : tag.key).join(', ');
+    // Sort tags alphabetically by key, then by value
+    const sortedTags = [...tags].sort((a, b) => {
+      const keyCompare = a.key.localeCompare(b.key);
+      if (keyCompare !== 0) return keyCompare;
+      return a.value.localeCompare(b.value);
+    });
+    return sortedTags.map(tag => tag.value ? `${tag.key}:${tag.value}` : tag.key).join(', ');
   }
 
   getSelectedJournalName(): string {

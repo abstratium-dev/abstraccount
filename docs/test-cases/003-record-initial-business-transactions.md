@@ -35,7 +35,7 @@ This test demonstrates the complete workflow of recording real business transact
 - **Date:** 2026-05-25
 - **Partner:** P00000001 John Smith
 - **Description:** "Short term loan from John Smith, to start company"
-- **Invoice:** I00000001
+- **Invoice:** PI00000001
 - **Status:** Posted (*)
 - **Entries:**
   1. **Debit:** `1000 Cash` - CHF 38.50
@@ -45,7 +45,7 @@ This test demonstrates the complete workflow of recording real business transact
 - **Date:** 2026-05-26
 - **Partner:** P00000002 Startup Help GmbH
 - **Description:** "Fee to create Sàrl paid to Startup Help GmbH"
-- **Invoice:** I00000002
+- **Invoice:** PI00000002
 - **Status:** Posted (*)
 - **Entries:**
   1. **Debit:** `6500 Administrative expenses` - CHF 34.30
@@ -55,7 +55,7 @@ This test demonstrates the complete workflow of recording real business transact
 - **Date:** 2026-05-26
 - **Partner:** P00000002 Startup Help GmbH
 - **Description:** "Payment of fee to create Sàrl paid to Startup Help GmbH"
-- **Invoice:** I00000002
+- **Invoice:** PI00000002
 - **Status:** Posted (*)
 - **Tags:** `:Payment:`
 - **Entries:**
@@ -66,7 +66,7 @@ This test demonstrates the complete workflow of recording real business transact
 - **Date:** 2026-06-18
 - **Partner:** P00000003 Post CH Netz AG
 - **Description:** "Receipt for sending founding docs eingeschrieben"
-- **Invoice:** I00000003
+- **Invoice:** PI00000003
 - **Status:** Posted (*)
 - **Entries:**
   1. **Debit:** `6700 Other operating expenses` - CHF 4.20
@@ -87,7 +87,7 @@ This test demonstrates the complete workflow of recording real business transact
 - **Date:** 2026-06-26
 - **Partner:** P00000001 John Smith
 - **Description:** "Capital payment into abstratium paid into PF"
-- **Invoice:** I00000004
+- **Invoice:** PI00000004
 - **Status:** Posted (*)
 - **Entries:**
   1. **Debit:** `1020 Bank Account (asset)` - CHF 2,000.00
@@ -97,7 +97,7 @@ This test demonstrates the complete workflow of recording real business transact
 - **Date:** 2026-07-24
 - **Partner:** P00000004 PostFinance AG
 - **Description:** "PRIX POUR LA GESTION DU COMPTE CONSIGNATION DU CAPITAL CRÉATION D'ENTREPRISE"
-- **Invoice:** I00000005
+- **Invoice:** PI00000005
 - **Status:** Posted (*)
 - **Tags:** `:Payment:`
 - **Entries:**
@@ -136,7 +136,7 @@ Feature: Initial Business Transactions
     When the user enters "2025-05-25" as the transaction date
     And the user enters "P00000001 John Smith" as the partner
     And the user enters "Short term loan from J. Smith, to start company" as the description
-    And the user enters "I00000001" as the invoice reference
+    And the user enters "PI00000001" as the invoice reference
     And the user sets the transaction status to "Posted"
     
     When the user clicks "Add Entry"
@@ -166,7 +166,7 @@ Feature: Initial Business Transactions
     When the user creates a new transaction with date "2026-05-26"
     And the user enters partner "P00000002 Startup Help GmbH"
     And the user enters description "Fee to create Sàrl paid to Startup Help GmbH"
-    And the user enters invoice "I00000002"
+    And the user enters invoice "PI00000002"
     And the user adds a debit entry to "6500 Administrative expenses" for CHF 34.30
     And the user adds a credit entry to "2000 Accounts payable (suppliers&creditors)" for CHF 34.30
     And the user saves the transaction
@@ -178,7 +178,7 @@ Feature: Initial Business Transactions
     When the user creates a new transaction with date "2026-05-26"
     And the user enters partner "P00000002 Startup Help GmbH"
     And the user enters description "Payment of fee to create Sàrl paid to Startup Help GmbH"
-    And the user enters invoice "I00000002"
+    And the user enters invoice "PI00000002"
     And the user adds tag ":Payment:"
     And the user adds a debit entry to "2000 Accounts payable (suppliers&creditors)" for CHF 34.30
     And the user adds a credit entry to "1000 Cash" for CHF 34.30
@@ -192,7 +192,7 @@ Feature: Initial Business Transactions
     When the user creates a new transaction with date "2026-06-18"
     And the user enters partner "P00000003 Post CH Netz AG"
     And the user enters description "Receipt for sending founding docs eingeschrieben"
-    And the user enters invoice "I00000003"
+    And the user enters invoice "PI00000003"
     And the user adds a debit entry to "6700 Other operating expenses" for CHF 4.20
     And the user adds a credit entry to "2000 Accounts payable (suppliers&creditors)" for CHF 4.20
     And the user saves the transaction
@@ -202,7 +202,7 @@ Feature: Initial Business Transactions
     When the user creates a new transaction with date "2026-06-18"
     And the user enters partner "P00000003 Post CH Netz AG"
     And the user enters description "Receipt for sending founding docs eingeschrieben"
-    And the user enters invoice "I00000003"
+    And the user enters invoice "PI00000003"
     And the user adds tag ":Payment:"
     And the user adds a debit entry to "2000 Accounts payable (suppliers&creditors)" for CHF 4.20
     And the user adds a credit entry to "1000 Cash" for CHF 4.20
@@ -213,7 +213,7 @@ Feature: Initial Business Transactions
     When the user creates a new transaction with date "2026-06-26"
     And the user enters partner "P00000001 John Smith"
     And the user enters description "Capital payment into abstratium paid into PF"
-    And the user enters invoice "I00000004"
+    And the user enters invoice "PI00000004"
     And the user adds a debit entry to "1020 Bank Account (asset)" for CHF 2,000.00
     And the user adds a credit entry to "2800 Basic, shareholder or foundation capital" for CHF 2,000.00
     And the user saves the transaction
@@ -225,7 +225,7 @@ Feature: Initial Business Transactions
     When the user creates a new transaction with date "2026-07-24"
     And the user enters partner "P00000004 PostFinance AG"
     And the user enters description "PRIX POUR LA GESTION DU COMPTE CONSIGNATION DU CAPITAL CRÉATION D'ENTREPRISE"
-    And the user enters invoice "I00000005"
+    And the user enters invoice "PI00000005"
     And the user adds tag ":Payment:"
     And the user adds a debit entry to "6900 Financial expense" for CHF 15.00
     And the user adds a credit entry to "2000 Accounts payable (suppliers&creditors)" for CHF 15.00
@@ -317,17 +317,6 @@ Feature: Initial Business Transactions
 - Partner/vendor tracking enables relationship management and reporting
 - Invoice references enable tracking of payables and receivables
 - The test shows realistic company formation costs in Switzerland
-
-## Related Test Cases
-
-- [001: Create Journal with Account Tree](./001-create-journal-with-accounts.md) - **PREREQUISITE**
-- [002: Open the Books](./002-open-the-books.md) - **PREREQUISITE**
-- 004: Edit existing transaction
-- 005: Delete transaction
-- 006: Generate expense report
-- 007: Generate cash flow statement
-- 008: Reconcile bank account
-- 009: Track accounts payable aging
 
 ## Technical Notes
 

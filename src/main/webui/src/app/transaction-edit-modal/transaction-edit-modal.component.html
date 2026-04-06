@@ -63,9 +63,9 @@
             <button type="button" class="btn-add-small" (click)="addTag()">Add Tag</button>
           </div>
           <div class="badge-list" *ngIf="tags.length > 0">
-            <span *ngFor="let tag of tags; let i = index" class="badge badge-secondary">
+            <span *ngFor="let tag of getSortedTags(); let i = index" class="badge badge-secondary">
               {{ tag.value ? tag.key + ':' + tag.value : tag.key }}
-              <button type="button" class="btn-icon btn-icon-danger" (click)="removeTag(i)" style="margin-left: 0.5rem">×</button>
+              <button type="button" class="btn-icon btn-icon-danger" (click)="removeTagByValue(tag)" style="margin-left: 0.5rem">×</button>
             </span>
           </div>
         </div>

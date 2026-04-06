@@ -393,6 +393,24 @@ public class MacroResource {
             entity.addTag(tagEntity);
         }
         
+        // Post-process: If there's an invoice_numbers parameter with comma-separated values,
+        // split them and create individual invoice tags
+        String invoiceNumbers = parameters.get("invoice_numbers");
+        if (invoiceNumbers != null && !invoiceNumbers.trim().isEmpty()) {
+            String[] invoices = invoiceNumbers.split(",");
+            for (String invoice : invoices) {
+                String trimmedInvoice = invoice.trim();
+                if (!trimmedInvoice.isEmpty()) {
+                    TagEntity invoiceTag = new TagEntity();
+                    invoiceTag.setId(UUID.randomUUID().toString());
+                    invoiceTag.setTransaction(entity);
+                    invoiceTag.setTagKey("invoice");
+                    invoiceTag.setTagValue(trimmedInvoice);
+                    entity.addTag(invoiceTag);
+                }
+            }
+        }
+        
         // Add entries - resolve account code paths to IDs
         int entryOrder = 0;
         for (Entry entry : transaction.entries()) {

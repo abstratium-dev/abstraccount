@@ -242,6 +242,46 @@ describe('AutocompleteComponent', () => {
       
       expect(fn).toHaveBeenCalled();
     });
+
+    it('should display value as-is when not found in options (e.g., placeholder)', fakeAsync(() => {
+      // This tests the case where a default value like "{next_invoice_SI}" is set
+      // but doesn't exist in the autocomplete options
+      const placeholderValue = '{next_invoice_SI}';
+      
+      component.writeValue(placeholderValue);
+      tick(); // Allow async writeValue to complete
+      flush(); // Flush all pending promises
+      
+      expect(component.selectedValue()).toBe(placeholderValue);
+      expect(component.searchTerm()).toBe(placeholderValue);
+      expect(component.selectedLabel()).toBe(placeholderValue);
+    }));
+
+    it('should find and display label when value exists in options', fakeAsync(() => {
+      component.writeValue('1');
+      tick(); // Allow async writeValue to complete
+      flush(); // Flush all pending promises
+      
+      expect(component.selectedValue()).toBe('1');
+      expect(component.searchTerm()).toBe('Option 1');
+      expect(component.selectedLabel()).toBe('Option 1');
+    }));
+
+    it('should handle fetch error gracefully when looking up value', fakeAsync(() => {
+      mockFetchOptions.and.returnValue(Promise.reject('Error'));
+      spyOn(console, 'error');
+      
+      const unknownValue = 'unknown-value';
+      component.writeValue(unknownValue);
+      tick(); // Allow async writeValue to complete
+      flush(); // Flush all pending promises including rejected ones
+      
+      // Should display the value as-is even on error
+      expect(component.selectedValue()).toBe(unknownValue);
+      expect(component.searchTerm()).toBe(unknownValue);
+      expect(component.selectedLabel()).toBe(unknownValue);
+      expect(console.error).toHaveBeenCalled();
+    }));
   });
 
   describe('Template Rendering', () => {

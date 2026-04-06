@@ -428,11 +428,35 @@ test.describe('Journal and Account Management', () => {
     await accountsPage.verifyAccountExists(page, '8910');
     
     console.log('Non-Operational Expenses hierarchy created');
+
+    // ========================================================================
+    // Step 8: Create Revenue hierarchy
+    // ========================================================================
+    console.log('--- Step 8: Creating Revenue Hierarchy ---');
+    
+    // Create root account: 3 Revenue
+    await accountsPage.createRootAccount(
+      page,
+      '3 Net proceeds from sales of goods and services',
+      'REVENUE'
+    );
+    await accountsPage.verifyAccountExists(page, '3');
+    
+    // Create child: 3400 Revenue from services
+    await accountsPage.createChildAccount(
+      page,
+      'Net proceeds from sales of goods and services',
+      '3400 Revenue from services',
+      'REVENUE'
+    );
+    await accountsPage.verifyAccountExists(page, '3400');
+    
+    console.log('Revenue hierarchy created');
     
     // ========================================================================
-    // Step 8: Verify the complete account tree
+    // Step 9: Verify the complete account tree
     // ========================================================================
-    console.log('--- Step 8: Verifying Complete Account Tree ---');
+    console.log('--- Step 9: Verifying Complete Account Tree ---');
     
     // Verify Assets
     await accountsPage.verifyAccountExists(page, '1');
@@ -464,6 +488,10 @@ test.describe('Journal and Account Management', () => {
     await accountsPage.verifyAccountExists(page, '2970');
     await accountsPage.verifyAccountExists(page, '2979');
     
+    // Verify Revenue
+    await accountsPage.verifyAccountExists(page, '3');
+    await accountsPage.verifyAccountExists(page, '3400');
+
     // Verify Operating Expenses
     await accountsPage.verifyAccountExists(page, '6');
     await accountsPage.verifyAccountExists(page, '6570');

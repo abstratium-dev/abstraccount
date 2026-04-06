@@ -234,15 +234,6 @@ Feature: Opening Balances Transaction
 - This transaction serves as the foundation for all subsequent accounting entries
 - The hledger format uses `:` as the account hierarchy separator and supports multi-level nesting
 
-## Related Test Cases
-
-- [001: Create Journal with Account Tree](./001-create-journal-with-accounts.md) - **PREREQUISITE**
-- 003: Create transaction with non-zero amounts
-- 004: Edit existing transaction
-- 005: Delete transaction
-- 006: Generate balance sheet report
-- 007: Generate trial balance report
-
 ## Technical Notes
 
 ### Account Path Mapping

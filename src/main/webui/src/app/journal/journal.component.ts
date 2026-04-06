@@ -192,4 +192,14 @@ export class JournalComponent implements OnInit {
     }
   }
 
+  sortTags(tags: TagDTO[]): TagDTO[] {
+    return [...tags].sort((a, b) => {
+      // First compare by key
+      const keyCompare = a.key.localeCompare(b.key);
+      if (keyCompare !== 0) return keyCompare;
+      // If keys are equal, compare by value
+      return a.value.localeCompare(b.value);
+    });
+  }
+
 }

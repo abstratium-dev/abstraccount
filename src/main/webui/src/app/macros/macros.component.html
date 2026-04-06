@@ -63,6 +63,7 @@
                     [fetchOptions]="getAutocompleteFetch(param)!"
                     [ngModel]="getParameterValue(param.name)"
                     (ngModelChange)="setParameterValue(param.name, $event)"
+                    [allowFreeText]="true"
                   />
                 } @else {
                   <input

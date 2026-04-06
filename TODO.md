@@ -21,7 +21,6 @@ These TODOs are to be resolved by the developer, NOT THE LLM.
 - add a pivot table based on the entry search
 - reports
   - configure which reports are added to the "reports bar" at the top, without having to be chosen from the dropdown, but simply clicked on.
-  - they need to be printable
   - account numbers shown in reports should use the standard format of displaying the parent account words at the start, and they should all be navigable so that the user can jump to the account ledger.
   - balance sheets - at least the swiss one shows zero net income for 2024 and 2025 which are closed years, so it should be showing no value
   - swiss income statement still not showing the individual accounts
@@ -31,8 +30,10 @@ These TODOs are to be resolved by the developer, NOT THE LLM.
   - the id of the selected report should be in the url so it can be shared and bookmarked
   - the reports page should listen to changes in the selected journal and if it changes, call "generate report"
 
+- add a report that shows unpaid invoices
+
 - printing
-  - journal page should make it clearer what each transaction is, and not print the header, but add a date/time field
+  - reports need to hide filter and show title, logo and subtitle
 
 - Inputs based on macros
 
@@ -40,7 +41,9 @@ These TODOs are to be resolved by the developer, NOT THE LLM.
 
 - add a skill to abstracore so that the llm can read the database (show tables, desc table, select * from table with limit)
 
-- filters
+- always sort tags alphabetically
+
+- standardise filters
   - date from, inclusive
   - date to, exclusive
   - partnerId, partner name regex
@@ -50,7 +53,7 @@ These TODOs are to be resolved by the developer, NOT THE LLM.
   - description, notes, etc.
   - amounts, from, to
   - tags
-    - name, name=regex
+    - name, name=regex, name is regex
   - not, and, or
 
 ## Tomorrow

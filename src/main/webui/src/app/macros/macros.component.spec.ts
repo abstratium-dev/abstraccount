@@ -100,4 +100,27 @@ describe('MacrosComponent', () => {
     expect(component.errorMessage).toContain('required');
     expect(mockController.executeMacro).not.toHaveBeenCalled();
   });
+
+  it('should initialize default values for autocomplete parameters (invoice type)', () => {
+    const testMacro = {
+      id: 'test-macro',
+      name: 'InvoiceForServicesOrSaas',
+      description: 'Test invoice macro',
+      parameters: [
+        { name: 'invoice_number', type: 'invoice', prompt: 'Invoice number', required: true, defaultValue: '{next_invoice_SI}', filter: null },
+        { name: 'partner', type: 'partner', prompt: 'Partner', required: true, defaultValue: null, filter: null }
+      ],
+      template: 'test template',
+      validation: null,
+      notes: null,
+      createdDate: '2024-01-01',
+      modifiedDate: '2024-01-01'
+    };
+
+    component.selectMacro(testMacro);
+
+    // Verify that default value is set even for autocomplete fields
+    expect(component.getParameterValue('invoice_number')).toBe('{next_invoice_SI}');
+    expect(component.getParameterValue('partner')).toBe('');
+  });
 });

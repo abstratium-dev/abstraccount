@@ -63,6 +63,12 @@ The following account hierarchy should be created, inspired by the Swiss chart o
     └── 2979 Annual profit or loss
 ```
 
+#### 3. Income
+```
+3 Net proceeds from sales of goods and services
+├── 3400 Revenues from services
+```
+
 #### 6. Operating Expenses
 ```
 6 Other Operating Expenses, Depreciations and Value Adjustments, Financial result
@@ -322,10 +328,3 @@ Feature: Journal and Account Management
 ## Notes
 
 - Account codes use a hierarchical numbering system where child accounts extend parent codes
-
-## Related Test Cases
-
-- 002: Edit existing account
-- 003: Delete account (with validation for accounts with transactions)
-- 004: Import account tree from template
-- 005: Create transaction using created accounts
