@@ -34,6 +34,7 @@
               <span class="account-note">{{ account.note }}</span>
             }
             <span class="account-type">{{ formatAccountType(account.type) }}</span>
+            <span class="account-balance">{{ formatBalance(account.id) }}</span>
             <div class="account-actions">
               <button class="context-menu-trigger" (click)="toggleMenu(account.id, $event)" type="button">⋮</button>
               @if (openMenuId === account.id) {
@@ -63,6 +64,7 @@
                       <span class="account-note">{{ child.note }}</span>
                     }
                     <span class="account-type">{{ formatAccountType(child.type) }}</span>
+                    <span class="account-balance">{{ formatBalance(child.id) }}</span>
                     <div class="account-actions">
                       <button class="context-menu-trigger" (click)="toggleMenu(child.id, $event)" type="button">⋮</button>
                       @if (openMenuId === child.id) {
@@ -92,6 +94,7 @@
                               <span class="account-note">{{ grandchild.note }}</span>
                             }
                             <span class="account-type">{{ formatAccountType(grandchild.type) }}</span>
+                            <span class="account-balance">{{ formatBalance(grandchild.id) }}</span>
                             <div class="account-actions">
                               <button class="context-menu-trigger" (click)="toggleMenu(grandchild.id, $event)" type="button">⋮</button>
                               @if (openMenuId === grandchild.id) {
@@ -121,6 +124,7 @@
                                       <span class="account-note">{{ greatGrandchild.note }}</span>
                                     }
                                     <span class="account-type">{{ formatAccountType(greatGrandchild.type) }}</span>
+                                    <span class="account-balance">{{ formatBalance(greatGrandchild.id) }}</span>
                                     <div class="account-actions">
                                       <button class="context-menu-trigger" (click)="toggleMenu(greatGrandchild.id, $event)" type="button">⋮</button>
                                       @if (openMenuId === greatGrandchild.id) {
@@ -150,6 +154,7 @@
                                               <span class="account-note">{{ greatGreatGrandchild.note }}</span>
                                             }
                                             <span class="account-type">{{ formatAccountType(greatGreatGrandchild.type) }}</span>
+                                            <span class="account-balance">{{ formatBalance(greatGreatGrandchild.id) }}</span>
                                             <div class="account-actions">
                                               <button class="context-menu-trigger" (click)="toggleMenu(greatGreatGrandchild.id, $event)" type="button">⋮</button>
                                               @if (openMenuId === greatGreatGrandchild.id) {
@@ -198,3 +203,4 @@
     (saved)="onModalSaved()"
   ></app-account-edit-modal>
 }
+

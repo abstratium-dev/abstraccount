@@ -11,7 +11,6 @@
 
 .account-actions {
   position: relative;
-  margin-left: auto;
   z-index: 2;
   
   .context-menu {
@@ -68,23 +67,13 @@ h1 {
   background-color: var(--color-bg-primary);
   overflow: visible;
   position: relative;
+  align-items: flex-start;
 }
 
 .account-id {
   font-weight: bold;
   color: var(--color-primary);
   min-width: 60px;
-}
-
-.account-name {
-  flex: 1;
-  color: var(--color-primary);
-  text-decoration: none;
-  cursor: pointer;
-}
-
-.account-name:hover {
-  text-decoration: underline;
 }
 
 .account-path {
@@ -113,11 +102,6 @@ h1 {
 .account-type {
   color: var(--color-text-secondary);
   font-size: 0.9em;
-}
-
-.account-note {
-  color: var(--color-text-secondary);
-  font-style: italic;
 }
 
 .account-children {

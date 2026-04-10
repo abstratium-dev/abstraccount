@@ -1,7 +1,7 @@
 import { Component, OnInit, inject, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
-import { Controller, AccountTreeNode } from '../controller';
+import { Controller, AccountTreeNode, JournalMetadataDTO, TransactionDTO } from '../controller';
 import { ModelService } from '../model.service';
 import { AccountService } from '../account.service';
 import { AccountEditModalComponent } from '../account-edit-modal/account-edit-modal.component';
@@ -22,6 +22,9 @@ export class AccountsComponent implements OnInit {
   loading = false;
   error: string | null = null;
   
+  journalMetadata: JournalMetadataDTO | null = null;
+  accountBalances: Map<string, number> = new Map();
+
   // Modal state
   showModal = false;
   modalAccountId: string | null = null;
@@ -63,12 +66,47 @@ export class AccountsComponent implements OnInit {
       }
       
       await this.controller.getAccountTree(journalId);
+
+      const [metadata, transactions] = await Promise.all([
+        this.controller.getJournalMetadata(journalId),
+        this.controller.getTransactions(journalId)
+      ]);
+      this.journalMetadata = metadata;
+      this.accountBalances = this.computeAccountBalances(transactions);
     } catch (error) {
       console.error('Error loading accounts:', error);
       this.error = 'Failed to load accounts';
     } finally {
       this.loading = false;
     }
+  }
+
+  private computeAccountBalances(transactions: TransactionDTO[]): Map<string, number> {
+    const balances = new Map<string, number>();
+    for (const tx of transactions) {
+      for (const entry of tx.entries) {
+        const current = balances.get(entry.accountId) ?? 0;
+        balances.set(entry.accountId, current + entry.amount);
+      }
+    }
+    return balances;
+  }
+
+  getAccountBalance(accountId: string): number {
+    return this.accountBalances.get(accountId) ?? 0;
+  }
+
+  formatBalance(accountId: string): string {
+    const balance = this.getAccountBalance(accountId);
+    const currency = this.journalMetadata?.currency;
+    if (!currency) {
+      return balance.toFixed(2);
+    }
+    const precision = this.journalMetadata?.commodities?.[currency];
+    const parsed = precision != null ? parseInt(precision, 10) : NaN;
+    const decimals = (!isNaN(parsed) && parsed >= 0 && parsed <= 20) ? parsed : 2;
+    const formatted = balance.toFixed(decimals);
+    return `${currency} ${formatted}`;
   }
 
   formatAccountType(type: string): string {

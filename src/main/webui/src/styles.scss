@@ -2106,3 +2106,40 @@ button {
     color: black !important;
   }
 }
+
+/* ===== ACCOUNT TREE STYLES ===== */
+.account-name {
+  max-width: 40%;
+  width: 40%;
+  color: var(--color-primary);
+  text-decoration: none;
+  cursor: pointer;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  align-self: flex-start;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.account-note {
+  max-width: 20%;
+  width: 20%;
+  color: var(--color-text-secondary);
+  font-style: italic;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  white-space: normal;
+}
+
+.account-balance {
+  min-width: 8rem;
+  text-align: right;
+  font-family: monospace;
+  font-size: 0.9em;
+  color: var(--color-text-primary);
+  white-space: nowrap;
+  margin-left: auto;
+  align-self: flex-start;
+}
