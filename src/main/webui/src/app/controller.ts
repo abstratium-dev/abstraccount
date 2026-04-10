@@ -434,12 +434,13 @@ export class Controller {
     journalId: string,
     startDate?: string,
     endDate?: string,
-    accountTypes?: string[]
+    accountTypes?: string[],
+    filter?: string
   ): Promise<AccountEntryDTO[]> {
     try {
       // Use the existing transaction endpoint to get entries
       // We'll need to extract entries from transactions
-      const transactions = await this.getTransactions(journalId, startDate, endDate);
+      const transactions = await this.getTransactions(journalId, startDate, endDate, undefined, undefined, filter);
       
       // Flatten entries from all transactions
       const entries: AccountEntryDTO[] = [];

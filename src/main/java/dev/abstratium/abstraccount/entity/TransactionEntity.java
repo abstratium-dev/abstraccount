@@ -40,6 +40,9 @@ public class TransactionEntity {
     @Column(name = "journal_id", nullable = false, length = 36)
     private String journalId;
     
+    @Column(name = "transaction_order")
+    private Long transactionOrder;
+    
     @OneToMany(mappedBy = "transaction", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     @OrderBy("entryOrder ASC")
     private List<EntryEntity> entries = new ArrayList<>();
@@ -105,6 +108,14 @@ public class TransactionEntity {
     
     public void setJournalId(String journalId) {
         this.journalId = journalId;
+    }
+    
+    public Long getTransactionOrder() {
+        return transactionOrder;
+    }
+    
+    public void setTransactionOrder(Long transactionOrder) {
+        this.transactionOrder = transactionOrder;
     }
     
     public List<EntryEntity> getEntries() {

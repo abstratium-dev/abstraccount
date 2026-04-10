@@ -139,7 +139,7 @@ describe('ReportsComponent', () => {
     await component.generateReport();
     await fixture.whenStable();
 
-    expect(controller.getEntriesForReport).toHaveBeenCalledWith('journal1', undefined, undefined);
+    expect(controller.getEntriesForReport).toHaveBeenCalledWith('journal1', undefined, undefined, undefined, undefined);
     expect(component.entries).toEqual(mockEntries);
     expect(component.reportSections.length).toBeGreaterThan(0);
   });
@@ -747,7 +747,7 @@ describe('ReportsComponent', () => {
     await fixture.whenStable();
 
     expect(controller.getTags).toHaveBeenCalledWith('journal1');
-    expect(controller.getEntriesForReport).toHaveBeenCalledWith('journal1', undefined, undefined);
+    expect(controller.getEntriesForReport).toHaveBeenCalledWith('journal1', undefined, undefined, undefined, undefined);
     
     const initialCallCount = controller.getEntriesForReport.calls.count();
 
@@ -764,6 +764,47 @@ describe('ReportsComponent', () => {
 
     // Verify that tags and report were reloaded for the new journal
     expect(controller.getTags).toHaveBeenCalledWith('journal2');
-    expect(controller.getEntriesForReport).toHaveBeenCalledWith('journal2', undefined, undefined);
+    expect(controller.getEntriesForReport).toHaveBeenCalledWith('journal2', undefined, undefined, undefined, undefined);
+  });
+
+  it('should pass filter string to getEntriesForReport when filter is set', async () => {
+    component.selectedTemplate = mockTemplates[0];
+    controller.getEntriesForReport.and.returnValue(Promise.resolve(mockEntries));
+    controller.getAccountTree.and.returnValue(Promise.resolve(mockAccounts));
+    controller.getTags.and.returnValue(Promise.resolve([]));
+    modelService.getSelectedJournalId.and.returnValue('journal1');
+
+    component.onFilterChange('begin:20240101 end:20241231 not:Closing');
+    await fixture.whenStable();
+
+    expect(component.filterText).toBe('begin:20240101 end:20241231 not:Closing');
+    expect(component.startDate).toBe('2024-01-01');
+    expect(component.endDate).toBe('2024-12-31');
+    expect(controller.getEntriesForReport).toHaveBeenCalledWith(
+      'journal1',
+      '2024-01-01',
+      '2024-12-31',
+      undefined,
+      'begin:20240101 end:20241231 not:Closing'
+    );
+  });
+
+  it('should pass filter string with tag filters to backend', async () => {
+    component.selectedTemplate = mockTemplates[0];
+    controller.getEntriesForReport.and.returnValue(Promise.resolve(mockEntries));
+    controller.getAccountTree.and.returnValue(Promise.resolve(mockAccounts));
+    controller.getTags.and.returnValue(Promise.resolve([]));
+    modelService.getSelectedJournalId.and.returnValue('journal1');
+
+    component.onFilterChange('begin:20240101 end:20241231 invoice:123 not:draft');
+    await fixture.whenStable();
+
+    expect(controller.getEntriesForReport).toHaveBeenCalledWith(
+      'journal1',
+      '2024-01-01',
+      '2024-12-31',
+      undefined,
+      'begin:20240101 end:20241231 invoice:123 not:draft'
+    );
   });
 });

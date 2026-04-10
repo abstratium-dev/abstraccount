@@ -87,7 +87,7 @@ public class JournalPersistenceService {
             "SELECT e FROM EntryEntity e " +
             "JOIN FETCH e.transaction t " +
             "WHERE t.transactionDate >= :from AND t.transactionDate < :to " +
-            "ORDER BY t.transactionDate, t.id, e.entryOrder",
+            "ORDER BY t.transactionDate DESC, t.transactionOrder DESC, e.entryOrder",
             EntryEntity.class)
             .setParameter("from", from)
             .setParameter("to", to)
@@ -230,7 +230,7 @@ public class JournalPersistenceService {
             }
         }
         
-        jpql.append(" ORDER BY t.transactionDate DESC, t.id, e.entryOrder");
+        jpql.append(" ORDER BY t.transactionDate DESC, t.transactionOrder DESC, e.entryOrder");
         
         var query = entityManager.createQuery(jpql.toString(), EntryEntity.class)
             .setParameter("journalId", journalId);

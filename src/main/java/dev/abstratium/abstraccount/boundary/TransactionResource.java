@@ -79,6 +79,7 @@ public class TransactionResource {
             transaction.setStatus(TransactionStatus.valueOf(request.status()));
             transaction.setDescription(request.description());
             transaction.setPartnerId(request.partnerId());
+            transaction.setTransactionOrder(System.currentTimeMillis());
             
             // Add entries
             if (request.entries() != null) {

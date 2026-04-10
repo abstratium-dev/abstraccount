@@ -9,6 +9,9 @@ These TODOs are to be resolved by the developer, NOT THE LLM.
 
 ## Today
 
+tax report -> see @REPORTS_IMPLEMENTATION.md . there is a report in @V01.015__insertSwissTaxDeclaration.sql  used for preparing a tax declaration. see @SKILL.md . you can sign into the application and navigate using the username test@abstratium.dev and password secretLong.  click the link named "reports" in the header and then choose the report 
+
+
 - add more links
   - each tag that is displayed should link to the journal with a filter
   - each partner that is displayed should link to the journal with a filter
@@ -31,6 +34,27 @@ These TODOs are to be resolved by the developer, NOT THE LLM.
   - the reports page should listen to changes in the selected journal and if it changes, call "generate report"
 
 - add a report that shows unpaid invoices
+
+- year end taxes
+  - 2024-12-31 * taxes based on equity tax (about 38 chf) and 15% of profit (0)
+    ; :YearEnd:TaxProvision:
+    8900    CHF  38.00
+    2208    CHF -38.00
+  - 2024-12-31
+    ; :Closing:
+    2979    CHF  38.00
+    8900    CHF -38.00
+  - ; the following is when the bill arrived. we adjusted the provisional 38.00 to 38.10, and paid it 3 days later
+  - 2025-03-28
+    8900    CHF   0.10
+    2208    CHF  38.00
+    2208    CHF -38.10
+  - 2025-03-31
+    ; :Payment:, invoice:PI00000030
+    2208    CHF  38.10
+    1020    CHF -38.10
+
+
 
 - printing
   - reports need to hide filter and show title, logo and subtitle

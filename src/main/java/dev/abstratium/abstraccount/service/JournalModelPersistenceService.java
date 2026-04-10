@@ -100,6 +100,9 @@ public class JournalModelPersistenceService {
         }
         
         // Save all transactions with entries and tags
+        // For bulk imports, use current time as base and increment by 1ms for each transaction
+        long baseTransactionOrder = System.currentTimeMillis();
+        int transactionIndex = 0;
         for (Transaction transaction : journal.transactions()) {
             TransactionEntity transactionEntity = new TransactionEntity();
             transactionEntity.setTransactionDate(transaction.date());
@@ -108,6 +111,7 @@ public class JournalModelPersistenceService {
             transactionEntity.setPartnerId(transaction.partnerId());
             transactionEntity.setTransactionId(transaction.id());
             transactionEntity.setJournalId(journalId);
+            transactionEntity.setTransactionOrder(baseTransactionOrder + transactionIndex);
             
             // Add entries
             int entryOrder = 0;
@@ -132,6 +136,7 @@ public class JournalModelPersistenceService {
             }
             
             persistenceService.saveTransaction(transactionEntity);
+            transactionIndex++;
         }
         LOG.infof("Saving %d transactions", journal.transactions().size());
         

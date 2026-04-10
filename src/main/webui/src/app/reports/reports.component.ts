@@ -149,11 +149,13 @@ export class ReportsComponent implements OnInit {
         return;
       }
 
-      // Load all entries for the selected journal with date filters
+      // Load all entries for the selected journal with filters
       this.entries = await this.controller.getEntriesForReport(
         journalId,
         this.startDate || undefined,
-        this.endDate || undefined
+        this.endDate || undefined,
+        undefined, // accountTypes
+        this.filterText || undefined
       );
       
       // Load account tree and tags

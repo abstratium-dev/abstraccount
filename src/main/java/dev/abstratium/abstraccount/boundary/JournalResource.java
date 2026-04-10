@@ -163,10 +163,10 @@ public class JournalResource {
                 acc -> acc
             ));
         
-        // Deduplicate to get unique transactions
-        Map<String, dev.abstratium.abstraccount.entity.TransactionEntity> transactionMap = new HashMap<>();
+        // Deduplicate to get unique transactions while preserving order from database
+        Map<String, dev.abstratium.abstraccount.entity.TransactionEntity> transactionMap = new java.util.LinkedHashMap<>();
         for (dev.abstratium.abstraccount.entity.EntryEntity entry : entryEntities) {
-            transactionMap.put(entry.getTransaction().getId(), entry.getTransaction());
+            transactionMap.putIfAbsent(entry.getTransaction().getId(), entry.getTransaction());
         }
         
         // Convert to DTOs
@@ -215,7 +215,7 @@ public class JournalResource {
             ));
         }
         
-        return transactionDTOs.stream().sorted((a, b) -> b.date().compareTo(a.date())).collect(Collectors.toList());
+        return transactionDTOs;
     }
     
     /**

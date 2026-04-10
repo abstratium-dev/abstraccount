@@ -299,8 +299,9 @@ class JournalPersistenceServiceTest {
             .toList();
         
         assertEquals(2, transactions.size());
-        assertEquals(LocalDate.of(2025, 1, 10), transactions.get(0).getTransactionDate());
-        assertEquals(LocalDate.of(2025, 1, 15), transactions.get(1).getTransactionDate());
+        // Transactions are sorted by date DESC, so most recent first
+        assertEquals(LocalDate.of(2025, 1, 15), transactions.get(0).getTransactionDate());
+        assertEquals(LocalDate.of(2025, 1, 10), transactions.get(1).getTransactionDate());
     }
     
     @Test
