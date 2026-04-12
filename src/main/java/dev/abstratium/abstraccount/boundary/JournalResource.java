@@ -13,6 +13,7 @@ import dev.abstratium.abstraccount.Roles;
 import dev.abstratium.abstraccount.adapters.PartnerDataAdapter;
 import dev.abstratium.abstraccount.entity.JournalEntity;
 import dev.abstratium.abstraccount.model.Journal;
+import dev.abstratium.abstraccount.service.EntryQueryParser;
 import dev.abstratium.abstraccount.service.JournalParser;
 import dev.abstratium.abstraccount.service.JournalPersistenceService;
 import jakarta.annotation.security.RolesAllowed;
@@ -51,6 +52,9 @@ public class JournalResource {
     
     @Inject
     PartnerDataAdapter partnerDataAdapter;
+
+    @Inject
+    EntryQueryParser entryQueryParser;
     
     /**
      * Gets transactions with their entries and tags.
@@ -61,7 +65,7 @@ public class JournalResource {
      * @param endDate optional exclusive end date filter (YYYY-MM-DD)
      * @param partnerId optional partner ID filter
      * @param status optional transaction status filter
-     * @param filter optional filter string (e.g., "begin:20240601 end:20241031 invoice invoice:*34")
+     * @param filter optional EQL filter expression (see docs/QUERY_LANGUAGE.md)
      */
     @GET
     @Path("/{journalId}/transactions")
@@ -72,102 +76,55 @@ public class JournalResource {
             @QueryParam("partnerId") String partnerId,
             @QueryParam("status") String status,
             @QueryParam("filter") String filter) {
-        
-        // Parse dates
-        LocalDate startLocalDate = startDate != null ? LocalDate.parse(startDate) : null;
-        LocalDate endLocalDate = endDate != null ? LocalDate.parse(endDate) : null;
-        
-        // Parse filter string if provided
-        List<String> tagKeys = null;
-        Map<String, String> tagKeyValuePairs = null;
-        List<String> notTagKeys = null;
-        Map<String, String> notTagKeyValuePairs = null;
-        String partnerFilter = partnerId;
-        
-        if (filter != null && !filter.trim().isEmpty()) {
-            tagKeys = new ArrayList<>();
-            tagKeyValuePairs = new HashMap<>();
-            notTagKeys = new ArrayList<>();
-            notTagKeyValuePairs = new HashMap<>();
-            
-            String[] tokens = filter.trim().split("\\s+");
-            for (String token : tokens) {
-                boolean isNegated = false;
-                
-                // Check for 'not:' prefix
-                if (token.startsWith("not:")) {
-                    isNegated = true;
-                    token = token.substring(4); // Remove 'not:' prefix
-                }
-                
-                if (token.startsWith("begin:")) {
-                    String dateStr = token.substring(6);
-                    startLocalDate = parseCompactDate(dateStr);
-                } else if (token.startsWith("end:")) {
-                    String dateStr = token.substring(4);
-                    endLocalDate = parseCompactDate(dateStr);
-                } else if (token.startsWith("partner:")) {
-                    String partnerValue = token.substring(8);
-                    // Convert wildcard * to SQL LIKE pattern %
-                    partnerFilter = partnerValue.replace("*", "%");
-                } else if (token.contains(":")) {
-                    // Tag key-value pair
-                    int colonIdx = token.indexOf(':');
-                    String key = token.substring(0, colonIdx);
-                    String value = token.substring(colonIdx + 1);
-                    // Convert wildcard * to SQL LIKE pattern %
-                    value = value.replace("*", "%");
-                    
-                    if (isNegated) {
-                        notTagKeyValuePairs.put(key, value);
-                    } else {
-                        tagKeyValuePairs.put(key, value);
-                    }
-                } else {
-                    // Tag key only
-                    if (isNegated) {
-                        notTagKeys.add(token);
-                    } else {
-                        tagKeys.add(token);
-                    }
-                }
-            }
-            
-            if (tagKeys.isEmpty()) tagKeys = null;
-            if (tagKeyValuePairs.isEmpty()) tagKeyValuePairs = null;
-            if (notTagKeys.isEmpty()) notTagKeys = null;
-            if (notTagKeyValuePairs.isEmpty()) notTagKeyValuePairs = null;
-        }
-        
-        // Query entries from database (which eagerly loads transactions)
-        List<dev.abstratium.abstraccount.entity.EntryEntity> entryEntities = 
-            journalPersistenceService.queryEntriesWithFilters(
-                journalId,
-                startLocalDate,
-                endLocalDate,
-                partnerFilter,
-                status,
-                null, // no account filter
-                tagKeys,
-                tagKeyValuePairs,
-                notTagKeys,
-                notTagKeyValuePairs
-            );
-        
-        // Load all accounts for this journal to join with entries
-        List<dev.abstratium.abstraccount.entity.AccountEntity> accounts = 
+
+        // Load all accounts eagerly so the parser can resolve account names / types
+        List<dev.abstratium.abstraccount.entity.AccountEntity> accounts =
             journalPersistenceService.loadAllAccounts(journalId);
         Map<String, dev.abstratium.abstraccount.entity.AccountEntity> accountMap = accounts.stream()
             .collect(Collectors.toMap(
                 dev.abstratium.abstraccount.entity.AccountEntity::getId,
                 acc -> acc
             ));
-        
+
+        // Parse the EQL expression into a predicate
+        java.util.function.Predicate<dev.abstratium.abstraccount.entity.TransactionEntity> txPredicate;
+        try {
+            txPredicate = entryQueryParser.parse(filter, accountMap);
+        } catch (EntryQueryParser.QueryParseException e) {
+            throw new WebApplicationException(
+                jakarta.ws.rs.core.Response.status(400)
+                    .entity(new QueryErrorDTO("query_parse_error", e.getMessage(), e.getPosition()))
+                    .type(MediaType.APPLICATION_JSON)
+                    .build());
+        }
+
+        // Broad DB query: only use the simple indexed filters for the SQL query;
+        // the EQL predicate will post-filter in memory.
+        LocalDate startLocalDate = startDate != null ? LocalDate.parse(startDate) : null;
+        LocalDate endLocalDate = endDate != null ? LocalDate.parse(endDate) : null;
+
+        List<dev.abstratium.abstraccount.entity.EntryEntity> entryEntities =
+            journalPersistenceService.queryEntriesWithFilters(
+                journalId,
+                startLocalDate,
+                endLocalDate,
+                partnerId,
+                status,
+                null,
+                null,
+                null,
+                null,
+                null
+            );
+
         // Deduplicate to get unique transactions while preserving order from database
         Map<String, dev.abstratium.abstraccount.entity.TransactionEntity> transactionMap = new java.util.LinkedHashMap<>();
         for (dev.abstratium.abstraccount.entity.EntryEntity entry : entryEntities) {
             transactionMap.putIfAbsent(entry.getTransaction().getId(), entry.getTransaction());
         }
+
+        // Apply EQL post-filter
+        transactionMap.values().removeIf(tx -> !txPredicate.test(tx));
         
         // Convert to DTOs
         List<TransactionDTO> transactionDTOs = new ArrayList<>();
@@ -216,22 +173,6 @@ public class JournalResource {
         }
         
         return transactionDTOs;
-    }
-    
-    /**
-     * Parses a compact date string in yyyyMMdd format.
-     * 
-     * @param dateStr the date string
-     * @return LocalDate
-     */
-    private LocalDate parseCompactDate(String dateStr) {
-        if (dateStr.length() != 8) {
-            throw new WebApplicationException("Invalid date format: " + dateStr + ". Expected yyyyMMdd", 400);
-        }
-        int year = Integer.parseInt(dateStr.substring(0, 4));
-        int month = Integer.parseInt(dateStr.substring(4, 6));
-        int day = Integer.parseInt(dateStr.substring(6, 8));
-        return LocalDate.of(year, month, day);
     }
     
     /**

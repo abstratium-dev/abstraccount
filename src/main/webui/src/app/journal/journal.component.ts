@@ -99,7 +99,8 @@ export class JournalComponent implements OnInit {
       );
       this.loading = false;
     } catch (err: any) {
-      this.error = 'Failed to load transactions: ' + err.message;
+      const detail = err?.error?.message ?? err.message;
+      this.error = 'Failed to load transactions: ' + detail;
       this.loading = false;
     }
   }

@@ -16,7 +16,7 @@ interface AutocompleteSuggestion {
   styleUrl: './filter-input.component.scss'
 })
 export class FilterInputComponent implements OnInit, OnDestroy {
-  @Input() placeholder = 'Filter (e.g., begin:20240601 end:20241031 partner:*ABC invoice:*34 not:draft)';
+  @Input() placeholder = 'Filter (e.g., date:gte:2024-01-01 AND description:*invoice* AND NOT accounttype:EQUITY)';
   @Input() tags: TagDTO[] = [];
   @Output() filterChange = new EventEmitter<string>();
 
@@ -128,83 +128,63 @@ export class FilterInputComponent implements OnInit, OnDestroy {
 
   private updateSuggestions(text: string): void {
     const beforeCursor = text.substring(0, this.cursorPosition);
-    const lastSpaceIndex = beforeCursor.lastIndexOf(' ');
-    const currentToken = beforeCursor.substring(lastSpaceIndex >= 0 ? lastSpaceIndex + 1 : 0);
+    // Find current token – stop at whitespace but also at ( and )
+    const tokenMatch = beforeCursor.match(/[^\s()]*$/);
+    const currentToken = tokenMatch ? tokenMatch[0] : '';
 
     const suggestions: AutocompleteSuggestion[] = [];
 
-    // Check if token starts with 'not:'
-    let isNegated = false;
-    let tokenWithoutNot = currentToken;
-    if (currentToken.startsWith('not:')) {
-      isNegated = true;
-      tokenWithoutNot = currentToken.substring(4);
-    }
+    const tokenLower = currentToken.toLowerCase();
 
-    // If token is empty or starts with a letter, suggest keywords and tag keys
-    if (!tokenWithoutNot || /^[a-zA-Z]/.test(tokenWithoutNot)) {
-      // Date keywords
-      if ('begin:'.startsWith(tokenWithoutNot.toLowerCase())) {
-        suggestions.push({ text: 'begin:yyyyMMdd', description: 'Start date filter (inclusive)' });
-      }
-      if ('end:'.startsWith(tokenWithoutNot.toLowerCase())) {
-        suggestions.push({ text: 'end:yyyyMMdd', description: 'End date filter (exclusive)' });
-      }
-      if ('partner:'.startsWith(tokenWithoutNot.toLowerCase())) {
-        suggestions.push({ text: 'partner:value', description: 'Filter by partner ID (supports wildcards)' });
-      }
-      if ('not:'.startsWith(currentToken.toLowerCase()) && !isNegated) {
-        suggestions.push({ text: 'not:', description: 'Negate the following filter' });
-      }
+    // Top-level EQL keywords
+    const eqlKeywords: AutocompleteSuggestion[] = [
+      { text: 'AND', description: 'Logical AND' },
+      { text: 'OR', description: 'Logical OR' },
+      { text: 'NOT', description: 'Logical NOT' },
+      { text: 'date:gte:', description: 'Transaction date ≥ (e.g. date:gte:2024-01-01)' },
+      { text: 'date:lte:', description: 'Transaction date ≤ (e.g. date:lte:2024-12-31)' },
+      { text: 'date:eq:', description: 'Transaction date = (e.g. date:eq:2024-06-01)' },
+      { text: 'date:between:', description: 'Date range (e.g. date:between:2024-01-01..2024-12-31)' },
+      { text: 'partner:', description: 'Partner ID (glob/regex supported, e.g. partner:*ACME*)' },
+      { text: 'description:', description: 'Description (glob/regex, e.g. description:*invoice*)' },
+      { text: 'commodity:', description: 'Commodity code (e.g. commodity:CHF)' },
+      { text: 'amount:gte:', description: 'Amount ≥ value (e.g. amount:gte:0)' },
+      { text: 'amount:lte:', description: 'Amount ≤ value' },
+      { text: 'amount:eq:', description: 'Amount = value' },
+      { text: 'note:', description: 'Entry note (glob/regex, e.g. note:*receipt*)' },
+      { text: 'tag:', description: 'Tag key (e.g. tag:invoice) or key+value (e.g. tag:invoice:PI001)' },
+      { text: 'accounttype:', description: 'Account type: ASSET, LIABILITY, EQUITY, REVENUE, EXPENSE, CASH' },
+      { text: 'accountname:', description: 'Account path (glob/regex, e.g. accountname:*Expenses:Marketing*)' },
+    ];
 
-      // Tag keys
-      const uniqueKeys = new Set<string>();
-      this.tags.forEach(tag => uniqueKeys.add(tag.key));
-      
-      Array.from(uniqueKeys)
-        .filter(key => key.toLowerCase().startsWith(tokenWithoutNot.toLowerCase()))
-        .forEach(key => {
-          const prefix = isNegated ? 'not:' : '';
-          suggestions.push({ text: prefix + key, description: `${isNegated ? 'Exclude' : 'Filter by'} tag key: ${key}` });
-          
-          // Also suggest key:value patterns for this key
-          const valuesForKey = this.tags
-            .filter(tag => tag.key === key && tag.value)
-            .map(tag => tag.value);
-          
-          const uniqueValues = Array.from(new Set(valuesForKey));
-          uniqueValues.forEach(value => {
-            suggestions.push({ text: `${prefix}${key}:${value}`, description: `${isNegated ? 'Exclude' : 'Filter by'} ${key} = ${value}` });
+    // Filter keywords by current token prefix
+    eqlKeywords
+      .filter(s => s.text.toLowerCase().startsWith(tokenLower))
+      .forEach(s => suggestions.push(s));
+
+    // If we are typing a tag: predicate, add known tag keys/values
+    if (tokenLower.startsWith('tag:')) {
+      const afterTag = currentToken.substring(4);
+      const colonIdx = afterTag.indexOf(':');
+      if (colonIdx < 0) {
+        // Suggest tag keys
+        const uniqueKeys = Array.from(new Set(this.tags.map(t => t.key)));
+        uniqueKeys
+          .filter(key => key.toLowerCase().startsWith(afterTag.toLowerCase()))
+          .forEach(key => {
+            suggestions.push({ text: `tag:${key}`, description: `Filter by tag key: ${key}` });
           });
-        });
-    } else if (tokenWithoutNot.includes(':')) {
-      // If token contains ':', suggest values for that key
-      const colonIndex = tokenWithoutNot.indexOf(':');
-      const key = tokenWithoutNot.substring(0, colonIndex);
-      const valuePrefix = tokenWithoutNot.substring(colonIndex + 1);
-
-      // Special handling for date keywords
-      if (key === 'begin' || key === 'end') {
-        if (!valuePrefix) {
-          suggestions.push({ text: `${key}:yyyyMMdd`, description: 'Date in yyyyMMdd format' });
-        }
-      } else if (key === 'partner') {
-        if (!valuePrefix) {
-          suggestions.push({ text: 'partner:*', description: 'Partner ID with wildcard' });
-        }
       } else {
-        // Tag values
-        const valuesForKey = this.tags
-          .filter(tag => tag.key === key && tag.value)
-          .map(tag => tag.value);
-        
-        const uniqueValues = Array.from(new Set(valuesForKey));
-        const prefix = isNegated ? 'not:' : '';
+        // Suggest tag values for the given key
+        const tagKey = afterTag.substring(0, colonIdx);
+        const valuePrefix = afterTag.substring(colonIdx + 1);
+        const uniqueValues = Array.from(new Set(
+          this.tags.filter(t => t.key === tagKey && t.value).map(t => t.value)
+        ));
         uniqueValues
-          .filter(value => value.toLowerCase().startsWith(valuePrefix.toLowerCase()))
-          .forEach(value => {
-            suggestions.push({ text: `${prefix}${key}:${value}`, description: `${isNegated ? 'Exclude' : 'Filter by'} ${key} = ${value}` });
-            suggestions.push({ text: `${prefix}${key}:*${value}`, description: `${isNegated ? 'Exclude' : 'Filter by'} ${key} contains ${value}` });
+          .filter(v => v.toLowerCase().startsWith(valuePrefix.toLowerCase()))
+          .forEach(v => {
+            suggestions.push({ text: `tag:${tagKey}:${v}`, description: `${tagKey} = ${v}` });
           });
       }
     }

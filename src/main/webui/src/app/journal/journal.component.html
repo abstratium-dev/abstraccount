@@ -38,6 +38,9 @@
   <!-- Transactions Table -->
   <div *ngIf="selectedJournal && transactions.length > 0">
     <h3>Transactions</h3>
+    <p style="text-align: right; color: var(--color-text-secondary); margin-top: 1rem">
+      Total transactions: {{ transactions.length }}
+    </p>
     <table class="standard-table journal-table">
       <thead>
         <tr>
@@ -112,10 +115,6 @@
         </ng-container>
       </tbody>
     </table>
-    
-    <p style="text-align: right; color: var(--color-text-secondary); margin-top: 1rem">
-      Total transactions: {{ transactions.length }}
-    </p>
   </div>
 
   <!-- No Data Message -->
