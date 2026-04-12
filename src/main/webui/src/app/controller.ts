@@ -579,61 +579,20 @@ export class Controller {
   }
 
   /**
-   * Get all entries with filtering for entry search.
+   * Get all entries with EQL filtering for entry search.
    */
-  async getEntrySearchResults(filters: {
-    journalId?: string;
-    accountId?: string;
-    transactionId?: string;
-    startDate?: string;
-    endDate?: string;
-    partnerId?: string;
-    status?: string;
-    commodity?: string;
-    minAmount?: number;
-    maxAmount?: number;
-    accountType?: string;
-    tagList?: string[];
-  }): Promise<EntrySearchDTO[]> {
+  async getEntrySearchResults(journalId: string, accountId?: string, filter?: string): Promise<EntrySearchDTO[]> {
     try {
       let params = new HttpParams();
-      if (filters.journalId) params = params.set('journalId', filters.journalId);
-      if (filters.accountId) params = params.set('accountId', filters.accountId);
-      if (filters.transactionId) params = params.set('transactionId', filters.transactionId);
-      if (filters.startDate) params = params.set('startDate', filters.startDate);
-      if (filters.endDate) params = params.set('endDate', filters.endDate);
-      if (filters.partnerId) params = params.set('partnerId', filters.partnerId);
-      if (filters.status) params = params.set('status', filters.status);
-      if (filters.commodity) params = params.set('commodity', filters.commodity);
-      if (filters.minAmount != null) params = params.set('minAmount', filters.minAmount.toString());
-      if (filters.maxAmount != null) params = params.set('maxAmount', filters.maxAmount.toString());
-      if (filters.accountType) params = params.set('accountType', filters.accountType);
-      if (filters.tagList && filters.tagList.length > 0) {
-        filters.tagList.forEach(tag => {
-          params = params.append('tagList', tag);
-        });
-      }
-      
+      params = params.set('journalId', journalId);
+      if (accountId) params = params.set('accountId', accountId);
+      if (filter) params = params.set('filter', filter);
+
       return await firstValueFrom(
         this.http.get<EntrySearchDTO[]>('/api/entry-search/entries', { params })
       );
     } catch (error) {
       console.error('Error getting entry search results:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Get all unique tags for a journal for entry search.
-   */
-  async getEntrySearchTags(journalId: string): Promise<string[]> {
-    try {
-      const params = new HttpParams().set('journalId', journalId);
-      return await firstValueFrom(
-        this.http.get<string[]>('/api/entry-search/tags', { params })
-      );
-    } catch (error) {
-      console.error('Error getting entry search tags:', error);
       throw error;
     }
   }
