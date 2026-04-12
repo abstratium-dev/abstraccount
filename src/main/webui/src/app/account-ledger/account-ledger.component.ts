@@ -38,7 +38,37 @@ export class AccountLedgerComponent implements OnInit, AfterViewInit {
     // Current balance is the first entry (newest)
     return this.entries.length > 0 ? this.entries[0].runningBalance : 0;
   }
-  
+
+  /**
+   * Returns true for account types with a debit normal balance (ASSET, EXPENSE, CASH).
+   * For these types, positive amounts = debits and negative amounts = credits.
+   * For credit-normal types (LIABILITY, EQUITY, REVENUE), the mapping is reversed.
+   */
+  get isDebitNormal(): boolean {
+    const type = this.account?.type?.toUpperCase();
+    return type === 'ASSET' || type === 'EXPENSE' || type === 'CASH';
+  }
+
+  /** Label for the sum of positive amounts (increases the account value). */
+  get positiveAmountLabel(): string {
+    return this.isDebitNormal ? 'Total Debits' : 'Total Credits';
+  }
+
+  /** Label for the sum of negative amounts (decreases the account value). */
+  get negativeAmountLabel(): string {
+    return this.isDebitNormal ? 'Total Credits' : 'Total Debits';
+  }
+
+  /** Sum of all positive entry amounts. */
+  get totalPositiveAmount(): number {
+    return this.entries.reduce((sum, e) => e.amount > 0 ? sum + e.amount : sum, 0);
+  }
+
+  /** Sum of all negative entry amounts (returned as a positive number for display). */
+  get totalNegativeAmount(): number {
+    return this.entries.reduce((sum, e) => e.amount < 0 ? sum + Math.abs(e.amount) : sum, 0);
+  }
+
   get reversedEntries(): AccountEntryDTO[] {
     // they are already sorted in reverse order by the server
     return this.entries;

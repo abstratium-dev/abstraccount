@@ -13,7 +13,7 @@ The Swiss Tax Declaration report is showing **incorrect/missing values** because
 
 ### Root Cause
 
-The journal file contains year-end closing entries on **2025-12-31** tagged with `:Closing:` that:
+The journal file contains year-end closing entries on **2025-12-31** tagged with `Closing:` that:
 
 1. Transfer all revenue (account 3) to profit/loss account (2:29:290:2979)
 2. Transfer all expenses (accounts 4, 6, 8) to profit/loss account (2:29:290:2979)
@@ -21,7 +21,7 @@ The journal file contains year-end closing entries on **2025-12-31** tagged with
 
 **Example closing entry:**
 ```
-2025-12-31 * Close revenue account 3 Produits d'exploitation...  ; :Closing:
+2025-12-31 * Close revenue account 3 Produits d'exploitation...  ; Closing:
     2 Passif / Equity:290:2979 Bénéfice de l'exercice    CHF -1234.56
     3 Produits d'exploitation...                         CHF 1234.56
 ```
@@ -42,12 +42,12 @@ When closing entries are included:
 
 ## Solution
 
-The tax report **MUST EXCLUDE** transactions tagged with `:Closing:` when calculating values.
+The tax report **MUST EXCLUDE** transactions tagged with `Closing:` when calculating values.
 
 ### Implementation Options
 
 #### Option 1: Filter by Tag (RECOMMENDED)
-Add a filter to exclude `:Closing:` tag:
+Add a filter to exclude `Closing:` tag:
 ```
 Filter: begin:20240101 end:20251231 NOT tag:Closing
 ```
@@ -62,13 +62,13 @@ Filter: begin:20240101 end:20251230
 #### Option 3: Separate Closing Date
 Use a closing date of 2026-01-01 for closing entries:
 ```
-2026-01-01 * Close revenue account...  ; :Closing:
+2026-01-01 * Close revenue account...  ; Closing:
 ```
 **Problem:** This changes the accounting practice and may not be acceptable.
 
 ### Recommended Approach
 
-**Modify the report filter to exclude `:Closing:` tag:**
+**Modify the report filter to exclude `Closing:` tag:**
 
 The filter input should support:
 ```
@@ -96,17 +96,17 @@ After implementing the fix, verify:
 The journal shows a proper year-end closing process:
 
 1. **2025-12-31:** Payment to Postfinance (normal transaction)
-2. **2025-12-31:** Two `:YearEnd:` tagged transactions:
+2. **2025-12-31:** Two `YearEnd:` tagged transactions:
    - Tax provision
    - Legal reserve allocation
-3. **2025-12-31:** Multiple `:Closing:` tagged transactions:
+3. **2025-12-31:** Multiple `Closing:` tagged transactions:
    - Close all revenue accounts (3xxx) to 2979
    - Close all expense accounts (4xxx, 6xxx, 8xxx) to 2979
 
 ### Tags in Use
 
-- `:YearEnd:` - Year-end adjustments (2 transactions)
-- `:Closing:` - Closing entries (15 transactions)
+- `YearEnd:` - Year-end adjustments (2 transactions)
+- `Closing:` - Closing entries (15 transactions)
 
 Both should likely be excluded from the tax report to show pre-closing balances.
 
@@ -119,7 +119,7 @@ The `FilterInputComponent` currently supports:
 
 **Required enhancement:** Add support for **negative tag filtering**:
 - Syntax: `-tag:Closing` or `NOT tag:Closing`
-- This would exclude all transactions with the `:Closing:` tag
+- This would exclude all transactions with the `Closing:` tag
 
 ## Backend Implementation Note
 

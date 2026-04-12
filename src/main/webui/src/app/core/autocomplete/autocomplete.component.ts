@@ -33,7 +33,8 @@ export class AutocompleteComponent implements ControlValueAccessor {
   // Function to fetch options based on search term
   @Input() fetchOptions!: (searchTerm: string) => Promise<AutocompleteOption[]>;
   
-  @Output() optionSelected = new EventEmitter<AutocompleteOption>();
+  @Output() optionSelected = new EventEmitter<AutocompleteOption | null>();
+  @Output() freeTextEntered = new EventEmitter<string>(); // Emitted when user presses Enter with free text
 
   searchTerm = signal('');
   selectedValue = signal<string | null>(null);
@@ -147,6 +148,7 @@ export class AutocompleteComponent implements ControlValueAccessor {
     this.options.set([]);
     this.showDropdown.set(false);
     this.onChange(null);
+    this.optionSelected.emit(null);
   }
 
   onKeyDown(event: KeyboardEvent): void {
@@ -170,6 +172,16 @@ export class AutocompleteComponent implements ControlValueAccessor {
         event.preventDefault();
         if (currentIndex >= 0 && currentIndex < currentOptions.length) {
           this.selectOption(currentOptions[currentIndex]);
+        } else if (this.allowFreeText) {
+          // Accept current text as free text entry
+          const currentTerm = this.searchTerm().trim();
+          if (currentTerm) {
+            this.freeTextEntered.emit(currentTerm);
+            // Clear the input for next entry
+            this.searchTerm.set('');
+            this.selectedValue.set(null);
+            this.selectedLabel.set(null);
+          }
         }
         break;
       case 'Escape':

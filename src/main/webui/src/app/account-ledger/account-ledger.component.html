@@ -19,6 +19,14 @@
             {{ currentBalance | number:'1.2-2' }}
           </span>
         </div>
+        <div class="detail-item">
+          <span class="label">{{ positiveAmountLabel }}:</span>
+          <span class="value turnover positive">{{ totalPositiveAmount | number:'1.2-2' }}</span>
+        </div>
+        <div class="detail-item">
+          <span class="label">{{ negativeAmountLabel }}:</span>
+          <span class="value turnover">{{ totalNegativeAmount | number:'1.2-2' }}</span>
+        </div>
       }
     </div>
   }

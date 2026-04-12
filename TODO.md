@@ -6,11 +6,23 @@ These TODOs are to be resolved by the developer, NOT THE LLM.
 
 - upgrade all and check security issues in github
 - update docs to describe the changes
+- ensure coverage goal, esp. ui, is met
 
 ## Today
 
-tax report -> see @REPORTS_IMPLEMENTATION.md . there is a report in @V01.015__insertSwissTaxDeclaration.sql  used for preparing a tax declaration. see @SKILL.md . you can sign into the application and navigate using the username test@abstratium.dev and password secretLong.  click the link named "reports" in the header and then choose the report 
+- macros: use account 4000 or 4200 when purchasing stuff that goes into stock
 
+- mark which macros are as yet untested
+
+- 2025 tax declr
+  - bank statement
+  - explaination and company statement
+  - add reports and journal
+  - explain specialities
+  - ask if my assumptions are correct
+  - read book Compta2024.pdf
+  - check list of what to do in which order
+  - ensure certain tags are ignored for certain reports so that they can be regenerated even after closing
 
 - add more links
   - each tag that is displayed should link to the journal with a filter
@@ -37,11 +49,11 @@ tax report -> see @REPORTS_IMPLEMENTATION.md . there is a report in @V01.015__in
 
 - year end taxes
   - 2024-12-31 * taxes based on equity tax (about 38 chf) and 15% of profit (0)
-    ; :YearEnd:TaxProvision:
+    ; YearEnd:TaxProvision
     8900    CHF  38.00
     2208    CHF -38.00
   - 2024-12-31
-    ; :Closing:
+    ; Closing:
     2979    CHF  38.00
     8900    CHF -38.00
   - ; the following is when the bill arrived. we adjusted the provisional 38.00 to 38.10, and paid it 3 days later
@@ -50,7 +62,7 @@ tax report -> see @REPORTS_IMPLEMENTATION.md . there is a report in @V01.015__in
     2208    CHF  38.00
     2208    CHF -38.10
   - 2025-03-31
-    ; :Payment:, invoice:PI00000030
+    ; Payment:, invoice:PI00000030
     2208    CHF  38.10
     1020    CHF -38.10
 
@@ -59,11 +71,7 @@ tax report -> see @REPORTS_IMPLEMENTATION.md . there is a report in @V01.015__in
 - printing
   - reports need to hide filter and show title, logo and subtitle
 
-- Inputs based on macros
-
 - Link to receipt documents
-
-- add a skill to abstracore so that the llm can read the database (show tables, desc table, select * from table with limit)
 
 - always sort tags alphabetically
 
@@ -77,18 +85,15 @@ tax report -> see @REPORTS_IMPLEMENTATION.md . there is a report in @V01.015__in
   - description, notes, etc.
   - amounts, from, to
   - tags
-    - name, name=regex, name is regex
+    - name, name=regex, name as regex
   - not, and, or
 
 ## Tomorrow
 
 - ebita report
-- report that mirrors vaud tax return
 - [ ] - Update README.md with project-specific information
 - [ ] - Update DATABASE.md with project-specific information
 - [ ] - Search for TODO and fix
-- [ ] - Create favicon, store it in root as zip and put it in `src/main/webui/public`
-- [ ] - Update database migration files
 - [ ] - Update clear-test-db.sh
 
 - when adding new accounts, need to make sure that the user checks the reports, that they are added e.g. in the income statement, where the swiss template recommends it
@@ -96,3 +101,4 @@ tax report -> see @REPORTS_IMPLEMENTATION.md . there is a report in @V01.015__in
 
 ## Later (not yet necessary for initial release)
 
+- add a skill to abstracore so that the llm can read the database (show tables, desc table, select * from table with limit)

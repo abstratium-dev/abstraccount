@@ -23,7 +23,7 @@ VALUES (    'macro-repay-staff',
     'Repaying cash owed to a member of staff',
     '[{"name":"date","type":"date","prompt":"Payment date","defaultValue":"{today}","required":true},{"name":"partner","type":"partner","prompt":"Partner (staff member)","required":true},{"name":"description","type":"text","prompt":"Description","required":true},{"name":"invoice_numbers","type":"text","prompt":"Invoice numbers to reimburse (comma-separated, 8 digits each)","required":true},{"name":"amount","type":"amount","prompt":"Total amount (e.g., 33.78)","required":true},{"name":"bank_account","type":"account","prompt":"Bank account (1..)","filter":"^1.*:10.*:100.*:1020.*$","required":true},{"name":"staff_account","type":"account","prompt":"Staff member account (2..)","filter":"^2.*:20.*:220.*:2210.*:2210.*$","required":true}]',
     '{date} * {partner} | {description}
-    ; :Payment:, {invoice_numbers}
+    ; Payment:, {invoice_numbers}
     {bank_account}           CHF -{amount}
     {staff_account}  CHF {amount}',
     '{"balanceCheck":true,"minPostings":2}',
@@ -38,7 +38,7 @@ VALUES (    'macro-banking-expense',
     'Payment for banking expenses',
     '[{"name":"date","type":"date","prompt":"Transaction date","defaultValue":"{today}","required":true},{"name":"description","type":"text","prompt":"Description","required":true},{"name":"invoice_number","type":"code","prompt":"Invoice number (8 digits)","defaultValue":"{next_invoice_PI}","required":true},{"name":"amount","type":"amount","prompt":"Amount (e.g., 5.00)","required":true},{"name":"bank_account","type":"account","prompt":"Bank account (1..)","filter":"^1.*:10.*:100.*:1020.*$","required":true},{"name":"expense_account","type":"account","prompt":"Financial expense account (6..)","filter":"^6.*:6900.*$","required":true}]',
     '{date} * P00000004 | {description}
-    ; :Payment:, invoice:{invoice_number}
+    ; Payment:, invoice:{invoice_number}
     {expense_account}        CHF {amount}
     {bank_account}           CHF -{amount}',
     '{"balanceCheck":true,"minPostings":2}',
@@ -58,7 +58,7 @@ VALUES (    'macro-pay-invoice-from-bank',
     {liability_account}      CHF -{amount}
 
 {payment_date} * {partner} | Payment of invoice
-    ; :Payment:, invoice:{invoice_number}
+    ; Payment:, invoice:{invoice_number}
     {liability_account}      CHF {amount}
     {bank_account}           CHF -{amount}',
     '{"balanceCheck":true,"minPostings":2}',
@@ -118,7 +118,7 @@ VALUES (    'macro-inventory-adjustment',
     'Adjust inventory value for obsolete, damaged, or depreciated goods (year-end closing)',
     '[{"name":"date","type":"date","prompt":"Adjustment date","defaultValue":"{today}","required":true},{"name":"description","type":"text","prompt":"Description (e.g., Year-end inventory write-down)","required":true},{"name":"adjustment_amount","type":"amount","prompt":"Adjustment amount (positive for write-down)","required":true},{"name":"inventory_account","type":"account","prompt":"Inventory account (120x)","filter":"^1.*:10.*:120.*:12[0-9][0-9].*$","required":true},{"name":"expense_account","type":"account","prompt":"Expense account (typically 6700 Other operating expenses)","filter":"^6.*:6700.*$","required":true}]',
     '{date} * Inventory adjustment | {description}
-    ; :YearEnd:InventoryAdjustment:
+    ; YearEnd:InventoryAdjustment
     {expense_account}        CHF {adjustment_amount}
     {inventory_account}      CHF -{adjustment_amount}',
     '{"balanceCheck":true,"minPostings":2}',
@@ -133,7 +133,7 @@ VALUES (    'macro-record-depreciation',
     'Record annual depreciation for fixed assets (year-end closing)',
     '[{"name":"date","type":"date","prompt":"Depreciation date (typically year-end)","defaultValue":"{year}-12-31","required":true},{"name":"description","type":"text","prompt":"Description (e.g., Annual depreciation for 2025)","required":true},{"name":"depreciation_amount","type":"amount","prompt":"Depreciation amount","required":true},{"name":"asset_account","type":"account","prompt":"Fixed asset account (14xx or 15xx)","filter":"^1.*:14.*:15[0-9].*$","required":true},{"name":"depreciation_expense_account","type":"account","prompt":"Depreciation expense account (6800)","filter":"^6.*:6800.*$","required":true}]',
     '{date} * Annual depreciation | {description}
-    ; :YearEnd:Depreciation:
+    ; YearEnd:Depreciation
     {depreciation_expense_account}    CHF {depreciation_amount}
     {asset_account}                   CHF -{depreciation_amount}',
     '{"balanceCheck":true,"minPostings":2}',
@@ -148,7 +148,7 @@ VALUES (    'macro-tax-provision',
     'Record year-end tax provision (income tax + capital tax)',
     '[{"name":"date","type":"date","prompt":"Transaction date (typically December 31)","defaultValue":"{year}-12-31","required":true},{"name":"description","type":"text","prompt":"Description of tax provision","defaultValue":"Tax provision for {year}","required":true},{"name":"total_tax_amount","type":"amount","prompt":"Total tax provision (income + capital)","required":true}]',
     '{date} * Tax provision | {description}
-    ; :YearEnd:TaxProvision:
+    ; YearEnd:TaxProvision
     8:8900    CHF {total_tax_amount}
     2:20:220:2208    CHF -{total_tax_amount}',
     '{"balanceCheck":true,"minPostings":2}',
@@ -163,7 +163,7 @@ VALUES (    'macro-tax-payment',
     'Record payment of provisioned taxes (with adjustment if actual differs)',
     '[{"name":"date","type":"date","prompt":"Payment date","required":true},{"name":"partner","type":"partner","prompt":"Tax authority (e.g., Canton Vaud)","required":true},{"name":"description","type":"text","prompt":"Description (e.g., Payment for 2025 taxes)","required":true},{"name":"provision_amount","type":"amount","prompt":"Amount that was provisioned (from year-end provision)","required":true},{"name":"actual_amount","type":"amount","prompt":"Actual amount paid (from tax bill)","required":true},{"name":"bank_account","type":"account","prompt":"Bank account to pay from","filter":"^1.*:10.*:100.*:1020.*$","required":true}]',
     '{date} * {partner} | {description}
-    ; :TaxPayment:
+    ; TaxPayment:
     2:20:220:2208    CHF {provision_amount}
     8:8900    CHF {actual_amount - provision_amount}
     {bank_account}    CHF -{actual_amount}',
@@ -179,7 +179,7 @@ VALUES (    'macro-legal-reserve-allocation',
     'Allocate 5% of annual profit to legal reserves (MANDATORY for Swiss Sàrl until reserves reach 20% of capital)',
     '[{"name":"date","type":"date","prompt":"Allocation date (typically December 31)","defaultValue":"{year}-12-31","required":true},{"name":"allocation_amount","type":"amount","prompt":"Amount to allocate (5% of profit, or less if target reached)","required":true},{"name":"description","type":"text","prompt":"Description","defaultValue":"Legal reserve allocation for {year} (5% of profit)","required":true}]',
     '{date} * Legal reserve allocation | {description}
-    ; :YearEnd:LegalReserve:
+    ; YearEnd:LegalReserve
     2:290:2979    CHF {allocation_amount}
     2:290:2950    CHF -{allocation_amount}',
     '{"balanceCheck":true,"minPostings":2}',

@@ -1,5 +1,11 @@
 import { Injectable } from '@angular/core';
 import { AccountTreeNode } from './controller';
+import {
+  extractAccountNumber as _extractAccountNumber,
+  buildHierarchicalPath as _buildHierarchicalPath,
+  findAccountById as _findAccountById,
+  buildHierarchicalAccountName as _buildHierarchicalAccountName
+} from './account-utils';
 
 @Injectable({
   providedIn: 'root'
@@ -13,8 +19,7 @@ export class AccountService {
    * "2210.001 Person" -> "2210.001"
    */
   extractAccountNumber(name: string): string {
-    const match = name.match(/^(\d+(?:\.\d+)?)\s/);
-    return match ? match[1] : '';
+    return _extractAccountNumber(name);
   }
 
   /**
@@ -22,56 +27,29 @@ export class AccountService {
    * Returns array of {number, id, name} for each ancestor including the account itself
    */
   buildHierarchicalPath(
-    accountId: string, 
+    accountId: string,
     allAccounts: AccountTreeNode[]
   ): Array<{number: string, id: string, name: string}> {
-    const path: Array<{number: string, id: string, name: string}> = [];
-    
-    // Find the account and build parent chain
-    const findAccountAndParents = (
-      targetId: string, 
-      nodes: AccountTreeNode[], 
-      ancestors: AccountTreeNode[] = []
-    ): AccountTreeNode[] | null => {
-      for (const node of nodes) {
-        if (node.id === targetId) {
-          // Found it - return ancestors plus this node
-          return [...ancestors, node];
-        }
-        if (node.children) {
-          const found = findAccountAndParents(targetId, node.children, [...ancestors, node]);
-          if (found) return found;
-        }
-      }
-      return null;
-    };
-    
-    const chain = findAccountAndParents(accountId, allAccounts);
-    if (chain) {
-      for (const account of chain) {
-        const number = this.extractAccountNumber(account.name);
-        if (number) {
-          path.push({ number, id: account.id, name: account.name });
-        }
-      }
-    }
-    
-    return path;
+    return _buildHierarchicalPath(accountId, allAccounts);
   }
 
   /**
    * Finds an account by ID in the account tree
    */
   findAccountById(accountId: string, accounts: AccountTreeNode[]): AccountTreeNode | null {
-    for (const account of accounts) {
-      if (account.id === accountId) {
-        return account;
-      }
-      if (account.children) {
-        const found = this.findAccountById(accountId, account.children);
-        if (found) return found;
-      }
-    }
-    return null;
+    return _findAccountById(accountId, accounts);
+  }
+
+  /**
+   * Builds the full hierarchical account name with number prefixes from root to account.
+   * For example, if account is "1100 Debtors" with parent "110 Receivables" with parent "10 Current Assets"
+   * with parent "1 Assets", this returns "1:10:110:1100 Debtors".
+   * This is used for account regex matching in reports.
+   */
+  buildHierarchicalAccountName(
+    accountId: string,
+    allAccounts: AccountTreeNode[]
+  ): string {
+    return _buildHierarchicalAccountName(accountId, allAccounts);
   }
 }

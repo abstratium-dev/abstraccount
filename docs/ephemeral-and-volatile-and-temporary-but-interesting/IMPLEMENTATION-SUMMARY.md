@@ -82,7 +82,7 @@ The report will now:
 - ✅ Show inventory (A.3)
 - ✅ Show revenue (A.10)
 - ✅ Show net income (B.1)
-- ✅ Exclude all closing entries tagged with `:Closing:`
+- ✅ Exclude all closing entries tagged with `Closing:`
 
 ### General Filter Syntax
 

@@ -593,7 +593,7 @@ export class Controller {
     minAmount?: number;
     maxAmount?: number;
     accountType?: string;
-    tagPattern?: string;
+    tagList?: string[];
   }): Promise<EntrySearchDTO[]> {
     try {
       let params = new HttpParams();
@@ -605,10 +605,14 @@ export class Controller {
       if (filters.partnerId) params = params.set('partnerId', filters.partnerId);
       if (filters.status) params = params.set('status', filters.status);
       if (filters.commodity) params = params.set('commodity', filters.commodity);
-      if (filters.minAmount !== undefined) params = params.set('minAmount', filters.minAmount.toString());
-      if (filters.maxAmount !== undefined) params = params.set('maxAmount', filters.maxAmount.toString());
+      if (filters.minAmount != null) params = params.set('minAmount', filters.minAmount.toString());
+      if (filters.maxAmount != null) params = params.set('maxAmount', filters.maxAmount.toString());
       if (filters.accountType) params = params.set('accountType', filters.accountType);
-      if (filters.tagPattern) params = params.set('tagPattern', filters.tagPattern);
+      if (filters.tagList && filters.tagList.length > 0) {
+        filters.tagList.forEach(tag => {
+          params = params.append('tagList', tag);
+        });
+      }
       
       return await firstValueFrom(
         this.http.get<EntrySearchDTO[]>('/api/entry-search/entries', { params })

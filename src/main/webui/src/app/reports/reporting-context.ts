@@ -1,5 +1,6 @@
 import { AccountEntryDTO, AccountTreeNode } from '../controller';
 import { ReportingContext, AccountSummary } from './reporting-types';
+import { buildHierarchicalAccountName } from '../account-utils';
 
 /**
  * Creates a reporting context from account entries and account tree.
@@ -11,7 +12,7 @@ export function createReportingContext(
   startDate: string | null,
   endDate: string | null
 ): ReportingContext {
-  
+
   // Build account lookup map
   const accountMap = new Map<string, AccountTreeNode>();
   function addToMap(node: AccountTreeNode) {
@@ -19,17 +20,22 @@ export function createReportingContext(
     node.children.forEach(addToMap);
   }
   accounts.forEach(addToMap);
-  
+
   // Helper to get account type for an entry
   function getAccountType(entry: AccountEntryDTO): string {
     const account = accountMap.get(entry.accountId);
     return account?.type || 'UNKNOWN';
   }
-  
+
   // Helper to get account name for an entry
   function getAccountName(entry: AccountEntryDTO): string {
     const account = accountMap.get(entry.accountId);
     return account?.name || '';
+  }
+
+  // Helper to get hierarchical account name for an entry (includes parent number prefixes)
+  function getHierarchicalAccountName(entry: AccountEntryDTO): string {
+    return buildHierarchicalAccountName(entry.accountId, accounts);
   }
   
   // Filter entries by account type
@@ -42,10 +48,10 @@ export function createReportingContext(
     return entries.filter(e => accountTypes.includes(getAccountType(e)));
   }
   
-  // Filter entries by account regex pattern
+  // Filter entries by account regex pattern (matches against hierarchical account name)
   function getEntriesByAccountRegex(pattern: string): AccountEntryDTO[] {
     const regex = new RegExp(pattern);
-    return entries.filter(e => regex.test(getAccountName(e)));
+    return entries.filter(e => regex.test(getHierarchicalAccountName(e)));
   }
   
   // Calculate balance for a specific account type

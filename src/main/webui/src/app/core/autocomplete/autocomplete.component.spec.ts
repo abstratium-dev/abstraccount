@@ -135,6 +135,60 @@ describe('AutocompleteComponent', () => {
       expect(component.showDropdown()).toBe(false);
       expect(event.preventDefault).toHaveBeenCalled();
     });
+
+    it('should emit freeTextEntered on Enter when allowFreeText is true and no option highlighted', () => {
+      spyOn(component.freeTextEntered, 'emit');
+      component.allowFreeText = true;
+      component.searchTerm.set('custom value');
+      component.highlightedIndex.set(-1); // No option highlighted
+      const event = new KeyboardEvent('keydown', { key: 'Enter' });
+      spyOn(event, 'preventDefault');
+      
+      component.onKeyDown(event);
+      
+      expect(component.freeTextEntered.emit).toHaveBeenCalledWith('custom value');
+      expect(component.searchTerm()).toBe(''); // Input should be cleared
+      expect(event.preventDefault).toHaveBeenCalled();
+    });
+
+    it('should not emit freeTextEntered when allowFreeText is false', () => {
+      spyOn(component.freeTextEntered, 'emit');
+      component.allowFreeText = false;
+      component.searchTerm.set('custom value');
+      component.highlightedIndex.set(-1);
+      const event = new KeyboardEvent('keydown', { key: 'Enter' });
+      spyOn(event, 'preventDefault');
+      
+      component.onKeyDown(event);
+      
+      expect(component.freeTextEntered.emit).not.toHaveBeenCalled();
+    });
+
+    it('should not emit freeTextEntered when search term is empty', () => {
+      spyOn(component.freeTextEntered, 'emit');
+      component.allowFreeText = true;
+      component.searchTerm.set('');
+      component.highlightedIndex.set(-1);
+      const event = new KeyboardEvent('keydown', { key: 'Enter' });
+      spyOn(event, 'preventDefault');
+      
+      component.onKeyDown(event);
+      
+      expect(component.freeTextEntered.emit).not.toHaveBeenCalled();
+    });
+
+    it('should emit optionSelected(null) when clearing selection', () => {
+      spyOn(component.optionSelected, 'emit');
+      component.selectedValue.set('1');
+      component.selectedLabel.set('Option 1');
+      component.searchTerm.set('Option 1');
+      
+      component.clearSelection();
+      
+      expect(component.optionSelected.emit).toHaveBeenCalledWith(null);
+      expect(component.selectedValue()).toBeNull();
+      expect(component.searchTerm()).toBe('');
+    });
   });
 
   describe('Search Functionality', () => {

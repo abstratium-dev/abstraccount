@@ -7,6 +7,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import org.jboss.logging.Logger;
@@ -75,14 +76,17 @@ public class EntrySearchResource {
             @QueryParam("minAmount") BigDecimal minAmount,
             @QueryParam("maxAmount") BigDecimal maxAmount,
             @QueryParam("accountType") String accountType,
-            @QueryParam("tagPattern") String tagPattern) {
+            @QueryParam("tagList") List<String> tagList) {
         
-        LOG.debugf("Getting entry search results with filters: journalId=%s, accountId=%s, transactionId=%s, accountType=%s, tagPattern=%s", 
-                   journalId, accountId, transactionId, accountType, tagPattern);
+        LOG.debugf("Getting entry search results with filters: journalId=%s, accountId=%s, transactionId=%s, accountType=%s, tagList=%s", 
+                   journalId, accountId, transactionId, accountType, tagList);
         
         // Parse dates
         LocalDate startLocalDate = startDate != null && !startDate.isEmpty() ? LocalDate.parse(startDate) : null;
         LocalDate endLocalDate = endDate != null && !endDate.isEmpty() ? LocalDate.parse(endDate) : null;
+        
+        // Parse tag filters
+        TagFilter tagFilter = parseTagFilters(tagList);
         
         // Query entries from database
         List<String> accountIds = accountId != null && !accountId.isEmpty() 
@@ -96,10 +100,10 @@ public class EntrySearchResource {
             partnerId,
             status,
             accountIds,
-            null, // tagKeys
-            null, // tagKeyValuePairs
-            null, // notTagKeys
-            null  // notTagKeyValuePairs
+            tagFilter.tagKeys,
+            tagFilter.tagKeyValuePairs,
+            tagFilter.notTagKeys,
+            tagFilter.notTagKeyValuePairs
         );
         
         LOG.infof("Fetched %d entries from database for journalId=%s", entryEntities.size(), journalId);
@@ -157,21 +161,10 @@ public class EntrySearchResource {
                 }
             }
             
-            // Filter by tag pattern (regex on "key:value" format)
-            if (tagPattern != null && !tagPattern.isEmpty()) {
-                boolean tagMatches = tx.getTags().stream()
-                    .anyMatch(tag -> {
-                        String tagString = tag.getTagKey() + ":" + tag.getTagValue();
-                        try {
-                            return tagString.matches(tagPattern);
-                        } catch (Exception e) {
-                            // Invalid regex, try literal match
-                            return tagString.contains(tagPattern);
-                        }
-                    });
-                if (!tagMatches) {
-                    continue;
-                }
+            // Apply regex tag filtering in memory
+            if (!matchesRegexTagFilters(tx, tagFilter)) {
+                filteredOut++;
+                continue;
             }
             
             // Get journal info
@@ -221,6 +214,177 @@ public class EntrySearchResource {
     }
     
     /**
+     * Record to hold parsed tag filter parameters.
+     * Supports both exact matching (for DB query) and regex patterns (for in-memory filtering).
+     */
+    private record TagFilter(
+        List<String> tagKeys,
+        Map<String, String> tagKeyValuePairs,
+        List<String> notTagKeys,
+        Map<String, String> notTagKeyValuePairs,
+        List<RegexTagFilter> regexTagFilters,         // Positive regex patterns
+        List<RegexTagFilter> notRegexTagFilters        // Negative regex patterns (exclusions)
+    ) {
+        TagFilter {
+            tagKeys = tagKeys != null ? new ArrayList<>(tagKeys) : new ArrayList<>();
+            tagKeyValuePairs = tagKeyValuePairs != null ? new HashMap<>(tagKeyValuePairs) : new HashMap<>();
+            notTagKeys = notTagKeys != null ? new ArrayList<>(notTagKeys) : new ArrayList<>();
+            notTagKeyValuePairs = notTagKeyValuePairs != null ? new HashMap<>(notTagKeyValuePairs) : new HashMap<>();
+            regexTagFilters = regexTagFilters != null ? new ArrayList<>(regexTagFilters) : new ArrayList<>();
+            notRegexTagFilters = notRegexTagFilters != null ? new ArrayList<>(notRegexTagFilters) : new ArrayList<>();
+        }
+    }
+    
+    /**
+     * Record for regex-based tag filtering.
+     * @param keyPattern regex pattern for the tag key (null means match any key)
+     * @param valuePattern regex pattern for the tag value (null means match any value)
+     */
+    private record RegexTagFilter(String keyPattern, String valuePattern) {}
+    
+    /**
+     * Parse tag filters from a list of tag specifications.
+     * Supports:
+     * - "key:value" - matches transactions with this specific tag key-value pair
+     * - "key" - matches transactions with this tag key (any value)
+     * - "not:key:value" - excludes transactions with this specific tag key-value pair
+     * - "not:key" - excludes transactions with this tag key (any value)
+     * - Regex patterns like "YearEnd:.*", ".*:Reserve", etc.
+     * 
+     * @param tagList list of tag specifications (can be null or empty)
+     * @return TagFilter containing parsed positive and negative filters
+     */
+    private TagFilter parseTagFilters(List<String> tagList) {
+        List<String> tagKeys = new ArrayList<>();
+        Map<String, String> tagKeyValuePairs = new HashMap<>();
+        List<String> notTagKeys = new ArrayList<>();
+        Map<String, String> notTagKeyValuePairs = new HashMap<>();
+        List<RegexTagFilter> regexTagFilters = new ArrayList<>();
+        List<RegexTagFilter> notRegexTagFilters = new ArrayList<>();
+        
+        if (tagList == null || tagList.isEmpty()) {
+            return new TagFilter(tagKeys, tagKeyValuePairs, notTagKeys, notTagKeyValuePairs, regexTagFilters, notRegexTagFilters);
+        }
+        
+        for (String tagSpec : tagList) {
+            if (tagSpec == null || tagSpec.isEmpty()) {
+                continue;
+            }
+            
+            boolean isNegation = tagSpec.startsWith("not:");
+            String actualSpec = isNegation ? tagSpec.substring(4) : tagSpec;
+            
+            if (actualSpec.isEmpty()) {
+                continue;
+            }
+            
+            // Check if this is a regex pattern (contains regex metacharacters)
+            boolean isRegex = isRegexPattern(actualSpec);
+            
+            // Split on first colon to separate key from value
+            int colonIndex = actualSpec.indexOf(':');
+            
+            if (colonIndex < 0) {
+                // No colon - key only
+                if (isRegex) {
+                    // Key is a regex pattern
+                    if (isNegation) {
+                        notRegexTagFilters.add(new RegexTagFilter(actualSpec, null));
+                    } else {
+                        regexTagFilters.add(new RegexTagFilter(actualSpec, null));
+                    }
+                } else {
+                    // Exact key match
+                    if (isNegation) {
+                        notTagKeys.add(actualSpec);
+                    } else {
+                        tagKeys.add(actualSpec);
+                    }
+                }
+            } else {
+                // Has key:value format
+                String key = actualSpec.substring(0, colonIndex);
+                String value = actualSpec.substring(colonIndex + 1);
+                
+                if (isRegex) {
+                    // Either key or value contains regex
+                    String keyPattern = isRegexPattern(key) ? key : null;
+                    String valuePattern = isRegexPattern(value) ? value : null;
+                    // If one part is not regex, treat it as exact match by escaping
+                    if (keyPattern == null) keyPattern = "^" + Pattern.quote(key) + "$";
+                    if (valuePattern == null) valuePattern = "^" + Pattern.quote(value) + "$";
+                    
+                    if (isNegation) {
+                        notRegexTagFilters.add(new RegexTagFilter(keyPattern, valuePattern));
+                    } else {
+                        regexTagFilters.add(new RegexTagFilter(keyPattern, valuePattern));
+                    }
+                } else {
+                    // Exact key:value match
+                    if (isNegation) {
+                        notTagKeyValuePairs.put(key, value);
+                    } else {
+                        tagKeyValuePairs.put(key, value);
+                    }
+                }
+            }
+        }
+        
+        return new TagFilter(tagKeys, tagKeyValuePairs, notTagKeys, notTagKeyValuePairs, regexTagFilters, notRegexTagFilters);
+    }
+    
+    /**
+     * Check if a string contains regex metacharacters.
+     */
+    private boolean isRegexPattern(String str) {
+        if (str == null || str.isEmpty()) {
+            return false;
+        }
+        // Check for common regex metacharacters
+        return str.matches(".*[.*+?^${}()|\\[\\]\\\\].*");
+    }
+    
+    /**
+     * Check if a transaction matches all regex tag filters.
+     * @return true if transaction matches all positive filters and none of the negative filters
+     */
+    private boolean matchesRegexTagFilters(TransactionEntity tx, TagFilter tagFilter) {
+        if (tagFilter == null) {
+            return true;
+        }
+        
+        // Check positive regex filters (must match at least one of each)
+        for (RegexTagFilter filter : tagFilter.regexTagFilters()) {
+            boolean matches = tx.getTags().stream().anyMatch(tag -> {
+                boolean keyMatches = filter.keyPattern() == null || 
+                    tag.getTagKey().matches(filter.keyPattern());
+                boolean valueMatches = filter.valuePattern() == null || 
+                    tag.getTagValue().matches(filter.valuePattern());
+                return keyMatches && valueMatches;
+            });
+            if (!matches) {
+                return false; // Must match all positive filters
+            }
+        }
+        
+        // Check negative regex filters (must NOT match any)
+        for (RegexTagFilter filter : tagFilter.notRegexTagFilters()) {
+            boolean matches = tx.getTags().stream().anyMatch(tag -> {
+                boolean keyMatches = filter.keyPattern() == null || 
+                    tag.getTagKey().matches(filter.keyPattern());
+                boolean valueMatches = filter.valuePattern() == null || 
+                    tag.getTagValue().matches(filter.valuePattern());
+                return keyMatches && valueMatches;
+            });
+            if (matches) {
+                return false; // Must not match any negative filter
+            }
+        }
+        
+        return true;
+    }
+    
+    /**
      * Get all unique tags from transactions in a journal for autocomplete.
      * Returns tags in "key:value" format.
      */
@@ -236,14 +400,22 @@ public class EntrySearchResource {
             journalId, null, null, null, null, null, null, null, null, null
         );
         
-        // Collect unique tags in "key:value" format
+        // Collect unique tags in "key:value" or "key" format for simple tags
         Set<String> uniqueTags = new java.util.HashSet<>();
         for (EntryEntity entry : entries) {
             TransactionEntity tx = entry.getTransaction();
             if (tx != null && tx.getTags() != null) {
-                tx.getTags().forEach(tag -> 
-                    uniqueTags.add(tag.getTagKey() + ":" + tag.getTagValue())
-                );
+                tx.getTags().forEach(tag -> {
+                    String tagValue = tag.getTagValue();
+                    // Simple tag: show just key (value is null, empty, or literal "null"/"undefined")
+                    boolean isSimple = tagValue == null || tagValue.isEmpty() ||
+                                       "null".equals(tagValue) || "undefined".equals(tagValue);
+                    if (isSimple) {
+                        uniqueTags.add(tag.getTagKey());
+                    } else {
+                        uniqueTags.add(tag.getTagKey() + ":" + tagValue);
+                    }
+                });
             }
         }
         

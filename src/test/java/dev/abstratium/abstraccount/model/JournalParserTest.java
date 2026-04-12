@@ -183,7 +183,7 @@ class JournalParserTest {
               ; type:Equity
             
             2025-01-01 * Opening Balances
-                ; :OpeningBalances:
+                ; OpeningBalances:
                 1 Assets    CHF 0.00
                 2 Equity    CHF 0.00
             """;
@@ -247,7 +247,7 @@ class JournalParserTest {
               ; note:Shareholder equity
             
             2025-01-01 * Opening Balance
-                ; :OpeningBalances:
+                ; OpeningBalances:
                 1 Assets:10 Current Assets    CHF 1000.00
                 2 Equity    CHF -1000.00
             
@@ -417,7 +417,7 @@ class JournalParserTest {
               ; type:Liability
             
             2024-01-15 * Payment to supplier
-                ; :Payment:, invoice:PI00000002
+                ; Payment:, invoice:PI00000002
                 1 Assets    CHF -324.30
                 2 Liabilities    CHF 324.30
             """;

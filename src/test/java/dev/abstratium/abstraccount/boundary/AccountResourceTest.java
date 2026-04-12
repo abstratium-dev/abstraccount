@@ -214,14 +214,14 @@ class AccountResourceTest {
     
     @Test
     void testGetAccountTree_unauthorized() {
-        // In test mode without @TestSecurity, Quarkus returns 400
-        // In production, unauthenticated requests get 302 redirect to OAuth provider
+        // Without @TestSecurity, requests are unauthenticated
+        // With OIDC disabled in test mode, unauthenticated requests get 401
         given()
             .contentType(ContentType.JSON)
         .when()
             .get("/api/account/" + testJournalId + "/tree")
         .then()
-            .statusCode(400);
+            .statusCode(401);
     }
     
     @Test

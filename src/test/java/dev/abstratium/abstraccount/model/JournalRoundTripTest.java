@@ -104,7 +104,7 @@ class JournalRoundTripTest {
             2025-01-04 * Purchase
                 ; id:test-id-123
                 ; invoice:INV-001
-                ; :Payment:
+                ; Payment:
                 1 Assets    CHF 100.00
                 2 Liabilities    CHF -100.00
             """;

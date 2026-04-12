@@ -205,7 +205,7 @@ public class MacroResourceTest {
     @TestSecurity(user = "testuser", roles = {Roles.USER})
     void testExecuteMacro_withInvoiceNumbers() {
         // This test verifies that when a macro template includes comma-separated invoice numbers
-        // in the tag line (e.g., "; :Payment:, {invoice_numbers}"), each invoice number
+        // in the tag line (e.g., "; Payment:, {invoice_numbers}"), each invoice number
         // should be created as a separate tag with key "invoice"
         
         // Setup test data - use helper method with @Transactional to ensure commit
@@ -246,7 +246,7 @@ public class MacroResourceTest {
         assertNotNull(transaction);
         assertEquals("Test repayment", transaction.getDescription());
         
-        // Verify tags - should have :Payment: tag plus two invoice tags
+        // Verify tags - should have Payment: tag plus two invoice tags
         // Expected: 3 tags total
         // 1. Payment (key="Payment", value=null)
         // 2. invoice:PI00000002 (key="invoice", value="PI00000002")
@@ -256,7 +256,7 @@ public class MacroResourceTest {
         // Check for Payment tag
         boolean hasPaymentTag = transaction.getTags().stream()
             .anyMatch(tag -> "Payment".equals(tag.getTagKey()) && tag.getTagValue() == null);
-        assertTrue(hasPaymentTag, "Should have :Payment: tag");
+        assertTrue(hasPaymentTag, "Should have Payment: tag");
         
         // Check for invoice tags
         long invoiceTagCount = transaction.getTags().stream()
@@ -304,7 +304,7 @@ public class MacroResourceTest {
         macro.setDescription("Test macro with invoice numbers");
         macro.setParameters("[{\"name\":\"date\",\"type\":\"date\",\"required\":true},{\"name\":\"description\",\"type\":\"text\",\"required\":true},{\"name\":\"invoice_numbers\",\"type\":\"text\",\"required\":true},{\"name\":\"amount\",\"type\":\"amount\",\"required\":true}]");
         // Template includes {invoice_numbers} in the tag line
-        macro.setTemplate("{date} * | {description}\n    ; :Payment:, {invoice_numbers}\n    Assets:Cash  CHF -{amount}\n    Expenses:Test  CHF {amount}");
+        macro.setTemplate("{date} * | {description}\n    ; Payment:, {invoice_numbers}\n    Assets:Cash  CHF -{amount}\n    Expenses:Test  CHF {amount}");
         macro.setValidation("{\"balanceCheck\":true,\"minPostings\":2}");
         em.persist(macro);
         

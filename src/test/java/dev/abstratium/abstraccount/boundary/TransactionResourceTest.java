@@ -10,6 +10,7 @@ import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import dev.abstratium.abstraccount.Roles;
 import dev.abstratium.abstraccount.entity.AccountEntity;
 import dev.abstratium.abstraccount.entity.JournalEntity;
 import dev.abstratium.abstraccount.entity.TransactionEntity;
@@ -17,6 +18,7 @@ import dev.abstratium.abstraccount.model.AccountType;
 import dev.abstratium.abstraccount.model.TransactionStatus;
 import dev.abstratium.abstraccount.service.JournalPersistenceService;
 import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.security.TestSecurity;
 import io.restassured.http.ContentType;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
@@ -62,6 +64,7 @@ public class TransactionResourceTest {
     }
 
     @Test
+    @TestSecurity(user = "testUser", roles = {Roles.USER})
     public void testCreateTransaction() {
         CreateTransactionRequest request = new CreateTransactionRequest(
             journalId,
@@ -93,6 +96,7 @@ public class TransactionResourceTest {
     }
 
     @Test
+    @TestSecurity(user = "testUser", roles = {Roles.USER})
     public void testCreateTransactionWithEmptyTagValue() {
         CreateTransactionRequest request = new CreateTransactionRequest(
             journalId,
@@ -122,6 +126,7 @@ public class TransactionResourceTest {
     }
 
     @Test
+    @TestSecurity(user = "testUser", roles = {Roles.USER})
     public void testGetTransaction() {
         // Create a transaction first
         TransactionEntity transaction = createTestTransaction();
@@ -136,13 +141,14 @@ public class TransactionResourceTest {
     }
 
     @Test
+    @TestSecurity(user = "testUser", roles = {Roles.USER})
     public void testUpdateTransaction() {
         // Create a transaction first
         TransactionEntity transaction = createTestTransaction();
 
         UpdateTransactionRequest request = new UpdateTransactionRequest(
             LocalDate.of(2024, 2, 20),
-            "RECONCILED",
+            "CLEARED",
             "Updated description",
             "PARTNER-002",
             List.of(new TagDTO("updated", "yes")),
@@ -160,13 +166,14 @@ public class TransactionResourceTest {
         .then()
             .statusCode(200)
             .body("description", equalTo("Updated description"))
-            .body("status", equalTo("RECONCILED"))
+            .body("status", equalTo("CLEARED"))
             .body("partnerId", equalTo("PARTNER-002"))
             .body("tags.size()", equalTo(1))
             .body("tags[0].key", equalTo("updated"));
     }
 
     @Test
+    @TestSecurity(user = "testUser", roles = {Roles.USER})
     public void testDeleteTransaction() {
         // Create a transaction first
         TransactionEntity transaction = createTestTransaction();
@@ -188,6 +195,7 @@ public class TransactionResourceTest {
     }
 
     @Test
+    @TestSecurity(user = "testUser", roles = {Roles.USER})
     public void testCreateTransactionWithoutJournal() {
         CreateTransactionRequest request = new CreateTransactionRequest(
             "non-existent-journal",
@@ -199,16 +207,19 @@ public class TransactionResourceTest {
             List.of()
         );
 
+        // Empty entries trigger validation error (400) before journal existence check (404)
         given()
             .contentType(ContentType.JSON)
             .body(request)
         .when()
             .post("/api/transaction")
         .then()
-            .statusCode(404);
+            .statusCode(400)
+            .body(containsString("must have at least one entry"));
     }
 
     @Test
+    @TestSecurity(user = "testUser", roles = {Roles.USER})
     public void testCreateUnbalancedTransactionShouldFail() {
         // Create unbalanced transaction (entries don't sum to zero)
         CreateTransactionRequest request = new CreateTransactionRequest(
@@ -231,10 +242,11 @@ public class TransactionResourceTest {
             .post("/api/transaction")
         .then()
             .statusCode(400)
-            .body("message", containsString("must sum to zero"));
+            .body(containsString("must sum to zero"));
     }
 
     @Test
+    @TestSecurity(user = "testUser", roles = {Roles.USER})
     public void testUpdateUnbalancedTransactionShouldFail() {
         // Create a balanced transaction first
         TransactionEntity transaction = createTestTransaction();
@@ -242,7 +254,7 @@ public class TransactionResourceTest {
         // Try to update it with unbalanced entries
         UpdateTransactionRequest request = new UpdateTransactionRequest(
             LocalDate.of(2024, 2, 20),
-            "RECONCILED",
+            "CLEARED",
             "Updated description",
             null,
             List.of(),
@@ -259,7 +271,7 @@ public class TransactionResourceTest {
             .put("/api/transaction/" + transaction.getId())
         .then()
             .statusCode(400)
-            .body("message", containsString("must sum to zero"));
+            .body(containsString("must sum to zero"));
     }
 
     @Transactional

@@ -5,7 +5,7 @@ package dev.abstratium.abstraccount.model;
  * Tags can be simple (key only) or key-value pairs.
  * 
  * Examples:
- * - Simple tag: :OpeningBalances:
+ * - Simple tag: OpeningBalances:
  * - Key-value tag: invoice:PI00000017
  */
 public record Tag(

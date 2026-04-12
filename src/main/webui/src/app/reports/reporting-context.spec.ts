@@ -37,6 +37,62 @@ describe('ReportingContext', () => {
     }
   ];
 
+  // Hierarchical accounts for testing regex matching with number prefixes
+  const hierarchicalAccounts: AccountTreeNode[] = [
+    {
+      id: 'assets',
+      name: '1 Assets',
+      type: 'ASSET',
+      note: null,
+      parentId: null,
+      children: [
+        {
+          id: 'current-assets',
+          name: '10 Current Assets',
+          type: 'ASSET',
+          note: null,
+          parentId: 'assets',
+          children: [
+            {
+              id: 'receivables',
+              name: '110 Accounts Receivable',
+              type: 'ASSET',
+              note: null,
+              parentId: 'current-assets',
+              children: [
+                {
+                  id: 'debtors',
+                  name: '1100 Debtors',
+                  type: 'ASSET',
+                  note: null,
+                  parentId: 'receivables',
+                  children: []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ];
+
+  const hierarchicalEntries: AccountEntryDTO[] = [
+    {
+      entryId: 'e10',
+      transactionId: 't10',
+      transactionDate: '2024-01-01',
+      description: 'Sale to customer',
+      commodity: 'CHF',
+      amount: 750,
+      runningBalance: 750,
+      note: null,
+      accountId: 'debtors',
+      partnerId: null,
+      partnerName: null,
+      status: 'CLEARED'
+    }
+  ];
+
   const mockEntries: AccountEntryDTO[] = [
     {
       entryId: 'e1',
@@ -198,13 +254,14 @@ describe('ReportingContext', () => {
       expect(revenueSummary!.credit).toBe(500);
     });
 
-    it('should invert sign when requested', () => {
+    it('should return raw values when invertSign is requested (inversion is applied at display time)', () => {
       const summaries = groupEntriesByAccount(mockEntries, mockAccounts, true);
 
       const revenueSummary = summaries.find(s => s.accountId === 'revenue1');
-      expect(revenueSummary!.balance).toBe(500); // Inverted from -500
-      expect(revenueSummary!.debit).toBe(500);
-      expect(revenueSummary!.credit).toBe(0);
+      // Raw values are unchanged; the component applies sign inversion at display time
+      expect(revenueSummary!.balance).toBe(-500);
+      expect(revenueSummary!.debit).toBe(0);
+      expect(revenueSummary!.credit).toBe(500);
     });
 
     it('should sort summaries by account name', () => {
@@ -245,6 +302,110 @@ describe('ReportingContext', () => {
 
       const cashSummary = summaries.find(s => s.accountId === 'asset1');
       expect(cashSummary!.balance).toBe(1500); // 1000 + 500
+    });
+  });
+
+  describe('getEntriesByAccountRegex with hierarchical account names', () => {
+    it('should match accounts using hierarchical number prefix patterns', () => {
+      const context = createReportingContext(hierarchicalEntries, hierarchicalAccounts, null, null);
+
+      // Pattern ^1:10:110 should match "1:10:110:1100 Debtors" (the hierarchical name of account 1100 Debtors)
+      const entries = context.getEntriesByAccountRegex('^1:10:110');
+      expect(entries.length).toBe(1);
+      expect(entries[0].accountId).toBe('debtors');
+    });
+
+    it('should match accounts using exact hierarchical number pattern', () => {
+      const context = createReportingContext(hierarchicalEntries, hierarchicalAccounts, null, null);
+
+      // Pattern ^1:10:110:1100 should match exactly the debtors account
+      const entries = context.getEntriesByAccountRegex('^1:10:110:1100');
+      expect(entries.length).toBe(1);
+      expect(entries[0].accountId).toBe('debtors');
+    });
+
+    it('should not match when pattern does not include correct parent prefix', () => {
+      const context = createReportingContext(hierarchicalEntries, hierarchicalAccounts, null, null);
+
+      // Pattern ^110 should NOT match because the hierarchical name is "1:10:110:1100 Debtors", not "1100 Debtors"
+      const entries = context.getEntriesByAccountRegex('^110');
+      expect(entries.length).toBe(0);
+    });
+
+    it('should match parent-level patterns that include all child accounts', () => {
+      const context = createReportingContext(hierarchicalEntries, hierarchicalAccounts, null, null);
+
+      // Pattern ^1:10 should match any account under "10 Current Assets" including "1:10:110:1100 Debtors"
+      const entries = context.getEntriesByAccountRegex('^1:10');
+      expect(entries.length).toBe(1);
+      expect(entries[0].accountId).toBe('debtors');
+    });
+  });
+
+  describe('getEntriesByAccountRegex with flat hierarchical account names', () => {
+    // Accounts with pre-built hierarchical names in the account name itself (no parent relationships)
+    const flatHierarchicalAccounts: AccountTreeNode[] = [
+      {
+        id: 'cash1',
+        name: '1:10:100:1000 Cash',
+        type: 'CASH',
+        note: null,
+        parentId: null,
+        children: []
+      },
+      {
+        id: 'ar',
+        name: '1:10:110:1100 Accounts Receivable',
+        type: 'ASSET',
+        note: null,
+        parentId: null,
+        children: []
+      }
+    ];
+
+    const flatHierarchicalEntries: AccountEntryDTO[] = [
+      {
+        entryId: 'e20',
+        transactionId: 't20',
+        transactionDate: '2024-01-01',
+        description: 'Cash entry',
+        commodity: 'CHF',
+        amount: 1000,
+        runningBalance: 1000,
+        note: null,
+        accountId: 'cash1',
+        partnerId: null,
+        partnerName: null,
+        status: 'CLEARED'
+      },
+      {
+        entryId: 'e21',
+        transactionId: 't21',
+        transactionDate: '2024-01-02',
+        description: 'AR entry',
+        commodity: 'CHF',
+        amount: 750,
+        runningBalance: 750,
+        note: null,
+        accountId: 'ar',
+        partnerId: null,
+        partnerName: null,
+        status: 'CLEARED'
+      }
+    ];
+
+    it('should match flat accounts with pre-built hierarchical names', () => {
+      const context = createReportingContext(flatHierarchicalEntries, flatHierarchicalAccounts, null, null);
+
+      // Pattern ^1:10:100 should match "1:10:100:1000 Cash"
+      const cashEntries = context.getEntriesByAccountRegex('^1:10:100');
+      expect(cashEntries.length).toBe(1);
+      expect(cashEntries[0].accountId).toBe('cash1');
+
+      // Pattern ^1:10:110 should match "1:10:110:1100 Accounts Receivable"
+      const arEntries = context.getEntriesByAccountRegex('^1:10:110');
+      expect(arEntries.length).toBe(1);
+      expect(arEntries[0].accountId).toBe('ar');
     });
   });
 });

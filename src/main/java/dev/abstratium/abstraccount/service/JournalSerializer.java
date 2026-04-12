@@ -101,7 +101,7 @@ public class JournalSerializer {
                 
                 for (Tag tag : transaction.tags()) {
                     if (tag.isSimple()) {
-                        sb.append("    ; :").append(tag.key()).append(":\n");
+                        sb.append("    ; ").append(tag.key()).append(":\n");
                     } else {
                         sb.append("    ; ").append(tag.key()).append(":")
                           .append(tag.value()).append("\n");

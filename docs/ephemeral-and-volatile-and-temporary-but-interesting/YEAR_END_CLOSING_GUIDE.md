@@ -237,7 +237,7 @@ Note by Ant: the tax office sends a bill for the current tax year, say in Feb an
 
 ```
 December 31, 2025 * Provision for corporate income tax
-    ; :YearEnd:TaxProvision:
+    ; YearEnd:TaxProvision
     8 Charges et Produits hors Explotation:8900 Impôts directs    CHF X,XXX.XX
     2 Passif / Liabilities:20:220 Tax liabilities                 CHF -X,XXX.XX
     ; Estimated tax on 2025 profit
@@ -265,7 +265,7 @@ Note: that example doesn't subtract the taxes paid after the tax authorities sen
 Use the `TaxProvision` macro to record year-end tax provisions:
 1. Calculate the provision amount with your accountant
 2. Run the macro with the calculated amount
-3. The entry will be automatically tagged with `:YearEnd:TaxProvision:`
+3. The entry will be automatically tagged with `YearEnd:TaxProvision`
 
 ### Phase 2.5: Legal Reserve Allocation (December 31) - MANDATORY
 
@@ -291,7 +291,7 @@ If your annual profit (before reserve allocation) is CHF 10,000:
 ```
 December 31, 2025 * Legal reserve allocation | 5% of profit per Swiss CO Art. 671
     ; id:[uuid]
-    ; :YearEnd:LegalReserve:
+    ; YearEnd:LegalReserve
     2 Passif / Equity:290:2979 Annual profit/loss    CHF 500.00
     2 Passif / Equity:290:2950 Legal reserves        CHF -500.00
 ```
@@ -302,7 +302,7 @@ Use the `LegalReserveAllocation` macro:
 1. Calculate annual profit before allocation
 2. Calculate 5% (or remaining amount to reach target)
 3. Run the macro with both amounts
-4. The entry will be automatically tagged with `:YearEnd:LegalReserve:`
+4. The entry will be automatically tagged with `YearEnd:LegalReserve`
 
 **Important Notes:**
 
@@ -485,7 +485,7 @@ After this entry:
 **Example:**
 ```
 2025-12-31 * Close revenue from services
-    ; :Closing:
+    ; Closing:
     2 Passif / Equity:290:2979 Bénéfice de l'exercice    CHF 50000.00
     3 Produits:3200 Revenue from services                CHF -50000.00
 ```
@@ -519,7 +519,7 @@ After this entry:
 **Example:**
 ```
 2025-12-31 * Close IT expenses
-    ; :Closing:
+    ; Closing:
     2 Passif / Equity:290:2979 Bénéfice de l'exercice    CHF 1500.00
     6 Autres Charges:6570 IT charges                     CHF -1500.00
 ```
@@ -530,17 +530,17 @@ For a company with multiple expense accounts, you would have multiple entries li
 
 ```
 2025-12-31 * Transfer expenses 6300 to 2979 to close year
-    ; :Closing:
+    ; Closing:
     2 Passif / Equity:290:2979 Bénéfice de l'exercice    CHF 10.35
     6 Autres Charges:6300 Insurance expense              CHF -10.35
 
 2025-12-31 * Transfer expenses 6400 to 2979 to close year
-    ; :Closing:
+    ; Closing:
     2 Passif / Equity:290:2979 Bénéfice de l'exercice    CHF 47.45
     6 Autres Charges:6400 Energy expenses                CHF -47.45
 
 2025-12-31 * Transfer expenses 6500 to 2979 to close year
-    ; :Closing:
+    ; Closing:
     2 Passif / Equity:290:2979 Bénéfice de l'exercice    CHF 1081.00
     6 Autres Charges:6500 Administrative expenses        CHF -1081.00
 ```
@@ -574,7 +574,7 @@ If you delivered services in December 2025 but will invoice in January 2026:
 
 ```
 2025-12-31 * Accrued revenue for services delivered in December
-    ; :Accrual:
+    ; Accrual:
     1 Actifs / Assets:10:110:1100 Accounts Receivable    CHF 5000.00
     3 Produits:3200 Revenue from services                CHF -5000.00
     ; Description: Services delivered to Client X in December, invoice to be issued in January
@@ -591,7 +591,7 @@ When you issue the invoice in January 2026:
 Or, if you prefer to reverse the accrual:
 ```
 2026-01-01 * Reverse accrual from 2025
-    ; :Accrual:Reversal:
+    ; Accrual:Reversal
     1 Actifs / Assets:10:110:1100 Accounts Receivable    CHF -5000.00
     3 Produits:3200 Revenue from services                CHF 5000.00
 
@@ -610,7 +610,7 @@ Review all outstanding receivables for:
 **Provision for doubtful debts:**
 ```
 2025-12-31 * Provision for doubtful debts
-    ; :Provision:
+    ; Provision:
     6 Autres Charges:6700 Other operating expenses       CHF 500.00
     1 Actifs / Assets:10:110:1109 Provision for bad debts CHF -500.00
 ```
@@ -674,7 +674,7 @@ After closing revenue accounts:
 #### Scenario 3: Service Delivered in 2025, Invoice Issued in 2026
 ```
 2025-12-31 * Accrued revenue for December services
-    ; :Accrual:
+    ; Accrual:
     1 Actifs:10:110:1100 Accounts Receivable    CHF 3000.00
     3 Produits:3200 Revenue                     CHF -3000.00
     ; Services delivered in December, invoice to be issued in January
@@ -807,7 +807,7 @@ And so on...
 **Step 1: Close revenue accounts (December 31, 2025):**
 ```
 2025-12-31 * Close revenue from services
-    ; :Closing:
+    ; Closing:
     2 Passif / Equity:290:2979    CHF 80000.00
     3 Produits:3200               CHF -80000.00
 ```
@@ -815,17 +815,17 @@ And so on...
 **Step 2: Close expense accounts (December 31, 2025):**
 ```
 2025-12-31 * Close administrative expenses
-    ; :Closing:
+    ; Closing:
     2 Passif / Equity:290:2979    CHF 20000.00
     6 Autres Charges:6500         CHF -20000.00
 
 2025-12-31 * Close IT expenses
-    ; :Closing:
+    ; Closing:
     2 Passif / Equity:290:2979    CHF 5000.00
     6 Autres Charges:6570         CHF -5000.00
 
 2025-12-31 * Close financial expenses
-    ; :Closing:
+    ; Closing:
     2 Passif / Equity:290:2979    CHF 1000.00
     6 Autres Charges:6900         CHF -1000.00
 ```
@@ -841,7 +841,7 @@ And so on...
 **Step 3: Transfer to retained earnings (January 1, 2026):**
 ```
 2026-01-01 * Transfer of Annual Profit 2025
-    ; :Closing:
+    ; Closing:
     2 Passif / Equity:290:2970    CHF -54000.00
     2 Passif / Equity:290:2979    CHF 54000.00
 ```
@@ -865,7 +865,7 @@ And so on...
 **Year-end accrual (December 31, 2025):**
 ```
 2025-12-31 * Accrued revenue for December services
-    ; :Accrual:
+    ; Accrual:
     1 Actifs:10:110:1100 Accounts Receivable    CHF 8000.00
     3 Produits:3200 Revenue from services       CHF -8000.00
     ; Services delivered to Client ABC in December, invoice #2026-005 to be issued
@@ -874,7 +874,7 @@ And so on...
 **Close revenue accounts (December 31, 2025):**
 ```
 2025-12-31 * Close revenue from services
-    ; :Closing:
+    ; Closing:
     2 Passif / Equity:290:2979    CHF 8000.00
     3 Produits:3200               CHF -8000.00
 ```
@@ -971,7 +971,7 @@ And so on...
 ### 8. Not Documenting Closing Entries
 **Mistake:** Creating closing entries without proper descriptions or tags.
 **Impact:** Difficulty in auditing and understanding the closing process.
-**Solution:** Use clear descriptions and tags (e.g., `:Closing:`) for all year-end entries.
+**Solution:** Use clear descriptions and tags (e.g., `Closing:`) for all year-end entries.
 
 ---
 

@@ -25,10 +25,10 @@ account 5000 Expenses
   ; type:Expense
 
 2025-01-15 * Opening Balance
-  Assets:Cash  1000.00 USD
-  Equity  -1000.00 USD
+    Assets:Cash  USD  1000.00
+    Equity  USD  -1000.00
 
 2025-01-20 * Purchase
-  ; category:shopping
-  Expenses  50.00 USD
-  Assets:Cash  -50.00 USD
+    ; category:shopping
+    Expenses  USD  50.00
+    Assets:Cash  USD  -50.00

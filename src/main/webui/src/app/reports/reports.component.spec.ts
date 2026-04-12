@@ -285,8 +285,10 @@ describe('ReportsComponent', () => {
 
     const section = component.reportSections[0];
     expect(section.accounts.length).toBeGreaterThan(0);
-    // Revenue should be inverted to positive
-    expect(section.accounts[0].balance).toBeGreaterThan(0);
+    // Raw balance is stored as-is; sign inversion is applied at display time via applyDisplaySign
+    expect(section.accounts[0].balance).toBeLessThan(0);
+    // applyDisplaySign should return the positive (inverted) value for display
+    expect(component.applyDisplaySign(section.accounts[0].balance, section.invertSign)).toBeGreaterThan(0);
   });
 
   it('should handle error during report generation', async () => {

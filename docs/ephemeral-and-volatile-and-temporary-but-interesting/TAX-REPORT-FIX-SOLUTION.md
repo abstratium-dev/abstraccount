@@ -15,13 +15,13 @@ The Swiss Tax Declaration report shows **empty/incorrect values** because:
 
 ### Root Cause
 
-Year-end closing entries on **2025-12-31** tagged with `:Closing:` zero out all temporary accounts (revenue, expenses) by transferring them to account `2:29:290:2979` (Annual profit or loss).
+Year-end closing entries on **2025-12-31** tagged with `Closing:` zero out all temporary accounts (revenue, expenses) by transferring them to account `2:29:290:2979` (Annual profit or loss).
 
 The report currently includes these closing entries, showing post-closing balances instead of pre-closing balances required for tax declaration.
 
 ## Solution
 
-The report must **EXCLUDE transactions tagged with `:Closing:`** when generating values.
+The report must **EXCLUDE transactions tagged with `Closing:`** when generating values.
 
 ### Required Filter
 

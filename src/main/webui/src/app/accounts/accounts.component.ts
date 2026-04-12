@@ -33,6 +33,10 @@ export class AccountsComponent implements OnInit {
   // Context menu state
   openMenuId: string | null = null;
 
+  // Collapse state (runtime: by id; persisted: by name)
+  collapsedIds: Set<string> = new Set();
+  private accountNameById: Map<string, string> = new Map();
+
   constructor() {
     // Watch for selected journal changes
     effect(() => {
@@ -73,11 +77,57 @@ export class AccountsComponent implements OnInit {
       ]);
       this.journalMetadata = metadata;
       this.accountBalances = this.computeAccountBalances(transactions);
+      this.accountNameById = this.buildNameMap(this.accounts());
+      this.restoreCollapsedFromStorage();
     } catch (error) {
       console.error('Error loading accounts:', error);
       this.error = 'Failed to load accounts';
     } finally {
       this.loading = false;
+    }
+  }
+
+  private buildNameMap(nodes: AccountTreeNode[]): Map<string, string> {
+    const map = new Map<string, string>();
+    const traverse = (list: AccountTreeNode[]) => {
+      for (const node of list) {
+        map.set(node.id, node.name);
+        if (node.children?.length) traverse(node.children);
+      }
+    };
+    traverse(nodes);
+    return map;
+  }
+
+  private localStorageKey(): string {
+    const journalId = this.modelService.getSelectedJournalId() ?? 'default';
+    return `collapsed-accounts:${journalId}`;
+  }
+
+  private restoreCollapsedFromStorage(): void {
+    try {
+      const raw = localStorage.getItem(this.localStorageKey());
+      if (!raw) return;
+      const names: string[] = JSON.parse(raw);
+      const nameSet = new Set(names);
+      this.collapsedIds = new Set(
+        [...this.accountNameById.entries()]
+          .filter(([, name]) => nameSet.has(name))
+          .map(([id]) => id)
+      );
+    } catch {
+      this.collapsedIds = new Set();
+    }
+  }
+
+  private persistCollapsedToStorage(): void {
+    try {
+      const names = [...this.collapsedIds]
+        .map(id => this.accountNameById.get(id))
+        .filter((name): name is string => name !== undefined);
+      localStorage.setItem(this.localStorageKey(), JSON.stringify(names));
+    } catch {
+      // localStorage unavailable — silently ignore
     }
   }
 
@@ -96,8 +146,37 @@ export class AccountsComponent implements OnInit {
     return this.accountBalances.get(accountId) ?? 0;
   }
 
-  formatBalance(accountId: string): string {
-    const balance = this.getAccountBalance(accountId);
+  private getSubtreeBalance(account: AccountTreeNode): number {
+    let total = this.accountBalances.get(account.id) ?? 0;
+    for (const child of (account.children ?? [])) {
+      total += this.getSubtreeBalance(child);
+    }
+    return total;
+  }
+
+  getDisplayBalance(account: AccountTreeNode): number {
+    if (this.collapsedIds.has(account.id)) {
+      return this.getSubtreeBalance(account);
+    }
+    return this.accountBalances.get(account.id) ?? 0;
+  }
+
+  isCollapsed(accountId: string): boolean {
+    return this.collapsedIds.has(accountId);
+  }
+
+  toggleCollapse(accountId: string, event: Event): void {
+    event.preventDefault();
+    event.stopPropagation();
+    if (this.collapsedIds.has(accountId)) {
+      this.collapsedIds.delete(accountId);
+    } else {
+      this.collapsedIds.add(accountId);
+    }
+    this.persistCollapsedToStorage();
+  }
+
+  formatBalanceValue(balance: number): string {
     const currency = this.journalMetadata?.currency;
     if (!currency) {
       return balance.toFixed(2);
@@ -105,8 +184,15 @@ export class AccountsComponent implements OnInit {
     const precision = this.journalMetadata?.commodities?.[currency];
     const parsed = precision != null ? parseInt(precision, 10) : NaN;
     const decimals = (!isNaN(parsed) && parsed >= 0 && parsed <= 20) ? parsed : 2;
-    const formatted = balance.toFixed(decimals);
-    return `${currency} ${formatted}`;
+    return `${currency} ${balance.toFixed(decimals)}`;
+  }
+
+  formatBalance(accountId: string): string {
+    return this.formatBalanceValue(this.getAccountBalance(accountId));
+  }
+
+  formatDisplayBalance(account: AccountTreeNode): string {
+    return this.formatBalanceValue(this.getDisplayBalance(account));
   }
 
   formatAccountType(type: string): string {

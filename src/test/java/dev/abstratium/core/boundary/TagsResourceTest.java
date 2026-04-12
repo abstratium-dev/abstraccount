@@ -9,6 +9,7 @@ import java.time.LocalDate;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import dev.abstratium.abstraccount.Roles;
 import dev.abstratium.abstraccount.entity.AccountEntity;
 import dev.abstratium.abstraccount.entity.EntryEntity;
 import dev.abstratium.abstraccount.entity.JournalEntity;
@@ -18,6 +19,7 @@ import dev.abstratium.abstraccount.model.AccountType;
 import dev.abstratium.abstraccount.model.TransactionStatus;
 import dev.abstratium.abstraccount.service.JournalPersistenceService;
 import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.security.TestSecurity;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 
@@ -71,6 +73,7 @@ public class TagsResourceTest {
     }
 
     @Test
+    @TestSecurity(user = "testUser", roles = {Roles.USER})
     public void testGetAllTagKeys() {
         given()
         .when()
@@ -82,6 +85,7 @@ public class TagsResourceTest {
     }
 
     @Test
+    @TestSecurity(user = "testUser", roles = {Roles.USER})
     public void testGetAllTagKeysReturnsDistinct() {
         // Even though 'invoice' appears in both journals, it should only appear once
         given()

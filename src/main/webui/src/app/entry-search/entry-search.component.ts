@@ -29,14 +29,14 @@ export class EntrySearchComponent implements OnInit {
     commodity: '',
     minAmount: undefined as number | undefined,
     maxAmount: undefined as number | undefined,
-    accountType: '',
-    tagPattern: '' // Regex pattern for tag filtering
+    accountType: ''
   };
   
   includeChildAccounts = false;
   selectedAccountId: string | null = null;
-  selectedTag: string | null = null;
+  selectedTags: Array<{spec: string; isNegation: boolean}> = [];
   selectedPartnerId: string | null = null;
+  tagNegationMode = false;
   
   controller = inject(Controller);
   modelService = inject(ModelService);
@@ -126,11 +126,69 @@ export class EntrySearchComponent implements OnInit {
   };
 
   /**
-   * Handle tag selection from autocomplete.
+   * Handle tag selection from autocomplete - adds to the chips list.
    */
   onTagSelected(option: AutocompleteOption | null): void {
-    this.selectedTag = option ? option.value : null;
-    this.filters.tagPattern = this.selectedTag || '';
+    if (option && option.value) {
+      this.addTagSpec(option.value);
+    }
+  }
+
+  /**
+   * Handle free text tag entry - allows regex patterns.
+   */
+  onTagFreeTextEntered(text: string): void {
+    if (text && text.trim()) {
+      this.addTagSpec(text.trim());
+    }
+  }
+
+  /**
+   * Add a tag specification to the selected tags list.
+   */
+  private addTagSpec(tagValue: string): void {
+    const tagSpec = this.tagNegationMode ? `not:${tagValue}` : tagValue;
+    // Avoid duplicates
+    if (!this.selectedTags.some(t => t.spec === tagSpec)) {
+      this.selectedTags.push({
+        spec: tagSpec,
+        isNegation: this.tagNegationMode
+      });
+      this.loadEntries();
+    }
+  }
+
+  /**
+   * Remove a tag from the selected tags list.
+   */
+  removeTag(index: number): void {
+    this.selectedTags.splice(index, 1);
+    this.loadEntries();
+  }
+
+  /**
+   * Clear all selected tags.
+   */
+  clearAllTags(): void {
+    this.selectedTags = [];
+    this.loadEntries();
+  }
+
+  /**
+   * Toggle negation mode for tag selection.
+   */
+  toggleTagNegationMode(): void {
+    this.tagNegationMode = !this.tagNegationMode;
+  }
+
+  /**
+   * Get display label for a tag spec.
+   */
+  getTagDisplay(tag: {spec: string; isNegation: boolean}): string {
+    if (tag.isNegation) {
+      return `NOT ${tag.spec.substring(4)}`; // Remove 'not:' prefix for display
+    }
+    return tag.spec;
   }
 
   /**
@@ -242,7 +300,7 @@ export class EntrySearchComponent implements OnInit {
     
     try {
       // Get selected journal from model service
-      const selectedJournalId = this.modelService.selectedJournalId$();
+      const selectedJournalId = this.modelService.getSelectedJournalId();
       
       if (!selectedJournalId) {
         this.error = 'No journal selected. Please select a journal from the header.';
@@ -276,6 +334,11 @@ export class EntrySearchComponent implements OnInit {
           activeFilters[key] = value;
         }
       });
+      
+      // Add tag filters as list
+      if (this.selectedTags.length > 0) {
+        activeFilters.tagList = this.selectedTags.map(t => t.spec);
+      }
       
       console.log('Entry search filters:', activeFilters);
       let entries = await this.controller.getEntrySearchResults(activeFilters);
@@ -339,11 +402,11 @@ export class EntrySearchComponent implements OnInit {
       commodity: '',
       minAmount: undefined,
       maxAmount: undefined,
-      accountType: '',
-      tagPattern: ''
+      accountType: ''
     };
     this.selectedAccountId = null;
-    this.selectedTag = null;
+    this.selectedTags = [];
+    this.tagNegationMode = false;
     this.selectedPartnerId = null;
     this.includeChildAccounts = false;
     this.loadEntries();
@@ -398,15 +461,90 @@ export class EntrySearchComponent implements OnInit {
     return formattedTotals;
   }
 
+  /**
+   * Returns true for account types with a debit normal balance (ASSET, EXPENSE, CASH).
+   * For these types, positive amounts = debits and negative amounts = credits.
+   * For credit-normal types (LIABILITY, EQUITY, REVENUE), the mapping is reversed.
+   */
+  isDebitNormal(accountType: string): boolean {
+    const type = accountType?.toUpperCase();
+    return type === 'ASSET' || type === 'EXPENSE' || type === 'CASH';
+  }
+
+  /**
+   * Get the debit amount for display (always positive or zero).
+   * Based on account type and entry amount polarity.
+   */
+  getDebitAmount(entry: EntrySearchDTO): number {
+    const isDebitNormal = this.isDebitNormal(entry.accountType);
+    const amount = entry.entryAmount;
+    
+    if (isDebitNormal) {
+      // Debit-normal: positive amounts are debits
+      return amount > 0 ? amount : 0;
+    } else {
+      // Credit-normal: negative amounts are debits (decreases the account)
+      return amount < 0 ? Math.abs(amount) : 0;
+    }
+  }
+
+  /**
+   * Get the credit amount for display (always positive or zero).
+   * Based on account type and entry amount polarity.
+   */
+  getCreditAmount(entry: EntrySearchDTO): number {
+    const isDebitNormal = this.isDebitNormal(entry.accountType);
+    const amount = entry.entryAmount;
+    
+    if (isDebitNormal) {
+      // Debit-normal: negative amounts are credits
+      return amount < 0 ? Math.abs(amount) : 0;
+    } else {
+      // Credit-normal: positive amounts are credits
+      return amount > 0 ? amount : 0;
+    }
+  }
+
+  /**
+   * Calculate total debits and credits across all entries, grouped by commodity.
+   */
+  getDebitCreditTotals(): Map<string, { debits: number; credits: number; net: number }> {
+    const totals = new Map<string, { debits: number; credits: number; net: number }>();
+    
+    for (const entry of this.entries) {
+      const commodity = entry.entryCommodity || 'UNKNOWN';
+      const current = totals.get(commodity) || { debits: 0, credits: 0, net: 0 };
+      
+      const debit = this.getDebitAmount(entry);
+      const credit = this.getCreditAmount(entry);
+      
+      totals.set(commodity, {
+        debits: current.debits + debit,
+        credits: current.credits + credit,
+        net: current.net + entry.entryAmount
+      });
+    }
+    
+    return totals;
+  }
+
   getTagsDisplay(tags: any[]): string {
     if (!tags || tags.length === 0) return '';
     // Sort tags alphabetically by key, then by value
     const sortedTags = [...tags].sort((a, b) => {
       const keyCompare = a.key.localeCompare(b.key);
       if (keyCompare !== 0) return keyCompare;
-      return a.value.localeCompare(b.value);
+      const aVal = a.value || '';
+      const bVal = b.value || '';
+      return aVal.localeCompare(bVal);
     });
-    return sortedTags.map(tag => tag.value ? `${tag.key}:${tag.value}` : tag.key).join(', ');
+    return sortedTags.map(tag => {
+      const val = tag.value;
+      // Show just key for null, undefined, empty string, or literal "null"/"undefined" strings
+      const isSimple = val === null || val === undefined || val === '' ||
+                       val === 'null' || val === 'undefined';
+      return isSimple ? tag.key : `${tag.key}:${val}`;
+    }).join(', ');
   }
 
   getSelectedJournalName(): string {

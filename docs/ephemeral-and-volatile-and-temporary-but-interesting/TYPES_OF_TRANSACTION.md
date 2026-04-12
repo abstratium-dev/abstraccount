@@ -34,7 +34,7 @@ Example:
 # Repaying cash owed to a member of staff
 
 Partner is the member of staff
-Use the :Payment: tag, because money is leaving abstratium
+Use the Payment: tag, because money is leaving abstratium
 Invoice numbers should list all of those being reimbursed
 Use exactly this 1er account to make the payment from the bank
 Use the 2er account belonging to the member of staff
@@ -53,14 +53,14 @@ There MUST be at least two spaces after the account name and before the `CHF` an
 Template:
 
     ${date} * ${partner} | ${description}
-        ; :Payment:, $repeat{invoice:PI${invoiceNumber}}
+        ; Payment:, $repeat{invoice:PI${invoiceNumber}}
         ${bankAccount}           CHF -${amount}
         ${memberOfStaffAccount}  CHF ${amount}
 
 Example:
 
     2025-03-17 * P00000001 John Smith | repay petty cash to J. Smith - 2025-03-17 petty cash to john
-        ; :Payment:, invoice:PI00000023, invoice:PI00000025, invoice:PI00000026, invoice:PI00000027, invoice:PI00000028
+        ; Payment:, invoice:PI00000023, invoice:PI00000025, invoice:PI00000026, invoice:PI00000027, invoice:PI00000028
         1 Actifs / Assets:10 Actif circulants / Current Assets:100 Trésorerie / Cash and cash equivalents:1020 Avoirs en banque / Bank Account (asset)                CHF -33.78
         2 Passif / Liabilities:20 Capitaux étrangers à court terme / Current liabilities:210 Dettes à court terme portant intérêt / Current interest-bearing liabilites:2160 Autres dettes à court terme non rémunérées / Other non-remunerated short-term liabilities:2160.001 John Smith                CHF 33.78
 
@@ -68,7 +68,7 @@ Example:
 # Payment for banking expenses
 
 Partner is the bank
-Use the :Payment: tag, because money is leaving abstratium
+Use the Payment: tag, because money is leaving abstratium
 New invoice number - incremented from the previous invoice number
 Use exactly this 6er account for the expense
 Use exactly this 1er account to make the payment
@@ -86,14 +86,14 @@ There MUST be at least two spaces after the account name and before the `CHF` an
 Template:
 
     ${date} * ${bankPartner} | ${description}
-        ; :Payment:, invoice:PI${invoiceNumber}
+        ; Payment:, invoice:PI${invoiceNumber}
         ${bankAccount}           CHF -${amount}
         ${expenseAccount}        CHF ${amount}
 
 Example:
 
     2025-02-28 * P00000004 Bank AG | Bank charges
-        ; :Payment:, invoice:PI00000024
+        ; Payment:, invoice:PI00000024
         1 Actifs / Assets:10 Actif circulants / Current Assets:100 Trésorerie / Cash and cash equivalents:1020 Avoirs en banque / Bank Account (asset)                CHF -5.00
         6 Autres Charges d'Explotation, Amortissements et Corrections de Valeur et Resultats Financiers / Other Operating Expenses, Depreciations and Value Adjustments, Financial result:6900 Charges financières / Financial expense                CHF 5.00
 
@@ -101,7 +101,7 @@ Example:
 
 Dates can be different (invoice date; payment date)
 Partner is the same in both transactions
-The second one gets the :Payment: tag, because money is leaving abstratium
+The second one gets the Payment: tag, because money is leaving abstratium
 Use same invoice number - incremented from the previous invoice number
 Use a 6er account for the expense
 Use a 2er account to note the liability
@@ -127,7 +127,7 @@ Template:
         ${liabilityAccount}      CHF -${amount}
 
     ${paymentDate} * ${partner} | Payment of invoice
-        ; :Payment:, invoice:PI${invoiceNumber}
+        ; Payment:, invoice:PI${invoiceNumber}
         ${liabilityAccount}      CHF ${amount}
         ${bankAccount}           CHF -${amount}
 
@@ -139,7 +139,7 @@ Example:
         2 Passif / Liabilities:20 Capitaux étrangers à court terme / Current liabilities:200 Dettes résultant de l'achat de biens et de prestations de services / Accounts payable (A/P):2000 Dettes résultant de l'achat de biens et de prestations de services (créanciers) / Accounts payable (suppliers&creditors)                CHF -1.60
 
     2025-01-05 * P00000007 Hoststar | Payment of invoice
-        ; :Payment:, invoice:PI00000017
+        ; Payment:, invoice:PI00000017
         2 Passif / Liabilities:20 Capitaux étrangers à court terme / Current liabilities:200 Dettes résultant de l'achat de biens et de prestations de services / Accounts payable (A/P):2000 Dettes résultant de l'achat de biens et de prestations de services (créanciers) / Accounts payable (suppliers&creditors)                CHF 1.60
         1 Actifs / Assets:10 Actif circulants / Current Assets:100 Trésorerie / Cash and cash equivalents:1020 Avoirs en banque / Bank Account (asset)                CHF -1.60
 

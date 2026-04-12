@@ -169,23 +169,21 @@ public class JournalParser {
                         }
                         
                         // Parse tags
-                        if (tagPart.startsWith(":") && tagPart.endsWith(":")) {
-                            // Simple tag
-                            String tagKey = tagPart.substring(1, tagPart.length() - 1);
-                            transactionTags.add(Tag.simple(tagKey));
-                        } else {
-                            // Key-value tag
-                            Matcher tagMatcher = METADATA_PATTERN.matcher(";" + tagPart);
-                            if (tagMatcher.matches()) {
-                                String key = tagMatcher.group(1).trim();
-                                String value = tagMatcher.group(2).trim();
-                                
-                                if ("id".equalsIgnoreCase(key)) {
-                                    transactionId = value;
-                                    // Don't add id tag to the tags list
-                                } else {
-                                    transactionTags.add(Tag.keyValue(key, value));
-                                }
+                        // Use METADATA_PATTERN to parse key:value format
+                        Matcher tagMatcher = METADATA_PATTERN.matcher(";" + tagPart);
+                        if (tagMatcher.matches()) {
+                            String key = tagMatcher.group(1).trim();
+                            String value = tagMatcher.group(2).trim();
+
+                            if ("id".equalsIgnoreCase(key)) {
+                                transactionId = value;
+                                // Don't add id tag to the tags list
+                            } else if (value.isEmpty()) {
+                                // Simple tag (e.g., "Payment:")
+                                transactionTags.add(Tag.simple(key));
+                            } else {
+                                // Key-value tag (e.g., "invoice:PI00000002")
+                                transactionTags.add(Tag.keyValue(key, value));
                             }
                         }
                     }

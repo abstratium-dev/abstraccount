@@ -45,12 +45,12 @@
       
       <div class="filter-item">
         <label for="startDate">Start Date:</label>
-        <input id="startDate" type="date" [(ngModel)]="filters.startDate">
+        <input id="startDate" type="date" [(ngModel)]="filters.startDate" (change)="loadEntries()">
       </div>
       
       <div class="filter-item">
         <label for="endDate">End Date:</label>
-        <input id="endDate" type="date" [(ngModel)]="filters.endDate">
+        <input id="endDate" type="date" [(ngModel)]="filters.endDate" (change)="loadEntries()">
       </div>
       
       <div class="filter-item filter-item-wide">
@@ -103,15 +103,36 @@
       </div>
       
       <div class="filter-item filter-item-wide">
-        <label for="tagSearch">Tag (key:value):</label>
-        <abs-autocomplete
-          id="tagSearch"
-          [placeholder]="'Search by tag (supports regex)'"
-          [minSearchLength]="0"
-          [fetchOptions]="fetchTagOptions"
-          (optionSelected)="onTagSelected($event)"
-          [(ngModel)]="selectedTag"
-        ></abs-autocomplete>
+        <label for="tagSearch">Tags:</label>
+        <div class="tag-search-wrapper">
+          <abs-autocomplete
+            id="tagSearch"
+            [placeholder]="tagNegationMode ? 'Type or select tag to EXCLUDE (regex supported)' : 'Type or select tag to include (regex supported)'"
+            [minSearchLength]="0"
+            [allowFreeText]="true"
+            [fetchOptions]="fetchTagOptions"
+            (optionSelected)="onTagSelected($event)"
+            (freeTextEntered)="onTagFreeTextEntered($event)"
+          ></abs-autocomplete>
+          <button
+            type="button"
+            class="btn-toggle-negation"
+            [class.active]="tagNegationMode"
+            (click)="toggleTagNegationMode()"
+            title="Toggle exclude mode">
+            {{ tagNegationMode ? 'NOT' : 'IS' }}
+          </button>
+        </div>
+        <div class="tag-chips" *ngIf="selectedTags.length > 0">
+          <span
+            *ngFor="let tag of selectedTags; let i = index"
+            class="tag-chip"
+            [class.negated]="tag.isNegation">
+            {{ getTagDisplay(tag) }}
+            <button type="button" class="chip-remove" (click)="removeTag(i)" title="Remove tag">×</button>
+          </span>
+          <button type="button" class="clear-all-tags" (click)="clearAllTags()">Clear all</button>
+        </div>
       </div>
     </div>
     
@@ -127,8 +148,12 @@
       <h3>Entries ({{ entries.length }})</h3>
       <div class="totals-summary">
         <strong>Totals:</strong>
-        <span *ngFor="let item of getCommodityTotals() | keyvalue" class="commodity-total">
-          {{ item.value.formatted }} {{ item.key }}
+        <span *ngFor="let item of getDebitCreditTotals() | keyvalue" class="commodity-total">
+          <span class="debit-total">Dr: {{ formatAmount(item.value.debits) }} {{ item.key }}</span>
+          <span class="credit-total">Cr: {{ formatAmount(item.value.credits) }} {{ item.key }}</span>
+          <span class="net-total" [class.negative]="item.value.net < 0" [class.positive]="item.value.net > 0">
+            Net: {{ formatAmount(item.value.net) }} {{ item.key }}
+          </span>
         </span>
       </div>
     </div>
@@ -142,7 +167,8 @@
             <th>Transaction</th>
             <th>Account</th>
             <th>Type</th>
-            <th>Amount</th>
+            <th class="amount-column debit-column">Debit</th>
+            <th class="amount-column credit-column">Credit</th>
             <th>Commodity</th>
             <th>Partner</th>
             <th>Status</th>
@@ -168,8 +194,11 @@
               </div>
             </td>
             <td>{{ entry.accountType }}</td>
-            <td class="amount-cell" [style.color]="entry.entryAmount < 0 ? 'var(--color-error)' : 'var(--color-text-primary)'">
-              {{ formatAmount(entry.entryAmount) }}
+            <td class="amount-cell debit-cell">
+              {{ getDebitAmount(entry) > 0 ? formatAmount(getDebitAmount(entry)) : '' }}
+            </td>
+            <td class="amount-cell credit-cell">
+              {{ getCreditAmount(entry) > 0 ? formatAmount(getCreditAmount(entry)) : '' }}
             </td>
             <td>{{ entry.entryCommodity }}</td>
             <td>

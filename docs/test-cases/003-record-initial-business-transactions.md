@@ -57,7 +57,7 @@ This test demonstrates the complete workflow of recording real business transact
 - **Description:** "Payment of fee to create Sàrl paid to Startup Help GmbH"
 - **Invoice:** PI00000002
 - **Status:** Posted (*)
-- **Tags:** `:Payment:`
+- **Tags:** `Payment:`
 - **Entries:**
   1. **Debit:** `2000 Accounts payable (suppliers&creditors)` - CHF 34.30
   2. **Credit:** `1000 Cash` - CHF 34.30
@@ -78,7 +78,7 @@ This test demonstrates the complete workflow of recording real business transact
 - **Description:** "Receipt for sending founding docs eingeschrieben"
 - **Invoice:** PI00000003
 - **Status:** Posted (*)
-- **Tags:** `:Payment:`
+- **Tags:** `Payment:`
 - **Entries:**
   1. **Debit:** `2000 Accounts payable (suppliers&creditors)` - CHF 4.20
   2. **Credit:** `1000 Cash` - CHF 4.20
@@ -99,7 +99,7 @@ This test demonstrates the complete workflow of recording real business transact
 - **Description:** "PRIX POUR LA GESTION DU COMPTE CONSIGNATION DU CAPITAL CRÉATION D'ENTREPRISE"
 - **Invoice:** PI00000005
 - **Status:** Posted (*)
-- **Tags:** `:Payment:`
+- **Tags:** `Payment:`
 - **Entries:**
   1. **Debit:** `6900 Financial expense` - CHF 15.00
   2. **Credit:** `2000 Accounts payable (suppliers&creditors)` - CHF 15.00
@@ -110,7 +110,7 @@ This test demonstrates the complete workflow of recording real business transact
 - **Description:** "PRIX POUR LA GESTION DU COMPTE CONSIGNATION DU CAPITAL CRÉATION D'ENTREPRISE"
 - **Invoice:** PI00000005
 - **Status:** Posted (*)
-- **Tags:** `:Payment:`
+- **Tags:** `Payment:`
 - **Entries:**
   1. **Debit:** `2000 Accounts payable (suppliers&creditors)` - CHF 15.00
   2. **Credit:** `1020 Bank Account (asset)` - CHF 15.00
@@ -179,7 +179,7 @@ Feature: Initial Business Transactions
     And the user enters partner "P00000002 Startup Help GmbH"
     And the user enters description "Payment of fee to create Sàrl paid to Startup Help GmbH"
     And the user enters invoice "PI00000002"
-    And the user adds tag ":Payment:"
+    And the user adds tag "Payment:"
     And the user adds a debit entry to "2000 Accounts payable (suppliers&creditors)" for CHF 34.30
     And the user adds a credit entry to "1000 Cash" for CHF 34.30
     And the user saves the transaction
@@ -203,7 +203,7 @@ Feature: Initial Business Transactions
     And the user enters partner "P00000003 Post CH Netz AG"
     And the user enters description "Receipt for sending founding docs eingeschrieben"
     And the user enters invoice "PI00000003"
-    And the user adds tag ":Payment:"
+    And the user adds tag "Payment:"
     And the user adds a debit entry to "2000 Accounts payable (suppliers&creditors)" for CHF 4.20
     And the user adds a credit entry to "1000 Cash" for CHF 4.20
     And the user saves the transaction
@@ -226,7 +226,7 @@ Feature: Initial Business Transactions
     And the user enters partner "P00000004 PostFinance AG"
     And the user enters description "PRIX POUR LA GESTION DU COMPTE CONSIGNATION DU CAPITAL CRÉATION D'ENTREPRISE"
     And the user enters invoice "PI00000005"
-    And the user adds tag ":Payment:"
+    And the user adds tag "Payment:"
     And the user adds a debit entry to "6900 Financial expense" for CHF 15.00
     And the user adds a credit entry to "2000 Accounts payable (suppliers&creditors)" for CHF 15.00
     And the user saves the transaction
@@ -238,7 +238,7 @@ Feature: Initial Business Transactions
     And the user enters partner "P00000004 PostFinance AG"
     And the user enters description "PRIX POUR LA GESTION DU COMPTE CONSIGNATION DU CAPITAL CRÉATION D'ENTREPRISE"
     And the user enters invoice "PI00000005"
-    And the user adds tag ":Payment:"
+    And the user adds tag "Payment:"
     And the user adds a debit entry to "2000 Accounts payable (suppliers&creditors)" for CHF 15.00
     And the user adds a credit entry to "1020 Bank Account (asset)" for CHF 15.00
     And the user saves the transaction
@@ -268,7 +268,7 @@ Feature: Initial Business Transactions
    - Each transaction is properly dated and marked as posted
    - Partner/vendor information is correctly associated
    - Invoice references are stored and retrievable
-   - Tags (`:Payment:`) are properly applied where specified
+   - Tags (`Payment:`) are properly applied where specified
 
 2. **Double-Entry Accounting:**
    - Every transaction is balanced (debits = credits)
@@ -297,7 +297,7 @@ Feature: Initial Business Transactions
 
 - [ ] User can create transactions with partner/vendor information
 - [ ] User can add invoice references to transactions
-- [ ] User can add tags to transactions (e.g., `:Payment:`)
+- [ ] User can add tags to transactions (e.g., `Payment:`)
 - [ ] User can record paired invoice and payment transactions
 - [ ] System correctly updates account balances after each transaction
 - [ ] System maintains running balances for all affected accounts
@@ -313,7 +313,7 @@ Feature: Initial Business Transactions
 
 - This test demonstrates the **accrual accounting pattern**: expenses are recognized when incurred (invoice), and separately when paid (payment transaction)
 - The pattern of paired transactions (invoice + payment) is common in business accounting
-- Tags like `:Payment:` help categorize and filter transactions
+- Tags like `Payment:` help categorize and filter transactions
 - Partner/vendor tracking enables relationship management and reporting
 - Invoice references enable tracking of payables and receivables
 - The test shows realistic company formation costs in Switzerland
@@ -347,7 +347,7 @@ Expenses:
 The system should support:
 - **Partner/Vendor field**: Free text or selected from a partner registry
 - **Invoice reference**: Free text field for tracking invoice numbers
-- **Tags**: Colon-delimited tags (e.g., `:Payment:`, `:Recurring:`)
+- **Tags**: Colon-delimited tags (e.g., `Payment:`, `:Recurring:`)
 - **Transaction ID**: UUID for unique identification
 - **Status**: Pending, Posted/Cleared, Reconciled
 

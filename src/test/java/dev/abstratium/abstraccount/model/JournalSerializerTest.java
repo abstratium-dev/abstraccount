@@ -200,7 +200,7 @@ class JournalSerializerTest {
         
         String result = serializer.serialize(journal);
         
-        assertTrue(result.contains("; :OpeningBalances:"));
+        assertTrue(result.contains("; OpeningBalances:"));
     }
     
     @Test

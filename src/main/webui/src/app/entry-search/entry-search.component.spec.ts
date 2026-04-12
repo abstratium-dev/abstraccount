@@ -162,6 +162,8 @@ describe('EntrySearchComponent', () => {
     component.filters.partnerId = 'P001';
     component.selectedAccountId = '1000';
     component.selectedPartnerId = 'P001';
+    component.selectedTags = [{ spec: 'category:shopping', isNegation: false }];
+    component.tagNegationMode = true;
     controller.getEntrySearchResults.and.returnValue(Promise.resolve([]));
 
     component.clearFilters();
@@ -171,6 +173,8 @@ describe('EntrySearchComponent', () => {
     expect(component.filters.partnerId).toBe('');
     expect(component.selectedAccountId).toBeNull();
     expect(component.selectedPartnerId).toBeNull();
+    expect(component.selectedTags.length).toBe(0);
+    expect(component.tagNegationMode).toBe(false);
   });
 
   it('should fetch partner options', async () => {
@@ -212,20 +216,126 @@ describe('EntrySearchComponent', () => {
   });
 
   it('should handle tag selection', () => {
+    spyOn(component, 'loadEntries');
     component.onTagSelected({ value: 'invoice:123', label: 'invoice:123' });
 
-    expect(component.selectedTag).toBe('invoice:123');
-    expect(component.filters.tagPattern).toBe('invoice:123');
+    expect(component.selectedTags.length).toBe(1);
+    expect(component.selectedTags[0].spec).toBe('invoice:123');
+    expect(component.selectedTags[0].isNegation).toBe(false);
+    expect(component.loadEntries).toHaveBeenCalled();
   });
 
-  it('should fetch account options', async () => {
-    accountService.buildHierarchicalPath.and.returnValue([
-      { number: '1000', id: '1000', name: 'Cash' }
-    ]);
+  it('should handle free text tag entry', () => {
+    spyOn(component, 'loadEntries');
+    component.onTagFreeTextEntered('custom:pattern');
 
-    const options = await component.fetchAccountOptions('Cash');
+    expect(component.selectedTags.length).toBe(1);
+    expect(component.selectedTags[0].spec).toBe('custom:pattern');
+    expect(component.selectedTags[0].isNegation).toBe(false);
+    expect(component.loadEntries).toHaveBeenCalled();
+  });
 
-    expect(options.length).toBeGreaterThan(0);
+  it('should handle regex pattern tag entry', () => {
+    spyOn(component, 'loadEntries');
+    component.onTagFreeTextEntered('YearEnd:.*');
+
+    expect(component.selectedTags.length).toBe(1);
+    expect(component.selectedTags[0].spec).toBe('YearEnd:.*');
+    expect(component.loadEntries).toHaveBeenCalled();
+  });
+
+  it('should handle negated tag selection', () => {
+    spyOn(component, 'loadEntries');
+    component.tagNegationMode = true;
+    component.onTagSelected({ value: 'invoice:123', label: 'invoice:123' });
+
+    expect(component.selectedTags.length).toBe(1);
+    expect(component.selectedTags[0].spec).toBe('not:invoice:123');
+    expect(component.selectedTags[0].isNegation).toBe(true);
+    expect(component.loadEntries).toHaveBeenCalled();
+  });
+
+  it('should handle negated free text entry', () => {
+    spyOn(component, 'loadEntries');
+    component.tagNegationMode = true;
+    component.onTagFreeTextEntered('exclude:.*');
+
+    expect(component.selectedTags.length).toBe(1);
+    expect(component.selectedTags[0].spec).toBe('not:exclude:.*');
+    expect(component.selectedTags[0].isNegation).toBe(true);
+    expect(component.loadEntries).toHaveBeenCalled();
+  });
+
+  it('should remove tag', () => {
+    spyOn(component, 'loadEntries');
+    component.selectedTags = [
+      { spec: 'tag1:value', isNegation: false },
+      { spec: 'tag2:value', isNegation: false }
+    ];
+
+    component.removeTag(0);
+
+    expect(component.selectedTags.length).toBe(1);
+    expect(component.selectedTags[0].spec).toBe('tag2:value');
+    expect(component.loadEntries).toHaveBeenCalled();
+  });
+
+  it('should clear all tags', () => {
+    spyOn(component, 'loadEntries');
+    component.selectedTags = [
+      { spec: 'tag1:value', isNegation: false },
+      { spec: 'not:tag2:value', isNegation: true }
+    ];
+
+    component.clearAllTags();
+
+    expect(component.selectedTags.length).toBe(0);
+    expect(component.loadEntries).toHaveBeenCalled();
+  });
+
+  it('should toggle tag negation mode', () => {
+    expect(component.tagNegationMode).toBe(false);
+
+    component.toggleTagNegationMode();
+
+    expect(component.tagNegationMode).toBe(true);
+
+    component.toggleTagNegationMode();
+
+    expect(component.tagNegationMode).toBe(false);
+  });
+
+  it('should avoid duplicate tags', () => {
+    spyOn(component, 'loadEntries');
+    component.onTagSelected({ value: 'unique:tag', label: 'unique:tag' });
+    component.onTagSelected({ value: 'unique:tag', label: 'unique:tag' });
+
+    expect(component.selectedTags.length).toBe(1);
+    expect(component.loadEntries).toHaveBeenCalledTimes(1); // Only called once for first addition
+  });
+
+  it('should get correct tag display', () => {
+    const normalTag = { spec: 'category:shopping', isNegation: false };
+    const negatedTag = { spec: 'not:category:food', isNegation: true };
+
+    expect(component.getTagDisplay(normalTag)).toBe('category:shopping');
+    expect(component.getTagDisplay(negatedTag)).toBe('NOT category:food');
+  });
+
+  it('should include tagList in filters when loading entries', async () => {
+    component.selectedTags = [
+      { spec: 'category:shopping', isNegation: false },
+      { spec: 'not:invoice:draft', isNegation: true }
+    ];
+    controller.getEntrySearchResults.and.returnValue(Promise.resolve(mockEntries));
+
+    await component.loadEntries();
+    await fixture.whenStable();
+
+    const expectedTagList = ['category:shopping', 'not:invoice:draft'];
+    expect(controller.getEntrySearchResults).toHaveBeenCalledWith(
+      jasmine.objectContaining({ tagList: expectedTagList })
+    );
   });
 
   it('should handle account selection', async () => {
@@ -270,10 +380,97 @@ describe('EntrySearchComponent', () => {
     expect(display).toContain('project');
   });
 
+  it('should display simple tags without null or empty values', () => {
+    const tags = [
+      { key: 'invoice', value: '123' },
+      { key: 'Payment', value: null },
+      { key: 'Closing', value: 'null' },
+      { key: 'YearEnd', value: '' },
+      { key: 'OpeningBalances', value: undefined }
+    ];
+
+    const display = component.getTagsDisplay(tags);
+
+    expect(display).toContain('invoice:123');
+    expect(display).toContain('Payment');
+    expect(display).not.toContain('Payment:null');
+    expect(display).toContain('Closing');
+    expect(display).not.toContain('Closing:null');
+    expect(display).toContain('YearEnd');
+    expect(display).not.toContain('YearEnd:');
+    expect(display).toContain('OpeningBalances');
+    expect(display).not.toContain('OpeningBalances:undefined');
+  });
+
   it('should get selected journal name', () => {
     const name = component.getSelectedJournalName();
 
     expect(name).toBe('Test Journal');
+  });
+
+  it('should identify debit-normal account types', () => {
+    expect(component.isDebitNormal('ASSET')).toBe(true);
+    expect(component.isDebitNormal('EXPENSE')).toBe(true);
+    expect(component.isDebitNormal('CASH')).toBe(true);
+    expect(component.isDebitNormal('LIABILITY')).toBe(false);
+    expect(component.isDebitNormal('EQUITY')).toBe(false);
+    expect(component.isDebitNormal('REVENUE')).toBe(false);
+  });
+
+  it('should calculate debit amounts correctly for debit-normal accounts', () => {
+    const assetEntry: any = {
+      entryAmount: 100,
+      accountType: 'ASSET',
+      entryCommodity: 'CHF'
+    };
+    
+    // Debit-normal: positive = debit, negative = credit
+    expect(component.getDebitAmount(assetEntry)).toBe(100);
+    expect(component.getCreditAmount(assetEntry)).toBe(0);
+    
+    assetEntry.entryAmount = -50;
+    expect(component.getDebitAmount(assetEntry)).toBe(0);
+    expect(component.getCreditAmount(assetEntry)).toBe(50);
+  });
+
+  it('should calculate credit amounts correctly for credit-normal accounts', () => {
+    const revenueEntry: any = {
+      entryAmount: 200,
+      accountType: 'REVENUE',
+      entryCommodity: 'CHF'
+    };
+    
+    // Credit-normal: positive = credit, negative = debit
+    expect(component.getDebitAmount(revenueEntry)).toBe(0);
+    expect(component.getCreditAmount(revenueEntry)).toBe(200);
+    
+    revenueEntry.entryAmount = -75;
+    expect(component.getDebitAmount(revenueEntry)).toBe(75);
+    expect(component.getCreditAmount(revenueEntry)).toBe(0);
+  });
+
+  it('should calculate debit/credit totals across all entries', () => {
+    component.entries = [
+      { entryAmount: 100, accountType: 'ASSET', entryCommodity: 'CHF' } as any,      // Dr: 100, Cr: 0
+      { entryAmount: -50, accountType: 'ASSET', entryCommodity: 'CHF' } as any,     // Dr: 0, Cr: 50
+      { entryAmount: 200, accountType: 'REVENUE', entryCommodity: 'CHF' } as any,    // Dr: 0, Cr: 200
+      { entryAmount: -75, accountType: 'EXPENSE', entryCommodity: 'CHF' } as any,   // Dr: 0, Cr: 75
+      { entryAmount: 300, accountType: 'LIABILITY', entryCommodity: 'USD' } as any  // Dr: 0, Cr: 300 (different commodity)
+    ];
+    
+    const totals = component.getDebitCreditTotals();
+    
+    // CHF totals: Dr: 100, Cr: 50+200+75 = 325, Net: 100-50+200-75 = 175
+    const chfTotals = totals.get('CHF');
+    expect(chfTotals?.debits).toBe(100);
+    expect(chfTotals?.credits).toBe(325);
+    expect(chfTotals?.net).toBe(175);
+    
+    // USD totals: Dr: 0, Cr: 300, Net: 300
+    const usdTotals = totals.get('USD');
+    expect(usdTotals?.debits).toBe(0);
+    expect(usdTotals?.credits).toBe(300);
+    expect(usdTotals?.net).toBe(300);
   });
 
   it('should reload entries when journal changes', async () => {

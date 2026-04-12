@@ -224,6 +224,186 @@ describe('AccountsComponent', () => {
     });
   });
 
+  describe('Collapse/Expand', () => {
+    const makeTree = (): AccountTreeNode => ({
+      id: 'parent',
+      name: '1000 Parent',
+      type: 'ASSET',
+      note: null,
+      parentId: null,
+      children: [
+        {
+          id: 'child1',
+          name: '1100 Child1',
+          type: 'ASSET',
+          note: null,
+          parentId: 'parent',
+          children: [
+            { id: 'grandchild1', name: '1110 GC1', type: 'ASSET', note: null, parentId: 'child1', children: [] }
+          ]
+        },
+        { id: 'child2', name: '1200 Child2', type: 'ASSET', note: null, parentId: 'parent', children: [] }
+      ]
+    });
+
+    it('should start with no collapsed accounts', () => {
+      expect(component.isCollapsed('parent')).toBeFalse();
+    });
+
+    it('should collapse and expand an account', () => {
+      const event = new MouseEvent('click');
+      spyOn(event, 'preventDefault');
+      spyOn(event, 'stopPropagation');
+
+      component.toggleCollapse('parent', event);
+      expect(component.isCollapsed('parent')).toBeTrue();
+
+      component.toggleCollapse('parent', event);
+      expect(component.isCollapsed('parent')).toBeFalse();
+    });
+
+    it('should prevent event propagation when toggling collapse', () => {
+      const event = new MouseEvent('click');
+      spyOn(event, 'preventDefault');
+      spyOn(event, 'stopPropagation');
+
+      component.toggleCollapse('parent', event);
+
+      expect(event.preventDefault).toHaveBeenCalled();
+      expect(event.stopPropagation).toHaveBeenCalled();
+    });
+
+    it('should return own balance only when expanded', () => {
+      const tree = makeTree();
+      component.accountBalances = new Map([
+        ['parent', 100],
+        ['child1', 200],
+        ['grandchild1', 50],
+        ['child2', 300]
+      ]);
+
+      expect(component.getDisplayBalance(tree)).toBe(100);
+    });
+
+    it('should return full subtree balance when collapsed', () => {
+      const tree = makeTree();
+      component.accountBalances = new Map([
+        ['parent', 100],
+        ['child1', 200],
+        ['grandchild1', 50],
+        ['child2', 300]
+      ]);
+      component.collapsedIds.add('parent');
+
+      expect(component.getDisplayBalance(tree)).toBe(650);
+    });
+
+    it('should format display balance using journal currency', () => {
+      const tree = makeTree();
+      component.journalMetadata = mockJournalMetadata;
+      component.accountBalances = new Map([['parent', 100], ['child1', 200], ['grandchild1', 50], ['child2', 300]]);
+      component.collapsedIds.add('parent');
+
+      expect(component.formatDisplayBalance(tree)).toBe('CHF 650.00');
+    });
+
+    it('should sum child balances recursively, ignoring their collapsed state', () => {
+      const tree = makeTree();
+      component.accountBalances = new Map([
+        ['parent', 0],
+        ['child1', 500],
+        ['grandchild1', 250],
+        ['child2', 0]
+      ]);
+      component.collapsedIds.add('parent');
+      component.collapsedIds.add('child1');
+
+      expect(component.getDisplayBalance(tree)).toBe(750);
+    });
+
+    describe('localStorage persistence', () => {
+      let localStorageSpy: { [key: string]: string };
+
+      beforeEach(() => {
+        localStorageSpy = {};
+        spyOn(localStorage, 'getItem').and.callFake((key: string) => localStorageSpy[key] ?? null);
+        spyOn(localStorage, 'setItem').and.callFake((key: string, value: string) => { localStorageSpy[key] = value; });
+      });
+
+      it('should persist collapsed account names to localStorage on toggle', () => {
+        const event = new MouseEvent('click');
+        spyOn(event, 'preventDefault');
+        spyOn(event, 'stopPropagation');
+
+        (component as any).accountNameById = new Map([['parent', '1000 Parent'], ['child1', '1100 Child1']]);
+        modelService.getSelectedJournalId.and.returnValue('test-journal-id');
+
+        component.toggleCollapse('parent', event);
+
+        expect(localStorage.setItem).toHaveBeenCalled();
+        const stored = JSON.parse(localStorageSpy['collapsed-accounts:test-journal-id']);
+        expect(stored).toContain('1000 Parent');
+      });
+
+      it('should remove name from storage when uncollapsed', () => {
+        const event = new MouseEvent('click');
+        spyOn(event, 'preventDefault');
+        spyOn(event, 'stopPropagation');
+
+        (component as any).accountNameById = new Map([['parent', '1000 Parent']]);
+        modelService.getSelectedJournalId.and.returnValue('test-journal-id');
+
+        component.toggleCollapse('parent', event);
+        component.toggleCollapse('parent', event);
+
+        const stored = JSON.parse(localStorageSpy['collapsed-accounts:test-journal-id']);
+        expect(stored).not.toContain('1000 Parent');
+      });
+
+      it('should restore collapsed ids by account name after loadAccounts', async () => {
+        const mockAccounts: AccountTreeNode[] = [makeTree()];
+        localStorageSpy['collapsed-accounts:test-journal-id'] = JSON.stringify(['1000 Parent']);
+        modelService.getSelectedJournalId.and.returnValue('test-journal-id');
+        controller.getAccountTree.and.callFake(async () => {
+          modelService.setAccounts(mockAccounts);
+          return mockAccounts;
+        });
+
+        await component.loadAccounts();
+
+        expect(component.isCollapsed('parent')).toBeTrue();
+        expect(component.isCollapsed('child1')).toBeFalse();
+      });
+
+      it('should clear collapsed state when stored names do not match any account', async () => {
+        const mockAccounts: AccountTreeNode[] = [makeTree()];
+        localStorageSpy['collapsed-accounts:test-journal-id'] = JSON.stringify(['9999 Nonexistent']);
+        modelService.getSelectedJournalId.and.returnValue('test-journal-id');
+        controller.getAccountTree.and.callFake(async () => {
+          modelService.setAccounts(mockAccounts);
+          return mockAccounts;
+        });
+
+        await component.loadAccounts();
+
+        expect(component.collapsedIds.size).toBe(0);
+      });
+
+      it('should handle corrupt localStorage data gracefully', async () => {
+        const mockAccounts: AccountTreeNode[] = [makeTree()];
+        localStorageSpy['collapsed-accounts:test-journal-id'] = 'NOT_VALID_JSON{{{';
+        modelService.getSelectedJournalId.and.returnValue('test-journal-id');
+        controller.getAccountTree.and.callFake(async () => {
+          modelService.setAccounts(mockAccounts);
+          return mockAccounts;
+        });
+
+        await expectAsync(component.loadAccounts()).toBeResolved();
+        expect(component.collapsedIds.size).toBe(0);
+      });
+    });
+  });
+
   describe('Context Menu', () => {
     it('should toggle context menu when menu button is clicked', () => {
       const accountId = 'test-account-1';

@@ -132,9 +132,9 @@ Represents a financial transaction with multiple entries.
 - `entries`: List of entries (must balance to zero)
 
 **Special Tags:**
-- `:OpeningBalances:`: Marks opening balance transactions
-- `:Closing:`: Marks closing/adjustment transactions
-- `:Payment:`: Marks payment transactions
+- `OpeningBalances:`: Marks opening balance transactions
+- `Closing:`: Marks closing/adjustment transactions
+- `Payment:`: Marks payment transactions
 - `invoice`: References an invoice ID
 
 ### Entry

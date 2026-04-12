@@ -21,6 +21,11 @@
       @for (account of accounts(); track account.id) {
         <div class="account-node" [class.menu-open]="isMenuOpen(account.id)">
           <div class="account-info">
+            @if (hasChildren(account)) {
+              <button class="collapse-toggle" (click)="toggleCollapse(account.id, $event)" type="button" [title]="isCollapsed(account.id) ? 'Expand' : 'Collapse'">{{ isCollapsed(account.id) ? '▶' : '▼' }}</button>
+            } @else {
+              <span class="collapse-spacer"></span>
+            }
             <span class="account-path">
               @for (segment of accountService.buildHierarchicalPath(account.id, accounts()); track segment.id; let isLast = $last) {
                 <a [routerLink]="['/account', segment.id, 'ledger']" class="path-segment">{{ segment.number }}</a>
@@ -34,7 +39,7 @@
               <span class="account-note">{{ account.note }}</span>
             }
             <span class="account-type">{{ formatAccountType(account.type) }}</span>
-            <span class="account-balance">{{ formatBalance(account.id) }}</span>
+            <span class="account-balance">{{ formatDisplayBalance(account) }}</span>
             <div class="account-actions">
               <button class="context-menu-trigger" (click)="toggleMenu(account.id, $event)" type="button">⋮</button>
               @if (openMenuId === account.id) {
@@ -46,11 +51,16 @@
               }
             </div>
           </div>
-          @if (account.children && account.children.length > 0) {
+          @if (account.children && account.children.length > 0 && !isCollapsed(account.id)) {
             <div class="account-children">
               @for (child of account.children; track child.id) {
                 <div class="account-node child-level-1" [class.menu-open]="isMenuOpen(child.id)">
                   <div class="account-info">
+                    @if (hasChildren(child)) {
+                      <button class="collapse-toggle" (click)="toggleCollapse(child.id, $event)" type="button" [title]="isCollapsed(child.id) ? 'Expand' : 'Collapse'">{{ isCollapsed(child.id) ? '▶' : '▼' }}</button>
+                    } @else {
+                      <span class="collapse-spacer"></span>
+                    }
                     <span class="account-path">
                       @for (segment of accountService.buildHierarchicalPath(child.id, accounts()); track segment.id; let isLast = $last) {
                         <a [routerLink]="['/account', segment.id, 'ledger']" class="path-segment">{{ segment.number }}</a>
@@ -64,7 +74,7 @@
                       <span class="account-note">{{ child.note }}</span>
                     }
                     <span class="account-type">{{ formatAccountType(child.type) }}</span>
-                    <span class="account-balance">{{ formatBalance(child.id) }}</span>
+                    <span class="account-balance">{{ formatDisplayBalance(child) }}</span>
                     <div class="account-actions">
                       <button class="context-menu-trigger" (click)="toggleMenu(child.id, $event)" type="button">⋮</button>
                       @if (openMenuId === child.id) {
@@ -76,11 +86,16 @@
                       }
                     </div>
                   </div>
-                  @if (child.children && child.children.length > 0) {
+                  @if (child.children && child.children.length > 0 && !isCollapsed(child.id)) {
                     <div class="account-children">
                       @for (grandchild of child.children; track grandchild.id) {
                         <div class="account-node child-level-2" [class.menu-open]="isMenuOpen(grandchild.id)">
                           <div class="account-info">
+                            @if (hasChildren(grandchild)) {
+                              <button class="collapse-toggle" (click)="toggleCollapse(grandchild.id, $event)" type="button" [title]="isCollapsed(grandchild.id) ? 'Expand' : 'Collapse'">{{ isCollapsed(grandchild.id) ? '▶' : '▼' }}</button>
+                            } @else {
+                              <span class="collapse-spacer"></span>
+                            }
                             <span class="account-path">
                               @for (segment of accountService.buildHierarchicalPath(grandchild.id, accounts()); track segment.id; let isLast = $last) {
                                 <a [routerLink]="['/account', segment.id, 'ledger']" class="path-segment">{{ segment.number }}</a>
@@ -94,7 +109,7 @@
                               <span class="account-note">{{ grandchild.note }}</span>
                             }
                             <span class="account-type">{{ formatAccountType(grandchild.type) }}</span>
-                            <span class="account-balance">{{ formatBalance(grandchild.id) }}</span>
+                            <span class="account-balance">{{ formatDisplayBalance(grandchild) }}</span>
                             <div class="account-actions">
                               <button class="context-menu-trigger" (click)="toggleMenu(grandchild.id, $event)" type="button">⋮</button>
                               @if (openMenuId === grandchild.id) {
@@ -106,11 +121,16 @@
                               }
                             </div>
                           </div>
-                          @if (grandchild.children && grandchild.children.length > 0) {
+                          @if (grandchild.children && grandchild.children.length > 0 && !isCollapsed(grandchild.id)) {
                             <div class="account-children">
                               @for (greatGrandchild of grandchild.children; track greatGrandchild.id) {
                                 <div class="account-node child-level-3" [class.menu-open]="isMenuOpen(greatGrandchild.id)">
                                   <div class="account-info">
+                                    @if (hasChildren(greatGrandchild)) {
+                                      <button class="collapse-toggle" (click)="toggleCollapse(greatGrandchild.id, $event)" type="button" [title]="isCollapsed(greatGrandchild.id) ? 'Expand' : 'Collapse'">{{ isCollapsed(greatGrandchild.id) ? '▶' : '▼' }}</button>
+                                    } @else {
+                                      <span class="collapse-spacer"></span>
+                                    }
                                     <span class="account-path">
                                       @for (segment of accountService.buildHierarchicalPath(greatGrandchild.id, accounts()); track segment.id; let isLast = $last) {
                                         <a [routerLink]="['/account', segment.id, 'ledger']" class="path-segment">{{ segment.number }}</a>
@@ -124,7 +144,7 @@
                                       <span class="account-note">{{ greatGrandchild.note }}</span>
                                     }
                                     <span class="account-type">{{ formatAccountType(greatGrandchild.type) }}</span>
-                                    <span class="account-balance">{{ formatBalance(greatGrandchild.id) }}</span>
+                                    <span class="account-balance">{{ formatDisplayBalance(greatGrandchild) }}</span>
                                     <div class="account-actions">
                                       <button class="context-menu-trigger" (click)="toggleMenu(greatGrandchild.id, $event)" type="button">⋮</button>
                                       @if (openMenuId === greatGrandchild.id) {
@@ -136,11 +156,12 @@
                                       }
                                     </div>
                                   </div>
-                                  @if (greatGrandchild.children && greatGrandchild.children.length > 0) {
+                                  @if (greatGrandchild.children && greatGrandchild.children.length > 0 && !isCollapsed(greatGrandchild.id)) {
                                     <div class="account-children">
                                       @for (greatGreatGrandchild of greatGrandchild.children; track greatGreatGrandchild.id) {
                                         <div class="account-node child-level-4" [class.menu-open]="isMenuOpen(greatGreatGrandchild.id)">
                                           <div class="account-info">
+                                            <span class="collapse-spacer"></span>
                                             <span class="account-path">
                                               @for (segment of accountService.buildHierarchicalPath(greatGreatGrandchild.id, accounts()); track segment.id; let isLast = $last) {
                                                 <a [routerLink]="['/account', segment.id, 'ledger']" class="path-segment">{{ segment.number }}</a>
@@ -154,7 +175,7 @@
                                               <span class="account-note">{{ greatGreatGrandchild.note }}</span>
                                             }
                                             <span class="account-type">{{ formatAccountType(greatGreatGrandchild.type) }}</span>
-                                            <span class="account-balance">{{ formatBalance(greatGreatGrandchild.id) }}</span>
+                                            <span class="account-balance">{{ formatDisplayBalance(greatGreatGrandchild) }}</span>
                                             <div class="account-actions">
                                               <button class="context-menu-trigger" (click)="toggleMenu(greatGreatGrandchild.id, $event)" type="button">⋮</button>
                                               @if (openMenuId === greatGreatGrandchild.id) {

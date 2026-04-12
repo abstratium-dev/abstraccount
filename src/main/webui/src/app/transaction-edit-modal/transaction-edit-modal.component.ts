@@ -379,9 +379,7 @@ export class TransactionEditModalComponent implements OnInit {
           } else {
             // Regex pattern search
             try {
-              const escapedTerm = searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-              const pattern = '.*' + escapedTerm + '.*';
-              const regex = new RegExp(pattern, 'i');
+              const regex = new RegExp(searchTerm, 'i');
               matchingAccounts = flatAccounts.filter(account => 
                 regex.test(account.fullPath)
               );
