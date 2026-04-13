@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, effect, inject } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit, effect, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AccountService } from '../account.service';
 import { Controller, JournalMetadataDTO, TransactionDTO, TagDTO } from '../controller';
 import { ModelService } from '../model.service';
@@ -35,7 +35,9 @@ export class JournalComponent implements OnInit {
   modelService = inject(ModelService); // Public for template
   accountService = inject(AccountService); // Public for template
   router = inject(Router);
+  route = inject(ActivatedRoute);
   controller = inject(Controller);
+  cdr = inject(ChangeDetectorRef);
 
   constructor() {
     // Watch for selected journal changes
@@ -98,11 +100,30 @@ export class JournalComponent implements OnInit {
         this.filterString || undefined
       );
       this.loading = false;
+      this.scrollAndHighlight();
     } catch (err: any) {
       const detail = err?.error?.message ?? err.message;
       this.error = 'Failed to load transactions: ' + detail;
       this.loading = false;
     }
+  }
+
+  private scrollAndHighlight(): void {
+    const txId = this.route.snapshot.queryParamMap.get('highlight');
+    if (!txId) return;
+    this.cdr.detectChanges();
+    let attempts = 0;
+    const tryScroll = () => {
+      const row = document.getElementById('tx-' + txId);
+      if (row) {
+        row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        row.classList.add('tx-flash');
+        row.addEventListener('animationend', () => row.classList.remove('tx-flash'), { once: true });
+      } else if (attempts++ < 20) {
+        setTimeout(tryScroll, 100);
+      }
+    };
+    setTimeout(tryScroll, 100);
   }
 
 

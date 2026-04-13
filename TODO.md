@@ -12,8 +12,6 @@ These TODOs are to be resolved by the developer, NOT THE LLM.
 
 - macros: use account 4000 or 4200 when purchasing stuff that goes into stock
 
-- mark which macros are as yet untested
-
 - 2025 tax declr
   - bank statement
   - check bank statement matches balance sheet!
@@ -27,30 +25,23 @@ These TODOs are to be resolved by the developer, NOT THE LLM.
   - check list of what to do in which order
   - ensure certain tags are ignored for certain reports so that they can be regenerated even after closing
 
+- add a pivot table based on the entry search
+
 - add more links
   - each tag that is displayed should link to the journal with a filter
   - each partner that is displayed should link to the journal with a filter
   - each day that is displayed should link to the journal with a filter
 - make backend calculate running total, so that other services could profit from that logic.
   - remove that logic from the ui
-- accounts
-  - add link to account, if it isn't the same number
-  - header of ledger page should show parent accounts with links to them
-- add a pivot table based on the entry search
 - reports
-  - configure which reports are added to the "reports bar" at the top, without having to be chosen from the dropdown, but simply clicked on.
-  - account numbers shown in reports should use the standard format of displaying the parent account words at the start, and they should all be navigable so that the user can jump to the account ledger.
   - balance sheets - at least the swiss one shows zero net income for 2024 and 2025 which are closed years, so it should be showing no value
-  - swiss income statement still not showing the individual accounts
   - filter still not working, eg. remove closing from 2025
   - swiss reports should include french and english, see specs in docs folder
-  - trial balance still shows no revenue, even for 2026
-  - the id of the selected report should be in the url so it can be shared and bookmarked
-  - the reports page should listen to changes in the selected journal and if it changes, call "generate report"
+  - the id of the selected report should be in the url so it can be shared and bookmarked, or if i navigate back, the report is still shown
 
 - add a report that shows unpaid invoices
 
-- year end taxes
+- year end taxes - use this for the macro and test it
   - 2024-12-31 * taxes based on equity tax (about 38 chf) and 15% of profit (0)
     ; YearEnd:TaxProvision
     8900    CHF  38.00
@@ -74,25 +65,26 @@ These TODOs are to be resolved by the developer, NOT THE LLM.
 - printing
   - reports need to hide filter and show title, logo and subtitle
 
-- Link to receipt documents
-
 - always sort tags alphabetically
 
 - standardise filters
-  - date from, inclusive
-  - date to, exclusive
   - partnerId, partner name regex
   - account name regex
-  - account type
   - tx status
   - description, notes, etc.
-  - amounts, from, to
   - tags
     - name, name=regex, name as regex
-  - not, and, or
+  - link the EQL docs to the user guide
+- write user guide
 
 ## Tomorrow
 
+- Link to receipt documents
+- reports
+  - configure which reports are added to the "reports bar" at the top, without having to be chosen from the dropdown, but simply clicked on.
+
+- ability to edit and manage macros
+- ability to edit and manage reports
 - ebita report
 - [ ] - Update README.md with project-specific information
 - [ ] - Update DATABASE.md with project-specific information

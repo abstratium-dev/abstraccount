@@ -1,5 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { FormsModule } from '@angular/forms';
+import { provideRouter } from '@angular/router';
 import { JournalComponent } from './journal.component';
 import { Controller } from '../controller';
 import { provideHttpClient } from '@angular/common/http';
@@ -25,7 +26,8 @@ describe('JournalComponent', () => {
       providers: [
         { provide: Controller, useValue: controllerSpy },
         provideHttpClient(),
-        provideHttpClientTesting()
+        provideHttpClientTesting(),
+        provideRouter([])
       ]
     }).compileComponents();
 

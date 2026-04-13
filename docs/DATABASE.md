@@ -114,7 +114,6 @@ The `T_transaction` table stores transaction headers with date, status, and part
 - `status` (VARCHAR(20)): Transaction status enum
 - `description` (VARCHAR(1000)): Transaction description
 - `partner_id` (VARCHAR(100)): Partner identifier (customer/supplier)
-- `transaction_id` (VARCHAR(100)): Business transaction identifier (e.g., invoice number)
 - `journal_id` (VARCHAR(36)): Foreign key to journal
 
 **Status Values:**
@@ -129,7 +128,6 @@ The `T_transaction` table stores transaction headers with date, status, and part
 - `I_transaction_date`: Index on transaction_date for date range queries
 - `I_transaction_partner`: Index on partner_id for partner reports
 - `I_transaction_journal`: Index on journal_id for filtering
-- `I_transaction_transaction_id`: Index on transaction_id for lookup
 
 **Relationships:**
 - Has many entries via `T_entry`

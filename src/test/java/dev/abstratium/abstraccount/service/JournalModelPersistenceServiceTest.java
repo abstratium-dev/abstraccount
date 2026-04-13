@@ -90,7 +90,7 @@ class JournalModelPersistenceServiceTest {
         TransactionEntity transactionEntity = entries.get(0).getTransaction();
         
         assertEquals("Opening Balance", transactionEntity.getDescription());
-        assertEquals("TX001", transactionEntity.getTransactionId());
+        assertEquals("TX001", transactionEntity.getId());
         assertEquals(TransactionStatus.CLEARED, transactionEntity.getStatus());
         
         // Verify entries

@@ -42,7 +42,6 @@ class TagServiceTest {
         tx.setTransactionDate(LocalDate.now());
         tx.setDescription("Test transaction");
         tx.setStatus(TransactionStatus.CLEARED);
-        tx.setTransactionId("TX-" + UUID.randomUUID());
 
         TagEntity tag = new TagEntity();
         tag.setTagKey(tagKey);

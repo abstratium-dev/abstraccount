@@ -1,8 +1,10 @@
 import { Component, inject, OnInit, Signal, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { Controller, ReportTemplate, AccountEntryDTO, AccountTreeNode, TagDTO } from '../controller';
 import { ModelService } from '../model.service';
+import { AccountService } from '../account.service';
 import { ReportConfig, ReportSection, ReportSectionResult, AccountSummary, PartnerSummary } from './reporting-types';
 import { createReportingContext, groupEntriesByAccount } from './reporting-context';
 import { FilterInputComponent } from '../journal/filter-input/filter-input.component';
@@ -10,13 +12,14 @@ import { FilterInputComponent } from '../journal/filter-input/filter-input.compo
 @Component({
   selector: 'reports',
   standalone: true,
-  imports: [CommonModule, FormsModule, FilterInputComponent],
+  imports: [CommonModule, FormsModule, RouterLink, FilterInputComponent],
   templateUrl: './reports.component.html',
   styleUrl: './reports.component.scss',
 })
 export class ReportsComponent implements OnInit {
   private controller = inject(Controller);
-  private modelService = inject(ModelService);
+  modelService = inject(ModelService);
+  accountService = inject(AccountService);
 
   readonly netIncomeLabel = 'Net Income';
 

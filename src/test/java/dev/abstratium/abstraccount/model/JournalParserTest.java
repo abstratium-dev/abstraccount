@@ -157,7 +157,6 @@ class JournalParserTest {
               ; type:Liability
             
             2025-01-04 * Purchase
-                ; id:bcba9da2-81be-4a78-b4a3-fbd856ad7dde
                 ; invoice:PI00000017
                 1 Assets    CHF 100.00
                 2 Liabilities    CHF -100.00
@@ -166,10 +165,8 @@ class JournalParserTest {
         Journal journal = parser.parse(content);
         
         Transaction transaction = journal.transactions().get(0);
-        assertEquals("bcba9da2-81be-4a78-b4a3-fbd856ad7dde", transaction.id());
         assertEquals(1, transaction.tags().size());
         
-        // id tag should not be in tags list
         assertEquals("invoice", transaction.tags().get(0).key());
         assertEquals("PI00000017", transaction.tags().get(0).value());
     }
@@ -252,7 +249,6 @@ class JournalParserTest {
                 2 Equity    CHF -1000.00
             
             2025-01-15 * Payment
-                ; id:test-id-123
                 ; invoice:INV-001
                 1 Assets:10 Current Assets    CHF -50.00
                 2 Equity    CHF 50.00
@@ -484,8 +480,5 @@ class JournalParserTest {
         
         // Should have 11 entries (3 Equity + 5 Assets + 3 Liabilities)
         assertEquals(11, transaction.entries().size(), "Transaction should have 11 entries despite comment lines between them");
-        
-        // Verify the transaction has the id tag
-        assertEquals("fdde1faa-b9b9-45cf-959b-122a39cf72a3", transaction.id());
     }
 }

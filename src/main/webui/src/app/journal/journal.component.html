@@ -55,7 +55,7 @@
       <tbody>
         <ng-container *ngFor="let transaction of transactions; let idx = index">
           <!-- Transaction Header Row -->
-          <tr class="transaction-row">
+          <tr class="transaction-row" [id]="'tx-' + transaction.id">
             <td>{{ idx + 1 }}</td>
             <td>{{ transaction.date }}</td>
             <td>{{ getPartnerDisplay(transaction.partnerId, transaction.partnerName) }}</td>

@@ -124,7 +124,6 @@ public class EntrySearchResource {
             synthetic.setStatus(tx.getStatus());
             synthetic.setDescription(tx.getDescription());
             synthetic.setPartnerId(tx.getPartnerId());
-            synthetic.setTransactionId(tx.getTransactionId());
             synthetic.setJournalId(tx.getJournalId());
             synthetic.setTags(tx.getTags());
             synthetic.getEntries().add(entry);
@@ -156,7 +155,7 @@ public class EntrySearchResource {
                 account != null ? account.getNote() : "",
                 account != null ? account.getParentAccountId() : "",
 
-                tx.getTransactionId(),
+                tx.getId(),
                 tx.getTransactionDate(),
                 tx.getStatus().name(),
                 tx.getDescription(),

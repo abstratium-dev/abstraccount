@@ -124,7 +124,28 @@
         </thead>
         <tbody>
           <tr *ngFor="let account of section.accounts">
-            <td>{{ account.accountName }}</td>
+            <td>
+              @let accountPath = accountService.buildHierarchicalPath(account.accountId, modelService.getAccounts());
+              @if (accountPath.length > 0) {
+                <span class="entry-account-path">
+                  @for (segment of accountPath; track segment.id; let isLast = $last) {
+                    @if (!isLast) {
+                      <a [routerLink]="['/account', segment.id, 'ledger']" class="path-segment">{{ segment.number }}</a>
+                      <span class="path-separator">:</span>
+                    }
+                  }
+                  <a [routerLink]="['/account', account.accountId, 'ledger']" class="path-segment">{{ accountPath[accountPath.length - 1].number }}</a>
+                </span>
+                @let leafName = account.accountName;
+                @if (leafName.indexOf(' ') > 0) {
+                  <span class="entry-account-name">{{ leafName.substring(leafName.indexOf(' ')) }}</span>
+                } @else {
+                  <span class="entry-account-name">{{ leafName }}</span>
+                }
+              } @else {
+                {{ account.accountName }}
+              }
+            </td>
             <td class="amount-column">{{ formatCurrencyWithCommodity(applyDisplaySign(account.balance, section.invertSign), section.commodity) }}</td>
             <td *ngIf="section.showDebitsCredits" class="amount-column">
               {{ formatCurrencyWithCommodity(applyDisplaySign(account.debit, section.invertSign), section.commodity) }}

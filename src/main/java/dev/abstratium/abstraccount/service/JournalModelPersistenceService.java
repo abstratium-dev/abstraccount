@@ -105,11 +105,13 @@ public class JournalModelPersistenceService {
         int transactionIndex = 0;
         for (Transaction transaction : journal.transactions()) {
             TransactionEntity transactionEntity = new TransactionEntity();
+            if (transaction.id() != null) {
+                transactionEntity.setId(transaction.id());
+            }
             transactionEntity.setTransactionDate(transaction.date());
             transactionEntity.setStatus(transaction.status());
             transactionEntity.setDescription(transaction.description());
             transactionEntity.setPartnerId(transaction.partnerId());
-            transactionEntity.setTransactionId(transaction.id());
             transactionEntity.setJournalId(journalId);
             transactionEntity.setTransactionOrder(baseTransactionOrder + transactionIndex);
             

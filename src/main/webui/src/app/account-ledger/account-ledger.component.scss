@@ -7,6 +7,27 @@
 h1 {
   color: var(--color-text-primary);
   margin-bottom: 1rem;
+
+  .breadcrumb-link {
+    color: var(--color-link, var(--color-primary));
+    text-decoration: none;
+    font-weight: inherit;
+    font-size: inherit;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+
+  .breadcrumb-separator {
+    color: var(--color-text-secondary);
+    font-weight: 300;
+    margin: 0 0.15rem;
+  }
+
+  .breadcrumb-current {
+    color: var(--color-text-primary);
+  }
 }
 
 .account-details {
@@ -17,6 +38,13 @@ h1 {
   display: flex;
   gap: 2rem;
   flex-wrap: wrap;
+}
+
+.detail-row-break {
+  flex-basis: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2rem;
 }
 
 .detail-item {

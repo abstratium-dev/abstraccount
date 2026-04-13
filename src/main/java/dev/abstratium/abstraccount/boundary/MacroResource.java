@@ -363,13 +363,11 @@ public class MacroResource {
      */
     private TransactionEntity convertToEntity(Transaction transaction, String journalId, MacroEntity macro, Map<String, String> parameters, Map<String, String> accountCodePaths) throws JsonProcessingException {
         TransactionEntity entity = new TransactionEntity();
-        entity.setId(UUID.randomUUID().toString());
         entity.setJournalId(journalId);
         entity.setTransactionDate(transaction.date());
         entity.setStatus(transaction.status());
         entity.setDescription(transaction.description());
         entity.setPartnerId(transaction.partnerId());
-        entity.setTransactionId(transaction.id());
         
         // Parse macro parameters to get filters
         List<MacroParameterDTO> macroParams = objectMapper.readValue(

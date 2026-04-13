@@ -183,7 +183,7 @@ public class AccountResource {
             
             result.add(new AccountEntryDTO(
                 entry.getId(),
-                tx.getTransactionId(),
+                tx.getId(),
                 tx.getTransactionDate().toString(),
                 tx.getDescription(),
                 entry.getCommodity(),

@@ -146,7 +146,7 @@ class JournalPersistenceServiceTest {
         transaction.setTransactionDate(LocalDate.of(2025, 1, 15));
         transaction.setStatus(TransactionStatus.CLEARED);
         transaction.setDescription("Test Transaction");
-        transaction.setTransactionId("TX001");
+        transaction.setId("TX001");
         transaction.setJournalId(testJournalId);
         
         // Add entries
@@ -189,7 +189,7 @@ class JournalPersistenceServiceTest {
         assertFalse(entries.isEmpty());
         TransactionEntity loaded = entries.get(0).getTransaction();
         assertEquals("Test Transaction", loaded.getDescription());
-        assertEquals("TX001", loaded.getTransactionId());
+        assertEquals("TX001", loaded.getId());
         assertEquals(TransactionStatus.CLEARED, loaded.getStatus());
         
         // Verify entries are eagerly loaded
@@ -631,7 +631,6 @@ class JournalPersistenceServiceTest {
         
         // Create transactions with entries for both accounts
         TransactionEntity tx1 = new TransactionEntity();
-        tx1.setTransactionId("tx1");
         tx1.setTransactionDate(LocalDate.of(2024, 1, 1));
         tx1.setStatus(TransactionStatus.CLEARED);
         tx1.setDescription("Transaction 1");

@@ -102,7 +102,6 @@ class JournalRoundTripTest {
               ; type:Liability
             
             2025-01-04 * Purchase
-                ; id:test-id-123
                 ; invoice:INV-001
                 ; Payment:
                 1 Assets    CHF 100.00
@@ -265,9 +264,7 @@ class JournalRoundTripTest {
         assertEquals(originalTx.date(), parsedTx.date());
         assertEquals(originalTx.status(), parsedTx.status());
         assertEquals(originalTx.description(), parsedTx.description());
-        // Note: Transaction IDs are preserved in serialization
-        assertEquals(originalTx.id(), parsedTx.id());
-        
+
         // Verify amounts are preserved exactly
         assertEquals(
             originalTx.entries().get(0).amount().quantity(),

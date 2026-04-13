@@ -167,7 +167,6 @@ class JournalSerializerTest {
         String result = serializer.serialize(journal);
         
         assertTrue(result.contains("2025-01-04 * Purchase"));
-        assertTrue(result.contains("; id:bcba9da2-81be-4a78-b4a3-fbd856ad7dde"));
         assertTrue(result.contains("; invoice:PI00000017"));
     }
     

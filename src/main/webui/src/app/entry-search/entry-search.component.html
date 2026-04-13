@@ -55,7 +55,7 @@
         </thead>
         <tbody>
           <tr *ngFor="let entry of entries">
-            <td>{{ formatDate(entry.transactionDate) }}</td>
+            <td><a [routerLink]="['/journal']" [queryParams]="{ highlight: entry.transactionId }" class="date-link">{{ formatDate(entry.transactionDate) }}</a></td>
             <td class="description-column">{{ entry.transactionDescription }}</td>
             <td>
               <span class="entry-account-path">

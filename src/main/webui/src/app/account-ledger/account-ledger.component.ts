@@ -2,10 +2,11 @@ import { CommonModule } from '@angular/common';
 import { AfterViewInit, Component, effect, ElementRef, inject, OnInit, ViewChild } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Chart, registerables } from 'chart.js';
 import 'chartjs-adapter-date-fns';
 import { AccountEntryDTO, AccountTreeNode, Controller } from '../controller';
+import { AccountService } from '../account.service';
 import { ModelService } from '../model.service';
 
 Chart.register(...registerables);
@@ -13,7 +14,7 @@ Chart.register(...registerables);
 @Component({
   selector: 'app-account-ledger',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, RouterLink],
   templateUrl: './account-ledger.component.html',
   styleUrl: './account-ledger.component.scss'
 })
@@ -21,7 +22,8 @@ export class AccountLedgerComponent implements OnInit, AfterViewInit {
   @ViewChild('balanceChart') balanceChartRef!: ElementRef<HTMLCanvasElement>;
   
   private controller = inject(Controller);
-  private modelService = inject(ModelService);
+  modelService = inject(ModelService);
+  accountService = inject(AccountService);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
 

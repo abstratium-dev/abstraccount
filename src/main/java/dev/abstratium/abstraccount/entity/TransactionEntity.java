@@ -34,9 +34,6 @@ public class TransactionEntity {
     @Column(name = "partner_id", length = 100)
     private String partnerId;
     
-    @Column(name = "transaction_id")
-    private String transactionId;
-    
     @Column(name = "journal_id", nullable = false, length = 36)
     private String journalId;
     
@@ -92,14 +89,6 @@ public class TransactionEntity {
     
     public void setPartnerId(String partnerId) {
         this.partnerId = partnerId;
-    }
-    
-    public String getTransactionId() {
-        return transactionId;
-    }
-    
-    public void setTransactionId(String transactionId) {
-        this.transactionId = transactionId;
     }
     
     public String getJournalId() {

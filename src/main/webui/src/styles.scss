@@ -2113,6 +2113,16 @@ button {
   }
 }
 
+/* ===== TRANSACTION HIGHLIGHT ANIMATION ===== */
+@keyframes flash-highlight {
+  0%, 100% { background-color: inherit; }
+  50%       { background-color: var(--color-primary); }
+}
+
+.tx-flash td {
+  animation: flash-highlight 0.5s ease-in-out 3;
+}
+
 /* ===== TABLE COLUMN CONSTRAINTS ===== */
 .abbr-column {
   white-space: nowrap;
@@ -2127,6 +2137,18 @@ button {
   white-space: normal;
   word-wrap: break-word;
   overflow-wrap: break-word;
+}
+
+/* ===== DATE LINK (entry-search date → journal highlight) ===== */
+.date-link {
+  color: var(--color-primary);
+  text-decoration: none;
+  white-space: nowrap;
+
+  &:hover {
+    text-decoration: underline;
+    color: var(--color-link-hover);
+  }
 }
 
 /* ===== ACCOUNT PATH STYLES (used in journal table and entry-search table) ===== */

@@ -153,7 +153,6 @@ public class JournalParser {
                 
                 // Look ahead for transaction tags
                 List<Tag> transactionTags = new ArrayList<>();
-                String transactionId = null;
                 
                 while (i + 1 < lines.length && lines[i + 1].trim().startsWith(";")) {
                     i++;
@@ -175,10 +174,7 @@ public class JournalParser {
                             String key = tagMatcher.group(1).trim();
                             String value = tagMatcher.group(2).trim();
 
-                            if ("id".equalsIgnoreCase(key)) {
-                                transactionId = value;
-                                // Don't add id tag to the tags list
-                            } else if (value.isEmpty()) {
+                            if (value.isEmpty()) {
                                 // Simple tag (e.g., "Payment:")
                                 transactionTags.add(Tag.simple(key));
                             } else {
@@ -234,7 +230,7 @@ public class JournalParser {
                 }
                 
                 if (!entries.isEmpty()) {
-                    Transaction transaction = new Transaction(date, status, description, partnerId, transactionId, transactionTags, entries);
+                    Transaction transaction = new Transaction(date, status, description, partnerId, null, transactionTags, entries);
                     transactions.add(transaction);
                 }
                 

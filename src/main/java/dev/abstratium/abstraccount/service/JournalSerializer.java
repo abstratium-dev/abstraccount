@@ -94,11 +94,6 @@ public class JournalSerializer {
                   .append("\n");
                 
                 // Transaction tags
-                // Write id tag first if present
-                if (transaction.id() != null) {
-                    sb.append("    ; id:").append(transaction.id()).append("\n");
-                }
-                
                 for (Tag tag : transaction.tags()) {
                     if (tag.isSimple()) {
                         sb.append("    ; ").append(tag.key()).append(":\n");

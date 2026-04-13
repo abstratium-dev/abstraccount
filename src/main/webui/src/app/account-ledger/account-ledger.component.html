@@ -1,6 +1,19 @@
 <div class="ledger-container">
   @if (account) {
-    <h1>{{ account.name }}</h1>
+    <h1>
+      @let headingPath = accountService.buildHierarchicalPath(account.id, modelService.getAccounts());
+      @for (segment of headingPath; track segment.id; let isLast = $last) {
+        @if (!isLast) {
+          <a [routerLink]="['/account', segment.id, 'ledger']" class="breadcrumb-link">{{ segment.number }}</a>
+          <span class="breadcrumb-separator"> / </span>
+        } @else {
+          <span class="breadcrumb-current">{{ segment.name }}</span>
+        }
+      }
+      @if (headingPath.length === 0) {
+        {{ account.name }}
+      }
+    </h1>
     <div class="account-details">
       <div class="detail-item">
         <span class="label">Type:</span>
@@ -13,19 +26,21 @@
         </div>
       }
       @if (entries.length > 0) {
-        <div class="detail-item">
-          <span class="label">Current Balance:</span>
-          <span class="value balance" [class.negative]="currentBalance < 0" [class.positive]="currentBalance > 0">
-            {{ currentBalance | number:'1.2-2' }}
-          </span>
-        </div>
-        <div class="detail-item">
-          <span class="label">{{ positiveAmountLabel }}:</span>
-          <span class="value turnover positive">{{ totalPositiveAmount | number:'1.2-2' }}</span>
-        </div>
-        <div class="detail-item">
-          <span class="label">{{ negativeAmountLabel }}:</span>
-          <span class="value turnover">{{ totalNegativeAmount | number:'1.2-2' }}</span>
+        <div class="detail-row-break">
+          <div class="detail-item">
+            <span class="label">Current Balance:</span>
+            <span class="value balance" [class.negative]="currentBalance < 0" [class.positive]="currentBalance > 0">
+              {{ currentBalance | number:'1.2-2' }}
+            </span>
+          </div>
+          <div class="detail-item">
+            <span class="label">{{ positiveAmountLabel }}:</span>
+            <span class="value turnover positive">{{ totalPositiveAmount | number:'1.2-2' }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="label">{{ negativeAmountLabel }}:</span>
+            <span class="value turnover">{{ totalNegativeAmount | number:'1.2-2' }}</span>
+          </div>
         </div>
       }
     </div>
@@ -83,7 +98,32 @@
               <td style="white-space: nowrap;">{{ entry.transactionDate }}</td>
               <td>{{ entry.description }}</td>
               <td>{{ getPartnerDisplay(entry.partnerId, entry.partnerName) }}</td>
-              <td>{{ getAccountName(entry.accountId) }}</td>
+              <td>
+                @let entryPath = accountService.buildHierarchicalPath(entry.accountId, modelService.getAccounts());
+                @if (entryPath.length > 0) {
+                  <span class="entry-account-path">
+                    @for (segment of entryPath; track segment.id; let isLast = $last) {
+                      @if (!isLast) {
+                        <a [routerLink]="['/account', segment.id, 'ledger']" class="path-segment">{{ segment.number }}</a>
+                        <span class="path-separator">:</span>
+                      }
+                    }
+                    @if (entry.accountId === accountId) {
+                      <span class="path-segment">{{ entryPath[entryPath.length - 1].number }}</span>
+                    } @else {
+                      <a [routerLink]="['/account', entry.accountId, 'ledger']" class="path-segment">{{ entryPath[entryPath.length - 1].number }}</a>
+                    }
+                  </span>
+                  @let leafName = getAccountName(entry.accountId);
+                  @if (leafName.indexOf(' ') > 0) {
+                    <span class="entry-account-name">{{ leafName.substring(leafName.indexOf(' ')) }}</span>
+                  } @else {
+                    <span class="entry-account-name">{{ leafName }}</span>
+                  }
+                } @else {
+                  {{ getAccountName(entry.accountId) }}
+                }
+              </td>
               <td>{{ entry.note }}</td>
               <td>{{ entry.status }}</td>
               <td [class.negative]="entry.amount < 0" [class.positive]="entry.amount > 0">
