@@ -1,7 +1,8 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { FormsModule } from '@angular/forms';
+import { provideRouter } from '@angular/router';
 import { EntrySearchComponent } from './entry-search.component';
-import { Controller, EntrySearchDTO, TagDTO } from '../controller';
+import { Controller, EntrySearchDTO, TagDTO, AccountTreeNode } from '../controller';
 import { ModelService } from '../model.service';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
@@ -53,10 +54,16 @@ describe('EntrySearchComponent', () => {
       { id: 'journal1', title: 'Test Journal', subtitle: null, currency: 'CHF', commodities: { CHF: '1000.00' } }
     ]);
     const selectedJournalIdSignal = signal<string | null>('journal1');
+    const accountsSignal = signal<AccountTreeNode[]>([
+      { id: '1000', name: '1 Assets', type: 'ASSET', note: null, parentId: null, children: [
+        { id: '1100', name: '1100 Cash', type: 'CASH', note: null, parentId: '1000', children: [] }
+      ]}
+    ]);
 
     const modelServiceSpy = jasmine.createSpyObj('ModelService', ['getSelectedJournalId'], {
       journals$: journalsSignal.asReadonly(),
-      selectedJournalId$: selectedJournalIdSignal.asReadonly()
+      selectedJournalId$: selectedJournalIdSignal.asReadonly(),
+      accounts$: accountsSignal.asReadonly()
     });
     modelServiceSpy.getSelectedJournalId.and.returnValue('journal1');
 
@@ -66,7 +73,8 @@ describe('EntrySearchComponent', () => {
         { provide: Controller, useValue: controllerSpy },
         { provide: ModelService, useValue: modelServiceSpy },
         provideHttpClient(),
-        provideHttpClientTesting()
+        provideHttpClientTesting(),
+        provideRouter([])
       ]
     }).compileComponents();
 
@@ -292,5 +300,36 @@ describe('EntrySearchComponent', () => {
     await fixture.whenStable();
 
     expect(controller.getEntrySearchResults).toHaveBeenCalledTimes(2);
+  });
+
+  it('should render account as a link to the ledger using hierarchical name', async () => {
+    const entriesWithKnownAccount: EntrySearchDTO[] = [{
+      ...mockEntries[0],
+      accountId: '1100',
+      accountName: '1100 Cash'
+    }];
+    controller.getEntrySearchResults.and.returnValue(Promise.resolve(entriesWithKnownAccount));
+    controller.getTags.and.returnValue(Promise.resolve([]));
+
+    fixture.detectChanges();
+    await component.loadEntries();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    // Ancestor number link (parent "1 Assets" → segment number "1")
+    const parentLink: HTMLAnchorElement = fixture.nativeElement.querySelector('a.path-segment[href*="/account/1000/ledger"]');
+    expect(parentLink).toBeTruthy('Expected a path-segment link for ancestor account 1000');
+    expect(parentLink!.textContent?.trim()).toBe('1');
+
+    // Leaf number link (account "1100 Cash" → number "1100")
+    const leafLink: HTMLAnchorElement = fixture.nativeElement.querySelector('a.path-segment[href*="/account/1100/ledger"]');
+    expect(leafLink).toBeTruthy('Expected a path-segment link for leaf account 1100');
+    expect(leafLink!.textContent?.trim()).toBe('1100');
+
+    // Leaf name as plain text
+    const nameSpan: HTMLElement = fixture.nativeElement.querySelector('.entry-account-name');
+    expect(nameSpan).toBeTruthy();
+    expect(nameSpan!.textContent?.trim()).toBe('Cash');
   });
 });

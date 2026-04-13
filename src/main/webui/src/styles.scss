@@ -1223,6 +1223,12 @@ button {
   word-break: break-word;
 }
 
+.tags-cell {
+  max-width: 200px;
+  word-wrap: break-word;
+  white-space: pre-line;
+}
+
 .client-link {
   color: var(--color-link-light);
   text-decoration: none;
@@ -2105,6 +2111,48 @@ button {
   .path-segment {
     color: black !important;
   }
+}
+
+/* ===== TABLE COLUMN CONSTRAINTS ===== */
+.abbr-column {
+  white-space: nowrap;
+  width: 2rem;
+  text-align: center;
+  cursor: default;
+}
+
+.description-column {
+  max-width: 30vw;
+  width: 30%;
+  white-space: normal;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+/* ===== ACCOUNT PATH STYLES (used in journal table and entry-search table) ===== */
+.entry-account-path {
+  display: inline;
+  white-space: nowrap;
+}
+
+.path-segment {
+  color: var(--color-primary);
+  text-decoration: none;
+  font-weight: 500;
+
+  &:hover {
+    text-decoration: underline;
+    color: var(--color-link-hover);
+  }
+}
+
+.path-separator {
+  color: var(--color-text-secondary);
+  margin: 0 1px;
+}
+
+.entry-account-name {
+  color: var(--color-text-primary);
 }
 
 /* ===== ACCOUNT TREE STYLES ===== */

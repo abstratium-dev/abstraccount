@@ -1,208 +1,55 @@
 // Component-specific styles only
 // Global styles are defined in src/styles.scss
 
-// Override container to use full width and remove any height restrictions
-:host ::ng-deep .container {
-  max-width: 100%;
+.table-wrapper {
+  overflow-x: auto;
+  margin-bottom: 2rem;
+}
+
+.entry-search-table {
   width: 100%;
-  max-height: none !important;
-  height: auto !important;
-  overflow: visible !important;
-}
 
-// Ensure the host element itself doesn't clip
-:host {
-  display: block;
-  max-height: none !important;
-  height: auto !important;
-  overflow: visible !important;
-}
+  th {
+    white-space: nowrap;
+    border-left: 1px solid var(--color-border-light) !important;
 
-// Make everything smaller with 0.5 factor for compact view
-:host {
-  font-size: 0.5rem;
-  
-  h1 {
-    font-size: 1rem; // 0.5 of 2rem
+    &:first-child {
+      border-left: none !important;
+    }
   }
-  
-  h3 {
-    font-size: 0.75rem; // 0.5 of 1.5rem
-  }
-  
-  .filter-info {
-    font-size: 0.475rem; // 0.5 of 0.95rem
-  }
-  
-  input, select, button {
-    font-size: 0.5rem;
-    padding: 0.25rem;
-  }
-  
-  label {
-    font-size: 0.45rem;
+
+  td {
+    vertical-align: top;
+    border-left: 1px solid var(--color-border-light) !important;
+
+    &:first-child {
+      border-left: none !important;
+    }
   }
 }
 
-// Override autocomplete component styles to match form inputs
-:host ::ng-deep abs-autocomplete {
-  input {
-    font-size: 0.5rem !important;
-    padding: 0.25rem !important;
-    height: auto !important;
-    min-height: auto !important;
-  }
-  
-  .autocomplete-dropdown {
-    font-size: 0.5rem !important;
-  }
-  
-  .autocomplete-option {
-    font-size: 0.5rem !important;
-    padding: 0.25rem !important;
-  }
-}
-
-// Entries summary section
 .entries-summary {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 0.5rem;
   padding: 0.5rem;
-  background-color: var(--background-secondary);
+  background-color: var(--color-bg-secondary);
   border-radius: 4px;
-  
+
   h3 {
     margin: 0;
   }
-  
+
   .totals-summary {
     display: flex;
     gap: 1rem;
     align-items: center;
-    font-size: 0.5rem;
-    
+
     strong {
       margin-right: 0.5rem;
     }
-    
-    .commodity-total {
-      padding: 0.25rem 0.5rem;
-      background-color: var(--primary-color);
-      color: white;
-      border-radius: 3px;
-      font-weight: 600;
-      white-space: nowrap;
-    }
   }
-}
-
-.filter-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 1rem;
-  margin-bottom: 1rem;
-}
-
-.filter-item {
-  display: flex;
-  flex-direction: column;
-  
-  label {
-    font-weight: 500;
-    margin-bottom: 0.125rem;
-    color: var(--color-text-primary);
-  }
-  
-  input, select {
-    border: 1px solid var(--color-border-primary);
-    border-radius: 2px;
-    background-color: var(--color-bg-primary);
-    color: var(--color-text-primary);
-    
-    &:focus {
-      outline: none;
-      border-color: var(--color-primary);
-      box-shadow: 0 0 0 1px var(--shadow-primary);
-    }
-  }
-  
-  &.filter-item-wide {
-    grid-column: span 2;
-  }
-  
-  .checkbox-group {
-    display: flex;
-    align-items: center;
-    gap: 0.25rem;
-    
-    input[type="checkbox"] {
-      width: auto;
-      margin: 0;
-      cursor: pointer;
-    }
-    
-    label {
-      margin-bottom: 0;
-      cursor: pointer;
-      font-weight: normal;
-    }
-  }
-}
-
-.filter-actions {
-  display: flex;
-  gap: 1rem;
-  margin-top: 1rem;
-}
-
-.table-wrapper {
-  overflow-x: auto;
-  overflow-y: visible; // Ensure vertical scrolling doesn't clip
-  margin-bottom: 2rem;
-  max-height: none; // Remove any height restrictions
-  height: auto;
-}
-
-.entry-search-table {
-  width: 100%;
-  min-width: 1400px;
-  max-height: none !important; // Ensure no height limit
-  overflow: visible !important; // Ensure all rows are visible
-  
-  tbody {
-    max-height: none !important;
-    overflow: visible !important;
-  }
-  
-  th {
-    white-space: nowrap;
-    padding: 0.375rem 0.25rem; // Half of 0.75rem and 0.5rem
-    font-size: 0.425rem; // 0.5 of 0.85rem
-  }
-  
-  td {
-    vertical-align: top;
-    padding: 0.375rem 0.25rem; // Half of 0.75rem and 0.5rem
-    font-size: 0.425rem; // 0.5 of 0.85rem
-  }
-}
-
-.cell-content {
-  display: flex;
-  flex-direction: column;
-  gap: 0.125rem; // Half of 0.25rem
-}
-
-.mono-text {
-  font-family: monospace;
-  font-size: 0.85em; // Relative to already small base
-}
-
-.small-text {
-  font-size: 0.85em; // Relative to already small base
-  color: var(--color-text-secondary);
 }
 
 .amount-cell {
@@ -216,14 +63,6 @@
   min-width: 60px;
 }
 
-.debit-column {
-  color: var(--color-text-primary);
-}
-
-.credit-column {
-  color: var(--color-text-primary);
-}
-
 .debit-cell {
   color: var(--color-text-primary);
 }
@@ -232,35 +71,38 @@
   color: var(--color-success);
 }
 
-// Totals summary styling
 .totals-summary {
   .commodity-total {
     display: flex;
     gap: 0.5rem;
     align-items: center;
-    
+
     .debit-total {
       color: var(--color-text-primary);
       font-weight: 600;
     }
-    
+
     .credit-total {
       color: var(--color-success);
       font-weight: 600;
     }
-    
+
     .net-total {
       font-weight: 600;
-      
+
       &.negative {
         color: var(--color-error);
       }
-      
+
       &.positive {
         color: var(--color-success);
       }
     }
   }
+}
+
+.mono-text {
+  font-family: monospace;
 }
 
 .tags-cell {
@@ -270,106 +112,12 @@
 
 .no-results {
   text-align: center;
-  padding: 1.5rem; // Half of 3rem
+  padding: 3rem;
   color: var(--color-text-secondary);
   background-color: var(--color-bg-secondary);
-  border-radius: 2px;
-  
+  border-radius: 4px;
+
   p {
     margin: 0;
-    font-size: 0.55rem; // 0.5 of 1.1rem
-  }
-}
-
-// Tag search and chips styles
-.tag-search-wrapper {
-  display: flex;
-  gap: 0.25rem;
-  align-items: stretch;
-  
-  abs-autocomplete {
-    flex: 1;
-  }
-  
-  .btn-toggle-negation {
-    padding: 0.25rem 0.5rem;
-    font-size: 0.4rem;
-    font-weight: 600;
-    border: 1px solid var(--color-border-primary);
-    border-radius: 2px;
-    background-color: var(--color-bg-secondary);
-    color: var(--color-text-primary);
-    cursor: pointer;
-    white-space: nowrap;
-    
-    &:hover {
-      background-color: var(--color-bg-hover);
-    }
-    
-    &.active {
-      background-color: var(--color-error);
-      color: white;
-      border-color: var(--color-error);
-    }
-  }
-}
-
-.tag-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.25rem;
-  margin-top: 0.25rem;
-  align-items: center;
-}
-
-.tag-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  padding: 0.125rem 0.375rem;
-  font-size: 0.425rem;
-  border-radius: 3px;
-  background-color: var(--color-bg-secondary);
-  border: 1px solid var(--color-border-primary);
-  color: var(--color-text-primary);
-  
-  &.negated {
-    background-color: rgba(var(--color-error-rgb), 0.1);
-    border-color: var(--color-error);
-    color: var(--color-error);
-  }
-  
-  .chip-remove {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 14px;
-    height: 14px;
-    padding: 0;
-    font-size: 0.5rem;
-    line-height: 1;
-    border: none;
-    background: transparent;
-    color: inherit;
-    cursor: pointer;
-    border-radius: 2px;
-    
-    &:hover {
-      background-color: rgba(0, 0, 0, 0.1);
-    }
-  }
-}
-
-.clear-all-tags {
-  font-size: 0.4rem;
-  padding: 0.125rem 0.375rem;
-  background: transparent;
-  border: none;
-  color: var(--color-text-secondary);
-  cursor: pointer;
-  text-decoration: underline;
-  
-  &:hover {
-    color: var(--color-text-primary);
   }
 }

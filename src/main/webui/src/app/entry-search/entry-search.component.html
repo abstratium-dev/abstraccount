@@ -41,33 +41,43 @@
       <table class="standard-table entry-search-table">
         <thead>
           <tr>
-            <th>Entry ID</th>
-            <th>Order</th>
             <th>Date</th>
-            <th>Transaction</th>
+            <th class="description-column">Transaction</th>
             <th>Account</th>
-            <th>Type</th>
+            <th class="abbr-column" title="Account Type">Tp.</th>
             <th class="amount-column debit-column">Debit</th>
             <th class="amount-column credit-column">Credit</th>
-            <th>Commodity</th>
+            <th>Cmmdty.</th>
             <th>Partner</th>
-            <th>Status</th>
+            <th class="abbr-column" title="Transaction Status">St.</th>
             <th>Tags</th>
           </tr>
         </thead>
         <tbody>
           <tr *ngFor="let entry of entries">
-            <td class="mono-text">{{ entry.entryId ? entry.entryId.substring(0, 8) + '...' : 'N/A' }}</td>
-            <td>{{ entry.entryOrder }}</td>
             <td>{{ formatDate(entry.transactionDate) }}</td>
+            <td class="description-column">{{ entry.transactionDescription }}</td>
             <td>
-              <div class="cell-content">
-                <div class="mono-text small-text">{{ entry.transactionId ? entry.transactionId.substring(0, 8) + '...' : 'N/A' }}</div>
-                <div>{{ entry.transactionDescription }}</div>
-              </div>
+              <span class="entry-account-path">
+                @for (segment of accountService.buildHierarchicalPath(entry.accountId, modelService.accounts$()); track segment.id; let isLast = $last) {
+                  @if (!isLast) {
+                    <a [routerLink]="['/account', segment.id, 'ledger']" class="path-segment">{{ segment.number }}</a>
+                    <span class="path-separator">:</span>
+                  }
+                }
+                @if (entry.accountName.indexOf(' ') > 0) {
+                  <a [routerLink]="['/account', entry.accountId, 'ledger']" class="path-segment">{{ entry.accountName.substring(0, entry.accountName.indexOf(' ')) }}</a>
+                }
+              </span>
+              @if (entry.accountName.indexOf(' ') > 0) {
+                <span class="entry-account-name">{{ entry.accountName.substring(entry.accountName.indexOf(' ')) }}</span>
+              } @else {
+                <a [routerLink]="['/account', entry.accountId, 'ledger']" class="path-segment">
+                  <span class="entry-account-name">{{ entry.accountName }}</span>
+                </a>
+              }
             </td>
-            <td>{{ entry.accountName }}</td>
-            <td>{{ entry.accountType }}</td>
+            <td class="abbr-column" [title]="entry.accountType">{{ abbreviateAccountType(entry.accountType) }}</td>
             <td class="amount-cell debit-cell">
               {{ getDebitAmount(entry) > 0 ? formatAmount(getDebitAmount(entry)) : '' }}
             </td>
@@ -81,7 +91,7 @@
                 <div *ngIf="entry.transactionPartnerName">{{ entry.transactionPartnerName }}</div>
               </div>
             </td>
-            <td>{{ entry.transactionStatus }}</td>
+            <td class="abbr-column" [title]="entry.transactionStatus">{{ abbreviateStatus(entry.transactionStatus) }}</td>
             <td class="tags-cell">
               <span class="small-text">{{ getTagsDisplay(entry.transactionTags) }}</span>
             </td>

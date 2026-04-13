@@ -1,6 +1,8 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit, effect, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
+import { AccountService } from '../account.service';
 import { Controller, EntrySearchDTO, TagDTO } from '../controller';
 import { ModelService } from '../model.service';
 import { FilterInputComponent } from '../journal/filter-input/filter-input.component';
@@ -8,7 +10,7 @@ import { FilterInputComponent } from '../journal/filter-input/filter-input.compo
 @Component({
   selector: 'app-entry-search',
   standalone: true,
-  imports: [CommonModule, FormsModule, FilterInputComponent],
+  imports: [CommonModule, FormsModule, RouterLink, FilterInputComponent],
   templateUrl: './entry-search.component.html',
   styleUrls: ['./entry-search.component.scss']
 })
@@ -21,6 +23,7 @@ export class EntrySearchComponent implements OnInit {
 
   controller = inject(Controller);
   modelService = inject(ModelService);
+  accountService = inject(AccountService);
 
   private lastJournalId: string | null = null;
 
@@ -211,7 +214,22 @@ export class EntrySearchComponent implements OnInit {
       const isSimple = val === null || val === undefined || val === '' ||
                        val === 'null' || val === 'undefined';
       return isSimple ? tag.key : `${tag.key}:${val}`;
-    }).join(', ');
+    }).join('\n');
+  }
+
+  abbreviateAccountType(type: string): string {
+    const map: Record<string, string> = {
+      ASSET: 'As', LIABILITY: 'Li', EQUITY: 'Eq',
+      REVENUE: 'Re', EXPENSE: 'Ex', CASH: 'Ca'
+    };
+    return map[type] ?? type.substring(0, 2);
+  }
+
+  abbreviateStatus(status: string): string {
+    const map: Record<string, string> = {
+      CLEARED: 'Cl', PENDING: 'Pe', VOID: 'Vo'
+    };
+    return map[status] ?? status.substring(0, 2);
   }
 
   getSelectedJournalName(): string {

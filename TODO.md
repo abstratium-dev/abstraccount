@@ -20,8 +20,9 @@ These TODOs are to be resolved by the developer, NOT THE LLM.
   - explaination and company statement
     - make note that things like monthly subscriptions are not pro rated since they are monthly and negligible for selling the company
   - add reports and journal
+  - translate the tax help page and put it in the wiki: http://vd.ch/index.php?id=2023786#c2112404
   - explain specialities
-  - ask if my assumptions are correct
+  - ask if my assumptions are correct: https://prestations.vd.ch/pub/101529
   - read book Compta2025v3.pdf
   - check list of what to do in which order
   - ensure certain tags are ignored for certain reports so that they can be regenerated even after closing
