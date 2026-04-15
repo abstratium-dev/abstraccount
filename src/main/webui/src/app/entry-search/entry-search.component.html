@@ -1,6 +1,80 @@
 <div class="container">
   <h1>Entry Search</h1>
 
+  <!-- Toggle Bar -->
+  <div class="view-toggles">
+    <button class="btn-secondary view-toggle-btn" (click)="toggleFilters()">
+      {{ showFilters ? '▼ Hide Filters' : '▶ Show Filters' }}
+    </button>
+    <button class="btn-secondary view-toggle-btn" (click)="toggleEntries()">
+      {{ showEntries ? '▼ Hide Entries' : '▶ Show Entries' }}
+    </button>
+    <button class="btn-secondary view-toggle-btn" (click)="togglePivot()">
+      {{ showPivot ? '▼ Hide Pivot' : '▶ Show Pivot' }}
+    </button>
+    <button *ngIf="showPivot && pivotTable" class="btn-secondary view-toggle-btn" (click)="togglePivotChart()">
+      {{ showPivotChart ? '▼ Hide Chart' : '▶ Show Chart' }}
+    </button>
+  </div>
+
+  <!-- Saved Configurations Section -->
+  <div class="saved-configs-section">
+    <div class="saved-configs-header">
+      <h3>Saved Configurations</h3>
+      <span *ngIf="currentConfigName" class="current-config-badge">
+        Editing: {{ currentConfigName }}
+        <button class="btn-link" (click)="clearConfigSelection()">(clear)</button>
+      </span>
+    </div>
+
+    <div class="saved-configs-controls">
+      <!-- Existing Configs Dropdown -->
+      <div class="config-select-wrapper">
+        <label for="savedConfigSelect">Load Configuration</label>
+        <select
+          id="savedConfigSelect"
+          [ngModel]="currentConfigName || ''"
+          (ngModelChange)="$event && loadConfig($event)">
+          <option value="">-- Select a saved configuration --</option>
+          <option *ngFor="let config of savedConfigs" [value]="config.name">
+            {{ config.name }}
+          </option>
+        </select>
+      </div>
+
+      <!-- Save New / Update Controls -->
+      <div class="config-save-controls">
+        <div class="config-name-input">
+          <input
+            type="text"
+            [(ngModel)]="newConfigName"
+            placeholder="Configuration name..."
+            (keyup.enter)="saveAsNewConfig(newConfigName)" />
+        </div>
+        <div class="config-buttons">
+          <button
+            class="btn-primary"
+            (click)="saveAsNewConfig(newConfigName)"
+            [disabled]="!newConfigName.trim()">
+            Save New
+          </button>
+          <button
+            *ngIf="currentConfigName"
+            class="btn-secondary"
+            (click)="updateCurrentConfig()">
+            Update "{{ currentConfigName }}"
+          </button>
+          <button
+            *ngIf="currentConfigName"
+            class="btn-danger"
+            (click)="deleteConfig(currentConfigName)">
+            Delete
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Error Display -->
   <div *ngIf="error" class="error-message">
     <h2>Error</h2>
@@ -13,17 +87,18 @@
   </div>
 
   <!-- Filters Section -->
-  <div class="filter-section">
+  <div *ngIf="showFilters" class="filter-section">
     <h3>Filters</h3>
     <p class="filter-info">Showing entries for journal: <strong>{{ getSelectedJournalName() }}</strong></p>
     <filter-input
       [tags]="tags"
+      [value]="filterString"
       (filterChange)="onFilterChange($event)">
     </filter-input>
   </div>
 
   <!-- Entries Table -->
-  <div *ngIf="!loading && entries.length > 0">
+  <div *ngIf="showEntries && !loading && entries.length > 0">
     <div class="entries-summary">
       <h3>Entries ({{ entries.length }})</h3>
       <div class="totals-summary">
@@ -104,5 +179,264 @@
   <!-- No Results -->
   <div *ngIf="!loading && entries.length === 0 && !error" class="no-results">
     <p>No entries found matching the current filters.</p>
+  </div>
+
+  <!-- Pivot Table Section -->
+  <div *ngIf="showPivot && !loading && entries.length > 0" class="pivot-section">
+    <div class="pivot-container">
+      <!-- Pivot Chart -->
+      <div *ngIf="showPivotChart && pivotTable" class="pivot-chart-section">
+        <div class="chart-container">
+          <canvas #pivotChart></canvas>
+        </div>
+      </div>
+
+      <!-- Pivot Configuration -->
+      <div class="pivot-config">
+        <h3>Pivot Configuration</h3>
+        <div class="pivot-config-row">
+          <!-- Row Dimension -->
+          <div class="pivot-config-field">
+            <label for="pivotRowDim">Rows</label>
+            <select id="pivotRowDim" [(ngModel)]="pivotConfig.rowDimension" (ngModelChange)="onPivotConfigChange()">
+              <option *ngFor="let d of pivotDimensions" [value]="d.id">{{ d.label }}</option>
+            </select>
+            <input *ngIf="pivotConfig.rowDimension === 'tagKey'"
+                   type="text" list="tagKeyListRows"
+                   placeholder="Tag key…"
+                   [(ngModel)]="pivotConfig.tagKeyForRows"
+                   (ngModelChange)="onPivotConfigChange()"
+                   class="tag-key-input" />
+            <datalist id="tagKeyListRows">
+              <option *ngFor="let k of getTagKeysForDimension()" [value]="k"></option>
+            </datalist>
+          </div>
+
+          <!-- Col Dimension -->
+          <div class="pivot-config-field">
+            <label for="pivotColDim">Columns</label>
+            <select id="pivotColDim" [(ngModel)]="pivotConfig.colDimension" (ngModelChange)="onPivotConfigChange()">
+              <option *ngFor="let d of pivotDimensions" [value]="d.id">{{ d.label }}</option>
+            </select>
+            <input *ngIf="pivotConfig.colDimension === 'tagKey'"
+                   type="text" list="tagKeyListCols"
+                   placeholder="Tag key…"
+                   [(ngModel)]="pivotConfig.tagKeyForCols"
+                   (ngModelChange)="onPivotConfigChange()"
+                   class="tag-key-input" />
+            <datalist id="tagKeyListCols">
+              <option *ngFor="let k of getTagKeysForDimension()" [value]="k"></option>
+            </datalist>
+          </div>
+
+          <!-- Group-By Dimension -->
+          <div class="pivot-config-field">
+            <label for="pivotGroupBy">Group cells by</label>
+            <select id="pivotGroupBy" [(ngModel)]="pivotConfig.groupByDimension" (ngModelChange)="onPivotConfigChange()">
+              <option value="none">None (simple sum)</option>
+              <option *ngFor="let d of pivotDimensions" [value]="d.id">{{ d.label }}</option>
+            </select>
+            <input *ngIf="pivotConfig.groupByDimension === 'tagKey'"
+                   type="text" list="tagKeyListGroup"
+                   placeholder="Tag key…"
+                   [(ngModel)]="pivotConfig.tagKeyForGroup"
+                   (ngModelChange)="onPivotConfigChange()"
+                   class="tag-key-input" />
+            <datalist id="tagKeyListGroup">
+              <option *ngFor="let k of getTagKeysForDimension()" [value]="k"></option>
+            </datalist>
+          </div>
+        </div>
+
+        <!-- Y-Axis Range (only relevant when chart is shown) -->
+        <div *ngIf="showPivotChart" class="pivot-config-row pivot-yaxis-row">
+          <div class="pivot-config-field">
+            <label for="yAxisMin">Chart Y Min</label>
+            <input
+              id="yAxisMin"
+              type="number"
+              placeholder="auto"
+              [ngModel]="pivotConfig.yAxisMin"
+              (ngModelChange)="pivotConfig.yAxisMin = $event === '' || $event === null ? null : +$event; onPivotConfigChange()"
+              class="tag-key-input" />
+          </div>
+          <div class="pivot-config-field">
+            <label for="yAxisMax">Chart Y Max</label>
+            <input
+              id="yAxisMax"
+              type="number"
+              placeholder="auto"
+              [ngModel]="pivotConfig.yAxisMax"
+              (ngModelChange)="pivotConfig.yAxisMax = $event === '' || $event === null ? null : +$event; onPivotConfigChange()"
+              class="tag-key-input" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Pivot Table -->
+      <div *ngIf="pivotTable" class="pivot-table-wrapper">
+        <table class="pivot-table">
+          <thead>
+            <tr>
+              <th class="pivot-dim-header">
+                {{ getDimensionLabel(pivotConfig.rowDimension) }} \
+                {{ getDimensionLabel(pivotConfig.colDimension) }}
+              </th>
+              <!-- Column headers with links for transaction/account -->
+              <th *ngFor="let col of pivotTable.colKeys" class="pivot-col-header">
+                <ng-container *ngIf="pivotConfig.colDimension === 'transaction'; else colAccountCheck">
+                  <a [routerLink]="['/journal']" [queryParams]="{ highlight: getColRepresentative(col)?.transactionId }" class="pivot-link">{{ getDimensionDisplayLabel(pivotConfig.colDimension, col, getColRepresentative(col)) }}</a>
+                  <div class="pivot-dim-id">{{ col }}</div>
+                </ng-container>
+                <ng-template #colAccountCheck>
+                  <ng-container *ngIf="pivotConfig.colDimension === 'account'; else plainCol">
+                    <span class="entry-account-path">
+                      @for (segment of buildAccountPathForEntry(getColRepresentative(col)); track segment.id; let isLast = $last) {
+                        @if (!isLast) {
+                          <a [routerLink]="['/account', segment.id, 'ledger']" class="path-segment">{{ segment.number }}</a>
+                          <span class="path-separator">:</span>
+                        }
+                      }
+                      <a [routerLink]="['/account', getColRepresentative(col)?.accountId, 'ledger']" class="path-segment">
+                        {{ getAccountNumber(getColRepresentative(col)?.accountName ?? '') }}
+                      </a>
+                    </span>
+                    <span class="entry-account-name">{{ getAccountDisplayName(getColRepresentative(col)?.accountName ?? '') }}</span>
+                  </ng-container>
+                  <ng-template #plainCol>{{ col }}</ng-template>
+                </ng-template>
+              </th>
+              <th class="pivot-total-header">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let rowKey of pivotTable.rowKeys">
+              <!-- Row header with links for transaction/account -->
+              <td class="pivot-row-header">
+                <ng-container *ngIf="pivotConfig.rowDimension === 'transaction'; else rowAccountCheck">
+                  <a [routerLink]="['/journal']" [queryParams]="{ highlight: getRowRepresentative(rowKey)?.transactionId }" class="pivot-link">{{ getDimensionDisplayLabel(pivotConfig.rowDimension, rowKey, getRowRepresentative(rowKey)) }}</a>
+                  <div class="pivot-dim-id">{{ rowKey }}</div>
+                </ng-container>
+                <ng-template #rowAccountCheck>
+                  <ng-container *ngIf="pivotConfig.rowDimension === 'account'; else plainRow">
+                    <span class="entry-account-path">
+                      @for (segment of buildAccountPathForEntry(getRowRepresentative(rowKey)); track segment.id; let isLast = $last) {
+                        @if (!isLast) {
+                          <a [routerLink]="['/account', segment.id, 'ledger']" class="path-segment">{{ segment.number }}</a>
+                          <span class="path-separator">:</span>
+                        }
+                      }
+                      <a [routerLink]="['/account', getRowRepresentative(rowKey)?.accountId, 'ledger']" class="path-segment">
+                        {{ getAccountNumber(getRowRepresentative(rowKey)?.accountName ?? '') }}
+                      </a>
+                    </span>
+                    <span class="entry-account-name">{{ getAccountDisplayName(getRowRepresentative(rowKey)?.accountName ?? '') }}</span>
+                  </ng-container>
+                  <ng-template #plainRow>{{ rowKey }}</ng-template>
+                </ng-template>
+              </td>
+              <td *ngFor="let colKey of pivotTable.colKeys" class="pivot-cell">
+                <ng-container *ngIf="getPivotCell(rowKey, colKey) as cell; else emptyCell">
+                  <!-- Sub-groups (when group-by is active) -->
+                  <ng-container *ngIf="cell.subGroups.length > 0; else simpleTile">
+                    <div *ngFor="let sg of cell.subGroups" class="pivot-sub-tile">
+                      <!-- Sub-group label with links for transaction/account group-by -->
+                      <div class="pivot-sub-tile-label">
+                        <ng-container *ngIf="pivotConfig.groupByDimension === 'transaction'; else groupAccountCheck">
+                          <a [routerLink]="['/journal']" [queryParams]="{ highlight: getGroupRepresentative(rowKey, colKey, sg.label)?.transactionId }" class="pivot-link">{{ getDimensionDisplayLabel(pivotConfig.groupByDimension, sg.label, getGroupRepresentative(rowKey, colKey, sg.label)) }}</a>
+                          <div class="pivot-dim-id">{{ sg.label }}</div>
+                        </ng-container>
+                        <ng-template #groupAccountCheck>
+                          <ng-container *ngIf="pivotConfig.groupByDimension === 'account'; else plainGroupLabel">
+                            <ng-container *ngIf="getGroupRepresentative(rowKey, colKey, sg.label) as groupEntry">
+                              <span class="entry-account-path">
+                                @for (segment of buildAccountPathForEntry(groupEntry); track segment.id; let isLast = $last) {
+                                  @if (!isLast) {
+                                    <a [routerLink]="['/account', segment.id, 'ledger']" class="path-segment">{{ segment.number }}</a>
+                                    <span class="path-separator">:</span>
+                                  }
+                                }
+                                <a [routerLink]="['/account', groupEntry.accountId, 'ledger']" class="path-segment">
+                                  {{ getAccountNumber(groupEntry.accountName) }}
+                                </a>
+                              </span>
+                              <span class="entry-account-name">{{ getAccountDisplayName(groupEntry.accountName) }}</span>
+                            </ng-container>
+                          </ng-container>
+                          <ng-template #plainGroupLabel>{{ sg.label }}</ng-template>
+                        </ng-template>
+                      </div>
+                      <div class="pivot-amounts">
+                        <span class="pivot-debit"  *ngIf="sg.amounts.debits  > 0">Dr: {{ formatAmount(sg.amounts.debits)  }}</span>
+                        <span class="pivot-credit" *ngIf="sg.amounts.credits > 0">Cr: {{ formatAmount(sg.amounts.credits) }}</span>
+                        <span class="pivot-net" [class.pivot-net-pos]="sg.amounts.net > 0" [class.pivot-net-neg]="sg.amounts.net < 0">
+                          Bal: {{ formatAmount(sg.amounts.net) }}
+                        </span>
+                      </div>
+                    </div>
+                  </ng-container>
+                  <ng-template #simpleTile>
+                    <div class="pivot-tile">
+                      <div class="pivot-amounts">
+                        <span class="pivot-debit"  *ngIf="cell.totals.debits  > 0">Dr: {{ formatAmount(cell.totals.debits)  }}</span>
+                        <span class="pivot-credit" *ngIf="cell.totals.credits > 0">Cr: {{ formatAmount(cell.totals.credits) }}</span>
+                        <span class="pivot-net" [class.pivot-net-pos]="cell.totals.net > 0" [class.pivot-net-neg]="cell.totals.net < 0">
+                          Bal: {{ formatAmount(cell.totals.net) }}
+                        </span>
+                      </div>
+                    </div>
+                  </ng-template>
+                </ng-container>
+                <ng-template #emptyCell><span class="pivot-empty">—</span></ng-template>
+              </td>
+              <!-- Row total -->
+              <td class="pivot-cell pivot-row-total">
+                <ng-container *ngIf="pivotTable.rowTotals.get(rowKey) as rt">
+                  <div class="pivot-tile">
+                    <div class="pivot-amounts">
+                      <span class="pivot-debit"  *ngIf="rt.debits  > 0">Dr: {{ formatAmount(rt.debits)  }}</span>
+                      <span class="pivot-credit" *ngIf="rt.credits > 0">Cr: {{ formatAmount(rt.credits) }}</span>
+                      <span class="pivot-net" [class.pivot-net-pos]="rt.net > 0" [class.pivot-net-neg]="rt.net < 0">
+                        Bal: {{ formatAmount(rt.net) }}
+                      </span>
+                    </div>
+                  </div>
+                </ng-container>
+              </td>
+            </tr>
+          </tbody>
+          <tfoot>
+            <tr>
+              <td class="pivot-row-header pivot-total-label">Total</td>
+              <td *ngFor="let colKey of pivotTable.colKeys" class="pivot-cell pivot-col-total">
+                <ng-container *ngIf="pivotTable.colTotals.get(colKey) as ct">
+                  <div class="pivot-tile">
+                    <div class="pivot-amounts">
+                      <span class="pivot-debit"  *ngIf="ct.debits  > 0">Dr: {{ formatAmount(ct.debits)  }}</span>
+                      <span class="pivot-credit" *ngIf="ct.credits > 0">Cr: {{ formatAmount(ct.credits) }}</span>
+                      <span class="pivot-net" [class.pivot-net-pos]="ct.net > 0" [class.pivot-net-neg]="ct.net < 0">
+                        Bal: {{ formatAmount(ct.net) }}
+                      </span>
+                    </div>
+                  </div>
+                </ng-container>
+              </td>
+              <!-- Grand total -->
+              <td class="pivot-cell pivot-grand-total">
+                <div class="pivot-tile">
+                  <div class="pivot-amounts">
+                    <span class="pivot-debit"  *ngIf="pivotTable.grandTotal.debits  > 0">Dr: {{ formatAmount(pivotTable.grandTotal.debits)  }}</span>
+                    <span class="pivot-credit" *ngIf="pivotTable.grandTotal.credits > 0">Cr: {{ formatAmount(pivotTable.grandTotal.credits) }}</span>
+                    <span class="pivot-net" [class.pivot-net-pos]="pivotTable.grandTotal.net > 0" [class.pivot-net-neg]="pivotTable.grandTotal.net < 0">
+                      Bal: {{ formatAmount(pivotTable.grandTotal.net) }}
+                    </span>
+                  </div>
+                </div>
+              </td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
   </div>
 </div>

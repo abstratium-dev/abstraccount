@@ -121,3 +121,395 @@
     margin: 0;
   }
 }
+
+// ===== VIEW TOGGLES =====
+
+.view-toggles {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.view-toggle-btn {
+  font-size: 0.85rem;
+  padding: 0.5rem 0.75rem;
+}
+
+// ===== SAVED CONFIGURATIONS =====
+
+.saved-configs-section {
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-primary);
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.saved-configs-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+
+  h3 {
+    margin: 0;
+    font-size: 1rem;
+  }
+}
+
+.current-config-badge {
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+  background: var(--color-bg-primary);
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  border: 1px solid var(--color-border-primary);
+
+  .btn-link {
+    background: none;
+    border: none;
+    color: var(--color-primary);
+    cursor: pointer;
+    font-size: 0.8rem;
+    padding: 0;
+    margin-left: 0.25rem;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+}
+
+.saved-configs-controls {
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  align-items: flex-end;
+}
+
+.config-select-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 220px;
+
+  label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--color-text-secondary);
+  }
+
+  select {
+    padding: 0.4rem 0.6rem;
+    border: 1px solid var(--color-border-primary);
+    border-radius: 4px;
+    background: var(--color-bg-primary);
+    color: var(--color-text-primary);
+    font-size: 0.9rem;
+  }
+}
+
+.config-save-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  flex: 1;
+  min-width: 280px;
+}
+
+.config-name-input {
+  input {
+    width: 100%;
+    padding: 0.4rem 0.6rem;
+    border: 1px solid var(--color-border-primary);
+    border-radius: 4px;
+    background: var(--color-bg-primary);
+    color: var(--color-text-primary);
+    font-size: 0.9rem;
+
+    &:focus {
+      outline: none;
+      border-color: var(--color-primary);
+    }
+  }
+}
+
+.config-buttons {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+
+  button {
+    font-size: 0.85rem;
+    padding: 0.4rem 0.75rem;
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  }
+}
+
+// ===== PIVOT CHART =====
+
+.pivot-chart-section {
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--color-border-primary);
+}
+
+.chart-container {
+  position: relative;
+  height: 300px;
+  width: 100%;
+}
+
+// ===== PIVOT TABLE =====
+
+.pivot-section {
+  margin-top: 1.5rem;
+}
+
+.pivot-toggle-bar {
+  margin-bottom: 0.75rem;
+}
+
+.pivot-toggle-btn {
+  font-size: 0.9rem;
+}
+
+.pivot-container {
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-primary);
+  border-radius: 8px;
+  padding: 1.25rem;
+}
+
+.pivot-config {
+  margin-bottom: 1.25rem;
+
+  h3 {
+    margin: 0 0 0.75rem;
+    font-size: 1rem;
+  }
+}
+
+.pivot-config-row {
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.pivot-config-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 180px;
+
+  label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--color-text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  select {
+    padding: 0.4rem 0.6rem;
+    border: 1px solid var(--color-border-primary);
+    border-radius: 4px;
+    background: var(--color-bg-primary);
+    color: var(--color-text-primary);
+    font-size: 0.9rem;
+  }
+}
+
+.tag-key-input {
+  padding: 0.35rem 0.6rem;
+  border: 1px solid var(--color-border-primary);
+  border-radius: 4px;
+  background: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  font-size: 0.85rem;
+}
+
+.pivot-table-wrapper {
+  overflow-x: auto;
+}
+
+.pivot-table {
+  border-collapse: collapse;
+  font-size: 0.82rem;
+  min-width: 100%;
+
+  th, td {
+    border: 1px solid var(--color-border-primary);
+    padding: 0.35rem 0.5rem;
+    vertical-align: top;
+  }
+
+  thead {
+    background: var(--color-bg-tertiary);
+  }
+
+  tfoot {
+    background: var(--color-bg-tertiary);
+    font-weight: 600;
+  }
+}
+
+.pivot-dim-header {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+  white-space: pre-line;
+  min-width: 120px;
+}
+
+.pivot-col-header {
+  text-align: center;
+  font-weight: 600;
+  white-space: nowrap;
+  min-width: 100px;
+}
+
+.pivot-total-header {
+  text-align: center;
+  font-weight: 700;
+  background: var(--color-bg-tertiary);
+  white-space: nowrap;
+}
+
+.pivot-row-header {
+  font-weight: 600;
+  white-space: nowrap;
+  background: var(--color-bg-tertiary);
+}
+
+.pivot-total-label {
+  font-weight: 700;
+}
+
+.pivot-cell {
+  vertical-align: top;
+  min-width: 100px;
+}
+
+.pivot-row-total,
+.pivot-col-total {
+  background: var(--color-bg-tertiary);
+  font-weight: 600;
+}
+
+.pivot-grand-total {
+  background: var(--color-bg-tertiary);
+  font-weight: 700;
+}
+
+.pivot-tile {
+  padding: 0.15rem 0;
+}
+
+.pivot-sub-tile {
+  border-left: 2px solid var(--color-primary);
+  padding: 0.2rem 0.4rem;
+  margin-bottom: 0.3rem;
+  background: var(--color-bg-primary);
+  border-radius: 2px;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.pivot-sub-tile-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  margin-bottom: 0.15rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 140px;
+}
+
+.pivot-amounts {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  font-family: monospace;
+  font-size: 0.8rem;
+}
+
+.pivot-debit {
+  color: var(--color-text-primary);
+}
+
+.pivot-credit {
+  color: var(--color-success);
+}
+
+.pivot-net {
+  font-weight: 600;
+
+  &.pivot-net-pos {
+    color: var(--color-success);
+  }
+
+  &.pivot-net-neg {
+    color: var(--color-error);
+  }
+}
+
+.pivot-empty {
+  color: var(--color-text-secondary);
+  opacity: 0.4;
+  display: block;
+  text-align: center;
+}
+
+// Transaction ID shown below description in pivot headers
+.pivot-dim-id {
+  font-size: 0.7em;
+  font-weight: 400;
+  color: var(--color-text-muted, #888);
+  font-family: monospace;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 18ch;
+}
+
+// Links within pivot
+.pivot-link {
+  color: var(--color-primary);
+  text-decoration: none;
+  cursor: pointer;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+// Account path styling in pivot (reuses existing classes from global styles)
+.pivot-table .entry-account-path {
+  display: inline;
+
+  .path-segment {
+    color: var(--color-primary);
+    text-decoration: none;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+
+  .path-separator {
+    color: var(--color-text-secondary);
+    margin: 0 0.1rem;
+  }
+}
+
+.pivot-table .entry-account-name {
+  color: var(--color-text-primary);
+}

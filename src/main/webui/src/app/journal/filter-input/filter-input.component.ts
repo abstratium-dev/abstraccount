@@ -18,6 +18,7 @@ interface AutocompleteSuggestion {
 export class FilterInputComponent implements OnInit, OnDestroy {
   @Input() placeholder = 'Filter (e.g., date:gte:2024-01-01 AND description:*invoice* AND NOT accounttype:EQUITY)';
   @Input() tags: TagDTO[] = [];
+  @Input() value = '';
   @Output() filterChange = new EventEmitter<string>();
 
   filterText = signal('');
@@ -34,6 +35,7 @@ export class FilterInputComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
+    this.filterText.set(this.value);
     this.updateSuggestions(this.filterText());
   }
 
@@ -73,9 +75,8 @@ export class FilterInputComponent implements OnInit, OnDestroy {
       this.selectedIndex.set(-1);
     } else if (event.key === ' ' && event.ctrlKey) {
       event.preventDefault();
-      this.showSuggestions.set(true);
       this.cursorPosition = input.selectionStart || 0;
-      this.updateSuggestions(this.filterText());
+      this.updateSuggestions(this.filterText(), true);
     }
   }
 
@@ -97,12 +98,12 @@ export class FilterInputComponent implements OnInit, OnDestroy {
     const tokenStart = lastSpaceIndex >= 0 ? lastSpaceIndex + 1 : 0;
     
     // Replace the current token with the suggestion
-    const newText = text.substring(0, tokenStart) + suggestion.text + ' ' + afterCursor;
+    const newText = text.substring(0, tokenStart) + suggestion.text + afterCursor;
     this.filterText.set(newText);
     
     // Set cursor position after the inserted text
     setTimeout(() => {
-      const newCursorPos = tokenStart + suggestion.text.length + 1;
+      const newCursorPos = tokenStart + suggestion.text.length;
       input.setSelectionRange(newCursorPos, newCursorPos);
       this.cursorPosition = newCursorPos;
     }, 0);
@@ -126,7 +127,7 @@ export class FilterInputComponent implements OnInit, OnDestroy {
     this.showSuggestions.set(false);
   }
 
-  private updateSuggestions(text: string): void {
+  private updateSuggestions(text: string, explicit = false): void {
     const beforeCursor = text.substring(0, this.cursorPosition);
     // Find current token – stop at whitespace but also at ( and )
     const tokenMatch = beforeCursor.match(/[^\s()]*$/);
@@ -190,7 +191,7 @@ export class FilterInputComponent implements OnInit, OnDestroy {
     }
 
     this.suggestions.set(suggestions);
-    if (suggestions.length > 0 && currentToken.length > 0) {
+    if (suggestions.length > 0 && (explicit || currentToken.length > 0)) {
       this.showSuggestions.set(true);
     } else {
       this.showSuggestions.set(false);

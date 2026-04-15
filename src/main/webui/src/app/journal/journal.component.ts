@@ -117,8 +117,14 @@ export class JournalComponent implements OnInit {
       const row = document.getElementById('tx-' + txId);
       if (row) {
         row.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        row.classList.add('tx-flash');
-        row.addEventListener('animationend', () => row.classList.remove('tx-flash'), { once: true });
+        const observer = new IntersectionObserver((entries, obs) => {
+          if (entries[0].isIntersecting) {
+            obs.disconnect();
+            row.classList.add('tx-flash');
+            row.addEventListener('animationend', () => row.classList.remove('tx-flash'), { once: true });
+          }
+        }, { threshold: 0.5 });
+        observer.observe(row);
       } else if (attempts++ < 20) {
         setTimeout(tryScroll, 100);
       }

@@ -1,10 +1,12 @@
 package dev.abstratium.abstraccount.service;
 
+import dev.abstratium.abstraccount.adapters.PartnerDataAdapter;
 import dev.abstratium.abstraccount.entity.AccountEntity;
 import dev.abstratium.abstraccount.entity.TransactionEntity;
 import dev.abstratium.abstraccount.model.AccountType;
 
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -13,7 +15,9 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
@@ -40,6 +44,9 @@ import java.util.regex.PatternSyntaxException;
 @ApplicationScoped
 public class EntryQueryParser {
 
+    @Inject
+    PartnerDataAdapter partnerDataAdapter;
+
     // -------------------------------------------------------------------------
     // Public API
     // -------------------------------------------------------------------------
@@ -56,9 +63,12 @@ public class EntryQueryParser {
         if (query == null || query.isBlank()) {
             return tx -> true;
         }
+        Function<String, Optional<String>> partnerNameLookup = partnerDataAdapter != null
+                ? id -> partnerDataAdapter.getPartner(id).map(p -> p.name())
+                : id -> Optional.empty();
         Lexer lexer = new Lexer(query);
         List<Token> tokens = lexer.tokenize();
-        Parser parser = new Parser(tokens, accountsById);
+        Parser parser = new Parser(tokens, accountsById, partnerNameLookup);
         return parser.parse();
     }
 
@@ -228,10 +238,12 @@ public class EntryQueryParser {
         private final List<Token> tokens;
         private int idx = 0;
         private final Map<String, AccountEntity> accountsById;
+        private final Function<String, Optional<String>> partnerNameLookup;
 
-        Parser(List<Token> tokens, Map<String, AccountEntity> accountsById) {
+        Parser(List<Token> tokens, Map<String, AccountEntity> accountsById, Function<String, Optional<String>> partnerNameLookup) {
             this.tokens = tokens;
             this.accountsById = accountsById;
+            this.partnerNameLookup = partnerNameLookup;
         }
 
         Predicate<TransactionEntity> parse() {
@@ -447,7 +459,10 @@ public class EntryQueryParser {
             StringMatcher matcher = StringMatcher.of(parts.get(1));
             return tx -> {
                 String partnerId = tx.getPartnerId();
-                return partnerId != null && matcher.matches(partnerId);
+                if (partnerId == null) return false;
+                if (matcher.matches(partnerId)) return true;
+                Optional<String> partnerName = partnerNameLookup.apply(partnerId);
+                return partnerName.isPresent() && matcher.matches(partnerName.get());
             };
         }
 

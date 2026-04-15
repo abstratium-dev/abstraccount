@@ -10,7 +10,8 @@ These TODOs are to be resolved by the developer, NOT THE LLM.
 
 ## Today
 
-- macros: use account 4000 or 4200 when purchasing stuff that goes into stock
+- add timeout for sign out back into abstracore
+  - see auth.service.ts, header.component.ts, header.component.html, header.component.scss, auth.service.spec.ts, 
 
 - 2025 tax declr
   - bank statement
@@ -24,8 +25,6 @@ These TODOs are to be resolved by the developer, NOT THE LLM.
   - read book Compta2025v3.pdf
   - check list of what to do in which order
   - ensure certain tags are ignored for certain reports so that they can be regenerated even after closing
-
-- add a pivot table based on the entry search
 
 - add more links
   - each tag that is displayed should link to the journal with a filter
@@ -78,6 +77,27 @@ These TODOs are to be resolved by the developer, NOT THE LLM.
 - write user guide
 
 ## Tomorrow
+
+- macros
+  - add a macro for purchasing something for manufacturing (4000)
+
+    2025-09-01 * P00000018 Galaxus | 3d filament for akdg housing. 2025-09-01 galaxus Bestellung 158001158.pdf / Galaxus_Kaufbeleg_158001158.pdf
+        ; invoice:PI00000048
+        1:10:120:1200 Inventory of hardware and components                         CHF  20.17
+        4:4000:4000 Purchases of raw materials and components for manufacturing    CHF  20.17
+        4:4000:4000 Purchases of raw materials and components for manufacturing    CHF -20.17
+        2:20:220:2210:2210.001 Anton Kutschera                                     CHF -20.17
+
+  - add a macro for purchasing something for resale (4200)
+
+    2025-09-11 * P00000020 Digitec | loudspeaker 175.00, usb key for backup 30.70 and usb adapter for esp32 8.36. 20250911 Digitec_Kaufbeleg_159132501.pdf
+        ; invoice:PI00000055
+        1:150 Movable tangible fixed assets        CHF  175.00
+        1:150 Movable tangible fixed assets        CHF  30.70
+        1:1230 Goods held for resale               CHF  8.36
+        4:4200 Purchases of goods for resale       CHF  8.36
+        4:4200 Purchases of goods for resale       CHF -8.36
+        2:2210.001 Anton Kutschera                 CHF -214.06
 
 - Link to receipt documents
 - reports

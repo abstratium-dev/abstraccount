@@ -85,6 +85,12 @@ class EntryQueryParserTest {
         return parser.parse(query, accounts);
     }
 
+    private Predicate<TransactionEntity> parseWithPartnerNames(String query, java.util.function.Function<String, java.util.Optional<String>> nameLookup) {
+        EntryQueryParser.Lexer lexer = new EntryQueryParser.Lexer(query);
+        java.util.List<EntryQueryParser.Token> tokens = lexer.tokenize();
+        return new EntryQueryParser.Parser(tokens, accounts, nameLookup).parse();
+    }
+
     // -------------------------------------------------------------------------
     // Blank / null
     // -------------------------------------------------------------------------
@@ -212,6 +218,33 @@ class EntryQueryParserTest {
         void partner_null_partner_never_matches() {
             TransactionEntity t = tx(LocalDate.now(), "X", null);
             assertFalse(parse("partner:*").test(t));
+        }
+
+        @Test
+        void partner_name_glob_matches() {
+            TransactionEntity t = tx(LocalDate.now(), "X", "P00000007");
+            java.util.function.Function<String, java.util.Optional<String>> lookup =
+                    id -> "P00000007".equals(id) ? java.util.Optional.of("Hoststar") : java.util.Optional.empty();
+            assertTrue(parseWithPartnerNames("partner:*star*", lookup).test(t));
+            assertTrue(parseWithPartnerNames("partner:Host*", lookup).test(t));
+            assertFalse(parseWithPartnerNames("partner:*other*", lookup).test(t));
+        }
+
+        @Test
+        void partner_name_regex_matches() {
+            TransactionEntity t = tx(LocalDate.now(), "X", "P00000007");
+            java.util.function.Function<String, java.util.Optional<String>> lookup =
+                    id -> "P00000007".equals(id) ? java.util.Optional.of("Hoststar") : java.util.Optional.empty();
+            assertTrue(parseWithPartnerNames("partner:/.*star.*/", lookup).test(t));
+            assertFalse(parseWithPartnerNames("partner:/^\\d+/", lookup).test(t));
+        }
+
+        @Test
+        void partner_id_still_matches_when_name_lookup_available() {
+            TransactionEntity t = tx(LocalDate.now(), "X", "P00000007");
+            java.util.function.Function<String, java.util.Optional<String>> lookup =
+                    id -> java.util.Optional.of("Hoststar");
+            assertTrue(parseWithPartnerNames("partner:P00000007", lookup).test(t));
         }
     }
 
