@@ -49,8 +49,13 @@ export class AuthService {
     private window = inject(WINDOW);
 
     token$ = signal<Token>(ANONYMOUS);
+    sessionFraction$ = signal<number>(1);
+    sessionMinutesRemaining$ = signal<number>(0);
     private token = ANONYMOUS;
     private initialized = false;
+    private sessionStart = 0;
+    private sessionEnd = 0;
+    private sessionFractionInterval: ReturnType<typeof setInterval> | null = null;
 
 
     /**
@@ -78,6 +83,7 @@ export class AuthService {
                 this.token$.set(token);
                 this.initialized = true;
                 this.setupTokenExpiryTimer(token.exp);
+                this.setupSessionFractionTimer(token.iat, token.exp);
             }),
             catchError((err) => {
                 console.debug('[AUTH] User is NOT authenticated, error:', err.status);
@@ -91,6 +97,32 @@ export class AuthService {
         );
     }
 
+
+    /**
+     * Setup a 30-second interval to update sessionFraction$ signal.
+     * Fraction is 1.0 right after login, 0.0 at session end.
+     */
+    private setupSessionFractionTimer(iat: number, exp: number): void {
+        this.sessionStart = iat * 1000;
+        this.sessionEnd = exp * 1000;
+        this.updateSessionFraction();
+        if (this.sessionFractionInterval) {
+            clearInterval(this.sessionFractionInterval);
+        }
+        this.sessionFractionInterval = setInterval(() => this.updateSessionFraction(), 30_000);
+    }
+
+    private updateSessionFraction(): void {
+        const total = this.sessionEnd - this.sessionStart;
+        const remaining = this.sessionEnd - Date.now();
+        if (total <= 0) {
+            this.sessionFraction$.set(0);
+            this.sessionMinutesRemaining$.set(0);
+            return;
+        }
+        this.sessionFraction$.set(Math.max(0, Math.min(1, remaining / total)));
+        this.sessionMinutesRemaining$.set(Math.max(0, Math.floor(remaining / 60_000)));
+    }
 
     /**
      * Setup timer to redirect to sign-in when session expires.
@@ -144,6 +176,12 @@ export class AuthService {
         this.token = ANONYMOUS;
         this.token.isAuthenticated = false;
         this.token$.set(this.token);
+        if (this.sessionFractionInterval) {
+            clearInterval(this.sessionFractionInterval);
+            this.sessionFractionInterval = null;
+        }
+        this.sessionFraction$.set(1);
+        this.sessionMinutesRemaining$.set(0);
     }
 
     signout() {

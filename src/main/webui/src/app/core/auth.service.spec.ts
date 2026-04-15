@@ -299,6 +299,136 @@ describe('AuthService (BFF Pattern)', () => {
     });
   });
 
+  describe('Session Fraction', () => {
+    it('should start with sessionFraction$ = 1', () => {
+      expect(service.sessionFraction$()).toBe(1);
+    });
+
+    it('should set sessionFraction$ close to 1 immediately after login with a fresh token', (done) => {
+      setRouterUrl('/accounts');
+      const freshToken = {
+        ...mockUserInfo,
+        iat: Math.floor(Date.now() / 1000),
+        exp: Math.floor(Date.now() / 1000) + 3600
+      };
+
+      service.initialize().subscribe(() => {
+        const fraction = service.sessionFraction$();
+        expect(fraction).toBeGreaterThan(0.99);
+        expect(fraction).toBeLessThanOrEqual(1);
+        done();
+      });
+
+      const req = httpMock.expectOne('/api/core/userinfo');
+      req.flush(freshToken);
+    });
+
+    it('should set sessionFraction$ to ~0.5 when halfway through session', (done) => {
+      setRouterUrl('/accounts');
+      const now = Math.floor(Date.now() / 1000);
+      const halfwayToken = {
+        ...mockUserInfo,
+        iat: now - 1800,
+        exp: now + 1800
+      };
+
+      service.initialize().subscribe(() => {
+        const fraction = service.sessionFraction$();
+        expect(fraction).toBeGreaterThan(0.49);
+        expect(fraction).toBeLessThan(0.51);
+        done();
+      });
+
+      const req = httpMock.expectOne('/api/core/userinfo');
+      req.flush(halfwayToken);
+    });
+
+    it('should set sessionFraction$ to 0 for an expired token', (done) => {
+      setRouterUrl('/accounts');
+      const expiredToken = {
+        ...mockUserInfo,
+        iat: Math.floor(Date.now() / 1000) - 7200,
+        exp: Math.floor(Date.now() / 1000) - 3600
+      };
+
+      service.initialize().subscribe(() => {
+        expect(service.sessionFraction$()).toBe(0);
+        setTimeout(() => {
+          const logoutReq = httpMock.match('/api/auth/logout');
+          if (logoutReq.length > 0) {
+            logoutReq[0].flush({});
+          }
+          done();
+        }, 100);
+      });
+
+      const req = httpMock.expectOne('/api/core/userinfo');
+      req.flush(expiredToken);
+    });
+
+    it('should set sessionMinutesRemaining$ to approximately correct value', (done) => {
+      setRouterUrl('/accounts');
+      const now = Math.floor(Date.now() / 1000);
+      const token90min = {
+        ...mockUserInfo,
+        iat: now - 1800,
+        exp: now + 5400
+      };
+
+      service.initialize().subscribe(() => {
+        const minutes = service.sessionMinutesRemaining$();
+        expect(minutes).toBeGreaterThanOrEqual(89);
+        expect(minutes).toBeLessThanOrEqual(90);
+        done();
+      });
+
+      const req = httpMock.expectOne('/api/core/userinfo');
+      req.flush(token90min);
+    });
+
+    it('should reset sessionMinutesRemaining$ to 0 on resetToken()', (done) => {
+      setRouterUrl('/accounts');
+      const freshToken = {
+        ...mockUserInfo,
+        iat: Math.floor(Date.now() / 1000),
+        exp: Math.floor(Date.now() / 1000) + 3600
+      };
+
+      service.initialize().subscribe(() => {
+        expect(service.sessionMinutesRemaining$()).toBeGreaterThan(0);
+
+        service.resetToken();
+
+        expect(service.sessionMinutesRemaining$()).toBe(0);
+        done();
+      });
+
+      const req = httpMock.expectOne('/api/core/userinfo');
+      req.flush(freshToken);
+    });
+
+    it('should reset sessionFraction$ to 1 on resetToken()', (done) => {
+      setRouterUrl('/accounts');
+      const halfwayToken = {
+        ...mockUserInfo,
+        iat: Math.floor(Date.now() / 1000) - 1800,
+        exp: Math.floor(Date.now() / 1000) + 1800
+      };
+
+      service.initialize().subscribe(() => {
+        expect(service.sessionFraction$()).toBeLessThan(0.51);
+
+        service.resetToken();
+
+        expect(service.sessionFraction$()).toBe(1);
+        done();
+      });
+
+      const req = httpMock.expectOne('/api/core/userinfo');
+      req.flush(halfwayToken);
+    });
+  });
+
   describe('Signout', () => {
     it('should reset token, call logout endpoint, and navigate to signed-out on success', () => {
       service.signout();

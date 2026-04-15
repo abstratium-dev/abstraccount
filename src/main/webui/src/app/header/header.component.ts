@@ -22,6 +22,8 @@ export class HeaderComponent implements OnInit {
 
     token!: Token;
     isSignedIn = false;
+    sessionFraction = 1;
+    sessionMinutesRemaining = 0;
     journals: JournalMetadataDTO[] = [];
     selectedJournalId: string | null = null;
     readonly IMPORT_OPTION = '__IMPORT__';
@@ -31,6 +33,11 @@ export class HeaderComponent implements OnInit {
         effect(() => {
             this.token = this.authService.token$();
             this.isSignedIn = this.token.isAuthenticated;
+        });
+
+        effect(() => {
+            this.sessionFraction = this.authService.sessionFraction$();
+            this.sessionMinutesRemaining = this.authService.sessionMinutesRemaining$();
         });
         
         // Watch for journal list changes (e.g., after upload)
@@ -83,6 +90,11 @@ export class HeaderComponent implements OnInit {
         } else {
             this.controller.selectJournal(null);
         }
+    }
+
+    get sessionClockDashoffset(): number {
+        const circumference = 2 * Math.PI * 7;
+        return circumference * (1 - this.sessionFraction);
     }
 
     toggleTheme(): void {
