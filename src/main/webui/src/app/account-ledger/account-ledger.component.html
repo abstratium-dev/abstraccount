@@ -1,6 +1,6 @@
 <div class="ledger-container">
   @if (account) {
-    <h1>
+    <h2>Account
       @let headingPath = accountService.buildHierarchicalPath(account.id, modelService.getAccounts());
       @for (segment of headingPath; track segment.id; let isLast = $last) {
         @if (!isLast) {
@@ -13,7 +13,7 @@
       @if (headingPath.length === 0) {
         {{ account.name }}
       }
-    </h1>
+    </h2>
     <div class="account-details">
       <div class="detail-item">
         <span class="label">Type:</span>
@@ -85,6 +85,7 @@
             <th>Description</th>
             <th>Partner</th>
             <th>Account</th>
+            <th>Tags</th>
             <th>Note</th>
             <th>Status</th>
             <th>Amount</th>
@@ -95,9 +96,13 @@
         <tbody>
           @for (entry of reversedEntries; track entry.entryId; let i = $index) {
             <tr>
-              <td style="white-space: nowrap;">{{ entry.transactionDate }}</td>
+              <td style="white-space: nowrap;"><a class="date-link" [routerLink]="['/journal']" [queryParams]="{highlight: entry.transactionId}">{{ entry.transactionDate }}</a></td>
               <td>{{ entry.description }}</td>
-              <td>{{ getPartnerDisplay(entry.partnerId, entry.partnerName) }}</td>
+              <td>
+                @if (entry.partnerId) {
+                  <span class="partner-link" (click)="navigateToJournalWithPartner(entry.partnerId)" title="Filter journal by this partner">{{ getPartnerDisplay(entry.partnerId, entry.partnerName) }}</span>
+                }
+              </td>
               <td>
                 @let entryPath = accountService.buildHierarchicalPath(entry.accountId, modelService.getAccounts());
                 @if (entryPath.length > 0) {
@@ -122,6 +127,13 @@
                   }
                 } @else {
                   {{ getAccountName(entry.accountId) }}
+                }
+              </td>
+              <td class="tags-cell">
+                @for (tag of entry.tags; track tag.key + ':' + tag.value) {
+                  <span class="badge badge-secondary tag-link" (click)="navigateToJournalWithTag(tag)" title="Filter journal by this tag">
+                    {{ tag.value ? tag.key + ':' + tag.value : tag.key }}
+                  </span>
                 }
               </td>
               <td>{{ entry.note }}</td>

@@ -201,7 +201,7 @@ body {
 
 /* ===== CONTAINERS ===== */
 .container {
-  max-width: 1200px;
+  max-width: 100%;
   margin: 0 auto;
   padding: 2rem;
 }
@@ -1391,7 +1391,7 @@ button {
 /* ===== REPORTS COMPONENT STYLES ===== */
 .reports-container {
   padding: 20px;
-  max-width: 1200px;
+  max-width: 100%;
   margin: 0 auto;
 
   h1 {
@@ -1469,7 +1469,6 @@ button {
   padding: 15px;
   border-radius: 8px;
   margin-bottom: 20px;
-  border-left: 4px solid var(--color-primary);
 
   h2 {
     margin-top: 0;
@@ -1665,7 +1664,7 @@ button {
 /* ===== MACROS COMPONENT STYLES ===== */
 .macros-container {
   padding: 2rem;
-  max-width: 1200px;
+  max-width: 100%;
   margin: 0 auto;
 
   h1 {
@@ -2015,7 +2014,7 @@ button {
   /* Hide elements that shouldn't be printed */
   .page-header,
   .btn-add,
-  .filter-input-wrapper,
+  filter-input,
   .filter-help,
   .context-menu-trigger,
   .context-menu,
@@ -2023,7 +2022,12 @@ button {
   .theme-toggle-btn,
   .header-right a,
   .header-right select,
-  .journal-selector {
+  .journal-selector,
+  .logo,
+  .brand-name,
+  .report-controls,
+  .saved-configs-section,
+  .view-toggles {
     display: none !important;
   }
 
@@ -2051,6 +2055,7 @@ button {
 
   /* Simplify filter section for print */
   .filter-section {
+    display: block !important;
     padding: 0.5rem;
     margin-bottom: 1rem;
     background: white;
@@ -2186,7 +2191,6 @@ button {
   cursor: pointer;
   word-wrap: break-word;
   overflow-wrap: break-word;
-  align-self: flex-start;
 
   &:hover {
     text-decoration: underline;
@@ -2211,5 +2215,4 @@ button {
   color: var(--color-text-primary);
   white-space: nowrap;
   margin-left: auto;
-  align-self: flex-start;
 }

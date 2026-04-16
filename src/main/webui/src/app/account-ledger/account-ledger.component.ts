@@ -5,7 +5,7 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Chart, registerables } from 'chart.js';
 import 'chartjs-adapter-date-fns';
-import { AccountEntryDTO, AccountTreeNode, Controller } from '../controller';
+import { AccountEntryDTO, AccountTreeNode, Controller, TagDTO } from '../controller';
 import { AccountService } from '../account.service';
 import { ModelService } from '../model.service';
 
@@ -161,6 +161,25 @@ export class AccountLedgerComponent implements OnInit, AfterViewInit {
   getAccountName(accountId: string): string {
     const account = this.modelService.findAccount(accountId);
     return account ? account.name : accountId;
+  }
+
+  navigateToJournalWithTag(tag: TagDTO): void {
+    const token = tag.value ? `tag:${tag.key}:${tag.value}` : `tag:${tag.key}`;
+    try {
+      localStorage.setItem('abstraccount:globalEql', token);
+    } catch (e) {
+      // ignore
+    }
+    this.router.navigate(['/journal']);
+  }
+
+  navigateToJournalWithPartner(partnerId: string): void {
+    try {
+      localStorage.setItem('abstraccount:globalEql', `partner:${partnerId}`);
+    } catch (e) {
+      // ignore
+    }
+    this.router.navigate(['/journal']);
   }
 
   getPartnerDisplay(partnerId: string | null, partnerName: string | null): string {

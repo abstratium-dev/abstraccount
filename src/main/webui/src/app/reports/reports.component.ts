@@ -43,9 +43,12 @@ export class ReportsComponent implements OnInit {
   
   // Display options
   hideZeroBalances = true;
-  
+
   // Expose Math to template
   Math = Math;
+
+  private readonly STORAGE_KEY = 'abstraccount:reports';
+  private readonly GLOBAL_EQL_KEY = 'abstraccount:globalEql';
 
   constructor() {
     // React to changes in selected journal
@@ -58,7 +61,32 @@ export class ReportsComponent implements OnInit {
   }
 
   async ngOnInit() {
+    this.loadFromStorage();
+
+    // Load the global EQL filter from storage so it's available before generating report
+    this.loadGlobalEql();
+
     await this.loadTemplates();
+
+    // If we have a stored template ID, select it after templates load
+    if (this.selectedTemplateId) {
+      const templateExists = this.templates().some(t => t.id === this.selectedTemplateId);
+      if (templateExists) {
+        await this.onTemplateSelect();
+      }
+    }
+  }
+
+  private loadGlobalEql(): void {
+    try {
+      const stored = localStorage.getItem(this.GLOBAL_EQL_KEY);
+      if (stored !== null) {
+        this.filterText = stored;
+        this.parseFilter(stored);
+      }
+    } catch (e) {
+      console.error('Failed to load global EQL:', e);
+    }
   }
 
   private async onJournalChange(journalId: string) {
@@ -91,6 +119,8 @@ export class ReportsComponent implements OnInit {
   }
 
   async onTemplateSelect() {
+    this.saveToStorage();
+
     if (!this.selectedTemplateId) {
       this.selectedTemplate = null;
       this.reportSections = [];
@@ -108,6 +138,38 @@ export class ReportsComponent implements OnInit {
       this.error = 'Failed to load template';
     } finally {
       this.loading = false;
+    }
+  }
+
+  // ===== LOCAL STORAGE PERSISTENCE =====
+
+  /** @internal for testing */
+  loadFromStorage(): void {
+    try {
+      const stored = localStorage.getItem(this.STORAGE_KEY);
+      if (!stored) return;
+      const data = JSON.parse(stored);
+
+      if (data.selectedTemplateId !== undefined) {
+        this.selectedTemplateId = data.selectedTemplateId;
+      }
+      if (data.hideZeroBalances !== undefined) {
+        this.hideZeroBalances = data.hideZeroBalances;
+      }
+    } catch (e) {
+      console.error('Failed to load reports state from localStorage:', e);
+    }
+  }
+
+  private saveToStorage(): void {
+    try {
+      const data = {
+        selectedTemplateId: this.selectedTemplateId,
+        hideZeroBalances: this.hideZeroBalances
+      };
+      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(data));
+    } catch (e) {
+      console.error('Failed to save reports state to localStorage:', e);
     }
   }
 
@@ -368,6 +430,11 @@ export class ReportsComponent implements OnInit {
    */
   applyDisplaySign(value: number, invertSign: boolean): number {
     return invertSign ? -value : value;
+  }
+
+  onHideZeroBalancesChange(): void {
+    this.saveToStorage();
+    this.generateReport();
   }
 
   formatCurrency(value: number): string {

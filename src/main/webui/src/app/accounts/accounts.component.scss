@@ -25,8 +25,8 @@
 }
 
 .accounts-container {
-  padding: 2rem;
-  max-width: 1200px;
+  padding: 1.5rem 2rem;
+  max-width: 100%;
   margin: 0 auto;
 }
 
@@ -52,7 +52,7 @@ h1 {
 .account-node {
   margin-bottom: 0.25rem;
   overflow: visible;
-  
+
   &.menu-open {
     position: relative;
     z-index: 9999;
@@ -60,15 +60,17 @@ h1 {
 }
 
 .account-info {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1.5rem minmax(6rem, 9rem) 1fr auto auto auto 2.5rem;
   gap: 1rem;
   padding: 0.3rem 0.5rem;
   border-radius: 4px;
   background-color: var(--color-bg-primary);
   overflow: visible;
   position: relative;
-  align-items: flex-start;
+  align-items: start;
 }
+
 
 .account-id {
   font-weight: bold;
@@ -85,7 +87,7 @@ h1 {
   color: var(--color-text-secondary);
   width: 1.2rem;
   flex-shrink: 0;
-  align-self: flex-start;
+  align-self: start;
   line-height: 1.6;
 
   &:hover {
@@ -96,7 +98,6 @@ h1 {
 .collapse-spacer {
   display: inline-block;
   width: 1.2rem;
-  flex-shrink: 0;
 }
 
 .account-path {
@@ -122,9 +123,37 @@ h1 {
   color: var(--color-text-secondary);
 }
 
+.account-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.account-note {
+  color: var(--color-text-secondary);
+  font-size: 0.9em;
+  font-style: italic;
+  white-space: normal;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  min-width: 35vw;
+  width: 35vw;
+}
+
 .account-type {
   color: var(--color-text-secondary);
   font-size: 0.9em;
+  white-space: nowrap;
+  text-align: left;
+  width: 7rem;
+  min-width: 7rem;
+}
+
+.account-balance {
+  white-space: nowrap;
+  text-align: right;
+  width: 12rem;
+  min-width: 12rem;
 }
 
 .account-children {

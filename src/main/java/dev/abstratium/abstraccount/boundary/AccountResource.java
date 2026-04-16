@@ -181,6 +181,12 @@ public class AccountResource {
                     .orElse(null)
                 : null;
             
+            List<TagDTO> tagDTOs = tx.getTags().stream()
+                .map(t -> new TagDTO(t.getTagKey(), t.getTagValue()))
+                .sorted(java.util.Comparator.comparing(TagDTO::key)
+                    .thenComparing(t -> t.value() != null ? t.value() : ""))
+                .collect(java.util.stream.Collectors.toList());
+
             result.add(new AccountEntryDTO(
                 entry.getId(),
                 tx.getId(),
@@ -193,7 +199,8 @@ public class AccountResource {
                 entry.getAccountId(),
                 partnerId,
                 partnerName,
-                tx.getStatus()
+                tx.getStatus(),
+                tagDTOs
             ));
         }
         

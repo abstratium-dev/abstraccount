@@ -1,6 +1,7 @@
 package dev.abstratium.abstraccount.boundary;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 import dev.abstratium.abstraccount.model.TransactionStatus;
 
@@ -19,6 +20,7 @@ public record AccountEntryDTO(
     String accountId,
     String partnerId,
     String partnerName,
-    TransactionStatus status
+    TransactionStatus status,
+    List<TagDTO> tags
 ) {
 }

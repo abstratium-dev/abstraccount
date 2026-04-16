@@ -1,5 +1,4 @@
 <div class="reports-container">
-  <h1>Reports</h1>
 
   <!-- Error message -->
   <div *ngIf="error" class="error-message">
@@ -35,25 +34,32 @@
         (filterChange)="onFilterChange($event)">
       </filter-input>
 
-      <button (click)="generateReport()" class="btn btn-primary">
-        Generate Report
-      </button>
     </div>
-    
+
     <div class="form-group checkbox-group">
       <label for="hide-zero-balances">
         Hide zero-balance accounts
       </label>
       <input
         id="hide-zero-balances"
-        type="checkbox" 
+        type="checkbox"
         [(ngModel)]="hideZeroBalances"
-        (change)="generateReport()">
+        (change)="onHideZeroBalancesChange()">
     </div>
 
-</div>    
+</div>
 
-  
+  <!-- Print-only settings display -->
+  <div *ngIf="selectedTemplate" class="filter-section" style="display: none;">
+    <h3>Filters</h3>
+    <div class="print-filter-display">
+      @if(filterText) {
+        <div><strong>Applied filter:</strong> {{ filterText }}</div>
+      }
+      <div><strong>Hide zero-balance accounts:</strong> {{ hideZeroBalances ? 'Yes' : 'No' }}</div>
+    </div>
+  </div>
+
   <!-- Template description -->
   <div *ngIf="selectedTemplate" class="template-description">
     <h2>{{ selectedTemplate.name }}</h2>
@@ -181,6 +187,6 @@
 
   <!-- No data message -->
   <div *ngIf="selectedTemplate && reportSections.length === 0 && !loading && !error" class="no-data">
-    Click "Generate Report" to view the report.
+    No data to display for the selected report and filters.
   </div>
 </div>

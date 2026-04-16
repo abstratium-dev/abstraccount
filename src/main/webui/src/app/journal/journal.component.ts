@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectorRef, Component, OnInit, effect, inject } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit, ViewChild, effect, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AccountService } from '../account.service';
@@ -21,8 +21,11 @@ export class JournalComponent implements OnInit {
   error: string | null = null;
   tags: TagDTO[] = [];
   
-  // Filter
-  filterString: string = '';
+  // Filter — pre-load from storage so the effect and FilterInputComponent agree on the initial value
+  filterString: string = (() => {
+    try { return localStorage.getItem('abstraccount:globalEql') ?? ''; } catch { return ''; }
+  })();
+  private filterInitialized = false;
 
   // Transaction modal
   showTransactionModal = false;
@@ -49,7 +52,9 @@ export class JournalComponent implements OnInit {
         this.selectedJournal = journals.find(j => j.id === journalId) || null;
         if (this.selectedJournal) {
           this.loadTags();
-          this.loadEntries();
+          if (this.filterInitialized) {
+            this.loadEntries();
+          }
         }
       } else {
         this.selectedJournal = null;
@@ -68,6 +73,12 @@ export class JournalComponent implements OnInit {
       } else {
         await this.controller.getAccountTree(this.modelService.selectedJournalId$()!);
       }
+    }
+    // If FilterInputComponent had nothing in localStorage it will not emit filterChange,
+    // so we must trigger the initial load ourselves.
+    if (!this.filterInitialized && this.selectedJournal) {
+      this.filterInitialized = true;
+      this.loadEntries();
     }
   }
 
@@ -135,7 +146,8 @@ export class JournalComponent implements OnInit {
 
   onFilterChange(filter: string): void {
     this.filterString = filter;
-    this.loadEntries();
+    this.filterInitialized = true;
+    setTimeout(() => this.loadEntries());
   }
 
   formatAmount(amount: number): string {
@@ -218,6 +230,17 @@ export class JournalComponent implements OnInit {
     } catch (err: any) {
       this.error = 'Failed to delete transaction: ' + err.message;
     }
+  }
+
+  @ViewChild(FilterInputComponent) filterInput!: FilterInputComponent;
+
+  onTagClick(tag: TagDTO): void {
+    const token = tag.value ? `tag:${tag.key}:${tag.value}` : `tag:${tag.key}`;
+    this.filterInput.appendText(token);
+  }
+
+  onPartnerClick(partnerId: string): void {
+    this.filterInput.appendText(`partner:${partnerId}`);
   }
 
   sortTags(tags: TagDTO[]): TagDTO[] {

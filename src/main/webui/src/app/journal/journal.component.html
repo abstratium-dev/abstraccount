@@ -37,7 +37,7 @@
 
   <!-- Transactions Table -->
   <div *ngIf="selectedJournal && transactions.length > 0">
-    <h3>Transactions</h3>
+    <h2>Transactions</h2>
     <p style="text-align: right; color: var(--color-text-secondary); margin-top: 1rem">
       Total transactions: {{ transactions.length }}
     </p>
@@ -58,7 +58,11 @@
           <tr class="transaction-row" [id]="'tx-' + transaction.id">
             <td>{{ idx + 1 }}</td>
             <td>{{ transaction.date }}</td>
-            <td>{{ getPartnerDisplay(transaction.partnerId, transaction.partnerName) }}</td>
+            <td>
+              @if (transaction.partnerId) {
+                <span class="partner-link" (click)="onPartnerClick(transaction.partnerId)" title="Add partner filter">{{ getPartnerDisplay(transaction.partnerId, transaction.partnerName) }}</span>
+              }
+            </td>
             <td>{{ transaction.description }}</td>
             <td></td>
             <td>
@@ -72,7 +76,7 @@
             <td></td>
             <td></td>
             <td class="tags-cell">
-              <span *ngFor="let tag of sortTags(transaction.tags)" class="badge badge-secondary" style="margin-right: 0.5rem">
+              <span *ngFor="let tag of sortTags(transaction.tags)" class="badge badge-secondary tag-clickable" style="margin-right: 0.5rem" (click)="onTagClick(tag)" title="Add tag filter">
                 {{ tag.value ? tag.key + ':' + tag.value : tag.key }}
               </span>
             </td>

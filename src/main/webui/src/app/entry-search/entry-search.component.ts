@@ -1,11 +1,12 @@
 import { CommonModule, KeyValuePipe } from '@angular/common';
 import { AfterViewInit, Component, NgZone, effect, ElementRef, inject, OnInit, ViewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { Chart, registerables } from 'chart.js';
 import 'chartjs-adapter-date-fns';
 import { AccountService } from '../account.service';
-import { Controller, EntrySearchDTO, TagDTO } from '../controller';
+import { Controller, EntrySearchDTO } from '../controller';
+import type { TagDTO } from '../controller';
 import { ModelService } from '../model.service';
 import { FilterInputComponent } from '../journal/filter-input/filter-input.component';
 
@@ -98,7 +99,11 @@ export class EntrySearchComponent implements OnInit, AfterViewInit {
   entries: EntrySearchDTO[] = [];
   loading = false;
   error: string | null = null;
-  filterString = '';
+  // Filter — pre-load from storage so the effect and FilterInputComponent agree on the initial value
+  filterString = (() => {
+    try { return localStorage.getItem('abstraccount:globalEql') ?? ''; } catch { return ''; }
+  })();
+  private filterInitialized = false;
   tags: TagDTO[] = [];
 
   showPivot = false;
@@ -146,6 +151,7 @@ export class EntrySearchComponent implements OnInit, AfterViewInit {
   modelService = inject(ModelService);
   accountService = inject(AccountService);
   private ngZone = inject(NgZone);
+  private router = inject(Router);
 
   private lastJournalId: string | null = null;
 
@@ -155,7 +161,9 @@ export class EntrySearchComponent implements OnInit, AfterViewInit {
       if (journalId && journalId !== this.lastJournalId) {
         this.lastJournalId = journalId;
         this.loadTags();
-        this.loadEntries();
+        if (this.filterInitialized) {
+          this.loadEntries();
+        }
       }
     });
   }
@@ -163,7 +171,12 @@ export class EntrySearchComponent implements OnInit, AfterViewInit {
   ngOnInit(): void {
     this.loadFromStorage();
     this.loadSavedConfigs();
-    this.loadEntries();
+    // If FilterInputComponent had nothing in localStorage it will not emit filterChange,
+    // so we must trigger the initial load ourselves.
+    if (!this.filterInitialized) {
+      this.filterInitialized = true;
+      setTimeout(() => this.loadEntries());
+    }
   }
 
   ngAfterViewInit(): void {
@@ -703,9 +716,6 @@ export class EntrySearchComponent implements OnInit, AfterViewInit {
       if (!stored) return;
       const data = JSON.parse(stored);
 
-      if (data.filterString !== undefined) {
-        this.filterString = data.filterString;
-      }
       if (data.showEntries !== undefined) {
         this.showEntries = data.showEntries;
       }
@@ -729,7 +739,6 @@ export class EntrySearchComponent implements OnInit, AfterViewInit {
   private saveToStorage(): void {
     try {
       const data = {
-        filterString: this.filterString,
         showEntries: this.showEntries,
         showFilters: this.showFilters,
         showPivot: this.showPivot,
@@ -744,8 +753,27 @@ export class EntrySearchComponent implements OnInit, AfterViewInit {
 
   onFilterChange(filter: string): void {
     this.filterString = filter;
-    this.saveToStorage();
-    this.loadEntries();
+    this.filterInitialized = true;
+    setTimeout(() => this.loadEntries());
+  }
+
+  navigateToJournalWithPartner(partnerId: string): void {
+    try {
+      localStorage.setItem('abstraccount:globalEql', `partner:${partnerId}`);
+    } catch (e) {
+      // ignore
+    }
+    this.router.navigate(['/journal']);
+  }
+
+  navigateToJournalWithTag(tag: TagDTO): void {
+    const token = tag.value ? `tag:${tag.key}:${tag.value}` : `tag:${tag.key}`;
+    try {
+      localStorage.setItem('abstraccount:globalEql', token);
+    } catch (e) {
+      // ignore
+    }
+    this.router.navigate(['/journal']);
   }
 
   toggleEntries(): void {

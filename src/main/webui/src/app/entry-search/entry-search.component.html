@@ -1,5 +1,5 @@
 <div class="container">
-  <h1>Entry Search</h1>
+  <h2>Entry Search</h2>
 
   <!-- Toggle Bar -->
   <div class="view-toggles">
@@ -75,6 +75,11 @@
     </div>
   </div>
 
+  <!-- Print-only config name -->
+  <div *ngIf="currentConfigName" class="print-filter-display" style="display: none;">
+    <strong>Configuration:</strong> {{ currentConfigName }}
+  </div>
+
   <!-- Error Display -->
   <div *ngIf="error" class="error-message">
     <h2>Error</h2>
@@ -87,14 +92,24 @@
   </div>
 
   <!-- Filters Section -->
-  <div *ngIf="showFilters" class="filter-section">
+  <div class="filter-section">
     <h3>Filters</h3>
-    <p class="filter-info">Showing entries for journal: <strong>{{ getSelectedJournalName() }}</strong></p>
-    <filter-input
-      [tags]="tags"
-      [value]="filterString"
-      (filterChange)="onFilterChange($event)">
-    </filter-input>
+    <div *ngIf="showFilters">
+      <filter-input
+        [tags]="tags"
+        [value]="filterString"
+        (filterChange)="onFilterChange($event)">
+      </filter-input>
+    </div>
+
+    <!-- Print-only filter display -->
+    <div class="print-filter-display" style="display: none;">
+      @if(filterString) {
+        <strong>Applied filter:</strong> {{ filterString }}
+      } @else {
+        <em>No filter applied</em>
+      }
+    </div>
   </div>
 
   <!-- Entries Table -->
@@ -161,14 +176,22 @@
             </td>
             <td>{{ entry.entryCommodity }}</td>
             <td>
-              <div *ngIf="entry.transactionPartnerId" class="cell-content">
-                <div class="mono-text small-text">{{ entry.transactionPartnerId }}</div>
-                <div *ngIf="entry.transactionPartnerName">{{ entry.transactionPartnerName }}</div>
-              </div>
+              @if (entry.transactionPartnerId) {
+                <div class="cell-content partner-link" (click)="navigateToJournalWithPartner(entry.transactionPartnerId)" title="Filter journal by this partner">
+                  <div class="mono-text small-text">{{ entry.transactionPartnerId }}</div>
+                  @if (entry.transactionPartnerName) {
+                    <div>{{ entry.transactionPartnerName }}</div>
+                  }
+                </div>
+              }
             </td>
             <td class="abbr-column" [title]="entry.transactionStatus">{{ abbreviateStatus(entry.transactionStatus) }}</td>
             <td class="tags-cell">
-              <span class="small-text">{{ getTagsDisplay(entry.transactionTags) }}</span>
+              @for (tag of entry.transactionTags; track tag.key + ':' + tag.value) {
+                <span class="badge badge-secondary tag-link" (click)="navigateToJournalWithTag(tag)" title="Filter journal by this tag">
+                  {{ tag.value ? tag.key + ':' + tag.value : tag.key }}
+                </span>
+              }
             </td>
           </tr>
         </tbody>

@@ -83,6 +83,7 @@ export interface AccountEntryDTO {
   partnerId: string | null;
   partnerName: string | null;
   status: string;
+  tags: TagDTO[];
 }
 
 export interface JournalUploadSummary {
@@ -458,7 +459,8 @@ export class Controller {
             accountId: entry.accountId,
             partnerId: tx.partnerId,
             partnerName: tx.partnerName,
-            status: tx.status
+            status: tx.status,
+            tags: tx.tags ?? []
           });
         }
       }

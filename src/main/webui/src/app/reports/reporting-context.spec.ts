@@ -89,7 +89,8 @@ describe('ReportingContext', () => {
       accountId: 'debtors',
       partnerId: null,
       partnerName: null,
-      status: 'CLEARED'
+      status: 'CLEARED',
+      tags: []
     }
   ];
 
@@ -106,7 +107,8 @@ describe('ReportingContext', () => {
       accountId: 'asset1',
       partnerId: null,
       partnerName: null,
-      status: 'CLEARED'
+      status: 'CLEARED',
+      tags: []
     },
     {
       entryId: 'e2',
@@ -120,7 +122,8 @@ describe('ReportingContext', () => {
       accountId: 'revenue1',
       partnerId: null,
       partnerName: null,
-      status: 'CLEARED'
+      status: 'CLEARED',
+      tags: []
     },
     {
       entryId: 'e3',
@@ -134,7 +137,8 @@ describe('ReportingContext', () => {
       accountId: 'expense1',
       partnerId: null,
       partnerName: null,
-      status: 'CLEARED'
+      status: 'CLEARED',
+      tags: []
     },
     {
       entryId: 'e4',
@@ -148,7 +152,8 @@ describe('ReportingContext', () => {
       accountId: 'liability1',
       partnerId: null,
       partnerName: null,
-      status: 'CLEARED'
+      status: 'CLEARED',
+      tags: []
     }
   ];
 
@@ -294,7 +299,8 @@ describe('ReportingContext', () => {
           accountId: 'asset1',
           partnerId: null,
       partnerName: null,
-          status: 'CLEARED'
+          status: 'CLEARED',
+          tags: []
         }
       ];
 
@@ -376,7 +382,8 @@ describe('ReportingContext', () => {
         accountId: 'cash1',
         partnerId: null,
         partnerName: null,
-        status: 'CLEARED'
+        status: 'CLEARED',
+        tags: []
       },
       {
         entryId: 'e21',
@@ -390,7 +397,8 @@ describe('ReportingContext', () => {
         accountId: 'ar',
         partnerId: null,
         partnerName: null,
-        status: 'CLEARED'
+        status: 'CLEARED',
+        tags: []
       }
     ];
 

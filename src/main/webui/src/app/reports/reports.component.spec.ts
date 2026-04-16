@@ -60,7 +60,8 @@ describe('ReportsComponent', () => {
       accountId: 'acc1',
       partnerId: null,
       partnerName: null,
-      status: 'CLEARED'
+      status: 'CLEARED',
+      tags: []
     }
   ];
 
@@ -199,7 +200,8 @@ describe('ReportsComponent', () => {
         accountId: 'acc1',
         partnerId: null,
       partnerName: null,
-        status: 'CLEARED'
+        status: 'CLEARED',
+        tags: []
       },
       {
         entryId: 'e2',
@@ -213,7 +215,8 @@ describe('ReportsComponent', () => {
         accountId: 'acc1',
         partnerId: null,
       partnerName: null,
-        status: 'CLEARED'
+        status: 'CLEARED',
+        tags: []
       }
     ];
 
@@ -270,7 +273,8 @@ describe('ReportsComponent', () => {
         accountId: 'acc2',
         partnerId: null,
       partnerName: null,
-        status: 'CLEARED'
+        status: 'CLEARED',
+        tags: []
       }
     ];
 
@@ -385,7 +389,8 @@ describe('ReportsComponent', () => {
         accountId: 'acc2',
         partnerId: 'partner1',
       partnerName: null,
-        status: 'CLEARED'
+        status: 'CLEARED',
+        tags: []
       },
       {
         entryId: 'e2',
@@ -399,7 +404,8 @@ describe('ReportsComponent', () => {
         accountId: 'acc3',
         partnerId: 'partner1',
       partnerName: null,
-        status: 'CLEARED'
+        status: 'CLEARED',
+        tags: []
       }
     ];
 
@@ -455,7 +461,8 @@ describe('ReportsComponent', () => {
         accountId: 'acc2',
         partnerId: 'partnerA',
       partnerName: null,
-        status: 'CLEARED'
+        status: 'CLEARED',
+        tags: []
       },
       {
         entryId: 'e2',
@@ -469,7 +476,8 @@ describe('ReportsComponent', () => {
         accountId: 'acc2',
         partnerId: 'partnerB',
       partnerName: null,
-        status: 'CLEARED'
+        status: 'CLEARED',
+        tags: []
       }
     ];
 
@@ -558,7 +566,8 @@ describe('ReportsComponent', () => {
         accountId: 'acc2',
         partnerId: 'partnerA',
       partnerName: null,
-        status: 'CLEARED'
+        status: 'CLEARED',
+        tags: []
       },
       {
         entryId: 'e2',
@@ -572,7 +581,8 @@ describe('ReportsComponent', () => {
         accountId: 'acc3',
         partnerId: 'partnerA',
       partnerName: null,
-        status: 'CLEARED'
+        status: 'CLEARED',
+        tags: []
       },
       {
         entryId: 'e3',
@@ -586,7 +596,8 @@ describe('ReportsComponent', () => {
         accountId: 'acc2',
         partnerId: 'partnerB',
       partnerName: null,
-        status: 'CLEARED'
+        status: 'CLEARED',
+        tags: []
       }
     ];
 
@@ -644,7 +655,8 @@ describe('ReportsComponent', () => {
         accountId: 'acc2',
         partnerId: 'partnerB',
       partnerName: null,
-        status: 'CLEARED'
+        status: 'CLEARED',
+        tags: []
       }
     ];
 
@@ -686,7 +698,8 @@ describe('ReportsComponent', () => {
         accountId: 'acc2',
         partnerId: 'partnerA',
       partnerName: null,
-        status: 'CLEARED'
+        status: 'CLEARED',
+        tags: []
       },
       {
         entryId: 'e2',
@@ -700,7 +713,8 @@ describe('ReportsComponent', () => {
         accountId: 'acc3',
         partnerId: 'partnerA',
       partnerName: null,
-        status: 'CLEARED'
+        status: 'CLEARED',
+        tags: []
       }
     ];
 

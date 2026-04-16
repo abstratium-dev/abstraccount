@@ -1,6 +1,6 @@
 .ledger-container {
-  padding: 2rem;
-  max-width: 1400px;
+  padding: 2rem 4rem;
+  max-width: 100%;
   margin: 0 auto;
 }
 
@@ -150,4 +150,28 @@ tr:hover {
 
 .positive {
   color: var(--color-text-primary); // Use normal text color for positive amounts
+}
+
+.tags-cell {
+  white-space: normal;
+}
+
+.tag-link {
+  cursor: pointer;
+  display: block;
+  margin-bottom: 0.2rem;
+
+  &:hover {
+    opacity: 0.75;
+  }
+}
+
+.partner-link {
+  cursor: pointer;
+  color: var(--color-primary);
+
+  &:hover {
+    text-decoration: underline;
+    color: var(--color-link-hover);
+  }
 }

@@ -1,6 +1,6 @@
 <div class="accounts-container" (click)="closeMenu()">
   <div class="header-section">
-    <h1>Chart of Accounts</h1>
+    <h2>Chart of Accounts</h2>
     <button class="btn-primary" (click)="openCreateModal()">+ Create Account</button>
   </div>
   
@@ -35,9 +35,7 @@
               }
             </span>
             <a [routerLink]="['/account', account.id, 'ledger']" class="account-name">{{ account.name }}</a>
-            @if (account.note) {
-              <span class="account-note">{{ account.note }}</span>
-            }
+            <span class="account-note">{{ account.note || '&nbsp;' }}</span>
             <span class="account-type">{{ formatAccountType(account.type) }}</span>
             <span class="account-balance">{{ formatDisplayBalance(account) }}</span>
             <div class="account-actions">
@@ -70,9 +68,7 @@
                       }
                     </span>
                     <a [routerLink]="['/account', child.id, 'ledger']" class="account-name">{{ child.name }}</a>
-                    @if (child.note) {
-                      <span class="account-note">{{ child.note }}</span>
-                    }
+                    <span class="account-note">{{ child.note || '&nbsp;' }}</span>
                     <span class="account-type">{{ formatAccountType(child.type) }}</span>
                     <span class="account-balance">{{ formatDisplayBalance(child) }}</span>
                     <div class="account-actions">
@@ -105,9 +101,7 @@
                               }
                             </span>
                             <a [routerLink]="['/account', grandchild.id, 'ledger']" class="account-name">{{ grandchild.name }}</a>
-                            @if (grandchild.note) {
-                              <span class="account-note">{{ grandchild.note }}</span>
-                            }
+                            <span class="account-note">{{ grandchild.note || '&nbsp;' }}</span>
                             <span class="account-type">{{ formatAccountType(grandchild.type) }}</span>
                             <span class="account-balance">{{ formatDisplayBalance(grandchild) }}</span>
                             <div class="account-actions">
@@ -140,9 +134,7 @@
                                       }
                                     </span>
                                     <a [routerLink]="['/account', greatGrandchild.id, 'ledger']" class="account-name">{{ greatGrandchild.name }}</a>
-                                    @if (greatGrandchild.note) {
-                                      <span class="account-note">{{ greatGrandchild.note }}</span>
-                                    }
+                                    <span class="account-note">{{ greatGrandchild.note || '&nbsp;' }}</span>
                                     <span class="account-type">{{ formatAccountType(greatGrandchild.type) }}</span>
                                     <span class="account-balance">{{ formatDisplayBalance(greatGrandchild) }}</span>
                                     <div class="account-actions">
@@ -171,9 +163,7 @@
                                               }
                                             </span>
                                             <a [routerLink]="['/account', greatGreatGrandchild.id, 'ledger']" class="account-name">{{ greatGreatGrandchild.name }}</a>
-                                            @if (greatGreatGrandchild.note) {
-                                              <span class="account-note">{{ greatGreatGrandchild.note }}</span>
-                                            }
+                                            <span class="account-note">{{ greatGreatGrandchild.note || '&nbsp;' }}</span>
                                             <span class="account-type">{{ formatAccountType(greatGreatGrandchild.type) }}</span>
                                             <span class="account-balance">{{ formatDisplayBalance(greatGreatGrandchild) }}</span>
                                             <div class="account-actions">

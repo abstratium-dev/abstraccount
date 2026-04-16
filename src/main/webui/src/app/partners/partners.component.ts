@@ -28,6 +28,10 @@ export class PartnersComponent implements OnInit {
   loading = false;
   error: string | null = null;
 
+  readonly globalFilter: string = (() => {
+    try { return localStorage.getItem('abstraccount:globalEql') ?? ''; } catch { return ''; }
+  })();
+
   constructor() {
     // React to changes in selected journal and transactions
     effect(() => {

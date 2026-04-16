@@ -1,6 +1,26 @@
 // Component-specific styles only
 // Global styles are defined in src/styles.scss
 
+.partner-link {
+  cursor: pointer;
+  color: var(--color-primary);
+
+  &:hover {
+    text-decoration: underline;
+    color: var(--color-link-hover);
+  }
+}
+
+.tag-link {
+  cursor: pointer;
+  display: block;
+  margin-bottom: 0.2rem;
+
+  &:hover {
+    opacity: 0.75;
+  }
+}
+
 .table-wrapper {
   overflow-x: auto;
   margin-bottom: 2rem;

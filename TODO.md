@@ -27,17 +27,10 @@ These TODOs are to be resolved by the developer, NOT THE LLM.
   - check list of what to do in which order
   - ensure certain tags are ignored for certain reports so that they can be regenerated even after closing
 
-- add more links
-  - each tag that is displayed should link to the journal with a filter
-  - each partner that is displayed should link to the journal with a filter
-  - each day that is displayed should link to the journal with a filter
-- make backend calculate running total, so that other services could profit from that logic.
-  - remove that logic from the ui
 - reports
   - balance sheets - at least the swiss one shows zero net income for 2024 and 2025 which are closed years, so it should be showing no value
   - filter still not working, eg. remove closing from 2025
   - swiss reports should include french and english, see specs in docs folder
-  - the id of the selected report should be in the url so it can be shared and bookmarked, or if i navigate back, the report is still shown
 
 - add a report that shows unpaid invoices
 
@@ -61,23 +54,15 @@ These TODOs are to be resolved by the developer, NOT THE LLM.
     1020    CHF -38.10
 
 
-
-- printing
-  - reports need to hide filter and show title, logo and subtitle
-
-- always sort tags alphabetically
-
-- standardise filters
-  - partnerId, partner name regex
-  - account name regex
-  - tx status
-  - description, notes, etc.
-  - tags
-    - name, name=regex, name as regex
-  - link the EQL docs to the user guide
 - write user guide
+- link the EQL docs to the user guide
+
+
 
 ## Tomorrow
+
+- make backend calculate running total, so that other services could profit from that logic.
+  - remove that logic from the ui
 
 - macros
   - add a macro for purchasing something for manufacturing (4000)

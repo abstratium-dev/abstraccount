@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, OnInit, OnDestroy, signal, effect } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnInit, OnDestroy, signal, effect, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TagDTO } from '../../controller';
@@ -16,9 +16,11 @@ interface AutocompleteSuggestion {
   styleUrl: './filter-input.component.scss'
 })
 export class FilterInputComponent implements OnInit, OnDestroy {
+  @ViewChild('filterInput') filterInputRef!: ElementRef<HTMLInputElement>;
+
   @Input() placeholder = 'Filter (e.g., date:gte:2024-01-01 AND description:*invoice* AND NOT accounttype:EQUITY)';
   @Input() tags: TagDTO[] = [];
-  @Input() value = '';
+  @Input() storageKey = 'abstraccount:globalEql';
   @Output() filterChange = new EventEmitter<string>();
 
   filterText = signal('');
@@ -26,6 +28,26 @@ export class FilterInputComponent implements OnInit, OnDestroy {
   showSuggestions = signal(false);
   selectedIndex = signal(-1);
   cursorPosition = 0;
+
+  private hasLoadedFromStorage = false;
+  private isProgrammaticUpdate = false;
+
+  @Input()
+  set value(val: string) {
+    // Only update if it's a real change and not from storage initialization
+    if (val !== this.filterText() && !this.isProgrammaticUpdate) {
+      this.filterText.set(val ?? '');
+      // When parent sets value programmatically (e.g., loading saved config),
+      // save to storage and emit
+      if (this.hasLoadedFromStorage) {
+        this.saveToStorage();
+        this.filterChange.emit(val ?? '');
+      }
+    }
+  }
+  get value(): string {
+    return this.filterText();
+  }
 
   constructor() {
     effect(() => {
@@ -35,7 +57,19 @@ export class FilterInputComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
-    this.filterText.set(this.value);
+    // Load from localStorage if available, otherwise use input value
+    const stored = this.loadFromStorage();
+    this.isProgrammaticUpdate = true;  // Prevent setter from re-emitting
+    if (stored !== null) {
+      this.filterText.set(stored);
+      this.hasLoadedFromStorage = true;
+      // Emit the loaded value so parent components get the stored filter immediately
+      this.filterChange.emit(stored);
+    } else {
+      this.filterText.set(this.filterText() || '');
+      this.hasLoadedFromStorage = true;
+    }
+    this.isProgrammaticUpdate = false;
     this.updateSuggestions(this.filterText());
   }
 
@@ -46,21 +80,79 @@ export class FilterInputComponent implements OnInit, OnDestroy {
     this.filterText.set(value);
   }
 
+  private getInputElement(): HTMLInputElement | null {
+    return this.filterInputRef?.nativeElement ?? null;
+  }
+
   onKeyDown(event: KeyboardEvent, input: HTMLInputElement): void {
     const currentSuggestions = this.suggestions();
     const currentIndex = this.selectedIndex();
+    const suggestionsVisible = this.showSuggestions();
+    const inputEl = this.getInputElement();
 
     if (event.key === 'ArrowDown') {
       event.preventDefault();
-      if (currentIndex < currentSuggestions.length - 1) {
+      if (!suggestionsVisible || currentSuggestions.length === 0) {
+        // Suggestions not showing - move cursor to end
+        this.showSuggestions.set(false);
+        this.selectedIndex.set(-1);
+        if (inputEl) {
+          requestAnimationFrame(() => {
+            inputEl.focus();
+            const endPos = this.filterText().length;
+            inputEl.setSelectionRange(endPos, endPos);
+            this.cursorPosition = endPos;
+          });
+        }
+      } else if (currentIndex === -1) {
+        // No selection - select first suggestion
+        this.selectedIndex.set(0);
+      } else if (currentIndex < currentSuggestions.length - 1) {
+        // Navigate to next suggestion
         this.selectedIndex.set(currentIndex + 1);
+      } else {
+        // At last suggestion - deselect and move cursor to end
+        this.selectedIndex.set(-1);
+        this.showSuggestions.set(false);
+        if (inputEl) {
+          requestAnimationFrame(() => {
+            inputEl.focus();
+            const endPos = this.filterText().length;
+            inputEl.setSelectionRange(endPos, endPos);
+            this.cursorPosition = endPos;
+          });
+        }
       }
     } else if (event.key === 'ArrowUp') {
       event.preventDefault();
-      if (currentIndex > 0) {
+      if (!suggestionsVisible || currentSuggestions.length === 0) {
+        // Suggestions not showing - move cursor to start
+        this.showSuggestions.set(false);
+        this.selectedIndex.set(-1);
+        if (inputEl) {
+          requestAnimationFrame(() => {
+            inputEl.focus();
+            inputEl.setSelectionRange(0, 0);
+            this.cursorPosition = 0;
+          });
+        }
+      } else if (currentIndex === -1) {
+        // No selection - select last suggestion
+        this.selectedIndex.set(currentSuggestions.length - 1);
+      } else if (currentIndex > 0) {
+        // Navigate to previous suggestion
         this.selectedIndex.set(currentIndex - 1);
       } else {
+        // At first suggestion - deselect and move cursor to start
         this.selectedIndex.set(-1);
+        this.showSuggestions.set(false);
+        if (inputEl) {
+          requestAnimationFrame(() => {
+            inputEl.focus();
+            inputEl.setSelectionRange(0, 0);
+            this.cursorPosition = 0;
+          });
+        }
       }
     } else if (event.key === 'Enter') {
       event.preventDefault();
@@ -117,14 +209,46 @@ export class FilterInputComponent implements OnInit, OnDestroy {
   }
 
   applyFilter(): void {
+    this.saveToStorage();
     this.filterChange.emit(this.filterText());
+    this.showSuggestions.set(false);
+  }
+
+  appendText(text: string): void {
+    const current = this.filterText();
+    const newText = current ? current.trimEnd() + ' ' + text : text;
+    this.filterText.set(newText);
+    this.cursorPosition = newText.length;
+    this.saveToStorage();
+    this.filterChange.emit(newText);
     this.showSuggestions.set(false);
   }
 
   clearFilter(): void {
     this.filterText.set('');
+    this.saveToStorage();
     this.filterChange.emit('');
     this.showSuggestions.set(false);
+  }
+
+  // ===== LOCAL STORAGE PERSISTENCE =====
+
+  private loadFromStorage(): string | null {
+    try {
+      const stored = localStorage.getItem(this.storageKey);
+      return stored;
+    } catch (e) {
+      console.error('Failed to load filter from localStorage:', e);
+      return null;
+    }
+  }
+
+  private saveToStorage(): void {
+    try {
+      localStorage.setItem(this.storageKey, this.filterText());
+    } catch (e) {
+      console.error('Failed to save filter to localStorage:', e);
+    }
   }
 
   private updateSuggestions(text: string, explicit = false): void {

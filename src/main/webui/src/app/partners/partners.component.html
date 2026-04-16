@@ -1,5 +1,13 @@
 <div class="container">
-  <h1>Partners</h1>
+  <h2>Partners</h2>
+
+  <div *ngIf="globalFilter" class="filter-section">
+    <h3>Filters</h3>
+    <div class="print-filter-display" style="display: block;">
+      <strong>Applied filter:</strong> {{ globalFilter }}
+    </div>
+    <small class="filter-info">Transaction counts reflect the active filter.</small>
+  </div>
 
   <div *ngIf="loading" class="info-message">
     Loading partners...
