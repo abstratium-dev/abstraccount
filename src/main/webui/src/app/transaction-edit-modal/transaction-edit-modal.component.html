@@ -91,6 +91,7 @@
                     [placeholder]="'Search by account name or ID'"
                     [minSearchLength]="0"
                     [fetchOptions]="fetchAccountOptions"
+                    [resolveLabel]="resolveAccountLabel"
                     (optionSelected)="onAccountSelected(i, $event)"
                     [(ngModel)]="entry.accountId"
                     [name]="'accountId_' + i">

@@ -319,6 +319,18 @@ export class TransactionEditModalComponent implements OnInit {
   }
 
   /**
+   * Resolve an account ID to its display label for the autocomplete initial value.
+   * This bypasses the 50-item limit of fetchAccountOptions.
+   */
+  resolveAccountLabel = async (accountId: string): Promise<string | null> => {
+    const account = this.modelService.findAccount(accountId);
+    if (account) {
+      return account.name;
+    }
+    return null;
+  };
+
+  /**
    * Fetch account options for autocomplete based on search term.
    * Flattens the account tree and filters using regex pattern matching.
    * Prioritizes matches on account number.

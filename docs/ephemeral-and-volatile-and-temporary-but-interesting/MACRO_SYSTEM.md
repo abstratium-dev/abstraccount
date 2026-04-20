@@ -143,6 +143,30 @@ Templates use `{placeholder}` syntax for parameter substitution:
     {bank_account}           CHF -{amount}
 ```
 
+### Arithmetic Expressions
+
+Templates support arithmetic expressions inside `{braces}` using parameter names and numeric literals.
+Supported operators: `+`, `-`, `*`, `/`. Standard operator precedence applies (`*` and `/` before `+` and `-`).
+
+| Expression | Description | Example (a=380, b=350) |
+|------------|-------------|------------------------|
+| `{a + b}` | Addition | `730` |
+| `{a - b}` | Subtraction | `30` |
+| `{a * b}` | Multiplication | `133000` |
+| `{a / b}` | Division | `1.0857142857` |
+| `{a + b * 2}` | Precedence: b*2 first | `1080` |
+| `{amount * 1.077}` | Mix parameter and literal | depends on amount |
+
+Expressions are evaluated **before** simple placeholder substitution, so parameter names must match
+the parameter definitions exactly. If an expression cannot be evaluated (e.g. unknown parameter),
+it is left as-is in the output.
+
+Example from the TaxPayment macro:
+```
+    8:8900    CHF {actual_amount - provision_amount}
+```
+If `actual_amount=380` and `provision_amount=350`, this resolves to `CHF 30`.
+
 ### Built-in Variables
 
 | Variable | Description | Example |
@@ -200,6 +224,16 @@ public class MacroService {
     
     @Transactional
     public void deleteMacro(String macroId);
+    
+    @Transactional
+    public String executeMacro(MacroEntity macro, 
+        Map<String, String> parameterValues, String journalId);
+    
+    String evaluateArithmeticExpressions(String template, 
+        Map<String, String> parameterValues);
+    
+    BigDecimal evaluateExpression(String expression, 
+        Map<String, String> parameterValues);
 }
 ```
 

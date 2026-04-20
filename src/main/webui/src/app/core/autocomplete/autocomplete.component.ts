@@ -33,6 +33,10 @@ export class AutocompleteComponent implements ControlValueAccessor {
   // Function to fetch options based on search term
   @Input() fetchOptions!: (searchTerm: string) => Promise<AutocompleteOption[]>;
   
+  // Optional function to resolve a single value to its label (for initial display)
+  // If provided, this is used instead of fetchOptions when resolving an existing value
+  @Input() resolveLabel?: (value: string) => Promise<string | null>;
+  
   @Output() optionSelected = new EventEmitter<AutocompleteOption | null>();
   @Output() freeTextEntered = new EventEmitter<string>(); // Emitted when user presses Enter with free text
 
@@ -59,38 +63,49 @@ export class AutocompleteComponent implements ControlValueAccessor {
   async writeValue(value: string | null): Promise<void> {
     this.selectedValue.set(value);
     
-    // If we have a value, fetch options to find the label
+    // If we have a value, resolve it to a label
     if (value) {
       // First check current options
       let option = this.options().find(opt => opt.value === value);
       
-      // If not found, fetch all options to find it
-      if (!option && this.fetchOptions) {
+      if (option) {
+        this.selectedLabel.set(option.label);
+        this.searchTerm.set(option.label);
+        return;
+      }
+      
+      // If resolveLabel function is provided, use it (more efficient than fetching all)
+      if (this.resolveLabel) {
+        try {
+          const label = await this.resolveLabel(value);
+          if (label) {
+            this.selectedLabel.set(label);
+            this.searchTerm.set(label);
+            return;
+          }
+        } catch (error) {
+          console.error('Error resolving label for value:', error);
+        }
+      }
+      
+      // Fall back to fetching all options
+      if (this.fetchOptions) {
         try {
           const allOptions = await this.fetchOptions('');
           option = allOptions.find(opt => opt.value === value);
           if (option) {
             this.selectedLabel.set(option.label);
             this.searchTerm.set(option.label);
-          } else {
-            // Value not found in options - display it as-is (e.g., for placeholders like {next_invoice_SI})
-            this.selectedLabel.set(value);
-            this.searchTerm.set(value);
+            return;
           }
         } catch (error) {
           console.error('Error fetching options for value:', error);
-          // On error, display the value as-is
-          this.selectedLabel.set(value);
-          this.searchTerm.set(value);
         }
-      } else if (option) {
-        this.selectedLabel.set(option.label);
-        this.searchTerm.set(option.label);
-      } else {
-        // Value not found in current options - display it as-is
-        this.selectedLabel.set(value);
-        this.searchTerm.set(value);
       }
+      
+      // Value could not be resolved - display it as-is (e.g., for placeholders like {next_invoice_SI})
+      this.selectedLabel.set(value);
+      this.searchTerm.set(value);
     } else {
       this.selectedLabel.set(null);
       this.searchTerm.set('');

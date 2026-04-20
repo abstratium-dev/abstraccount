@@ -45,11 +45,21 @@ export class MacrosComponent implements OnInit {
     this.showExecuteDialog = true;
     this.errorMessage = '';
     
-    // Initialize parameter values with defaults
+    // Initialize parameter values with defaults, resolving built-in date variables
     this.parameterValues.clear();
+    const now = new Date();
+    const year = now.getFullYear().toString();
+    const month = (now.getMonth() + 1).toString().padStart(2, '0');
+    const day = now.getDate().toString().padStart(2, '0');
+    const today = `${year}-${month}-${day}`;
     for (const param of macro.parameters) {
       if (param.defaultValue) {
-        this.parameterValues.set(param.name, param.defaultValue);
+        const resolved = param.defaultValue
+          .replace(/\{today\}/g, today)
+          .replace(/\{year\}/g, year)
+          .replace(/\{month\}/g, month)
+          .replace(/\{day\}/g, day);
+        this.parameterValues.set(param.name, resolved);
       } else {
         this.parameterValues.set(param.name, '');
       }

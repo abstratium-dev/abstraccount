@@ -144,7 +144,7 @@ VALUES (    'macro-record-depreciation',
 -- TaxProvision: Record year-end tax provision (income tax + capital tax)
 INSERT INTO T_macro (id, name, description, parameters, template, validation, notes, created_date, modified_date)
 VALUES (    'macro-tax-provision',
-    'TaxProvision UNTESTED',
+    'TaxProvision',
     'Record year-end tax provision (income tax + capital tax)',
     '[{"name":"date","type":"date","prompt":"Transaction date (typically December 31)","defaultValue":"{year}-12-31","required":true},{"name":"description","type":"text","prompt":"Description of tax provision","defaultValue":"Tax provision for {year}","required":true},{"name":"total_tax_amount","type":"amount","prompt":"Total tax provision (income + capital)","required":true}]',
     '{date} | {description}
@@ -159,7 +159,7 @@ VALUES (    'macro-tax-provision',
 -- TaxPayment: Record payment of provisioned taxes (with adjustment if actual differs)
 INSERT INTO T_macro (id, name, description, parameters, template, validation, notes, created_date, modified_date)
 VALUES (    'macro-tax-payment',
-    'TaxPayment UNTESTED',
+    'TaxPayment',
     'Record payment of provisioned taxes (with adjustment if actual differs)',
     '[{"name":"date","type":"date","prompt":"Payment date","required":true},{"name":"partner","type":"partner","prompt":"Tax authority (e.g., Canton Vaud)","required":true},{"name":"description","type":"text","prompt":"Description (e.g., Payment for 2025 taxes)","required":true},{"name":"provision_amount","type":"amount","prompt":"Amount that was provisioned (from year-end provision)","required":true},{"name":"actual_amount","type":"amount","prompt":"Actual amount paid (from tax bill)","required":true},{"name":"bank_account","type":"account","prompt":"Bank account to pay from","filter":"^1.*:10.*:100.*:1020.*$","required":true}]',
     '{date} * {partner} | {description}
@@ -175,7 +175,7 @@ VALUES (    'macro-tax-payment',
 -- LegalReserveAllocation: Allocate 5% of annual profit to legal reserves (MANDATORY for Swiss Sàrl)
 INSERT INTO T_macro (id, name, description, parameters, template, validation, notes, created_date, modified_date)
 VALUES (    'macro-legal-reserve-allocation',
-    'LegalReserveAllocation UNTESTED',
+    'LegalReserveAllocation',
     'Allocate 5% of annual profit to legal reserves (MANDATORY for Swiss Sàrl until reserves reach 20% of capital)',
     '[{"name":"date","type":"date","prompt":"Allocation date (typically December 31)","defaultValue":"{year}-12-31","required":true},{"name":"allocation_amount","type":"amount","prompt":"Amount to allocate (5% of profit, or less if target reached)","required":true},{"name":"description","type":"text","prompt":"Description","defaultValue":"Legal reserve allocation for {year} (5% of profit)","required":true}]',
     '{date} | {description}

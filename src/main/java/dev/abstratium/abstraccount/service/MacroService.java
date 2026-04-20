@@ -7,9 +7,12 @@ import jakarta.persistence.PersistenceContext;
 import jakarta.transaction.Transactional;
 import org.jboss.logging.Logger;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -100,6 +103,7 @@ public class MacroService {
     /**
      * Executes a macro by replacing placeholders in the template with provided parameter values.
      * Handles special placeholders like {today} and {next_invoice_PI}.
+     * Also evaluates arithmetic expressions like {a + b}, {a - b}, {a * b}, {a / b}.
      * 
      * @param macro the macro to execute
      * @param parameterValues map of parameter names to values
@@ -112,19 +116,22 @@ public class MacroService {
         
         String result = macro.getTemplate();
         
+        // Evaluate arithmetic expressions like {actual_amount - provision_amount}
+        // Must happen BEFORE simple placeholder substitution so that parameter names are still intact
+        result = evaluateArithmeticExpressions(result, parameterValues);
+        
         // Replace user-provided parameter values
         for (Map.Entry<String, String> entry : parameterValues.entrySet()) {
             String placeholder = "{" + entry.getKey() + "}";
             result = result.replace(placeholder, entry.getValue());
         }
         
-        // Replace {today} with current date
-        Pattern todayPattern = Pattern.compile("\\{today\\}");
-        Matcher todayMatcher = todayPattern.matcher(result);
-        if (todayMatcher.find()) {
-            String today = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE);
-            result = todayMatcher.replaceAll(today);
-        }
+        // Replace built-in date variables
+        LocalDate now = LocalDate.now();
+        result = result.replace("{today}", now.format(DateTimeFormatter.ISO_LOCAL_DATE));
+        result = result.replace("{year}", String.valueOf(now.getYear()));
+        result = result.replace("{month}", String.format("%02d", now.getMonthValue()));
+        result = result.replace("{day}", String.format("%02d", now.getDayOfMonth()));
         
         // Replace {next_invoice_*} patterns with next invoice number
         Pattern invoicePattern = Pattern.compile("\\{next_invoice_([A-Z]+)\\}");
@@ -140,6 +147,136 @@ public class MacroService {
         
         LOG.debugf("Macro execution result:\n%s", result);
         return result;
+    }
+    
+    /**
+     * Evaluates arithmetic expressions within {braces} in the template.
+     * Supports +, -, *, / operators between parameter names and numeric literals.
+     * Examples: {actual_amount - provision_amount}, {amount * 1.077}, {a + b + c}
+     * 
+     * @param template the template string containing expressions
+     * @param parameterValues map of parameter names to values
+     * @return the template with arithmetic expressions replaced by their computed results
+     */
+    String evaluateArithmeticExpressions(String template, Map<String, String> parameterValues) {
+        // Match {expressions that contain at least one arithmetic operator between tokens}
+        Pattern exprPattern = Pattern.compile("\\{([^}]*[+\\-*/][^}]*)\\}");
+        Matcher matcher = exprPattern.matcher(template);
+        StringBuffer sb = new StringBuffer();
+        while (matcher.find()) {
+            String expression = matcher.group(1).trim();
+            try {
+                BigDecimal result = evaluateExpression(expression, parameterValues);
+                // Format: strip trailing zeros but keep at least plain decimal form
+                String formatted = result.stripTrailingZeros().toPlainString();
+                matcher.appendReplacement(sb, Matcher.quoteReplacement(formatted));
+            } catch (IllegalArgumentException e) {
+                LOG.debugf("Could not evaluate expression: {%s} - %s, leaving as-is", expression, e.getMessage());
+                // Leave the expression as-is if it cannot be evaluated
+                matcher.appendReplacement(sb, Matcher.quoteReplacement(matcher.group(0)));
+            }
+        }
+        matcher.appendTail(sb);
+        return sb.toString();
+    }
+    
+    /**
+     * Evaluates a simple arithmetic expression with +, -, *, / operators.
+     * Respects standard operator precedence (* and / before + and -).
+     * Operands can be parameter names (resolved from parameterValues) or numeric literals.
+     * 
+     * @param expression the expression to evaluate, e.g. "actual_amount - provision_amount"
+     * @param parameterValues map of parameter names to numeric string values
+     * @return the computed result
+     * @throws IllegalArgumentException if the expression cannot be evaluated
+     */
+    BigDecimal evaluateExpression(String expression, Map<String, String> parameterValues) {
+        List<BigDecimal> operands = new ArrayList<>();
+        List<Character> operators = new ArrayList<>();
+        
+        // Scan for operator-separated tokens
+        // Pattern: optional whitespace, operand, then repeated (operator, operand)
+        Pattern tokenPattern = Pattern.compile(
+            "\\s*([A-Za-z_][A-Za-z0-9_]*|-?\\d+\\.?\\d*)\\s*(?:([+\\-*/])\\s*)?");
+        Matcher tokenMatcher = tokenPattern.matcher(expression);
+        
+        while (tokenMatcher.find()) {
+            String operand = tokenMatcher.group(1);
+            String operator = tokenMatcher.group(2);
+            
+            if (operand != null && !operand.isEmpty()) {
+                BigDecimal value = resolveOperand(operand, parameterValues);
+                operands.add(value);
+            }
+            if (operator != null && !operator.isEmpty()) {
+                operators.add(operator.charAt(0));
+            }
+        }
+        
+        if (operands.isEmpty()) {
+            throw new IllegalArgumentException("No operands found in expression: " + expression);
+        }
+        if (operands.size() != operators.size() + 1) {
+            throw new IllegalArgumentException("Mismatched operands and operators in expression: " + expression);
+        }
+        
+        // Apply operator precedence: first pass for * and /
+        List<BigDecimal> addOperands = new ArrayList<>();
+        List<Character> addOperators = new ArrayList<>();
+        
+        BigDecimal current = operands.get(0);
+        for (int i = 0; i < operators.size(); i++) {
+            char op = operators.get(i);
+            BigDecimal next = operands.get(i + 1);
+            if (op == '*') {
+                current = current.multiply(next);
+            } else if (op == '/') {
+                current = current.divide(next, 10, RoundingMode.HALF_UP);
+            } else {
+                addOperands.add(current);
+                addOperators.add(op);
+                current = next;
+            }
+        }
+        addOperands.add(current);
+        
+        // Second pass for + and -
+        BigDecimal result = addOperands.get(0);
+        for (int i = 0; i < addOperators.size(); i++) {
+            char op = addOperators.get(i);
+            BigDecimal next = addOperands.get(i + 1);
+            if (op == '+') {
+                result = result.add(next);
+            } else if (op == '-') {
+                result = result.subtract(next);
+            }
+        }
+        
+        return result;
+    }
+    
+    /**
+     * Resolves an operand to a BigDecimal value. The operand can be a parameter name
+     * (looked up in parameterValues) or a numeric literal.
+     */
+    private BigDecimal resolveOperand(String operand, Map<String, String> parameterValues) {
+        // Try as a parameter name first
+        if (parameterValues.containsKey(operand)) {
+            String value = parameterValues.get(operand);
+            try {
+                return new BigDecimal(value);
+            } catch (NumberFormatException e) {
+                throw new IllegalArgumentException(
+                    "Parameter '" + operand + "' has non-numeric value: " + value);
+            }
+        }
+        // Try as a numeric literal
+        try {
+            return new BigDecimal(operand);
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException(
+                "Unknown parameter or invalid number: " + operand);
+        }
     }
     
     /**

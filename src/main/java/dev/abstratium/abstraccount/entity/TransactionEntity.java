@@ -49,6 +49,7 @@ public class TransactionEntity {
     
     public TransactionEntity() {
         this.id = UUID.randomUUID().toString();
+        this.transactionOrder = System.currentTimeMillis();
     }
     
     public String getId() {
