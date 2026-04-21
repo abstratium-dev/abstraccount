@@ -75,7 +75,8 @@ describe('Balance Sheet Structure', () => {
       accountId: 'cash1',
       partnerId: null,
       partnerName: null,
-      status: 'CLEARED'
+      status: 'CLEARED',
+      tags: []
     },
     {
       entryId: 'e2',
@@ -89,7 +90,8 @@ describe('Balance Sheet Structure', () => {
       accountId: 'cash2',
       partnerId: null,
       partnerName: null,
-      status: 'CLEARED'
+      status: 'CLEARED',
+      tags: []
     },
     // Asset accounts
     {
@@ -104,7 +106,8 @@ describe('Balance Sheet Structure', () => {
       accountId: 'asset1',
       partnerId: null,
       partnerName: null,
-      status: 'CLEARED'
+      status: 'CLEARED',
+      tags: []
     },
     {
       entryId: 'e4',
@@ -118,7 +121,8 @@ describe('Balance Sheet Structure', () => {
       accountId: 'asset2',
       partnerId: null,
       partnerName: null,
-      status: 'CLEARED'
+      status: 'CLEARED',
+      tags: []
     },
     // Liability
     {
@@ -133,7 +137,8 @@ describe('Balance Sheet Structure', () => {
       accountId: 'liability1',
       partnerId: null,
       partnerName: null,
-      status: 'CLEARED'
+      status: 'CLEARED',
+      tags: []
     },
     // Equity
     {
@@ -148,7 +153,8 @@ describe('Balance Sheet Structure', () => {
       accountId: 'equity1',
       partnerId: null,
       partnerName: null,
-      status: 'CLEARED'
+      status: 'CLEARED',
+      tags: []
     },
     // Revenue to balance the sheet
     {
@@ -163,7 +169,8 @@ describe('Balance Sheet Structure', () => {
       accountId: 'revenue1',
       partnerId: null,
       partnerName: null,
-      status: 'CLEARED'
+      status: 'CLEARED',
+      tags: []
     }
   ];
 

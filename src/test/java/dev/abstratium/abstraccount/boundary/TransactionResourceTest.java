@@ -274,6 +274,159 @@ public class TransactionResourceTest {
             .body(containsString("must sum to zero"));
     }
 
+    @Test
+    @TestSecurity(user = "testUser", roles = {Roles.USER})
+    public void testUpdateTransaction_notFound() {
+        UpdateTransactionRequest request = new UpdateTransactionRequest(
+            LocalDate.of(2024, 2, 20),
+            "CLEARED",
+            "Updated",
+            null,
+            List.of(),
+            List.of(
+                new UpdateEntryRequest(null, 0, accountId1, "CHF", new BigDecimal("100.00"), null),
+                new UpdateEntryRequest(null, 1, accountId2, "CHF", new BigDecimal("-100.00"), null)
+            )
+        );
+
+        given()
+            .contentType(ContentType.JSON)
+            .body(request)
+        .when()
+            .put("/api/transaction/non-existent-id")
+        .then()
+            .statusCode(404);
+    }
+
+    @Test
+    @TestSecurity(user = "testUser", roles = {Roles.USER})
+    public void testDeleteTransaction_notFound() {
+        given()
+        .when()
+            .delete("/api/transaction/non-existent-id")
+        .then()
+            .statusCode(404);
+    }
+
+    @Test
+    @TestSecurity(user = "testUser", roles = {Roles.USER})
+    public void testUpdateTransaction_reuseExistingEntryById() {
+        TransactionEntity transaction = createTestTransaction();
+        String txId = transaction.getId();
+        String existingEntryId = transaction.getEntries().get(0).getId();
+
+        UpdateTransactionRequest request = new UpdateTransactionRequest(
+            LocalDate.of(2024, 3, 1),
+            "CLEARED",
+            "Updated with reused entry",
+            null,
+            null,
+            List.of(
+                new UpdateEntryRequest(existingEntryId, 0, accountId1, "CHF", new BigDecimal("150.00"), "Reused"),
+                new UpdateEntryRequest(null, 1, accountId2, "CHF", new BigDecimal("-150.00"), "New")
+            )
+        );
+
+        given()
+            .contentType(ContentType.JSON)
+            .body(request)
+        .when()
+            .put("/api/transaction/" + txId)
+        .then()
+            .statusCode(200)
+            .body("description", equalTo("Updated with reused entry"));
+    }
+
+    @Test
+    @TestSecurity(user = "testUser", roles = {Roles.USER})
+    public void testUpdateTransaction_withBogusEntryId_createsNewEntry() {
+        TransactionEntity transaction = createTestTransaction();
+
+        UpdateTransactionRequest request = new UpdateTransactionRequest(
+            LocalDate.of(2024, 3, 1),
+            "CLEARED",
+            "Updated with bogus entry id",
+            null,
+            null,
+            List.of(
+                new UpdateEntryRequest("bogus-id-that-does-not-exist", 0, accountId1, "CHF", new BigDecimal("200.00"), null),
+                new UpdateEntryRequest(null, 1, accountId2, "CHF", new BigDecimal("-200.00"), null)
+            )
+        );
+
+        given()
+            .contentType(ContentType.JSON)
+            .body(request)
+        .when()
+            .put("/api/transaction/" + transaction.getId())
+        .then()
+            .statusCode(200)
+            .body("description", equalTo("Updated with bogus entry id"));
+    }
+
+    @Test
+    @TestSecurity(user = "testUser", roles = {Roles.USER})
+    public void testGetTransaction_notFound() {
+        given()
+        .when()
+            .get("/api/transaction/non-existent-id")
+        .then()
+            .statusCode(404);
+    }
+
+    @Test
+    @TestSecurity(user = "testUser", roles = {Roles.USER})
+    public void testCreateTransaction_withPartnerAndTags() {
+        String requestBody = """
+            {
+                "journalId": "%s",
+                "date": "2024-06-01",
+                "status": "CLEARED",
+                "description": "Tagged payment",
+                "partnerId": "P00000001",
+                "tags": [{"key": "invoice", "value": "INV-123"}],
+                "entries": [
+                    {"entryOrder": 0, "accountId": "%s", "commodity": "CHF", "amount": "500.00", "note": null},
+                    {"entryOrder": 1, "accountId": "%s", "commodity": "CHF", "amount": "-500.00", "note": null}
+                ]
+            }
+            """.formatted(journalId, accountId1, accountId2);
+
+        given()
+            .contentType(ContentType.JSON)
+            .body(requestBody)
+        .when()
+            .post("/api/transaction")
+        .then()
+            .statusCode(200)
+            .body("partnerId", equalTo("P00000001"))
+            .body("tags.size()", equalTo(1))
+            .body("tags[0].key", equalTo("invoice"));
+    }
+
+    @Test
+    @TestSecurity(user = "testUser", roles = {Roles.USER})
+    public void testUpdateTransaction_nullEntries_returns400() {
+        TransactionEntity transaction = createTestTransaction();
+
+        UpdateTransactionRequest request = new UpdateTransactionRequest(
+            LocalDate.of(2024, 2, 20),
+            "CLEARED",
+            "Updated",
+            null,
+            null,
+            null
+        );
+
+        given()
+            .contentType(ContentType.JSON)
+            .body(request)
+        .when()
+            .put("/api/transaction/" + transaction.getId())
+        .then()
+            .statusCode(400);
+    }
+
     @Transactional
     TransactionEntity createTestTransaction() {
         TransactionEntity transaction = new TransactionEntity();

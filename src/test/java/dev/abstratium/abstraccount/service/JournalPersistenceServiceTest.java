@@ -1,6 +1,7 @@
 package dev.abstratium.abstraccount.service;
 
 import dev.abstratium.abstraccount.entity.*;
+import dev.abstratium.abstraccount.entity.TagEntity;
 import dev.abstratium.abstraccount.model.AccountType;
 import dev.abstratium.abstraccount.model.TransactionStatus;
 import io.quarkus.test.junit.QuarkusTest;
@@ -587,6 +588,392 @@ class JournalPersistenceServiceTest {
         assertEquals(0, entries.size());
     }
     
+    @Test
+    void testQueryEntriesWithTagKeysFilter() {
+        AccountEntity account = createSimpleAccount("Tag Test Account");
+
+        TransactionEntity txWithTag = new TransactionEntity();
+        txWithTag.setTransactionDate(LocalDate.of(2024, 3, 1));
+        txWithTag.setStatus(TransactionStatus.CLEARED);
+        txWithTag.setDescription("Tagged tx");
+        txWithTag.setJournalId(testJournalId);
+        EntryEntity e1 = new EntryEntity();
+        e1.setAccountId(account.getId()); e1.setCommodity("USD"); e1.setAmount(new BigDecimal("50.00")); e1.setEntryOrder(0);
+        txWithTag.addEntry(e1);
+        TagEntity tag = new TagEntity();
+        tag.setTagKey("invoice"); tag.setTagValue("INV-001");
+        txWithTag.getTags().add(tag); tag.setTransaction(txWithTag);
+        service.saveTransaction(txWithTag);
+
+        TransactionEntity txNoTag = new TransactionEntity();
+        txNoTag.setTransactionDate(LocalDate.of(2024, 3, 2));
+        txNoTag.setStatus(TransactionStatus.CLEARED);
+        txNoTag.setDescription("Untagged tx");
+        txNoTag.setJournalId(testJournalId);
+        EntryEntity e2 = new EntryEntity();
+        e2.setAccountId(account.getId()); e2.setCommodity("USD"); e2.setAmount(new BigDecimal("30.00")); e2.setEntryOrder(0);
+        txNoTag.addEntry(e2);
+        service.saveTransaction(txNoTag);
+
+        List<EntryEntity> entries = service.queryEntriesWithFilters(
+            testJournalId, null, null, null, null, null,
+            List.of("invoice"), null, null, null
+        );
+        assertEquals(1, entries.size());
+        assertEquals("Tagged tx", entries.get(0).getTransaction().getDescription());
+    }
+
+    @Test
+    void testQueryEntriesWithTagKeyValuePairsFilter() {
+        AccountEntity account = createSimpleAccount("KVP Test Account");
+
+        TransactionEntity txInv001 = new TransactionEntity();
+        txInv001.setTransactionDate(LocalDate.of(2024, 4, 1));
+        txInv001.setStatus(TransactionStatus.CLEARED);
+        txInv001.setDescription("Invoice 001");
+        txInv001.setJournalId(testJournalId);
+        EntryEntity e1 = new EntryEntity();
+        e1.setAccountId(account.getId()); e1.setCommodity("USD"); e1.setAmount(new BigDecimal("100.00")); e1.setEntryOrder(0);
+        txInv001.addEntry(e1);
+        TagEntity tag1 = new TagEntity();
+        tag1.setTagKey("invoice"); tag1.setTagValue("INV-001");
+        txInv001.getTags().add(tag1); tag1.setTransaction(txInv001);
+        service.saveTransaction(txInv001);
+
+        TransactionEntity txInv002 = new TransactionEntity();
+        txInv002.setTransactionDate(LocalDate.of(2024, 4, 2));
+        txInv002.setStatus(TransactionStatus.CLEARED);
+        txInv002.setDescription("Invoice 002");
+        txInv002.setJournalId(testJournalId);
+        EntryEntity e2 = new EntryEntity();
+        e2.setAccountId(account.getId()); e2.setCommodity("USD"); e2.setAmount(new BigDecimal("200.00")); e2.setEntryOrder(0);
+        txInv002.addEntry(e2);
+        TagEntity tag2 = new TagEntity();
+        tag2.setTagKey("invoice"); tag2.setTagValue("INV-002");
+        txInv002.getTags().add(tag2); tag2.setTransaction(txInv002);
+        service.saveTransaction(txInv002);
+
+        Map<String, String> kvp = new HashMap<>();
+        kvp.put("invoice", "INV-001");
+        List<EntryEntity> entries = service.queryEntriesWithFilters(
+            testJournalId, null, null, null, null, null,
+            null, kvp, null, null
+        );
+        assertEquals(1, entries.size());
+        assertEquals("Invoice 001", entries.get(0).getTransaction().getDescription());
+    }
+
+    @Test
+    void testQueryEntriesWithNotTagKeysFilter() {
+        AccountEntity account = createSimpleAccount("NotTag Test Account");
+
+        TransactionEntity txWithTag = new TransactionEntity();
+        txWithTag.setTransactionDate(LocalDate.of(2024, 5, 1));
+        txWithTag.setStatus(TransactionStatus.CLEARED);
+        txWithTag.setDescription("Has closing tag");
+        txWithTag.setJournalId(testJournalId);
+        EntryEntity e1 = new EntryEntity();
+        e1.setAccountId(account.getId()); e1.setCommodity("USD"); e1.setAmount(new BigDecimal("10.00")); e1.setEntryOrder(0);
+        txWithTag.addEntry(e1);
+        TagEntity tag = new TagEntity();
+        tag.setTagKey("Closing"); tag.setTagValue("");
+        txWithTag.getTags().add(tag); tag.setTransaction(txWithTag);
+        service.saveTransaction(txWithTag);
+
+        TransactionEntity txNoTag = new TransactionEntity();
+        txNoTag.setTransactionDate(LocalDate.of(2024, 5, 2));
+        txNoTag.setStatus(TransactionStatus.CLEARED);
+        txNoTag.setDescription("No closing tag");
+        txNoTag.setJournalId(testJournalId);
+        EntryEntity e2 = new EntryEntity();
+        e2.setAccountId(account.getId()); e2.setCommodity("USD"); e2.setAmount(new BigDecimal("20.00")); e2.setEntryOrder(0);
+        txNoTag.addEntry(e2);
+        service.saveTransaction(txNoTag);
+
+        List<EntryEntity> entries = service.queryEntriesWithFilters(
+            testJournalId, null, null, null, null, null,
+            null, null, List.of("Closing"), null
+        );
+        assertEquals(1, entries.size());
+        assertEquals("No closing tag", entries.get(0).getTransaction().getDescription());
+    }
+
+    @Test
+    void testQueryEntriesWithNotTagKeyValuePairsFilter() {
+        AccountEntity account = createSimpleAccount("NotKVP Test Account");
+
+        TransactionEntity txInv001 = new TransactionEntity();
+        txInv001.setTransactionDate(LocalDate.of(2024, 6, 1));
+        txInv001.setStatus(TransactionStatus.CLEARED);
+        txInv001.setDescription("Invoice to exclude");
+        txInv001.setJournalId(testJournalId);
+        EntryEntity e1 = new EntryEntity();
+        e1.setAccountId(account.getId()); e1.setCommodity("USD"); e1.setAmount(new BigDecimal("100.00")); e1.setEntryOrder(0);
+        txInv001.addEntry(e1);
+        TagEntity tag1 = new TagEntity();
+        tag1.setTagKey("invoice"); tag1.setTagValue("INV-BAD");
+        txInv001.getTags().add(tag1); tag1.setTransaction(txInv001);
+        service.saveTransaction(txInv001);
+
+        TransactionEntity txOther = new TransactionEntity();
+        txOther.setTransactionDate(LocalDate.of(2024, 6, 2));
+        txOther.setStatus(TransactionStatus.CLEARED);
+        txOther.setDescription("Other tx");
+        txOther.setJournalId(testJournalId);
+        EntryEntity e2 = new EntryEntity();
+        e2.setAccountId(account.getId()); e2.setCommodity("USD"); e2.setAmount(new BigDecimal("50.00")); e2.setEntryOrder(0);
+        txOther.addEntry(e2);
+        service.saveTransaction(txOther);
+
+        Map<String, String> notKvp = new HashMap<>();
+        notKvp.put("invoice", "INV-BAD");
+        List<EntryEntity> entries = service.queryEntriesWithFilters(
+            testJournalId, null, null, null, null, null,
+            null, null, null, notKvp
+        );
+        assertEquals(1, entries.size());
+        assertEquals("Other tx", entries.get(0).getTransaction().getDescription());
+    }
+
+    @Test
+    void testQueryEntriesWithTagKeysAndNotTagKeys_combined() {
+        AccountEntity account = createSimpleAccount("Combined Tag Test");
+
+        TransactionEntity txBoth = new TransactionEntity();
+        txBoth.setTransactionDate(LocalDate.of(2024, 7, 1));
+        txBoth.setStatus(TransactionStatus.CLEARED);
+        txBoth.setDescription("Has invoice and closing");
+        txBoth.setJournalId(testJournalId);
+        EntryEntity e1 = new EntryEntity();
+        e1.setAccountId(account.getId()); e1.setCommodity("USD"); e1.setAmount(new BigDecimal("10.00")); e1.setEntryOrder(0);
+        txBoth.addEntry(e1);
+        TagEntity t1 = new TagEntity(); t1.setTagKey("invoice"); t1.setTagValue("INV-X");
+        TagEntity t2 = new TagEntity(); t2.setTagKey("Closing"); t2.setTagValue("");
+        txBoth.getTags().add(t1); t1.setTransaction(txBoth);
+        txBoth.getTags().add(t2); t2.setTransaction(txBoth);
+        service.saveTransaction(txBoth);
+
+        TransactionEntity txInvoiceOnly = new TransactionEntity();
+        txInvoiceOnly.setTransactionDate(LocalDate.of(2024, 7, 2));
+        txInvoiceOnly.setStatus(TransactionStatus.CLEARED);
+        txInvoiceOnly.setDescription("Invoice only");
+        txInvoiceOnly.setJournalId(testJournalId);
+        EntryEntity e2 = new EntryEntity();
+        e2.setAccountId(account.getId()); e2.setCommodity("USD"); e2.setAmount(new BigDecimal("20.00")); e2.setEntryOrder(0);
+        txInvoiceOnly.addEntry(e2);
+        TagEntity t3 = new TagEntity(); t3.setTagKey("invoice"); t3.setTagValue("INV-Y");
+        txInvoiceOnly.getTags().add(t3); t3.setTransaction(txInvoiceOnly);
+        service.saveTransaction(txInvoiceOnly);
+
+        // Filter: has invoice tag, but NOT closing tag
+        List<EntryEntity> entries = service.queryEntriesWithFilters(
+            testJournalId, null, null, null, null, null,
+            List.of("invoice"), null, List.of("Closing"), null
+        );
+        assertEquals(1, entries.size());
+        assertEquals("Invoice only", entries.get(0).getTransaction().getDescription());
+    }
+
+    @Test
+    void testQueryEntriesWithStartDateEndDatePartnerIdStatus() {
+        AccountEntity account = createSimpleAccount("Date Filter Account");
+
+        TransactionEntity txInRange = new TransactionEntity();
+        txInRange.setTransactionDate(LocalDate.of(2024, 6, 15));
+        txInRange.setStatus(TransactionStatus.CLEARED);
+        txInRange.setDescription("In range");
+        txInRange.setPartnerId("PARTNER001");
+        txInRange.setJournalId(testJournalId);
+        EntryEntity e1 = new EntryEntity();
+        e1.setAccountId(account.getId()); e1.setCommodity("CHF"); e1.setAmount(new BigDecimal("100.00")); e1.setEntryOrder(0);
+        txInRange.addEntry(e1);
+        service.saveTransaction(txInRange);
+
+        TransactionEntity txOutOfRange = new TransactionEntity();
+        txOutOfRange.setTransactionDate(LocalDate.of(2023, 1, 1));
+        txOutOfRange.setStatus(TransactionStatus.CLEARED);
+        txOutOfRange.setDescription("Before range");
+        txOutOfRange.setJournalId(testJournalId);
+        EntryEntity e2 = new EntryEntity();
+        e2.setAccountId(account.getId()); e2.setCommodity("CHF"); e2.setAmount(new BigDecimal("50.00")); e2.setEntryOrder(0);
+        txOutOfRange.addEntry(e2);
+        service.saveTransaction(txOutOfRange);
+
+        TransactionEntity txDifferentPartner = new TransactionEntity();
+        txDifferentPartner.setTransactionDate(LocalDate.of(2024, 7, 1));
+        txDifferentPartner.setStatus(TransactionStatus.PENDING);
+        txDifferentPartner.setDescription("Different partner");
+        txDifferentPartner.setPartnerId("OTHER999");
+        txDifferentPartner.setJournalId(testJournalId);
+        EntryEntity e3 = new EntryEntity();
+        e3.setAccountId(account.getId()); e3.setCommodity("CHF"); e3.setAmount(new BigDecimal("75.00")); e3.setEntryOrder(0);
+        txDifferentPartner.addEntry(e3);
+        service.saveTransaction(txDifferentPartner);
+
+        // Filter: dateRange Jan-Dec 2024, partnerId PARTNER%, status CLEARED
+        List<EntryEntity> entries = service.queryEntriesWithFilters(
+            testJournalId,
+            LocalDate.of(2024, 1, 1),
+            LocalDate.of(2025, 1, 1),
+            "PARTNER%",
+            "CLEARED",
+            null, null, null, null, null
+        );
+        assertEquals(1, entries.size());
+        assertEquals("In range", entries.get(0).getTransaction().getDescription());
+    }
+
+    @Test
+    void testSaveJournal_withExistingId_mergesJournal() {
+        JournalEntity journal = new JournalEntity();
+        journal.setTitle("Original");
+        journal.setCurrency("CHF");
+        JournalEntity saved = service.saveJournal(journal);
+        assertNotNull(saved.getId());
+
+        saved.setTitle("Updated Title");
+        JournalEntity updated = service.saveJournal(saved);
+        assertEquals(saved.getId(), updated.getId());
+        assertEquals("Updated Title", updated.getTitle());
+    }
+
+    @Test
+    void testSaveAccount_withExistingId_mergesAccount() {
+        AccountEntity account = new AccountEntity();
+        account.setName("Original Account");
+        account.setType(AccountType.ASSET);
+        account.setJournalId(testJournalId);
+        AccountEntity saved = service.saveAccount(account);
+        assertNotNull(saved.getId());
+
+        saved.setName("Updated Account");
+        AccountEntity updated = service.saveAccount(saved);
+        assertEquals(saved.getId(), updated.getId());
+        assertEquals("Updated Account", updated.getName());
+    }
+
+    @Test
+    void testSaveTransaction_withExistingId_mergesTransaction() {
+        AccountEntity account = createSimpleAccount("Merge Tx Account");
+
+        TransactionEntity tx = new TransactionEntity();
+        tx.setTransactionDate(LocalDate.of(2024, 1, 1));
+        tx.setStatus(TransactionStatus.CLEARED);
+        tx.setDescription("Original");
+        tx.setJournalId(testJournalId);
+        EntryEntity entry = new EntryEntity();
+        entry.setAccountId(account.getId());
+        entry.setCommodity("CHF");
+        entry.setAmount(new BigDecimal("100.00"));
+        entry.setEntryOrder(0);
+        tx.addEntry(entry);
+        TransactionEntity saved = service.saveTransaction(tx);
+        assertNotNull(saved.getId());
+
+        saved.setDescription("Updated Description");
+        TransactionEntity updated = service.saveTransaction(saved);
+        assertEquals(saved.getId(), updated.getId());
+        assertEquals("Updated Description", updated.getDescription());
+    }
+
+    @Test
+    void testQueryEntriesWithBothTagKeysAndTagKeyValuePairs() {
+        AccountEntity account = createSimpleAccount("Both Tags Test");
+
+        TransactionEntity txMatch = new TransactionEntity();
+        txMatch.setTransactionDate(LocalDate.of(2024, 8, 1));
+        txMatch.setStatus(TransactionStatus.CLEARED);
+        txMatch.setDescription("Matches both");
+        txMatch.setJournalId(testJournalId);
+        EntryEntity e1 = new EntryEntity();
+        e1.setAccountId(account.getId()); e1.setCommodity("USD"); e1.setAmount(new BigDecimal("10.00")); e1.setEntryOrder(0);
+        txMatch.addEntry(e1);
+        TagEntity t1 = new TagEntity(); t1.setTagKey("category"); t1.setTagValue("rent");
+        TagEntity t2 = new TagEntity(); t2.setTagKey("invoice"); t2.setTagValue("INV-001");
+        txMatch.getTags().add(t1); t1.setTransaction(txMatch);
+        txMatch.getTags().add(t2); t2.setTransaction(txMatch);
+        service.saveTransaction(txMatch);
+
+        TransactionEntity txPartial = new TransactionEntity();
+        txPartial.setTransactionDate(LocalDate.of(2024, 8, 2));
+        txPartial.setStatus(TransactionStatus.CLEARED);
+        txPartial.setDescription("Only category");
+        txPartial.setJournalId(testJournalId);
+        EntryEntity e2 = new EntryEntity();
+        e2.setAccountId(account.getId()); e2.setCommodity("USD"); e2.setAmount(new BigDecimal("20.00")); e2.setEntryOrder(0);
+        txPartial.addEntry(e2);
+        TagEntity t3 = new TagEntity(); t3.setTagKey("category"); t3.setTagValue("rent");
+        txPartial.getTags().add(t3); t3.setTransaction(txPartial);
+        service.saveTransaction(txPartial);
+
+        // Filter: category key AND invoice:INV-001 key-value pair
+        Map<String, String> kvp = new HashMap<>();
+        kvp.put("invoice", "INV-001");
+        List<EntryEntity> entries = service.queryEntriesWithFilters(
+            testJournalId, null, null, null, null, null,
+            List.of("category"), kvp, null, null
+        );
+        assertEquals(1, entries.size());
+        assertEquals("Matches both", entries.get(0).getTransaction().getDescription());
+    }
+
+    @Test
+    void testQueryEntriesWithBothNotTagKeysAndNotTagKeyValuePairs() {
+        AccountEntity account = createSimpleAccount("Both Not Tags Test");
+
+        TransactionEntity txExcluded1 = new TransactionEntity();
+        txExcluded1.setTransactionDate(LocalDate.of(2024, 9, 1));
+        txExcluded1.setStatus(TransactionStatus.CLEARED);
+        txExcluded1.setDescription("Has Closing key");
+        txExcluded1.setJournalId(testJournalId);
+        EntryEntity e1 = new EntryEntity();
+        e1.setAccountId(account.getId()); e1.setCommodity("USD"); e1.setAmount(new BigDecimal("10.00")); e1.setEntryOrder(0);
+        txExcluded1.addEntry(e1);
+        TagEntity t1 = new TagEntity(); t1.setTagKey("Closing"); t1.setTagValue("");
+        txExcluded1.getTags().add(t1); t1.setTransaction(txExcluded1);
+        service.saveTransaction(txExcluded1);
+
+        TransactionEntity txExcluded2 = new TransactionEntity();
+        txExcluded2.setTransactionDate(LocalDate.of(2024, 9, 2));
+        txExcluded2.setStatus(TransactionStatus.CLEARED);
+        txExcluded2.setDescription("Has bad invoice");
+        txExcluded2.setJournalId(testJournalId);
+        EntryEntity e2 = new EntryEntity();
+        e2.setAccountId(account.getId()); e2.setCommodity("USD"); e2.setAmount(new BigDecimal("20.00")); e2.setEntryOrder(0);
+        txExcluded2.addEntry(e2);
+        TagEntity t2 = new TagEntity(); t2.setTagKey("invoice"); t2.setTagValue("BAD");
+        txExcluded2.getTags().add(t2); t2.setTransaction(txExcluded2);
+        service.saveTransaction(txExcluded2);
+
+        TransactionEntity txIncluded = new TransactionEntity();
+        txIncluded.setTransactionDate(LocalDate.of(2024, 9, 3));
+        txIncluded.setStatus(TransactionStatus.CLEARED);
+        txIncluded.setDescription("Clean tx");
+        txIncluded.setJournalId(testJournalId);
+        EntryEntity e3 = new EntryEntity();
+        e3.setAccountId(account.getId()); e3.setCommodity("USD"); e3.setAmount(new BigDecimal("30.00")); e3.setEntryOrder(0);
+        txIncluded.addEntry(e3);
+        service.saveTransaction(txIncluded);
+
+        // Exclude: Closing key AND invoice:BAD key-value pair
+        Map<String, String> notKvp = new HashMap<>();
+        notKvp.put("invoice", "BAD");
+        List<EntryEntity> entries = service.queryEntriesWithFilters(
+            testJournalId, null, null, null, null, null,
+            null, null, List.of("Closing"), notKvp
+        );
+        assertEquals(1, entries.size());
+        assertEquals("Clean tx", entries.get(0).getTransaction().getDescription());
+    }
+
+    private AccountEntity createSimpleAccount(String name) {
+        AccountEntity account = new AccountEntity();
+        account.setName(name);
+        account.setType(AccountType.ASSET);
+        account.setJournalId(testJournalId);
+        return service.saveAccount(account);
+    }
+
     // Helper method to create a simple transaction with one entry
     private void createTransactionWithentry(LocalDate date, String accountNumber, String amount) {
         // Create account first

@@ -192,6 +192,53 @@ public class MacroResourceTest {
     }
     
     @Test
+    @TestSecurity(user = "testuser", roles = {Roles.USER})
+    void testDeleteMacro_notFound_returns404() {
+        given()
+            .contentType(ContentType.JSON)
+        .when()
+            .delete("/api/macro/nonexistent-macro-id")
+        .then()
+            .statusCode(404);
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {Roles.USER})
+    void testCreateMacro_withoutValidation_succeeds() {
+        String requestBody = """
+            {
+                "name": "NoValidationMacro",
+                "description": "Macro without validation",
+                "parameters": [
+                    {"name": "date", "type": "date", "prompt": "Date", "required": true}
+                ],
+                "template": "Simple template",
+                "validation": null,
+                "notes": null
+            }
+            """;
+
+        String macroId = given()
+            .contentType(ContentType.JSON)
+            .body(requestBody)
+        .when()
+            .post("/api/macro")
+        .then()
+            .statusCode(200)
+            .body("id", notNullValue())
+            .body("name", equalTo("NoValidationMacro"))
+            .extract().jsonPath().getString("id");
+
+        given()
+            .contentType(ContentType.JSON)
+        .when()
+            .get("/api/macro/" + macroId)
+        .then()
+            .statusCode(200)
+            .body("validation", nullValue());
+    }
+
+    @Test
     void testUnauthorized() {
         given()
             .contentType(ContentType.JSON)

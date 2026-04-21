@@ -128,6 +128,32 @@ export interface MacroDTO {
   modifiedDate: string;
 }
 
+export interface CloseAccountPreviewDTO {
+  accountId: string;
+  accountCodePath: string;
+  accountFullName: string;
+  balance: number;
+  commodity: string;
+}
+
+export interface CloseBooksPreviewDTO {
+  accounts: CloseAccountPreviewDTO[];
+  equityAccountCodePath: string;
+  equityAccountFullName: string;
+  closingDate: string;
+}
+
+export interface CloseBooksResultDTO {
+  transactionIds: string[];
+  transactionCount: number;
+}
+
+export interface CloseBooksRequestDTO {
+  journalId: string;
+  closingDate: string;
+  equityAccountCodePath: string;
+}
+
 export interface EntrySearchDTO {
   // Entry fields
   entryId: string;
@@ -758,6 +784,39 @@ export class Controller {
       return response.isLeaf;
     } catch (error) {
       console.error('Error checking if account is leaf:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Preview the year-end close-books operation.
+   * Returns accounts that will be closed and their balances without making any changes.
+   */
+  async previewCloseBooks(request: CloseBooksRequestDTO): Promise<CloseBooksPreviewDTO> {
+    try {
+      return await firstValueFrom(
+        this.http.post<CloseBooksPreviewDTO>('/api/close-books/preview', request)
+      );
+    } catch (error) {
+      console.error('Error previewing close-books:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Execute the year-end close-books operation.
+   * Creates one closing transaction per affected income/expense account.
+   */
+  async executeCloseBooks(request: CloseBooksRequestDTO): Promise<CloseBooksResultDTO> {
+    try {
+      const result = await firstValueFrom(
+        this.http.post<CloseBooksResultDTO>('/api/close-books/execute', request)
+      );
+      // Refresh transactions for the journal
+      await this.getTransactions(request.journalId);
+      return result;
+    } catch (error) {
+      console.error('Error executing close-books:', error);
       throw error;
     }
   }

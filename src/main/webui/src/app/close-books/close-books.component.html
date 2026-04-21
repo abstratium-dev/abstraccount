@@ -1,0 +1,117 @@
+<div class="close-books-container">
+  <h2>Year-End: Close the Books</h2>
+  <p class="description">
+    This operation closes all income and expense accounts by transferring their balances
+    to the designated equity account (Phase 3 of year-end closing).
+    A confirmation preview is shown before any transactions are created.
+  </p>
+
+  @if (errorMessage && !showConfirmDialog) {
+    <div class="error-message">{{ errorMessage }}</div>
+  }
+
+  @if (successMessage) {
+    <div class="success-message">{{ successMessage }}</div>
+  }
+
+  @if (!journalId) {
+    <div class="info-message">Please select a journal first.</div>
+  } @else {
+    <div class="form-section">
+      <div class="form-field">
+        <label for="closing-date">Closing Date *</label>
+        <input
+          id="closing-date"
+          type="date"
+          [(ngModel)]="closingDate"
+          required
+          class="field-input"
+        />
+        <span class="hint">Typically December 31 of the fiscal year being closed.</span>
+      </div>
+
+      <div class="form-field">
+        <label for="equity-account">Equity Account (e.g. 2:290:2979) *</label>
+        <abs-autocomplete
+          id="equity-account"
+          placeholder="e.g. 2:290:2979 Annual profit/loss"
+          [required]="true"
+          [fetchOptions]="fetchAccountsForEquity()"
+          [(ngModel)]="equityAccountCodePath"
+          [allowFreeText]="true"
+        />
+        <span class="hint">The account that will receive all income/expense balances (e.g. 2979 Annual profit or loss).</span>
+      </div>
+
+      <div class="actions">
+        <button
+          class="btn btn-primary"
+          (click)="previewClose()"
+          [disabled]="isLoading">
+          @if (isLoading) {
+            Loading...
+          } @else {
+            Preview Closing Entries
+          }
+        </button>
+      </div>
+    </div>
+  }
+
+  <!-- Confirmation dialog -->
+  @if (showConfirmDialog && preview) {
+    <div class="modal-overlay" (click)="cancelConfirm()">
+      <div class="modal-content" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <h2>Confirm: Close the Books</h2>
+          <button class="close-btn" (click)="cancelConfirm()">✕</button>
+        </div>
+
+        <div class="modal-body">
+          <p>
+            The following <strong>{{ preview.accounts.length }}</strong> closing transaction(s) will be created
+            on <strong>{{ preview.closingDate }}</strong>,
+            transferring balances to <strong>{{ preview.equityAccountFullName }}</strong>:
+          </p>
+
+          @if (errorMessage) {
+            <div class="error-message">{{ errorMessage }}</div>
+          }
+
+          <table class="preview-table">
+            <thead>
+              <tr>
+                <th>Account</th>
+                <th class="amount-col">Balance</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (account of preview.accounts; track account.accountId) {
+                <tr>
+                  <td class="account-name">{{ account.accountFullName }}</td>
+                  <td class="amount-col">{{ formatBalance(account) }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+
+          <div class="actions">
+            <button
+              class="btn btn-danger"
+              (click)="executeClose()"
+              [disabled]="isLoading">
+              @if (isLoading) {
+                Creating transactions...
+              } @else {
+                Confirm & Close the Books
+              }
+            </button>
+            <button class="btn btn-secondary" (click)="cancelConfirm()" [disabled]="isLoading">
+              Cancel
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+</div>

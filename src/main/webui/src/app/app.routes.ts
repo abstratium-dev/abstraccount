@@ -12,6 +12,7 @@ import { ReportsComponent } from './reports/reports.component';
 import { PartnersComponent } from './partners/partners.component';
 import { MacrosComponent } from './macros/macros.component';
 import { EntrySearchComponent } from './entry-search/entry-search.component';
+import { CloseBooksComponent } from './close-books/close-books.component';
 
 export const routes: Routes = [
   { path: '',                          component: JournalComponent, canActivate: [authGuard] },
@@ -26,5 +27,6 @@ export const routes: Routes = [
   { path: 'partners',                  component: PartnersComponent, canActivate: [authGuard] },
   { path: 'macros',                    component: MacrosComponent, canActivate: [authGuard] },
   { path: 'entry-search',              component: EntrySearchComponent, canActivate: [authGuard] },
+  { path: 'close-books',               component: CloseBooksComponent, canActivate: [authGuard] },
   { path: '**',                        component: NotFoundComponent }
 ];

@@ -8,7 +8,9 @@ import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -93,5 +95,47 @@ public class MacroServiceTest {
         
         List<MacroEntity> allMacros = macroService.loadAllMacros();
         assertEquals(0, allMacros.size());
+    }
+
+    @Test
+    public void testEvaluateExpression_multiply() {
+        BigDecimal result = macroService.evaluateExpression("3 * 4", Map.of());
+        assertEquals(new BigDecimal("12"), result);
+    }
+
+    @Test
+    public void testEvaluateExpression_divide() {
+        BigDecimal result = macroService.evaluateExpression("10 / 4", Map.of());
+        assertEquals(0, new BigDecimal("2.5").compareTo(result));
+    }
+
+    @Test
+    public void testEvaluateExpression_add() {
+        BigDecimal result = macroService.evaluateExpression("3 + 4", Map.of());
+        assertEquals(new BigDecimal("7"), result);
+    }
+
+    @Test
+    public void testEvaluateExpression_subtract() {
+        BigDecimal result = macroService.evaluateExpression("10 - 3", Map.of());
+        assertEquals(new BigDecimal("7"), result);
+    }
+
+    @Test
+    public void testEvaluateExpression_withParameters() {
+        Map<String, String> params = Map.of("amount", "100", "fee", "15");
+        BigDecimal result = macroService.evaluateExpression("amount - fee", params);
+        assertEquals(new BigDecimal("85"), result);
+    }
+
+    @Test
+    public void testEvaluateExpression_combinedPrecedence() {
+        BigDecimal result = macroService.evaluateExpression("2 + 3 * 4", Map.of());
+        assertEquals(new BigDecimal("14"), result);
+    }
+
+    @Test
+    public void testDeleteMacro_notFound_doesNotThrow() {
+        macroService.deleteMacro("non-existent-id");
     }
 }

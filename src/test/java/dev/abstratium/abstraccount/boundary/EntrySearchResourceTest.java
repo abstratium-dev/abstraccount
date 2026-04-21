@@ -270,6 +270,238 @@ class EntrySearchResourceTest {
 
     @Test
     @TestSecurity(user = "testUser", roles = {"abstratium-abstraccount_user"})
+    void testEqlFilterByAmountGte() {
+        EntrySearchDTO[] filteredEntries = given()
+            .queryParam("journalId", journalId)
+            .queryParam("filter", "amount:gte:50")
+        .when().get("/api/entry-search/entries")
+        .then()
+            .statusCode(200)
+            .extract().as(EntrySearchDTO[].class);
+
+        assert filteredEntries.length > 0 : "Expected entries with amount >= 50";
+        for (EntrySearchDTO e : filteredEntries) {
+            assert e.entryAmount().compareTo(new java.math.BigDecimal("50")) >= 0
+                : "Entry amount " + e.entryAmount() + " should be >= 50";
+        }
+    }
+
+    @Test
+    @TestSecurity(user = "testUser", roles = {"abstratium-abstraccount_user"})
+    void testEqlFilterByAmountLte() {
+        EntrySearchDTO[] filteredEntries = given()
+            .queryParam("journalId", journalId)
+            .queryParam("filter", "amount:lte:100")
+        .when().get("/api/entry-search/entries")
+        .then()
+            .statusCode(200)
+            .extract().as(EntrySearchDTO[].class);
+
+        assert filteredEntries.length > 0 : "Expected entries with amount <= 100";
+    }
+
+    @Test
+    @TestSecurity(user = "testUser", roles = {"abstratium-abstraccount_user"})
+    void testEqlFilterByAmountEq() {
+        EntrySearchDTO[] filteredEntries = given()
+            .queryParam("journalId", journalId)
+            .queryParam("filter", "amount:eq:1000")
+        .when().get("/api/entry-search/entries")
+        .then()
+            .statusCode(200)
+            .extract().as(EntrySearchDTO[].class);
+
+        assert filteredEntries.length > 0 : "Expected at least one entry with amount = 1000";
+    }
+
+    @Test
+    @TestSecurity(user = "testUser", roles = {"abstratium-abstraccount_user"})
+    void testEqlFilterByAmountGt() {
+        EntrySearchDTO[] filteredEntries = given()
+            .queryParam("journalId", journalId)
+            .queryParam("filter", "amount:gt:100")
+        .when().get("/api/entry-search/entries")
+        .then()
+            .statusCode(200)
+            .extract().as(EntrySearchDTO[].class);
+
+        assert filteredEntries.length > 0 : "Expected entries with amount > 100";
+    }
+
+    @Test
+    @TestSecurity(user = "testUser", roles = {"abstratium-abstraccount_user"})
+    void testEqlFilterByAmountLt() {
+        EntrySearchDTO[] filteredEntries = given()
+            .queryParam("journalId", journalId)
+            .queryParam("filter", "amount:lt:100")
+        .when().get("/api/entry-search/entries")
+        .then()
+            .statusCode(200)
+            .extract().as(EntrySearchDTO[].class);
+
+        assert filteredEntries.length > 0 : "Expected entries with amount < 100";
+    }
+
+    @Test
+    @TestSecurity(user = "testUser", roles = {"abstratium-abstraccount_user"})
+    void testEqlFilterByAmountNeg() {
+        EntrySearchDTO[] filteredEntries = given()
+            .queryParam("journalId", journalId)
+            .queryParam("filter", "amount:lt:0")
+        .when().get("/api/entry-search/entries")
+        .then()
+            .statusCode(200)
+            .extract().as(EntrySearchDTO[].class);
+
+        assert filteredEntries.length > 0 : "Expected negative entries";
+        for (EntrySearchDTO e : filteredEntries) {
+            assert e.entryAmount().compareTo(java.math.BigDecimal.ZERO) < 0
+                : "Entry amount " + e.entryAmount() + " should be negative";
+        }
+    }
+
+    @Test
+    @TestSecurity(user = "testUser", roles = {"abstratium-abstraccount_user"})
+    void testEqlFilterByAmountPos() {
+        EntrySearchDTO[] filteredEntries = given()
+            .queryParam("journalId", journalId)
+            .queryParam("filter", "amount:gt:0")
+        .when().get("/api/entry-search/entries")
+        .then()
+            .statusCode(200)
+            .extract().as(EntrySearchDTO[].class);
+
+        assert filteredEntries.length > 0 : "Expected positive entries";
+        for (EntrySearchDTO e : filteredEntries) {
+            assert e.entryAmount().compareTo(java.math.BigDecimal.ZERO) > 0
+                : "Entry amount " + e.entryAmount() + " should be positive";
+        }
+    }
+
+    @Test
+    @TestSecurity(user = "testUser", roles = {"abstratium-abstraccount_user"})
+    void testEqlFilterByNote_noMatch() {
+        EntrySearchDTO[] filteredEntries = given()
+            .queryParam("journalId", journalId)
+            .queryParam("filter", "note:nonexistentnote")
+        .when().get("/api/entry-search/entries")
+        .then()
+            .statusCode(200)
+            .extract().as(EntrySearchDTO[].class);
+
+        assert filteredEntries.length == 0 : "Expected no entries for non-existent note";
+    }
+
+    @Test
+    @TestSecurity(user = "testUser", roles = {"abstratium-abstraccount_user"})
+    void testEqlFilterByNote_wildcard() {
+        given()
+            .queryParam("journalId", journalId)
+            .queryParam("filter", "note:*")
+        .when().get("/api/entry-search/entries")
+        .then()
+            .statusCode(200);
+    }
+
+    @Test
+    @TestSecurity(user = "testUser", roles = {"abstratium-abstraccount_user"})
+    void testEqlFilterByAccountName() {
+        given()
+            .queryParam("journalId", journalId)
+            .queryParam("filter", "accountname:*Cash*")
+        .when().get("/api/entry-search/entries")
+        .then()
+            .statusCode(200)
+            .body("size()", greaterThan(0));
+    }
+
+    @Test
+    @TestSecurity(user = "testUser", roles = {"abstratium-abstraccount_user"})
+    void testEqlFilterByAccountName_noMatch() {
+        EntrySearchDTO[] filteredEntries = given()
+            .queryParam("journalId", journalId)
+            .queryParam("filter", "accountname:NonExistentAccountXYZ")
+        .when().get("/api/entry-search/entries")
+        .then()
+            .statusCode(200)
+            .extract().as(EntrySearchDTO[].class);
+
+        assert filteredEntries.length == 0 : "Expected no entries for non-existent account name";
+    }
+
+    @Test
+    @TestSecurity(user = "testUser", roles = {"abstratium-abstraccount_user"})
+    void testEqlFilterByDescription_specific() {
+        EntrySearchDTO[] filteredEntries = given()
+            .queryParam("journalId", journalId)
+            .queryParam("filter", "description:Opening*")
+        .when().get("/api/entry-search/entries")
+        .then()
+            .statusCode(200)
+            .extract().as(EntrySearchDTO[].class);
+
+        assert filteredEntries.length > 0 : "Expected entries matching 'Opening*'";
+        for (EntrySearchDTO e : filteredEntries) {
+            assert e.transactionDescription().startsWith("Opening")
+                : "Description should start with 'Opening': " + e.transactionDescription();
+        }
+    }
+
+    @Test
+    @TestSecurity(user = "testUser", roles = {"abstratium-abstraccount_user"})
+    void testEqlFilterByPartner_noMatch() {
+        EntrySearchDTO[] filteredEntries = given()
+            .queryParam("journalId", journalId)
+            .queryParam("filter", "partner:NONEXISTENTPARTNER")
+        .when().get("/api/entry-search/entries")
+        .then()
+            .statusCode(200)
+            .extract().as(EntrySearchDTO[].class);
+
+        assert filteredEntries.length == 0 : "Expected no entries for non-existent partner";
+    }
+
+    @Test
+    @TestSecurity(user = "testUser", roles = {"abstratium-abstraccount_user"})
+    void testFilterByAccountIdQueryParam_returnsOnlyThatAccount() {
+        EntrySearchDTO[] allAccounts = given()
+            .queryParam("journalId", journalId)
+        .when().get("/api/entry-search/entries")
+        .then()
+            .statusCode(200)
+            .extract().as(EntrySearchDTO[].class);
+
+        assert allAccounts.length > 0 : "Expected some entries";
+        String firstAccountId = allAccounts[0].accountId();
+
+        EntrySearchDTO[] filtered = given()
+            .queryParam("journalId", journalId)
+            .queryParam("accountId", firstAccountId)
+        .when().get("/api/entry-search/entries")
+        .then()
+            .statusCode(200)
+            .extract().as(EntrySearchDTO[].class);
+
+        assert filtered.length > 0 : "Expected entries for the account";
+        for (EntrySearchDTO e : filtered) {
+            assert e.accountId().equals(firstAccountId)
+                : "Expected accountId=" + firstAccountId + " but got " + e.accountId();
+        }
+    }
+
+    @Test
+    @TestSecurity(user = "testUser", roles = {"abstratium-abstraccount_user"})
+    void testEqlFilterByAccountId_emptyAccountId() {
+        given()
+            .queryParam("journalId", journalId)
+            .queryParam("accountId", "")
+        .when().get("/api/entry-search/entries")
+        .then()
+            .statusCode(200);
+    }
+
+    @Test
+    @TestSecurity(user = "testUser", roles = {"abstratium-abstraccount_user"})
     void testNoFilterReturnsSameAsEmptyFilter() {
         EntrySearchDTO[] withoutFilter = given()
             .queryParam("journalId", journalId)

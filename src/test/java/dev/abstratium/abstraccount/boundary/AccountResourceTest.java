@@ -2,8 +2,11 @@ package dev.abstratium.abstraccount.boundary;
 
 import dev.abstratium.abstraccount.Roles;
 import dev.abstratium.abstraccount.entity.AccountEntity;
+import dev.abstratium.abstraccount.entity.EntryEntity;
 import dev.abstratium.abstraccount.entity.JournalEntity;
+import dev.abstratium.abstraccount.entity.TransactionEntity;
 import dev.abstratium.abstraccount.model.AccountType;
+import dev.abstratium.abstraccount.model.TransactionStatus;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.security.TestSecurity;
 import io.restassured.http.ContentType;
@@ -13,6 +16,8 @@ import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.UUID;
 
 import static io.restassured.RestAssured.given;
@@ -565,5 +570,220 @@ class AccountResourceTest {
         em.persist(journal);
         em.flush();
         return journal.getId();
+    }
+
+    // ── getAccountDetails ─────────────────────────────────────────────────────
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {Roles.USER})
+    void testGetAccountDetails_existingAccount_returnsDetails() {
+        given()
+            .contentType(ContentType.JSON)
+        .when()
+            .get("/api/account/{journalId}/account/{accountId}", testJournalId, assetsId)
+        .then()
+            .statusCode(200)
+            .body("id", equalTo(assetsId))
+            .body("name", equalTo("1 Assets"))
+            .body("type", equalTo("ASSET"));
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {Roles.USER})
+    void testGetAccountDetails_childAccount_includesParentId() {
+        given()
+            .contentType(ContentType.JSON)
+        .when()
+            .get("/api/account/{journalId}/account/{accountId}", testJournalId, currentAssetsId)
+        .then()
+            .statusCode(200)
+            .body("id", equalTo(currentAssetsId))
+            .body("name", equalTo("10 Current Assets"))
+            .body("parentId", equalTo(assetsId));
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {Roles.USER})
+    void testGetAccountDetails_notFound_returns404() {
+        given()
+            .contentType(ContentType.JSON)
+        .when()
+            .get("/api/account/{journalId}/account/{accountId}", testJournalId, "nonexistent-id")
+        .then()
+            .statusCode(404);
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {Roles.USER})
+    void testGetAccountDetails_wrongJournal_returns404() {
+        String otherJournalId = createOtherJournal();
+        given()
+            .contentType(ContentType.JSON)
+        .when()
+            .get("/api/account/{journalId}/account/{accountId}", otherJournalId, assetsId)
+        .then()
+            .statusCode(404);
+    }
+
+    // ── getAccountEntries ─────────────────────────────────────────────────────
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {Roles.USER})
+    void testGetAccountEntries_accountWithEntries_returnsEntries() {
+        String cashId = createCashAccountWithEntry();
+
+        given()
+            .contentType(ContentType.JSON)
+        .when()
+            .get("/api/account/{journalId}/account/{accountId}/entries", testJournalId, cashId)
+        .then()
+            .statusCode(200)
+            .body("$", hasSize(1))
+            .body("[0].commodity", equalTo("CHF"))
+            .body("[0].amount", notNullValue())
+            .body("[0].transactionDate", notNullValue());
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {Roles.USER})
+    void testGetAccountEntries_noEntries_returnsEmpty() {
+        given()
+            .contentType(ContentType.JSON)
+        .when()
+            .get("/api/account/{journalId}/account/{accountId}/entries", testJournalId, assetsId)
+        .then()
+            .statusCode(200)
+            .body("$", empty());
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {Roles.USER})
+    void testGetAccountEntries_includeChildren_returnsParentAndChildEntries() {
+        createCashAccountWithEntry();
+
+        given()
+            .contentType(ContentType.JSON)
+            .queryParam("includeChildren", "true")
+        .when()
+            .get("/api/account/{journalId}/account/{accountId}/entries", testJournalId, currentAssetsId)
+        .then()
+            .statusCode(200)
+            .body("$", hasSize(greaterThanOrEqualTo(1)));
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {Roles.USER})
+    void testGetAccountEntries_withPartnerAndTags_returnsEntries() {
+        String cashId = createCashAccountWithTaggedEntry();
+
+        given()
+            .contentType(ContentType.JSON)
+        .when()
+            .get("/api/account/{journalId}/account/{accountId}/entries", testJournalId, cashId)
+        .then()
+            .statusCode(200)
+            .body("$", hasSize(1))
+            .body("[0].tags", notNullValue());
+    }
+
+    @Transactional
+    String createCashAccountWithTaggedEntry() {
+        AccountEntity cash = new AccountEntity();
+        cash.setName("1002 Tagged Cash");
+        cash.setType(AccountType.CASH);
+        cash.setParentAccountId(currentAssetsId);
+        cash.setJournalId(testJournalId);
+        cash.setAccountOrder(1002);
+        em.persist(cash);
+
+        AccountEntity equity = new AccountEntity();
+        equity.setName("3002 Opening Equity 2");
+        equity.setType(AccountType.EQUITY);
+        equity.setJournalId(testJournalId);
+        equity.setAccountOrder(3002);
+        em.persist(equity);
+
+        TransactionEntity tx = new TransactionEntity();
+        tx.setJournalId(testJournalId);
+        tx.setPartnerId("P00000001");
+        tx.setTransactionDate(LocalDate.of(2025, 2, 1));
+        tx.setStatus(TransactionStatus.CLEARED);
+        tx.setDescription("Tagged opening");
+        em.persist(tx);
+
+        dev.abstratium.abstraccount.entity.TagEntity tagWithValue = new dev.abstratium.abstraccount.entity.TagEntity();
+        tagWithValue.setTagKey("category");
+        tagWithValue.setTagValue("opening");
+        tagWithValue.setTransaction(tx);
+        tx.getTags().add(tagWithValue);
+
+        dev.abstratium.abstraccount.entity.TagEntity tagNullValue = new dev.abstratium.abstraccount.entity.TagEntity();
+        tagNullValue.setTagKey("Closing");
+        tagNullValue.setTagValue(null);
+        tagNullValue.setTransaction(tx);
+        tx.getTags().add(tagNullValue);
+
+        EntryEntity cashEntry = new EntryEntity();
+        cashEntry.setTransaction(tx);
+        cashEntry.setAccountId(cash.getId());
+        cashEntry.setCommodity("CHF");
+        cashEntry.setAmount(new BigDecimal("500.00"));
+        cashEntry.setEntryOrder(0);
+        em.persist(cashEntry);
+
+        EntryEntity equityEntry = new EntryEntity();
+        equityEntry.setTransaction(tx);
+        equityEntry.setAccountId(equity.getId());
+        equityEntry.setCommodity("CHF");
+        equityEntry.setAmount(new BigDecimal("-500.00"));
+        equityEntry.setEntryOrder(1);
+        em.persist(equityEntry);
+
+        em.flush();
+        return cash.getId();
+    }
+
+    @Transactional
+    String createCashAccountWithEntry() {
+        AccountEntity cash = new AccountEntity();
+        cash.setName("1001 Petty Cash");
+        cash.setType(AccountType.CASH);
+        cash.setParentAccountId(currentAssetsId);
+        cash.setJournalId(testJournalId);
+        cash.setAccountOrder(1001);
+        em.persist(cash);
+
+        AccountEntity equity = new AccountEntity();
+        equity.setName("3001 Opening Equity");
+        equity.setType(AccountType.EQUITY);
+        equity.setJournalId(testJournalId);
+        equity.setAccountOrder(3001);
+        em.persist(equity);
+
+        TransactionEntity tx = new TransactionEntity();
+        tx.setJournalId(testJournalId);
+        tx.setTransactionDate(LocalDate.of(2025, 1, 1));
+        tx.setStatus(TransactionStatus.CLEARED);
+        tx.setDescription("Opening balance");
+        em.persist(tx);
+
+        EntryEntity cashEntry = new EntryEntity();
+        cashEntry.setTransaction(tx);
+        cashEntry.setAccountId(cash.getId());
+        cashEntry.setCommodity("CHF");
+        cashEntry.setAmount(new BigDecimal("1000.00"));
+        cashEntry.setEntryOrder(0);
+        em.persist(cashEntry);
+
+        EntryEntity equityEntry = new EntryEntity();
+        equityEntry.setTransaction(tx);
+        equityEntry.setAccountId(equity.getId());
+        equityEntry.setCommodity("CHF");
+        equityEntry.setAmount(new BigDecimal("-1000.00"));
+        equityEntry.setEntryOrder(1);
+        em.persist(equityEntry);
+
+        em.flush();
+        return cash.getId();
     }
 }

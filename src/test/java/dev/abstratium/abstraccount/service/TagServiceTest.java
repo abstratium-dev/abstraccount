@@ -75,6 +75,54 @@ class TagServiceTest {
 
     @Test
     @Transactional
+    void searchTagValues_emptyPrefix_returnsAll() {
+        String journalId = createJournal();
+        createTransactionWithTag(journalId, "invoice", "INV-001");
+        createTransactionWithTag(journalId, "invoice", "INV-002");
+
+        List<String> results = tagService.searchTagValues(journalId, "invoice", "");
+        assertEquals(2, results.size());
+    }
+
+    @Test
+    @Transactional
+    void searchTagValues_regexWithCharClass_returnsMatches() {
+        String journalId = createJournal();
+        createTransactionWithTag(journalId, "invoice", "SI00000001");
+        createTransactionWithTag(journalId, "invoice", "CI00000001");
+        createTransactionWithTag(journalId, "invoice", "PI00000001");
+
+        List<String> results = tagService.searchTagValues(journalId, "invoice", "[SC]I.*");
+        assertEquals(2, results.size());
+        assertTrue(results.contains("SI00000001"));
+        assertTrue(results.contains("CI00000001"));
+    }
+
+    @Test
+    @Transactional
+    void searchTagValues_regexWithGroup_returnsMatches() {
+        String journalId = createJournal();
+        createTransactionWithTag(journalId, "invoice", "SI00000001");
+        createTransactionWithTag(journalId, "invoice", "PI00000001");
+        createTransactionWithTag(journalId, "invoice", "CI00000001");
+
+        List<String> results = tagService.searchTagValues(journalId, "invoice", "(SI|PI).*");
+        assertEquals(2, results.size());
+    }
+
+    @Test
+    @Transactional
+    void searchTagValues_regexWithPlus_returnsMatches() {
+        String journalId = createJournal();
+        createTransactionWithTag(journalId, "invoice", "SI00000001");
+        createTransactionWithTag(journalId, "invoice", "SINV");
+
+        List<String> results = tagService.searchTagValues(journalId, "invoice", "SI.+");
+        assertEquals(2, results.size());
+    }
+
+    @Test
+    @Transactional
     void searchTagValues_supportsRegexPatterns() {
         String journalId = createJournal();
 
