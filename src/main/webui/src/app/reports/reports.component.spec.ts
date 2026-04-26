@@ -159,6 +159,7 @@ describe('ReportsComponent', () => {
     expect(component.formatCurrency(1234.56)).toBe('1,234.56');
     expect(component.formatCurrency(-1234.56)).toBe('-1,234.56');
     expect(component.formatCurrency(0)).toBe('0.00');
+    expect(component.formatCurrency(-0)).toBe('0.00');
   });
 
   it('should clear report when template is deselected', async () => {

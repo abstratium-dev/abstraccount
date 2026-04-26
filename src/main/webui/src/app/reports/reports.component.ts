@@ -442,7 +442,7 @@ export class ReportsComponent implements OnInit {
       style: 'decimal',
       minimumFractionDigits: 2,
       maximumFractionDigits: 2
-    }).format(value);
+    }).format(value === 0 ? 0 : value);
   }
 
   formatCurrencyWithCommodity(value: number, commodity: string): string {
