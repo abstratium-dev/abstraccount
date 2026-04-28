@@ -32,11 +32,11 @@ All accounts are initialized with CHF 0.00 to establish the opening position. Th
    - Amount: CHF 0.00
 
 2. **2970 Profit carried forward or loss carried forward**
-   - Full path: `2 Equity:290 Reserves and retained earnings, own capital shares and disposable profit:2970 Profit carried forward or loss carried forward as negative item`
+   - Full path: `2 Equity:290 Reserves and retained earnings, own capital shares and disposable profit:2970 Profit carried forward or loss carried forward`
    - Amount: CHF 0.00
 
 3. **2979 Annual profit or loss**
-   - Full path: `2 Equity:290 Reserves and retained earnings, own capital shares and disposable profit:2979 Annual profit or loss as negative items`
+   - Full path: `2 Equity:290 Reserves and retained earnings, own capital shares and disposable profit:2979 Annual profit or loss`
    - Amount: CHF 0.00
 
 #### Asset Accounts (Debit side)
@@ -103,13 +103,13 @@ Feature: Opening Balances Transaction
     Then the entry should be added to the transaction
     
     When the user clicks "Add Entry"
-    And the user searches for and selects account "2970 Profit carried forward or loss carried forward as negative item"
+    And the user searches for and selects account "2970 Profit carried forward or loss carried forward"
     And the user enters amount "0.00" CHF
     And the user selects "Credit" as the entry type
     Then the entry should be added to the transaction
     
     When the user clicks "Add Entry"
-    And the user searches for and selects account "2979 Annual profit or loss as negative items"
+    And the user searches for and selects account "2979 Annual profit or loss"
     And the user enters amount "0.00" CHF
     And the user selects "Credit" as the entry type
     Then the entry should be added to the transaction

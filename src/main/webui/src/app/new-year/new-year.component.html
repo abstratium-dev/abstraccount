@@ -1,0 +1,161 @@
+<div class="new-year-container">
+  <h2>New Year: Create New Journal</h2>
+  <p class="description">
+    This operation creates a new journal for the new fiscal year by copying all accounts
+    from the current journal and setting their opening balances as of the selected date.
+    This is Phase 4 of the year-end closing process.
+  </p>
+
+  @if (errorMessage && !showConfirmDialog) {
+    <div class="error-message">{{ errorMessage }}</div>
+  }
+
+  @if (successMessage) {
+    <div class="success-message">{{ successMessage }}</div>
+  }
+
+  @if (!journalId) {
+    <div class="info-message">Please select a journal first.</div>
+  } @else {
+    <div class="form-section">
+      <div class="source-info">
+        <p><strong>Source Journal:</strong> {{ currentJournalTitle }}</p>
+      </div>
+
+      <div class="form-field">
+        <label for="new-journal-title">New Journal Title *</label>
+        <input
+          id="new-journal-title"
+          type="text"
+          [(ngModel)]="newJournalTitle"
+          required
+          class="field-input"
+          placeholder="e.g., Abstratium 2026"
+        />
+        <span class="hint">The name for the new journal (defaults to current journal title).</span>
+      </div>
+
+      <div class="form-field">
+        <label for="opening-date">Opening Date *</label>
+        <input
+          id="opening-date"
+          type="date"
+          [(ngModel)]="openingDate"
+          required
+          class="field-input"
+        />
+        <span class="hint">Typically January 1 of the new fiscal year.</span>
+      </div>
+
+      <div class="form-field">
+        <label for="retained-earnings">Retained Earnings Account (2970) *</label>
+        <abs-autocomplete
+          id="retained-earnings"
+          placeholder="e.g. 2:2970 Profit carried forward"
+          [required]="true"
+          [fetchOptions]="fetchAccountsForRetainedEarnings()"
+          [(ngModel)]="retainedEarningsCodePath"
+          [allowFreeText]="true"
+        />
+        <span class="hint">Required. The account (e.g., 2970) that receives the transferred profit/loss from the previous year.</span>
+      </div>
+
+      <div class="form-field">
+        <label for="annual-profit-loss">Annual Profit/Loss Account (2979) *</label>
+        <abs-autocomplete
+          id="annual-profit-loss"
+          placeholder="e.g. 2:2979 Annual profit/loss"
+          [required]="true"
+          [fetchOptions]="fetchAccountsForAnnualProfitLoss()"
+          [(ngModel)]="annualProfitLossCodePath"
+          [allowFreeText]="true"
+        />
+        <span class="hint">Required. The account (e.g., 2979) containing the previous year's profit/loss balance that will be transferred.</span>
+      </div>
+
+      <div class="actions">
+        <button
+          class="btn-primary"
+          (click)="previewNewYear()"
+          [disabled]="isLoading">
+          @if (isLoading) {
+            Loading...
+          } @else {
+            Preview New Journal
+          }
+        </button>
+      </div>
+    </div>
+  }
+
+  <!-- Confirmation dialog -->
+  @if (showConfirmDialog && preview) {
+    <div class="modal-overlay" (click)="cancelConfirm()">
+      <div class="modal-content" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <h2>Confirm: Create New Year Journal</h2>
+          <button class="close-btn" (click)="cancelConfirm()">✕</button>
+        </div>
+
+        <div class="modal-body">
+          <p>
+            A new journal titled <strong>"{{ preview.newJournalTitle }}"</strong> will be created
+            with <strong>{{ preview.accountCount }}</strong> accounts copied from
+            <strong>"{{ preview.sourceJournalTitle }}"</strong>.
+          </p>
+
+          <p>
+            Opening balance transactions dated <strong>{{ preview.openingDate }}</strong>
+            will be created for <strong>{{ preview.openingBalanceCount }}</strong> accounts
+            with non-zero balances.
+          </p>
+
+          @if (preview.retainedEarningsFullName) {
+            <p>
+              Retained earnings will be transferred to:
+              <strong>{{ preview.retainedEarningsFullName }}</strong>
+            </p>
+          }
+
+          @if (errorMessage) {
+            <div class="error-message">{{ errorMessage }}</div>
+          }
+
+          <h3>Accounts with Opening Balances</h3>
+          <table class="preview-table">
+            <thead>
+              <tr>
+                <th>Account</th>
+                <th class="amount-col">Opening Balance</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (account of getNonZeroBalanceAccounts(); track account.accountId) {
+                <tr>
+                  <td class="account-name">{{ account.accountFullName }}</td>
+                  <td class="amount-col">{{ formatBalance(account) }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+
+          <div class="actions">
+            <button
+              class="btn-primary"
+              (click)="executeNewYear()"
+              [disabled]="isLoading">
+              @if (isLoading) {
+                Creating journal...
+              } @else {
+                Confirm & Create New Journal
+              }
+            </button>
+            <button class="btn-secondary" (click)="cancelConfirm()" [disabled]="isLoading">
+              Cancel
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+</div>

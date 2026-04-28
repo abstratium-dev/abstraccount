@@ -1,0 +1,294 @@
+.header-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+
+  h2 {
+    margin: 0;
+  }
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.toggle-all-link {
+  background: none;
+  border: none;
+  color: var(--color-link);
+  cursor: pointer;
+  font-size: 0.9rem;
+  padding: 0;
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+    color: var(--color-link-hover);
+  }
+}
+
+.accounts-table-container {
+  padding: 1.5rem 2rem;
+  max-width: 100%;
+  margin: 0 auto;
+}
+
+.error {
+  color: var(--color-error);
+  padding: 1rem;
+  background-color: var(--color-error-bg);
+  border-radius: 4px;
+}
+
+.accounts-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  background-color: var(--color-bg-secondary);
+  border-radius: 8px;
+  overflow: hidden;
+
+  tbody {
+    tr {
+      border-bottom: 1px solid var(--color-border-primary);
+
+      &:last-child {
+        border-bottom: none;
+      }
+
+      &:hover {
+        background-color: var(--color-bg-hover);
+      }
+
+      &.menu-open {
+        position: relative;
+        z-index: 9999;
+      }
+    }
+
+    td {
+      padding: 0.5rem;
+      vertical-align: top;
+      text-align: left;
+    }
+  }
+}
+
+// Colgroup column widths (fixed layout)
+.col-indent-1,
+.col-indent-2,
+.col-indent-3,
+.col-indent-4,
+.col-indent-5 { width: 30px; min-width: 30px; }
+.col-name    { width: auto; }
+.col-note    { width: 35%; }
+.col-type    { width: 7rem; }
+.col-balance { width: 10rem; }
+.col-actions { width: 2.5rem; }
+
+// Indentation columns - each 30px wide
+.cell-indent,
+.cell-indent-marker {
+  width: 30px;
+  min-width: 30px;
+  max-width: 30px;
+  padding: 0 !important;
+}
+
+// Name cell (can span multiple indent columns)
+// Left border marks the start of actual content
+.cell-name {
+  vertical-align: top;
+  border-left: 1px solid var(--color-border-primary) !important;
+}
+
+.account-path {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+.path-segment {
+  color: var(--color-link);
+  text-decoration: none;
+  font-family: monospace;
+  font-size: 0.9em;
+
+  &:hover {
+    text-decoration: underline;
+    color: var(--color-link-hover);
+  }
+}
+
+.path-separator {
+  color: var(--color-text-secondary);
+  font-family: monospace;
+}
+
+.account-name-link {
+  color: var(--color-link);
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+    color: var(--color-link-hover);
+  }
+}
+
+// Collapse toggle button
+.collapse-toggle {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.25rem;
+  margin-right: 0.25rem;
+  font-size: 0.7rem;
+  color: var(--color-text-secondary);
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.2rem;
+  height: 1.2rem;
+
+  &:hover {
+    color: var(--color-primary);
+    background-color: var(--color-bg-hover);
+    border-radius: 3px;
+  }
+}
+
+.collapse-icon {
+  font-size: 0.65rem;
+  width: 0.65rem;
+  height: 0.65rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.collapse-placeholder {
+  display: inline-block;
+  width: 1.2rem;
+  height: 1.2rem;
+  margin-right: 0.25rem;
+}
+
+// Displaced balance styling (when children are hidden)
+.account-balance.displaced-balance {
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+// Note cell
+.account-note {
+  color: var(--color-text-secondary);
+  font-size: 0.9em;
+  font-style: italic;
+  width: 100%;
+}
+
+// Type cell
+.account-type {
+  color: var(--color-text-secondary);
+  font-size: 0.9em;
+  white-space: nowrap;
+}
+
+// Balance cell
+.account-balance {
+  white-space: nowrap;
+  font-family: monospace;
+  font-size: 0.95em;
+}
+
+// Actions cell
+.account-actions {
+  position: relative;
+  z-index: 2;
+}
+
+.context-menu-trigger {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.25rem;
+  font-size: 1.2rem;
+  color: var(--color-text-secondary);
+  line-height: 1;
+
+  &:hover {
+    color: var(--color-primary);
+  }
+}
+
+.context-menu {
+  position: absolute;
+  right: 0;
+  top: 100%;
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border-primary);
+  border-radius: 4px;
+  box-shadow: 0 2px 8px var(--shadow-md);
+  min-width: 120px;
+  z-index: 10000;
+  display: flex;
+  flex-direction: column;
+}
+
+.context-menu-item {
+  padding: 0.5rem 0.75rem;
+  background: none;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: var(--color-text-primary);
+
+  &:hover {
+    background-color: var(--color-bg-hover);
+  }
+
+  &.danger {
+    color: var(--color-error);
+
+    &:hover {
+      background-color: var(--color-error-bg);
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  }
+}
+
+// When menu is open, ensure the entire actions container has higher z-index
+.menu-open .account-actions {
+  z-index: 10000;
+}
+
+// Print styles - ensure collapse icons are visible
+@media print {
+  .collapse-toggle {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    color: #000 !important;
+    background: none !important;
+  }
+
+  .collapse-icon {
+    color: #000 !important;
+  }
+
+  // Ensure the button is visible (some browsers hide buttons when printing)
+  .collapse-toggle {
+    display: inline-flex !important;
+    visibility: visible !important;
+  }
+}

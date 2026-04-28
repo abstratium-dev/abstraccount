@@ -5,7 +5,7 @@ import { SignedOutComponent } from './core/signed-out/signed-out.component';
 import { JournalComponent } from './journal/journal.component';
 import { UploadComponent } from './upload/upload.component';
 import { CreateJournalComponent } from './create-journal/create-journal.component';
-import { AccountsComponent } from './accounts/accounts.component';
+import { AccountsTableComponent } from './accounts-table/accounts-table.component';
 import { AccountLedgerComponent } from './account-ledger/account-ledger.component';
 import { SettingsComponent } from './settings/settings.component';
 import { ReportsComponent } from './reports/reports.component';
@@ -13,11 +13,12 @@ import { PartnersComponent } from './partners/partners.component';
 import { MacrosComponent } from './macros/macros.component';
 import { EntrySearchComponent } from './entry-search/entry-search.component';
 import { CloseBooksComponent } from './close-books/close-books.component';
+import { NewYearComponent } from './new-year/new-year.component';
 
 export const routes: Routes = [
   { path: '',                          component: JournalComponent, canActivate: [authGuard] },
   { path: 'journal',                   component: JournalComponent, canActivate: [authGuard] },
-  { path: 'accounts',                  component: AccountsComponent, canActivate: [authGuard] },
+  { path: 'accounts-table',            component: AccountsTableComponent, canActivate: [authGuard] },
   { path: 'account/:accountId/ledger', component: AccountLedgerComponent, canActivate: [authGuard] },
   { path: 'upload',                    component: UploadComponent, canActivate: [authGuard] },
   { path: 'create-journal',            component: CreateJournalComponent, canActivate: [authGuard] },
@@ -28,5 +29,6 @@ export const routes: Routes = [
   { path: 'macros',                    component: MacrosComponent, canActivate: [authGuard] },
   { path: 'entry-search',              component: EntrySearchComponent, canActivate: [authGuard] },
   { path: 'close-books',               component: CloseBooksComponent, canActivate: [authGuard] },
+  { path: 'new-year',                  component: NewYearComponent, canActivate: [authGuard] },
   { path: '**',                        component: NotFoundComponent }
 ];

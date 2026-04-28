@@ -60,7 +60,7 @@
             &nbsp;|&nbsp;
             <a id="journal" routerLink="/journal" routerLinkActive="inactive-link">journal</a>
             &nbsp;|&nbsp;
-            <a id="accounts" routerLink="/accounts" routerLinkActive="inactive-link">accounts</a>
+            <a id="accounts-table" routerLink="/accounts-table" routerLinkActive="inactive-link">accounts</a>
             &nbsp;|&nbsp;
             <a id="reports" routerLink="/reports" routerLinkActive="inactive-link">reports</a>
             &nbsp;|&nbsp;
@@ -68,11 +68,7 @@
             &nbsp;|&nbsp;
             <a id="macros" routerLink="/macros" routerLinkActive="inactive-link">macros</a>
             &nbsp;|&nbsp;
-            <a id="close-books" routerLink="/close-books" routerLinkActive="inactive-link">close books</a>
-            &nbsp;|&nbsp;
             <a id="entry-search" routerLink="/entry-search" routerLinkActive="inactive-link">entries</a>
-            &nbsp;|&nbsp;
-            <a id="settings-link" routerLink="/settings" routerLinkActive="inactive-link">⚙️ settings</a>
             &nbsp;|&nbsp;
             <span class="signout-wrapper">
                 <svg class="session-clock" viewBox="0 0 18 18" [attr.aria-label]="sessionMinutesRemaining + ' minutes until sign-out'">
@@ -83,6 +79,17 @@
                 </svg>
                 <a id="signout-link" class="alink" (click)="signout()">Sign out</a>
             </span>
+            &nbsp;|&nbsp;
+            <div class="menu-wrapper">
+                <button class="menu-btn" (click)="toggleMenu()" aria-label="More options">☰</button>
+                @if(menuOpen) {
+                    <div class="menu-dropdown" (click)="$event.stopPropagation()">
+                        <a id="close-books" routerLink="/close-books" routerLinkActive="inactive-link" (click)="closeMenu()">close books at end of year</a>
+                        <a id="new-year" routerLink="/new-year" routerLinkActive="inactive-link" (click)="closeMenu()">new year</a>
+                        <a id="settings-link" routerLink="/settings" routerLinkActive="inactive-link" (click)="closeMenu()">⚙️ settings</a>
+                    </div>
+                }
+            </div>
         }
     </div>
 </div>

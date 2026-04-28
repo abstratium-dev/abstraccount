@@ -28,6 +28,7 @@ export class HeaderComponent implements OnInit {
     selectedJournalId: string | null = null;
     readonly IMPORT_OPTION = '__IMPORT__';
     readonly CREATE_OPTION = '__CREATE__';
+    menuOpen = false;
 
     constructor() {
         effect(() => {
@@ -103,5 +104,13 @@ export class HeaderComponent implements OnInit {
 
     signout() {
         this.authService.signout();
+    }
+
+    toggleMenu(): void {
+        this.menuOpen = !this.menuOpen;
+    }
+
+    closeMenu(): void {
+        this.menuOpen = false;
     }
 }

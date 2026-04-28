@@ -45,6 +45,7 @@ export interface AccountTreeNode {
   type: string;
   note: string | null;
   parentId: string | null;
+  accountCode: number;
   children: AccountTreeNode[];
 }
 
@@ -152,6 +153,44 @@ export interface CloseBooksRequestDTO {
   journalId: string;
   closingDate: string;
   equityAccountCodePath: string;
+}
+
+export interface NewYearAccountPreviewDTO {
+  accountId: string;
+  accountCodePath: string;
+  accountFullName: string;
+  openingBalance: number;
+  commodity: string;
+}
+
+export interface NewYearPreviewDTO {
+  sourceJournalId: string;
+  sourceJournalTitle: string;
+  newJournalTitle: string;
+  openingDate: string;
+  retainedEarningsCodePath: string;
+  retainedEarningsFullName: string;
+  annualProfitLossCodePath: string;
+  annualProfitLossFullName: string;
+  accounts: NewYearAccountPreviewDTO[];
+  accountCount: number;
+  openingBalanceCount: number;
+}
+
+export interface NewYearResultDTO {
+  newJournalId: string;
+  newJournalTitle: string;
+  accountCount: number;
+  openingBalanceCount: number;
+  retainedEarningsTransferId: string | null;
+}
+
+export interface NewYearRequestDTO {
+  sourceJournalId: string;
+  newJournalTitle: string;
+  openingDate: string;
+  retainedEarningsCodePath: string;
+  annualProfitLossCodePath: string;
 }
 
 export interface EntrySearchDTO {
@@ -817,6 +856,43 @@ export class Controller {
       return result;
     } catch (error) {
       console.error('Error executing close-books:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Preview the new year journal creation.
+   * Returns accounts that will be copied and their opening balances without making any changes.
+   */
+  async previewNewYear(request: NewYearRequestDTO): Promise<NewYearPreviewDTO> {
+    try {
+      return await firstValueFrom(
+        this.http.post<NewYearPreviewDTO>('/api/new-year/preview', request)
+      );
+    } catch (error) {
+      console.error('Error previewing new year:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Execute the new year journal creation.
+   * Creates a new journal, copies all accounts, and creates opening balance transactions.
+   */
+  async executeNewYear(request: NewYearRequestDTO): Promise<NewYearResultDTO> {
+    try {
+      const result = await firstValueFrom(
+        this.http.post<NewYearResultDTO>('/api/new-year/execute', request)
+      );
+      // Refresh journal list after creation
+      await this.listJournals();
+      // Select the new journal
+      this.modelService.setSelectedJournalId(result.newJournalId);
+      // Load accounts for the new journal
+      await this.getAccountTree(result.newJournalId);
+      return result;
+    } catch (error) {
+      console.error('Error executing new year:', error);
       throw error;
     }
   }

@@ -14,22 +14,22 @@ These TODOs are to be resolved by the developer, NOT THE LLM.
   - commit 413b23a62faa1f767650ac89dff3c81f4d803ca6
   - see auth.service.ts, header.component.ts, header.component.html, header.component.scss, auth.service.spec.ts, 
 
+- add link from new journal back to old one
+
+- make the global filter also be used when fetching the accounts and when it changes, refetch them. show the applied filter on the accounts page too.
+
 - 2025 tax declr
   - bank statement
   - check bank statement matches balance sheet!
   - explaination and company statement
-    - make note that things like monthly subscriptions are not pro rated since they are monthly and negligible for selling the company
+    - make note that things like monthly subscriptions are not pro rated since they are monthly and negligible for selling the company (and too small for accrural accounting)
   - add reports and journal
   - translate the tax help page and put it in the wiki: http://vd.ch/index.php?id=2023786#c2112404
-  - explain specialities
   - ask if my assumptions are correct: https://prestations.vd.ch/pub/101529
-  - read book Compta2025v3.pdf
   - check list of what to do in which order
-  - ensure certain tags are ignored for certain reports so that they can be regenerated even after closing
 
 - reports
   - balance sheets - at least the swiss one shows zero net income for 2024 and 2025 which are closed years, so it should be showing no value
-  - filter still not working, eg. remove closing from 2025
   - swiss reports should include french and english, see specs in docs folder
 
 - add a report that shows unpaid invoices

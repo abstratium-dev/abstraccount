@@ -245,11 +245,11 @@ II. Minimum structure
 
 - d.[814] voluntary retained earnings,
 
-- e.[815] own capital shares as negative items,
+- e.[815] own capital shares,
 
-- f.[816] profit carried forward or loss carried forward as negative items,
+- f.[816] profit carried forward or loss carried forward,
 
-- g.[817] annual profit or annual loss as negative items.
+- g.[817] annual profit or annual loss.
 
 [3] Other items must be shown individually on the balance sheet or in the notes to the accounts, provided this is essential so that third parties can assess the asset or financing position or is customary as a result of the activity of the company.
 

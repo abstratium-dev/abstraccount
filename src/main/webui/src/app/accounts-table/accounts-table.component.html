@@ -1,0 +1,132 @@
+<div class="accounts-table-container" (click)="closeMenu()">
+  <div class="header-section">
+    <h2>Chart of Accounts</h2>
+    <div class="header-actions">
+      @if (!loading && !error && flattenedAccounts.length > 0) {
+        <button class="toggle-all-link" (click)="toggleAll()" type="button">
+          @if (areAllCollapsed()) {
+            Expand all
+          } @else {
+            Collapse all
+          }
+        </button>
+      }
+      <button class="btn-primary" (click)="openCreateModal()">+ Create Account</button>
+    </div>
+  </div>
+
+  @if (loading) {
+    <p>Loading accounts...</p>
+  }
+
+  @if (error) {
+    <p class="error">{{ error }}</p>
+  }
+
+  @if (!loading && !error && flattenedAccounts.length === 0) {
+    <p>No accounts found. Click "Create Account" to add your first account.</p>
+  }
+
+  @if (!loading && !error && flattenedAccounts.length > 0) {
+    <table class="accounts-table">
+      <colgroup>
+        <col class="col-indent-1">
+        <col class="col-indent-2">
+        <col class="col-indent-3">
+        <col class="col-indent-4">
+        <col class="col-indent-5">
+        <col class="col-name">
+        <col class="col-note">
+        <col class="col-type">
+        <col class="col-balance">
+        <col class="col-actions">
+      </colgroup>
+      <tbody>
+        @for (account of flattenedAccounts; track account.id) {
+          @if (!isHiddenByCollapsedAncestor(account)) {
+          <tr [class.menu-open]="isMenuOpen(account.id)">
+            <!-- Emit one cell per indent level used: plain cells then a marker on the last -->
+            @for (indentIdx of [0, 1, 2, 3, 4]; track indentIdx) {
+              @if (indentIdx < account.depth - 1) {
+                <td class="cell-indent"></td>
+              } @else if (indentIdx === account.depth - 1) {
+                <td class="cell-indent-marker"></td>
+              }
+            }
+
+            <!-- Name cell: colspan covers remaining unused indent columns + name column -->
+            <td class="cell-name" [attr.colspan]="6 - account.depth">
+              <!-- Collapse/expand toggle icon for accounts with children -->
+              @if (hasChildren(account)) {
+                <button class="collapse-toggle" (click)="toggleCollapse(account.id, $event)" type="button">
+                  @if (isCollapsed(account.id)) {
+                    <span class="collapse-icon" style="font-size: 0.9rem;">▶</span>
+                  } @else {
+                    <span class="collapse-icon" style="font-size: 1.1rem;">▼</span>
+                  }
+                </button>
+              } @else {
+                <span class="collapse-placeholder"></span>
+              }
+              <span class="account-path">
+                @for (segment of accountService.buildHierarchicalPath(account.id, accounts()); track segment.id; let isLast = $last) {
+                  @if (!isLast) {
+                    <a [routerLink]="['/account', segment.id, 'ledger']" class="path-segment">{{ segment.number }}</a>
+                    <span class="path-separator">:</span>
+                  }
+                }
+              </span>
+              <a [routerLink]="['/account', account.id, 'ledger']" class="account-name-link">
+                {{ account.name }}
+              </a>
+            </td>
+
+            <!-- Note column -->
+            <td class="cell-note">
+              @if (account.note) {
+                <span class="account-note">{{ account.note }}</span>
+              }
+            </td>
+
+            <!-- Type column -->
+            <td class="cell-type">
+              <span class="account-type">{{ formatAccountType(account.type) }}</span>
+            </td>
+
+            <!-- Balance column -->
+            <td class="cell-balance">
+              <span class="account-balance" [class.displaced-balance]="isCollapsed(account.id)">
+                {{ formatDisplayBalance(account.id) }}
+              </span>
+            </td>
+
+            <!-- Actions column -->
+            <td class="cell-actions">
+              <div class="account-actions">
+                <button class="context-menu-trigger" (click)="toggleMenu(account.id, $event)" type="button">⋮</button>
+                @if (openMenuId === account.id) {
+                  <div class="context-menu" (click)="$event.stopPropagation()">
+                    <button class="context-menu-item" (click)="openEditModal(account.id)" type="button">Edit</button>
+                    <button class="context-menu-item" (click)="openAddChildModal(account.id)" type="button">Add Child</button>
+                    <button class="context-menu-item danger" (click)="deleteAccount(account.id)" type="button" [disabled]="hasChildren(account)">Delete</button>
+                  </div>
+                }
+              </div>
+            </td>
+          </tr>
+          }
+        }
+      </tbody>
+    </table>
+  }
+</div>
+
+@if (showModal) {
+  <app-account-edit-modal
+    [accountId]="modalAccountId"
+    [parentAccountId]="modalParentAccountId"
+    [journalId]="getJournalId()"
+    (close)="closeModal()"
+    (saved)="onModalSaved()"
+  ></app-account-edit-modal>
+}
