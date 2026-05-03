@@ -11,7 +11,32 @@
           }
         </button>
       }
+      <button class="toggle-all-link" (click)="toggleHideZeroBalance()" type="button">
+        @if (hideZeroBalance) {
+          Show zero-balance accounts
+        } @else {
+          Hide zero-balance accounts
+        }
+      </button>
       <button class="btn-primary" (click)="openCreateModal()">+ Create Account</button>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="filter-section">
+    <h3>Filters</h3>
+    <filter-input
+      [tags]="tags"
+      (filterChange)="onFilterChange($event)">
+    </filter-input>
+
+    <!-- Print-only filter display -->
+    <div class="print-filter-display" style="display: none;">
+      @if(filterString) {
+        <strong>Applied filter:</strong> {{ filterString }}
+      } @else {
+        <em>No filter applied</em>
+      }
     </div>
   </div>
 
@@ -43,7 +68,7 @@
       </colgroup>
       <tbody>
         @for (account of flattenedAccounts; track account.id) {
-          @if (!isHiddenByCollapsedAncestor(account)) {
+          @if (shouldShowAccount(account)) {
           <tr [class.menu-open]="isMenuOpen(account.id)">
             <!-- Emit one cell per indent level used: plain cells then a marker on the last -->
             @for (indentIdx of [0, 1, 2, 3, 4]; track indentIdx) {

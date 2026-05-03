@@ -51,12 +51,12 @@ describe('EntrySearchComponent', () => {
     ]);
 
     const journalsSignal = signal([
-      { id: 'journal1', title: 'Test Journal', subtitle: null, currency: 'CHF', commodities: { CHF: '1000.00' } }
+      { id: 'journal1', title: 'Test Journal', subtitle: null, currency: 'CHF', commodities: { CHF: '1000.00' }, logo: null, previousJournalId: null }
     ]);
     const selectedJournalIdSignal = signal<string | null>('journal1');
     const accountsSignal = signal<AccountTreeNode[]>([
-      { id: '1000', name: '1 Assets', type: 'ASSET', note: null, parentId: null, children: [
-        { id: '1100', name: '1100 Cash', type: 'CASH', note: null, parentId: '1000', children: [] }
+      { id: '1000', name: '1 Assets', type: 'ASSET', note: null, parentId: null, accountCode: 1, children: [
+        { id: '1100', name: '1100 Cash', type: 'CASH', note: null, parentId: '1000', accountCode: 1100, children: [] }
       ]}
     ]);
 

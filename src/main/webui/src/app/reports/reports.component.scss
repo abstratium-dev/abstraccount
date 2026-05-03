@@ -7,3 +7,103 @@ th.sortable {
     font-style: italic;
   }
 }
+
+// Tag Group Report Styles
+.tag-groups-container {
+  margin-top: 1rem;
+}
+
+.tag-groups-summary {
+  margin-bottom: 2rem;
+  
+  .tag-group-row {
+    td {
+      vertical-align: middle;
+    }
+  }
+}
+
+.tag-group-detail {
+  margin: 2rem 0;
+  padding: 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  background: var(--color-bg-secondary);
+}
+
+.tag-group-header {
+  margin: 0 0 1rem 0;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid var(--color-border);
+  color: var(--color-text-primary);
+}
+
+.transaction-detail-table {
+  font-size: 0.9rem;
+  
+  .transaction-row {
+    background: var(--color-bg-primary);
+  }
+  
+  .sub-row {
+    background: transparent;
+  }
+  
+  .tags-row {
+    .tags-cell {
+      padding: 0.25rem 0.5rem;
+    }
+  }
+  
+  .entry-row {
+    .entry-description {
+      padding-left: 1rem;
+    }
+  }
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  
+  &.status-underpaid {
+    background-color: var(--color-error-bg, #fee2e2);
+    color: var(--color-error, #dc2626);
+  }
+  
+  &.status-overpaid {
+    background-color: var(--color-success-bg, #d1fae5);
+    color: var(--color-success, #059669);
+  }
+}
+
+.negative {
+  color: var(--color-error, #dc2626);
+}
+
+// Journal column styles
+.journal-cell {
+  vertical-align: top;
+  
+  .journal-name {
+    display: block;
+    max-width: 120px;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    hyphens: auto;
+    line-height: 1.3;
+    font-size: 0.9rem;
+  }
+  
+  &.previous-journal {
+    background-color: var(--color-info-bg, #dbeafe);
+    
+    .journal-name {
+      font-style: italic;
+    }
+  }
+}

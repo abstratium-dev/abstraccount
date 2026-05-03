@@ -14,10 +14,6 @@ These TODOs are to be resolved by the developer, NOT THE LLM.
   - commit 413b23a62faa1f767650ac89dff3c81f4d803ca6
   - see auth.service.ts, header.component.ts, header.component.html, header.component.scss, auth.service.spec.ts, 
 
-- add link from new journal back to old one
-
-- make the global filter also be used when fetching the accounts and when it changes, refetch them. show the applied filter on the accounts page too.
-
 - 2025 tax declr
   - bank statement
   - check bank statement matches balance sheet!
@@ -29,10 +25,14 @@ These TODOs are to be resolved by the developer, NOT THE LLM.
   - check list of what to do in which order
 
 - reports
-  - balance sheets - at least the swiss one shows zero net income for 2024 and 2025 which are closed years, so it should be showing no value
   - swiss reports should include french and english, see specs in docs folder
 
-- add a report that shows unpaid invoices
+- the swiss tax report is showing a positive value for B1 even though it is a loss.
+
+- add a report that shows unpaid sales invoices
+  - show that the transaction is from a previous journal
+
+- add a report that shows unpaid purchase invoices
 
 - year end taxes - use this for the macro and test it
   - 2024-12-31 * taxes based on equity tax (about 38 chf) and 15% of profit (0)

@@ -14,6 +14,7 @@ import { MacrosComponent } from './macros/macros.component';
 import { EntrySearchComponent } from './entry-search/entry-search.component';
 import { CloseBooksComponent } from './close-books/close-books.component';
 import { NewYearComponent } from './new-year/new-year.component';
+import { JournalHistoryComponent } from './journal-history/journal-history.component';
 
 export const routes: Routes = [
   { path: '',                          component: JournalComponent, canActivate: [authGuard] },
@@ -30,5 +31,6 @@ export const routes: Routes = [
   { path: 'entry-search',              component: EntrySearchComponent, canActivate: [authGuard] },
   { path: 'close-books',               component: CloseBooksComponent, canActivate: [authGuard] },
   { path: 'new-year',                  component: NewYearComponent, canActivate: [authGuard] },
+  { path: 'journal-history',           component: JournalHistoryComponent, canActivate: [authGuard] },
   { path: '**',                        component: NotFoundComponent }
 ];

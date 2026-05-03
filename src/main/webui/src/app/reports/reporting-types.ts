@@ -1,4 +1,4 @@
-import { AccountEntryDTO } from '../controller';
+import { AccountEntryDTO, TransactionDTO } from '../controller';
 
 /**
  * Report template definition from the backend
@@ -27,11 +27,17 @@ export interface ReportSection {
   showAccounts?: boolean; // Whether to show individual accounts (default true)
   invertSign?: boolean;
   includeNetIncome?: boolean;
-  calculated?: string; // Special calculated values like 'netIncome', 'totalAssets'
+  calculated?: 'netIncome' | 'totalAssets' | 'tagGrouped' | string; // Special calculated values
   groupByPartner?: boolean; // Group entries by partner instead of account
   sortable?: boolean; // Whether columns can be sorted by clicking headers
   defaultSortColumn?: string; // Default column to sort by (e.g., 'net', 'income', 'partnerName')
   defaultSortDirection?: 'asc' | 'desc'; // Default sort direction
+  tagKey?: string; // For tagGrouped: filter transactions by this tag key
+  tagValuePrefix?: string; // For tagGrouped: filter by tag value prefix
+  balanceAccountIds?: string[]; // For tagGrouped: calculate net only from these account IDs
+  balanceAccountRegex?: string; // For tagGrouped: regex to match account IDs for balance calculation
+  balanceAccountNameRegex?: string; // For tagGrouped: regex to match account names/paths (e.g., "1100" to match "1:10:110:1100")
+  useJournalChain?: boolean; // If true, load data from all journals in the chain; otherwise only current journal (default: false)
 }
 
 /**
@@ -91,6 +97,7 @@ export interface ReportSectionResult {
   level: number;
   accounts: AccountSummary[];
   partners?: PartnerSummary[]; // For partner-based reports
+  tagGroups?: TagGroup[]; // For tagGrouped reports
   subtotal: number;
   commodity: string;
   showDebitsCredits: boolean;
@@ -100,4 +107,17 @@ export interface ReportSectionResult {
   sortable: boolean; // Whether columns can be sorted
   sortColumn: string | null; // Current sort column
   sortDirection: 'asc' | 'desc'; // Current sort direction
+}
+
+/**
+ * Tag group for tag-based reports (e.g., unpaid invoices)
+ */
+export interface TagGroup {
+  tagValue: string; // The full tag value (e.g., "SI20251010491")
+  transactions: TransactionDTO[]; // All transactions with this tag value
+  netAmount: number; // Net amount across all entries
+  partnerId: string | null;
+  partnerName: string | null;
+  firstDate: string; // Earliest transaction date
+  commodity: string;
 }

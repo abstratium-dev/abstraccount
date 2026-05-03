@@ -12,6 +12,8 @@ export interface TransactionDTO {
   partnerName: string | null;
   tags: TagDTO[];
   entries: EntryDTO[];
+  journalId?: string; // Set when loading from journal chain
+  journalName?: string; // Set when loading from journal chain
 }
 
 export interface TagDTO {
@@ -37,6 +39,16 @@ export interface JournalMetadataDTO {
   subtitle: string | null;
   currency: string;
   commodities: { [key: string]: string };
+  previousJournalId: string | null;
+}
+
+export interface JournalKpiDTO {
+  totalAssets: number;
+  totalLiabilities: number;
+  totalEquity: number;
+  totalRevenue: number;
+  totalExpenses: number;
+  currency: string;
 }
 
 export interface AccountTreeNode {
@@ -301,6 +313,17 @@ export class Controller {
       );
     } catch (error) {
       console.error('Error getting journal metadata:', error);
+      throw error;
+    }
+  }
+
+  async getJournalKpi(journalId: string): Promise<JournalKpiDTO> {
+    try {
+      return await firstValueFrom(
+        this.http.get<JournalKpiDTO>(`/api/journal/${journalId}/kpi`)
+      );
+    } catch (error) {
+      console.error('Error getting journal KPI:', error);
       throw error;
     }
   }

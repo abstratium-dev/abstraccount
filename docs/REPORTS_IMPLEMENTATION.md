@@ -22,6 +22,7 @@ Templates support multiple filtering methods:
 - **By Account Type**: Filter by `ASSET`, `LIABILITY`, `EQUITY`, `REVENUE`, `EXPENSE`, `CASH`
 - **By Account Regex**: Match account names using regular expressions (future enhancement)
 - **Calculated Values**: Special sections for `netIncome`, `totalAssets`, etc.
+- **Tag Grouped**: Group transactions by tag value (e.g., invoice numbers)
 
 ### 3. Display Control
 
@@ -212,6 +213,53 @@ Shows revenue and expenses with net income calculation. The Net Income section u
 }
 ```
 
+### Tag Grouped Report (e.g., Unpaid Sales Invoices)
+
+Groups transactions by tag value and shows net balance per group. Useful for tracking invoices, bills, or any tagged transaction sets:
+
+```json
+{
+  "sections": [
+    {
+      "title": "Unpaid Sales Invoices",
+      "calculated": "tagGrouped",
+      "tagKey": "invoice",
+      "tagValuePrefix": "SI",
+      "balanceAccountNameRegex": "1100",
+      "useJournalChain": true,
+      "sortable": true,
+      "defaultSortColumn": "net",
+      "defaultSortDirection": "desc"
+    }
+  ]
+}
+```
+
+**Tag Grouped Report Features**:
+- Groups transactions by matching tag value (e.g., all transactions with `invoice:SI20251010491`)
+- Filters by tag key (e.g., `invoice`) and optional value prefix (e.g., `SI`)
+- **Account-specific balance calculation**: Use `balanceAccountIds` or `balanceAccountRegex` to calculate net only from specific accounts
+- Calculates net amount per group across all transactions (or filtered to specific accounts)
+- Shows "underpaid" (net > 0, red) or "overpaid" (net < 0) status
+- Only displays groups where net != 0 (unless "Hide zero-balance rows" is unchecked)
+- Displays full transactions with entries and tags
+- Loads data across the entire journal chain
+
+**Account Balance Filtering**:
+For invoice/payment tracking, you typically want to check if a specific account (like Accounts Receivable) balances to zero. Since account IDs are UUIDs, use `balanceAccountNameRegex` to match against the full hierarchical account name (e.g., "1:10:110:1100 Debtors"):
+- `balanceAccountIds`: Array of specific account UUIDs to sum (rarely useful)
+- `balanceAccountRegex`: Regex pattern to match account UUIDs (rarely useful)
+- `balanceAccountNameRegex`: Regex pattern to match the full hierarchical account name (e.g., `"1100"` to match "1:10:110:1100", or `"^1:10:110:"` to match all accounts under AR)
+
+The system builds the hierarchical path by prepending parent account numbers (e.g., "1:10:110:1100" for the Debtors account under AR).
+
+**Journal Chain Loading**:
+By default, reports only consider transactions from the currently selected journal. Set `useJournalChain: true` to load data from all journals in the chain (current + all previous journals). This is useful for:
+- Unpaid invoice reports (invoices may have been created in earlier journals)
+- Cross-year financial summaries
+
+If none are specified, the net is calculated from ALL entries (which will always sum to zero in double-entry accounting).
+
 ## Technical Implementation
 
 ### Backend
@@ -223,6 +271,18 @@ Shows revenue and expenses with net income calculation. The Net Income section u
   - `V01.008__createReportTemplateTable.sql` - Creates table
   - `V01.009__insertSampleReportTemplates.sql` - Sample templates
   - `V01.010__insertSwissBalanceSheet.sql` - Swiss Balance Sheet
+  - `V01.019__insertUnpaidSalesInvoiceReport.sql` - Tag grouped report template
+
+### Tag Grouped Report Implementation
+
+The tag grouped report (`calculated: "tagGrouped"`) is implemented entirely in the frontend:
+
+1. **Journal Chain Loading**: Uses `JournalPersistenceService.getJournalChainIds()` pattern to load transactions from all journals in the chain
+2. **Transaction Filtering**: Filters transactions by tag key and optional value prefix
+3. **Account Filtering**: When `balanceAccountIds` or `balanceAccountRegex` is specified, only entries matching those accounts are summed for the net calculation
+4. **Group Aggregation**: Groups transactions by tag value and calculates net amount per group (filtered to specified accounts if configured)
+5. **Status Display**: Shows "underpaid" (net > 0, red) or "overpaid" (net < 0) status
+6. **Transaction Display**: Renders full transactions with entries and tags like the Journal page
 
 ### Frontend
 

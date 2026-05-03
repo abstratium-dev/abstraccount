@@ -9,6 +9,7 @@ describe('ReportingContext', () => {
       type: 'ASSET',
       note: null,
       parentId: null,
+      accountCode: 1000,
       children: []
     },
     {
@@ -17,6 +18,7 @@ describe('ReportingContext', () => {
       type: 'LIABILITY',
       note: null,
       parentId: null,
+      accountCode: 2000,
       children: []
     },
     {
@@ -25,6 +27,7 @@ describe('ReportingContext', () => {
       type: 'REVENUE',
       note: null,
       parentId: null,
+      accountCode: 3000,
       children: []
     },
     {
@@ -33,6 +36,7 @@ describe('ReportingContext', () => {
       type: 'EXPENSE',
       note: null,
       parentId: null,
+      accountCode: 6000,
       children: []
     }
   ];
@@ -45,6 +49,7 @@ describe('ReportingContext', () => {
       type: 'ASSET',
       note: null,
       parentId: null,
+      accountCode: 1,
       children: [
         {
           id: 'current-assets',
@@ -52,6 +57,7 @@ describe('ReportingContext', () => {
           type: 'ASSET',
           note: null,
           parentId: 'assets',
+          accountCode: 10,
           children: [
             {
               id: 'receivables',
@@ -59,6 +65,7 @@ describe('ReportingContext', () => {
               type: 'ASSET',
               note: null,
               parentId: 'current-assets',
+              accountCode: 110,
               children: [
                 {
                   id: 'debtors',
@@ -66,6 +73,7 @@ describe('ReportingContext', () => {
                   type: 'ASSET',
                   note: null,
                   parentId: 'receivables',
+                  accountCode: 1100,
                   children: []
                 }
               ]
@@ -357,6 +365,7 @@ describe('ReportingContext', () => {
         type: 'CASH',
         note: null,
         parentId: null,
+        accountCode: 1000,
         children: []
       },
       {
@@ -365,6 +374,7 @@ describe('ReportingContext', () => {
         type: 'ASSET',
         note: null,
         parentId: null,
+        accountCode: 1100,
         children: []
       }
     ];

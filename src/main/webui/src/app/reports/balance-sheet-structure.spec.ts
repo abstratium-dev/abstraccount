@@ -9,6 +9,7 @@ describe('Balance Sheet Structure', () => {
       type: 'CASH',
       note: null,
       parentId: null,
+      accountCode: 1000,
       children: []
     },
     {
@@ -17,6 +18,7 @@ describe('Balance Sheet Structure', () => {
       type: 'CASH',
       note: null,
       parentId: null,
+      accountCode: 1020,
       children: []
     },
     {
@@ -25,6 +27,7 @@ describe('Balance Sheet Structure', () => {
       type: 'ASSET',
       note: null,
       parentId: null,
+      accountCode: 1100,
       children: []
     },
     {
@@ -33,6 +36,7 @@ describe('Balance Sheet Structure', () => {
       type: 'ASSET',
       note: null,
       parentId: null,
+      accountCode: 1200,
       children: []
     },
     {
@@ -41,6 +45,7 @@ describe('Balance Sheet Structure', () => {
       type: 'LIABILITY',
       note: null,
       parentId: null,
+      accountCode: 2000,
       children: []
     },
     {
@@ -49,6 +54,7 @@ describe('Balance Sheet Structure', () => {
       type: 'EQUITY',
       note: null,
       parentId: null,
+      accountCode: 2800,
       children: []
     },
     {
@@ -57,6 +63,7 @@ describe('Balance Sheet Structure', () => {
       type: 'REVENUE',
       note: null,
       parentId: null,
+      accountCode: 3000,
       children: []
     }
   ];

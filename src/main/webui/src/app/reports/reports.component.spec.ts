@@ -35,6 +35,7 @@ describe('ReportsComponent', () => {
       type: 'ASSET',
       note: null,
       parentId: null,
+      accountCode: 1000,
       children: []
     },
     {
@@ -43,6 +44,7 @@ describe('ReportsComponent', () => {
       type: 'REVENUE',
       note: null,
       parentId: null,
+      accountCode: 3000,
       children: []
     }
   ];
@@ -418,6 +420,7 @@ describe('ReportsComponent', () => {
         type: 'EXPENSE',
         note: null,
         parentId: null,
+        accountCode: 6000,
         children: []
       }
     ];
@@ -610,6 +613,7 @@ describe('ReportsComponent', () => {
         type: 'EXPENSE',
         note: null,
         parentId: null,
+        accountCode: 6000,
         children: []
       }
     ];
@@ -727,6 +731,7 @@ describe('ReportsComponent', () => {
         type: 'EXPENSE',
         note: null,
         parentId: null,
+        accountCode: 6000,
         children: []
       }
     ];

@@ -207,6 +207,7 @@ describe('TransactionEditModalComponent', () => {
         type: 'ASSET',
         note: null,
         parentId: null,
+        accountCode: 1000,
         children: [
           {
             id: 'acc2',
@@ -214,6 +215,7 @@ describe('TransactionEditModalComponent', () => {
             type: 'ASSET',
             note: null,
             parentId: 'acc1',
+            accountCode: 1100,
             children: []
           }
         ]
@@ -224,6 +226,7 @@ describe('TransactionEditModalComponent', () => {
         type: 'EXPENSE',
         note: null,
         parentId: null,
+        accountCode: 6000,
         children: []
       }
     ];
@@ -246,6 +249,7 @@ describe('TransactionEditModalComponent', () => {
         type: 'ASSET',
         note: null,
         parentId: null,
+        accountCode: 1000,
         children: [
           {
             id: 'acc2',
@@ -253,6 +257,7 @@ describe('TransactionEditModalComponent', () => {
             type: 'ASSET',
             note: null,
             parentId: 'acc1',
+            accountCode: 1100,
             children: []
           },
           {
@@ -261,6 +266,7 @@ describe('TransactionEditModalComponent', () => {
             type: 'ASSET',
             note: null,
             parentId: 'acc1',
+            accountCode: 1200,
             children: []
           }
         ]
@@ -284,6 +290,7 @@ describe('TransactionEditModalComponent', () => {
         type: 'ASSET',
         note: null,
         parentId: null,
+        accountCode: 1000,
         children: [
           {
             id: 'acc2',
@@ -291,6 +298,7 @@ describe('TransactionEditModalComponent', () => {
             type: 'ASSET',
             note: null,
             parentId: 'acc1',
+            accountCode: 1100,
             children: []
           }
         ]
@@ -301,6 +309,7 @@ describe('TransactionEditModalComponent', () => {
         type: 'LIABILITY',
         note: null,
         parentId: null,
+        accountCode: 2000,
         children: []
       },
       {
@@ -309,6 +318,7 @@ describe('TransactionEditModalComponent', () => {
         type: 'EXPENSE',
         note: null,
         parentId: null,
+        accountCode: 6000,
         children: []
       }
     ];
@@ -331,6 +341,7 @@ describe('TransactionEditModalComponent', () => {
       type: 'ASSET',
       note: null,
       parentId: null,
+      accountCode: 1100,
       children: []
     };
 

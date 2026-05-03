@@ -210,7 +210,8 @@ public class JournalResource {
                 j.getTitle(),
                 j.getSubtitle(),
                 j.getCurrency(),
-                j.getCommodities()
+                j.getCommodities(),
+                j.getPreviousJournalId()
             ))
             .collect(Collectors.toList());
     }
@@ -235,10 +236,36 @@ public class JournalResource {
             journal.getTitle(),
             journal.getSubtitle(),
             journal.getCurrency(),
-            journal.getCommodities()
+            journal.getCommodities(),
+            journal.getPreviousJournalId()
         );
     }
     
+    /**
+     * Returns KPI totals for a journal: balance-sheet account sums by type,
+     * excluding transactions tagged with "Closing".
+     *
+     * @param journalId the journal ID
+     * @return KPI DTO with asset, liability, equity, revenue and expense totals
+     */
+    @GET
+    @Path("/{journalId}/kpi")
+    public JournalKpiDTO getJournalKpi(@PathParam("journalId") String journalId) {
+        LOG.debugf("Getting KPI for journal: %s", journalId);
+
+        JournalEntity journal = journalPersistenceService.findJournalById(journalId)
+            .orElseThrow(() -> new WebApplicationException("Journal not found: " + journalId, 404));
+
+        java.math.BigDecimal assets      = journalPersistenceService.sumByAccountType(journalId, "ASSET")
+                                    .add(journalPersistenceService.sumByAccountType(journalId, "CASH"));
+        java.math.BigDecimal liabilities = journalPersistenceService.sumByAccountType(journalId, "LIABILITY");
+        java.math.BigDecimal equity      = journalPersistenceService.sumByAccountType(journalId, "EQUITY");
+        java.math.BigDecimal revenue     = journalPersistenceService.sumByAccountType(journalId, "REVENUE");
+        java.math.BigDecimal expenses    = journalPersistenceService.sumByAccountType(journalId, "EXPENSE");
+
+        return new JournalKpiDTO(assets, liabilities, equity, revenue, expenses, journal.getCurrency());
+    }
+
     /**
      * Deletes a journal and all its related data (accounts, transactions, entries, tags).
      * 
@@ -247,7 +274,6 @@ public class JournalResource {
      */
     @DELETE
     @Path("/{journalId}")
-    @RolesAllowed({Roles.USER})
     public Map<String, Object> deleteJournal(@PathParam("journalId") String journalId) {
         LOG.infof("Deleting journal: %s", journalId);
         
@@ -292,7 +318,6 @@ public class JournalResource {
      */
     @POST
     @Path("/create")
-    @RolesAllowed({Roles.USER})
     public JournalDTO createJournal(CreateJournalRequest request) {
         LOG.infof("Creating new journal: %s", request.title());
         
@@ -316,7 +341,8 @@ public class JournalResource {
                 savedJournal.getTitle(),
                 savedJournal.getSubtitle(),
                 savedJournal.getCurrency(),
-                savedJournal.getCommodities()
+                savedJournal.getCommodities(),
+                savedJournal.getPreviousJournalId()
             );
             
         } catch (Exception e) {
@@ -342,7 +368,6 @@ public class JournalResource {
     @POST
     @Path("/upload")
     @Consumes(MediaType.TEXT_PLAIN)
-    @RolesAllowed({Roles.USER})
     public Map<String, Object> uploadJournal(String journalContent) {
         LOG.infof("Uploading journal, content length: %d", journalContent.length());
         

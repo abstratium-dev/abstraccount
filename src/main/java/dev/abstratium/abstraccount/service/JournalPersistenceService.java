@@ -1,8 +1,13 @@
 package dev.abstratium.abstraccount.service;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import com.google.common.annotations.VisibleForTesting;
 
@@ -309,6 +314,34 @@ public class JournalPersistenceService {
     }
     
     /**
+     * Computes the sum of entry amounts for a given account type in a journal,
+     * excluding any transactions tagged with "Closing".
+     *
+     * @param journalId   the journal ID
+     * @param accountType the account type name (e.g. "ASSET")
+     * @return the sum, or zero if no entries
+     */
+    @Transactional
+    public java.math.BigDecimal sumByAccountType(String journalId, String accountType) {
+        List<java.math.BigDecimal> results = entityManager.createQuery(
+            "SELECT SUM(e.amount) FROM EntryEntity e " +
+            "JOIN e.transaction t " +
+            "JOIN AccountEntity a ON a.id = e.accountId " +
+            "WHERE t.journalId = :journalId " +
+            "AND a.type = :accountType " +
+            "AND NOT EXISTS (SELECT tag FROM TagEntity tag WHERE tag.transaction = t AND tag.tagKey = :closingTag)",
+            java.math.BigDecimal.class)
+            .setParameter("journalId", journalId)
+            .setParameter("accountType", dev.abstratium.abstraccount.model.AccountType.valueOf(accountType))
+            .setParameter("closingTag", "Closing")
+            .getResultList();
+        if (results.isEmpty() || results.get(0) == null) {
+            return java.math.BigDecimal.ZERO;
+        }
+        return results.get(0);
+    }
+
+    /**
      * Deletes a specific journal and all its related data (accounts, transactions, entries, tags).
      * Uses cascade deletion to delete all related data.
      * 
@@ -320,6 +353,77 @@ public class JournalPersistenceService {
         entityManager.remove(journal);
     }
     
+    /**
+     * Collects all journal IDs in the chain by following previousJournalId links
+     * both backwards (ancestors) and forwards (descendants).
+     * Starting from the given journal, walks in both directions so that all
+     * journals in the chain are found regardless of starting position.
+     * Loads all journal (id, previousJournalId) pairs in a single query and
+     * traverses the chain in memory.
+     *
+     * @param startingJournalId the journal ID to start from
+     * @return list of all journal IDs in the chain (including the starting journal)
+     */
+    @Transactional
+    public List<String> getJournalChainIds(String startingJournalId) {
+        // Guard against null or empty starting ID
+        if (startingJournalId == null || startingJournalId.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        // Load all (id, previousJournalId) pairs in a single query
+        @SuppressWarnings("unchecked")
+        List<Object[]> rows = entityManager.createQuery(
+                "SELECT j.id, j.previousJournalId FROM JournalEntity j")
+            .getResultList();
+
+        // Build a map from journal ID to its previous journal ID (backward links)
+        Map<String, String> previousMap = new HashMap<>();
+        // Build a reverse map from journal ID to its next journal ID (forward links)
+        Map<String, String> nextMap = new HashMap<>();
+        for (Object[] row : rows) {
+            String id = (String) row[0];
+            String previousId = (String) row[1];
+            previousMap.put(id, previousId);
+            if (previousId != null && !previousId.isEmpty()) {
+                nextMap.put(previousId, id);
+            }
+        }
+
+        if (!previousMap.containsKey(startingJournalId)) {
+            return new ArrayList<>(); // starting journal not found
+        }
+
+        // Use a set to track visited journals and prevent infinite loops
+        Set<String> visited = new LinkedHashSet<>();
+
+        // Walk backwards (ancestors)
+        String currentJournalId = startingJournalId;
+        int maxIterations = 1000;
+        int iterations = 0;
+        while (currentJournalId != null && !currentJournalId.isEmpty()
+                && previousMap.containsKey(currentJournalId)
+                && !visited.contains(currentJournalId)
+                && iterations < maxIterations) {
+            visited.add(currentJournalId);
+            currentJournalId = previousMap.get(currentJournalId);
+            iterations++;
+        }
+
+        // Walk forwards (descendants) from the starting journal
+        currentJournalId = nextMap.get(startingJournalId);
+        while (currentJournalId != null && !currentJournalId.isEmpty()
+                && previousMap.containsKey(currentJournalId)
+                && !visited.contains(currentJournalId)
+                && iterations < maxIterations) {
+            visited.add(currentJournalId);
+            currentJournalId = nextMap.get(currentJournalId);
+            iterations++;
+        }
+
+        return new ArrayList<>(visited);
+    }
+
     /**
      * Deletes all data from the database using cascade deletion.
      * Useful for testing.

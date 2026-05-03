@@ -1,10 +1,11 @@
-import { Component, OnInit, inject, effect } from '@angular/core';
+import { Component, OnInit, inject, effect, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
-import { Controller, AccountTreeNode, JournalMetadataDTO, TransactionDTO } from '../controller';
+import { Controller, AccountTreeNode, JournalMetadataDTO, TransactionDTO, TagDTO } from '../controller';
 import { ModelService } from '../model.service';
 import { AccountService } from '../account.service';
 import { AccountEditModalComponent } from '../account-edit-modal/account-edit-modal.component';
+import { FilterInputComponent } from '../journal/filter-input/filter-input.component';
 
 interface FlattenedAccount {
   id: string;
@@ -19,7 +20,7 @@ interface FlattenedAccount {
 @Component({
   selector: 'app-accounts-table',
   standalone: true,
-  imports: [CommonModule, RouterLink, AccountEditModalComponent],
+  imports: [CommonModule, RouterLink, AccountEditModalComponent, FilterInputComponent],
   templateUrl: './accounts-table.component.html',
   styleUrl: './accounts-table.component.scss'
 })
@@ -35,6 +36,13 @@ export class AccountsTableComponent implements OnInit {
   journalMetadata: JournalMetadataDTO | null = null;
   accountBalances: Map<string, number> = new Map();
 
+  // Filter — pre-load from storage so the effect and FilterInputComponent agree on the initial value
+  filterString: string = (() => {
+    try { return localStorage.getItem('abstraccount:globalEql') ?? ''; } catch { return ''; }
+  })();
+  private filterInitialized = false;
+  tags: TagDTO[] = [];
+
   // Modal state
   showModal = false;
   modalAccountId: string | null = null;
@@ -43,10 +51,15 @@ export class AccountsTableComponent implements OnInit {
   // Context menu state
   openMenuId: string | null = null;
 
+  @ViewChild(FilterInputComponent) filterInput!: FilterInputComponent;
+
   // Collapse state
   collapsedIds: Set<string> = new Set();
   private accountNameById: Map<string, string> = new Map();
   private parentMap: Map<string, string | null> = new Map();
+
+  // Hide zero-balance accounts toggle
+  hideZeroBalance = false;
 
   flattenedAccounts: FlattenedAccount[] = [];
 
@@ -56,6 +69,7 @@ export class AccountsTableComponent implements OnInit {
 
       if (journalId) {
         this.loadAccounts();
+        this.loadTags();
       } else {
         this.error = null;
       }
@@ -68,6 +82,29 @@ export class AccountsTableComponent implements OnInit {
 
   async ngOnInit() {
     // Accounts will be loaded by the effect when journal is available
+    // If FilterInputComponent had nothing in localStorage it will not emit filterChange,
+    // so we must trigger the initial load ourselves.
+    if (!this.filterInitialized && this.modelService.getSelectedJournalId()) {
+      this.filterInitialized = true;
+    }
+  }
+
+  async loadTags(): Promise<void> {
+    const journalId = this.modelService.getSelectedJournalId();
+    if (!journalId) return;
+
+    try {
+      this.tags = await this.controller.getTags(journalId);
+    } catch (err: any) {
+      console.error('Failed to load tags:', err);
+      this.tags = [];
+    }
+  }
+
+  onFilterChange(filter: string): void {
+    this.filterString = filter;
+    this.filterInitialized = true;
+    setTimeout(() => this.loadAccounts());
   }
 
   async loadAccounts() {
@@ -85,13 +122,21 @@ export class AccountsTableComponent implements OnInit {
 
       const [metadata, transactions] = await Promise.all([
         this.controller.getJournalMetadata(journalId),
-        this.controller.getTransactions(journalId)
+        this.controller.getTransactions(
+          journalId,
+          undefined, // startDate (handled by filter)
+          undefined, // endDate (handled by filter)
+          undefined, // partnerId
+          undefined, // status
+          this.filterString || undefined
+        )
       ]);
       this.journalMetadata = metadata;
       this.accountBalances = this.computeAccountBalances(transactions);
       this.buildParentMap(this.accounts());
       this.accountNameById = this.buildNameMap(this.accounts());
       this.restoreCollapsedFromStorage();
+      this.restoreHideZeroBalanceFromStorage();
       this.flattenAccounts();
     } catch (error) {
       console.error('Error loading accounts:', error);
@@ -104,6 +149,59 @@ export class AccountsTableComponent implements OnInit {
   private localStorageKey(): string {
     const journalId = this.modelService.getSelectedJournalId() ?? 'default';
     return `collapsed-accounts-table:${journalId}`;
+  }
+
+  private hideZeroBalanceKey(): string {
+    const journalId = this.modelService.getSelectedJournalId() ?? 'default';
+    return `hide-zero-balance:${journalId}`;
+  }
+
+  private restoreHideZeroBalanceFromStorage(): void {
+    try {
+      const stored = localStorage.getItem(this.hideZeroBalanceKey());
+      this.hideZeroBalance = stored === 'true';
+    } catch {
+      this.hideZeroBalance = false;
+    }
+  }
+
+  private persistHideZeroBalanceToStorage(): void {
+    try {
+      localStorage.setItem(this.hideZeroBalanceKey(), String(this.hideZeroBalance));
+    } catch {
+      // localStorage unavailable — silently ignore
+    }
+  }
+
+  toggleHideZeroBalance(): void {
+    this.hideZeroBalance = !this.hideZeroBalance;
+    this.persistHideZeroBalanceToStorage();
+  }
+
+  private getSubtreeBalance(accountId: string): number {
+    const node = this.findAccountTreeNode(accountId);
+    if (!node) return this.accountBalances.get(accountId) ?? 0;
+    return this.getSubtreeBalanceRecursive(node);
+  }
+
+  isZeroBalance(account: FlattenedAccount): boolean {
+    const balance = this.getDisplayBalance(account.id);
+    const isZero = Math.abs(balance) < 0.0001;
+    return isZero;
+  }
+
+  shouldShowAccount(account: FlattenedAccount): boolean {
+    // First check if hidden by collapsed ancestor
+    if (this.isHiddenByCollapsedAncestor(account)) {
+      return false;
+    }
+
+    // If hideZeroBalance is enabled, check if this account has zero balance
+    if (this.hideZeroBalance && this.isZeroBalance(account)) {
+      return false;
+    }
+
+    return true;
   }
 
   private restoreCollapsedFromStorage(): void {

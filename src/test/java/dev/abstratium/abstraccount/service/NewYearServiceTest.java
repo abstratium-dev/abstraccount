@@ -240,7 +240,8 @@ class NewYearServiceTest {
             sourceJournalId,
             "Test Journal 2026",
             openingDate,
-            "3:2970"  // Retained earnings account (optional, for profit/loss transfer)
+            "3:2970",  // Retained earnings account (optional, for profit/loss transfer)
+            null
         );
 
         // Then
@@ -278,7 +279,8 @@ class NewYearServiceTest {
             sourceJournalId,
             null,
             openingDate,
-            "3:2970"  // Retained earnings account (optional, for profit/loss transfer)
+            "3:2970",  // Retained earnings account (optional, for profit/loss transfer)
+            null
         );
 
         // Then
@@ -297,7 +299,8 @@ class NewYearServiceTest {
             sourceJournalId,
             "New Journal",
             openingDate,
-            "99:9999"  // Invalid code path - should just warn
+            "99:9999",  // Invalid code path - should just warn
+            null
         );
 
         // Then
@@ -319,6 +322,7 @@ class NewYearServiceTest {
                 "non-existent-id",
                 "New Journal",
                 openingDate,
+                null,
                 null
             );
         });
@@ -337,7 +341,8 @@ class NewYearServiceTest {
             sourceJournalId,
             newTitle,
             openingDate,
-            "3:2970"  // Retained earnings account (optional, for profit/loss transfer)
+            "3:2970",  // Retained earnings account (optional, for profit/loss transfer)
+            null
         );
 
         // Then
@@ -353,6 +358,8 @@ class NewYearServiceTest {
         assertEquals(newTitle, newJournal.getTitle());
         // Verify currency was copied (from the source journal entity we created)
         assertEquals("CHF", newJournal.getCurrency());
+        // Verify the link to the previous journal is recorded
+        assertEquals(sourceJournalId, newJournal.getPreviousJournalId());
 
         // Verify accounts were copied (all accounts including revenue/expense and 2979)
         List<AccountEntity> newAccounts = journalPersistenceService.loadAllAccounts(result.newJournalId());
@@ -385,6 +392,7 @@ class NewYearServiceTest {
                 "non-existent-id",
                 "New Journal",
                 openingDate,
+                null,
                 null
             );
         });
@@ -402,7 +410,8 @@ class NewYearServiceTest {
             sourceJournalId,
             "Test Journal 2026",
             openingDate,
-            "3:2970"  // Retained earnings account (optional, for profit/loss transfer)
+            "3:2970",  // Retained earnings account (optional, for profit/loss transfer)
+            null
         );
 
         // Then
@@ -435,7 +444,8 @@ class NewYearServiceTest {
             sourceJournalId,
             "Test Journal 2026",
             openingDate,
-            "3:2970"  // Retained earnings account (optional, for profit/loss transfer)
+            "3:2970",  // Retained earnings account (optional, for profit/loss transfer)
+            null
         );
 
         // Then
@@ -460,7 +470,8 @@ class NewYearServiceTest {
             sourceJournalId,
             "Test Journal 2026",
             openingDate,
-            "3:2970"  // Retained earnings account (optional, for profit/loss transfer)
+            "3:2970",  // Retained earnings account (optional, for profit/loss transfer)
+            null
         );
 
         // Then
@@ -494,7 +505,8 @@ class NewYearServiceTest {
             sourceJournalId,
             "Test Journal 2026",
             openingDate,
-            null // No retained earnings account needed for opening balances
+            null, // No retained earnings account needed for opening balances
+            null
         );
 
         // Then
@@ -534,7 +546,8 @@ class NewYearServiceTest {
             sourceJournalId,
             "Test Journal 2026",
             openingDate,
-            "3:2970" // Retained earnings account for profit/loss transfer
+            "3:2970", // Retained earnings account for profit/loss transfer
+            "3:2979"  // Annual profit/loss account
         );
 
         // Then
@@ -586,7 +599,8 @@ class NewYearServiceTest {
             sourceJournalId,
             "Test Journal 2026",
             openingDate,
-            null // No retained earnings account
+            null, // No retained earnings account
+            null
         );
 
         // Then

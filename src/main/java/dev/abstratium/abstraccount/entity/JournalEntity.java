@@ -28,7 +28,10 @@ public class JournalEntity {
     
     @Column(length = 10)
     private String currency;
-    
+
+    @Column(name = "previous_journal_id", length = 36)
+    private String previousJournalId;
+
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "T_journal_commodity", joinColumns = @JoinColumn(name = "journal_id"))
     @MapKeyColumn(name = "commodity_code")
@@ -80,6 +83,14 @@ public class JournalEntity {
     }
     
     
+    public String getPreviousJournalId() {
+        return previousJournalId;
+    }
+
+    public void setPreviousJournalId(String previousJournalId) {
+        this.previousJournalId = previousJournalId;
+    }
+
     public Map<String, String> getCommodities() {
         return commodities;
     }

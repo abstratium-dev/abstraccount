@@ -1,8 +1,10 @@
 package dev.abstratium.abstraccount.service;
 
+import dev.abstratium.abstraccount.entity.JournalEntity;
 import dev.abstratium.abstraccount.entity.MacroEntity;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
+import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -19,10 +21,13 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @QuarkusTest
 public class MacroServiceExecutionTest {
-    
+
     @Inject
     MacroService macroService;
-    
+
+    @Inject
+    EntityManager em;
+
     private String testJournalId;
     private String testMacroId;
     
@@ -205,5 +210,117 @@ public class MacroServiceExecutionTest {
         BigDecimal result = macroService.evaluateExpression("a - b", params);
         assertTrue(result.compareTo(BigDecimal.ZERO) < 0);
         assertEquals(new BigDecimal("-50"), result);
+    }
+
+    @Test
+    @Transactional
+    public void testExecuteMacro_nextInvoiceNumberContinuesAcrossJournalChain() {
+        // Create parent journal
+        String parentJournalId = UUID.randomUUID().toString();
+        createJournal(parentJournalId, null);
+
+        // Create child journal linked to parent
+        String childJournalId = UUID.randomUUID().toString();
+        createJournal(childJournalId, parentJournalId);
+
+        // Create a transaction with an invoice in the parent journal
+        createTransactionWithInvoice(parentJournalId, "PI00000005");
+
+        // Create a macro that uses {next_invoice_PI}
+        MacroEntity macro = new MacroEntity();
+        macro.setId(UUID.randomUUID().toString());
+        macro.setName("InvoiceChainTest");
+        macro.setDescription("Test invoice number continuation across chain");
+        macro.setTemplate("{date} * Partner | Invoice {next_invoice_PI}");
+        macro.setParameters("[]");
+        macro.setCreatedDate(LocalDateTime.now());
+        macro.setModifiedDate(LocalDateTime.now());
+
+        MacroEntity created = macroService.createMacro(macro);
+
+        // Execute macro in child journal - should get PI00000006 (continuing from parent)
+        Map<String, String> parameters = new HashMap<>();
+        parameters.put("date", "2024-01-15");
+
+        String result = macroService.executeMacro(created, parameters, childJournalId);
+
+        // Should generate PI00000006 since parent journal has PI00000005
+        assertTrue(result.contains("PI00000006"),
+            "Next invoice number should continue from parent journal's highest invoice (PI00000005 -> PI00000006)");
+    }
+
+    @Test
+    @Transactional
+    public void testExecuteMacro_nextInvoiceNumberFindsHighestAcrossChain() {
+        // Create parent journal with high invoice number
+        String parentJournalId = UUID.randomUUID().toString();
+        createJournal(parentJournalId, null);
+
+        // Create child journal linked to parent
+        String childJournalId = UUID.randomUUID().toString();
+        createJournal(childJournalId, parentJournalId);
+
+        // Create a transaction with invoice in parent (high number)
+        createTransactionWithInvoice(parentJournalId, "SI00000999");
+
+        // Create a transaction with invoice in child (lower number)
+        createTransactionWithInvoice(childJournalId, "SI00000001");
+
+        // Create a macro that uses {next_invoice_SI}
+        MacroEntity macro = new MacroEntity();
+        macro.setId(UUID.randomUUID().toString());
+        macro.setName("InvoiceHighestTest");
+        macro.setDescription("Test that highest invoice is found across chain");
+        macro.setTemplate("{date} * Partner | Invoice {next_invoice_SI}");
+        macro.setParameters("[]");
+        macro.setCreatedDate(LocalDateTime.now());
+        macro.setModifiedDate(LocalDateTime.now());
+
+        MacroEntity created = macroService.createMacro(macro);
+
+        // Execute macro in child journal - should get SI00001000 (continuing from parent's 999)
+        Map<String, String> parameters = new HashMap<>();
+        parameters.put("date", "2024-01-15");
+
+        String result = macroService.executeMacro(created, parameters, childJournalId);
+
+        // Should generate SI00001000 since parent has SI00000999 (highest across chain)
+        assertTrue(result.contains("SI00001000"),
+            "Next invoice number should be based on highest across chain (SI00000999 -> SI00001000)");
+    }
+
+    private void createJournal(String journalId, String previousJournalId) {
+        JournalEntity journal = new JournalEntity();
+        journal.setId(journalId);
+        journal.setTitle("Test Journal");
+        journal.setCurrency("CHF");
+        journal.setPreviousJournalId(previousJournalId);
+        em.persist(journal);
+        em.flush();
+    }
+
+    private void createTransactionWithInvoice(String journalId, String invoiceNumber) {
+        String transactionId = UUID.randomUUID().toString();
+
+        // Insert transaction
+        em.createNativeQuery(
+            "INSERT INTO T_transaction (id, journal_id, transaction_date, description, status) " +
+            "VALUES (:id, :journalId, :date, :description, :status)")
+            .setParameter("id", transactionId)
+            .setParameter("journalId", journalId)
+            .setParameter("date", java.sql.Date.valueOf(LocalDate.now()))
+            .setParameter("description", "Test transaction")
+            .setParameter("status", "*")
+            .executeUpdate();
+
+        // Insert invoice tag
+        em.createNativeQuery(
+            "INSERT INTO T_tag (id, transaction_id, tag_key, tag_value) " +
+            "VALUES (:id, :transactionId, :tagKey, :tagValue)")
+            .setParameter("id", UUID.randomUUID().toString())
+            .setParameter("transactionId", transactionId)
+            .setParameter("tagKey", "invoice")
+            .setParameter("tagValue", invoiceNumber)
+            .executeUpdate();
     }
 }

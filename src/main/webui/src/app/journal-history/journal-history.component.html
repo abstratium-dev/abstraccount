@@ -1,0 +1,83 @@
+<div class="history-container">
+  <h2>Journal History</h2>
+
+  @if (loading) {
+    <div class="loading-message">Loading journal history…</div>
+  } @else if (error) {
+    <div class="error-message">{{ error }}</div>
+  } @else if (entries.length === 0) {
+    <div class="empty-message">No journal history found.</div>
+  } @else {
+    <p class="description">
+      Showing {{ entries.length }} journal{{ entries.length === 1 ? '' : 's' }} in chronological order, oldest first.
+    </p>
+
+    <div class="tiles">
+      @for (entry of entries; track entry.journal.id) {
+        <div class="tile" [class.tile-current]="entry.journal.id === selectedJournalId"
+             (click)="selectJournal(entry.journal.id)" title="Click to load this journal">
+          <div class="tile-header">
+            @if (entry.journal.logo) {
+              <img [src]="entry.journal.logo" alt="Journal logo" class="tile-logo">
+            }
+            <div class="tile-titles">
+              <div class="tile-title">{{ entry.journal.title }}</div>
+              @if (entry.journal.subtitle) {
+                <div class="tile-subtitle">{{ entry.journal.subtitle }}</div>
+              }
+              <div class="tile-currency">{{ entry.journal.currency }}</div>
+              <span class="current-badge" [class.invisible]="entry.journal.id !== selectedJournalId">current</span>
+            </div>
+          </div>
+
+          <div class="tile-body">
+            @if (entry.kpiLoading) {
+              <div class="kpi-loading">Loading figures…</div>
+            } @else if (entry.kpiError) {
+              <div class="kpi-error">Could not load figures.</div>
+            } @else if (entry.kpi) {
+              <table class="kpi-table">
+                <tbody>
+                  <tr class="kpi-section-header">
+                    <td colspan="2">Balance Sheet</td>
+                  </tr>
+                  <tr>
+                    <td>Assets</td>
+                    <td class="kpi-value positive">{{ formatAmount(entry.kpi.totalAssets, entry.kpi.currency) }}</td>
+                  </tr>
+                  <tr>
+                    <td>Liabilities</td>
+                    <td class="kpi-value" [class.negative]="entry.kpi.totalLiabilities < 0">{{ formatAmount(entry.kpi.totalLiabilities, entry.kpi.currency) }}</td>
+                  </tr>
+                  <tr>
+                    <td>Equity</td>
+                    <td class="kpi-value" [class.negative]="entry.kpi.totalEquity < 0">{{ formatAmount(entry.kpi.totalEquity, entry.kpi.currency) }}</td>
+                  </tr>
+                  <tr class="kpi-net">
+                    <td>Net (Assets + Liab.)</td>
+                    <td class="kpi-value" [class.negative]="netAssets(entry.kpi) < 0">{{ formatAmount(netAssets(entry.kpi), entry.kpi.currency) }}</td>
+                  </tr>
+                  <tr class="kpi-section-header">
+                    <td colspan="2">Income Statement</td>
+                  </tr>
+                  <tr>
+                    <td>Revenue</td>
+                    <td class="kpi-value" [class.negative]="entry.kpi.totalRevenue > 0">{{ formatAmount(entry.kpi.totalRevenue, entry.kpi.currency) }}</td>
+                  </tr>
+                  <tr>
+                    <td>Expenses</td>
+                    <td class="kpi-value" [class.negative]="entry.kpi.totalExpenses > 0">{{ formatAmount(entry.kpi.totalExpenses, entry.kpi.currency) }}</td>
+                  </tr>
+                  <tr class="kpi-net" [class.negative]="profitLoss(entry.kpi) < 0">
+                    <td>Profit / Loss</td>
+                    <td class="kpi-value">{{ formatAmount(profitLoss(entry.kpi), entry.kpi.currency) }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            }
+          </div>
+        </div>
+      }
+    </div>
+  }
+</div>

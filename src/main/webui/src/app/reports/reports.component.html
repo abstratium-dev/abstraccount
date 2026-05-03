@@ -38,7 +38,7 @@
 
     <div class="form-group checkbox-group">
       <label for="hide-zero-balances">
-        Hide zero-balance accounts
+        Hide zero-balance rows
       </label>
       <input
         id="hide-zero-balances"
@@ -56,7 +56,7 @@
       @if(filterText) {
         <div><strong>Applied filter:</strong> {{ filterText }}</div>
       }
-      <div><strong>Hide zero-balance accounts:</strong> {{ hideZeroBalances ? 'Yes' : 'No' }}</div>
+      <div><strong>Hide zero-balance rows:</strong> {{ hideZeroBalances ? 'Yes' : 'No' }}</div>
     </div>
   </div>
 
@@ -74,6 +74,127 @@
       <h2 *ngIf="section.level === 2">{{ section.title }}</h2>
       <h3 *ngIf="section.level === 3 || !section.level">{{ section.title }}</h3>
       <h4 *ngIf="section.level === 4">{{ section.title }}</h4>
+
+      <!-- Tag Group report (e.g., unpaid invoices) -->
+      <div *ngIf="section.tagGroups && section.tagGroups.length > 0" class="tag-groups-container">
+        <table class="report-table tag-groups-summary">
+          <thead>
+            <tr>
+              <th [class.sortable]="section.sortable" (click)="section.sortable && onTagGroupSort(reportSections.indexOf(section), 'tagValue')">
+                Invoice #{{ getSortIndicator(section, 'tagValue') }}
+              </th>
+              <th [class.sortable]="section.sortable" (click)="section.sortable && onTagGroupSort(reportSections.indexOf(section), 'date')">
+                Date{{ getSortIndicator(section, 'date') }}
+              </th>
+              <th [class.sortable]="section.sortable" (click)="section.sortable && onTagGroupSort(reportSections.indexOf(section), 'partnerName')">
+                Partner{{ getSortIndicator(section, 'partnerName') }}
+              </th>
+              <th class="amount-column" [class.sortable]="section.sortable" (click)="section.sortable && onTagGroupSort(reportSections.indexOf(section), 'net')">
+                Balance{{ getSortIndicator(section, 'net') }}
+              </th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let group of section.tagGroups" class="tag-group-row">
+              <td><strong>{{ group.tagValue }}</strong></td>
+              <td>{{ group.firstDate }}</td>
+              <td>
+                <span *ngIf="group.partnerId">{{ group.partnerId }} - {{ group.partnerName || group.partnerId }}</span>
+                <span *ngIf="!group.partnerId">-</span>
+              </td>
+              <td class="amount-column" [class.negative]="group.netAmount > 0">
+                {{ formatCurrencyWithCommodity(group.netAmount, group.commodity || section.commodity) }}
+              </td>
+              <td>
+                <span class="status-badge" [class.status-underpaid]="getTagGroupStatus(group.netAmount).cssClass === 'status-underpaid'" [class.status-overpaid]="getTagGroupStatus(group.netAmount).cssClass === 'status-overpaid'">
+                  {{ getTagGroupStatus(group.netAmount).text }}
+                </span>
+              </td>
+            </tr>
+          </tbody>
+          <tfoot *ngIf="section.tagGroups.length > 0">
+            <tr class="subtotal-row">
+              <td colspan="3"><strong>Total Balance</strong></td>
+              <td class="amount-column"><strong>{{ formatCurrencyWithCommodity(section.subtotal, section.commodity) }}</strong></td>
+              <td></td>
+            </tr>
+          </tfoot>
+        </table>
+
+        <!-- Full transaction details for each group -->
+        <div *ngFor="let group of section.tagGroups" class="tag-group-detail">
+          <h4 class="tag-group-header">{{ group.tagValue }} - Transactions</h4>
+          <table class="report-table transaction-detail-table">
+            <thead>
+              <tr>
+                <th style="width: 120px">Date</th>
+                <th style="width: 150px">Partner</th>
+                <th>Description</th>
+                <th style="width: 120px; white-space: normal; line-height: 1.4">Journal</th>
+                <th style="width: 120px">Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              <ng-container *ngFor="let tx of group.transactions">
+                <!-- Transaction Header Row -->
+                <tr class="transaction-row">
+                  <td>{{ tx.date }}</td>
+                  <td>
+                    <span *ngIf="tx.partnerId">{{ tx.partnerId }} - {{ tx.partnerName || tx.partnerId }}</span>
+                  </td>
+                  <td>{{ tx.description }}</td>
+                  <td class="journal-cell" [class.previous-journal]="tx.journalId !== modelService.getSelectedJournalId()">
+                    <span class="journal-name" title="{{ tx.journalName }}">{{ tx.journalName || tx.journalId }}</span>
+                  </td>
+                  <td></td>
+                </tr>
+                <!-- Tags Sub-row -->
+                <tr *ngIf="tx.tags.length > 0" class="sub-row tags-row">
+                  <td></td>
+                  <td></td>
+                  <td class="tags-cell">
+                    <span *ngFor="let tag of tx.tags" class="badge badge-secondary" style="margin-right: 0.5rem">
+                      {{ tag.value ? tag.key + ':' + tag.value : tag.key }}
+                    </span>
+                  </td>
+                  <td></td>
+                  <td></td>
+                </tr>
+                <!-- Entry Sub-rows -->
+                <tr *ngFor="let entry of tx.entries" class="sub-row entry-row">
+                  <td></td>
+                  <td></td>
+                  <td class="entry-description">
+                    <span class="entry-account-path">
+                      @for (segment of accountService.buildHierarchicalPath(entry.accountId, modelService.getAccounts()); track segment.id; let isLast = $last) {
+                        @if (!isLast) {
+                          <span class="path-segment">{{ segment.number }}</span>
+                          <span class="path-separator">:</span>
+                        }
+                      }
+                      @if(entry.accountName.indexOf(' ') > 0) {
+                        <span class="path-segment">{{ entry.accountName.substring(0, entry.accountName.indexOf(' ')) }}</span>
+                      }
+                    </span>
+                    @if(entry.accountName.indexOf(' ') > 0) {
+                      <span class="entry-account-name">{{ entry.accountName.substring(entry.accountName.indexOf(' ')) }}</span>
+                    } @else {
+                      <span class="entry-account-name">{{ entry.accountName }}</span>
+                    }
+                  </td>
+                  <td></td>
+                  <td class="amount-column"
+                      [style.color]="entry.amount < 0 ? 'var(--color-error)' : 'var(--color-text-primary)'"
+                      style="font-family: monospace">
+                    {{ formatCurrency(entry.amount) }} {{ entry.commodity }}
+                  </td>
+                </tr>
+              </ng-container>
+            </tbody>
+          </table>
+        </div>
+      </div>
 
       <!-- Partner details table -->
       <table *ngIf="section.groupByPartner && section.partners && section.partners.length > 0" class="report-table">

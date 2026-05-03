@@ -181,6 +181,7 @@ public class NewYearService {
         newJournal.setSubtitle(sourceJournal.getSubtitle());
         newJournal.setCurrency(sourceJournal.getCurrency());
         newJournal.setCommodities(new HashMap<>(sourceJournal.getCommodities()));
+        newJournal.setPreviousJournalId(sourceJournalId);
         em.persist(newJournal);
         LOG.debugf("Created new journal: %s (%s)", newJournal.getTitle(), newJournal.getId());
 

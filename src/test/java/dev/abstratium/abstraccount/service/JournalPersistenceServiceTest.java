@@ -974,6 +974,112 @@ class JournalPersistenceServiceTest {
         return service.saveAccount(account);
     }
 
+    @Test
+    void testGetJournalChainIds_singleJournal() {
+        // The setUp already created a journal with no previous link
+        List<String> chain = service.getJournalChainIds(testJournalId);
+        assertEquals(1, chain.size());
+        assertEquals(testJournalId, chain.get(0));
+    }
+
+    @Test
+    void testGetJournalChainIds_chainOfThree_startFromChild() {
+        // Create grandparent -> parent -> child chain
+        JournalEntity grandparent = new JournalEntity();
+        grandparent.setTitle("Grandparent");
+        grandparent.setCurrency("CHF");
+        grandparent = service.saveJournal(grandparent);
+
+        JournalEntity parent = new JournalEntity();
+        parent.setTitle("Parent");
+        parent.setCurrency("CHF");
+        parent.setPreviousJournalId(grandparent.getId());
+        parent = service.saveJournal(parent);
+
+        JournalEntity child = new JournalEntity();
+        child.setTitle("Child");
+        child.setCurrency("CHF");
+        child.setPreviousJournalId(parent.getId());
+        child = service.saveJournal(child);
+
+        // Starting from child should find all 3 journals (+ setUp journal = 4 total, but chain only has 3)
+        List<String> chain = service.getJournalChainIds(child.getId());
+        assertEquals(3, chain.size());
+        assertTrue(chain.contains(child.getId()));
+        assertTrue(chain.contains(parent.getId()));
+        assertTrue(chain.contains(grandparent.getId()));
+    }
+
+    @Test
+    void testGetJournalChainIds_chainOfThree_startFromMiddle() {
+        service.deleteAll();
+        // Create grandparent -> parent -> child chain
+        JournalEntity grandparent = new JournalEntity();
+        grandparent.setTitle("Grandparent");
+        grandparent.setCurrency("CHF");
+        grandparent = service.saveJournal(grandparent);
+
+        JournalEntity parent = new JournalEntity();
+        parent.setTitle("Parent");
+        parent.setCurrency("CHF");
+        parent.setPreviousJournalId(grandparent.getId());
+        parent = service.saveJournal(parent);
+
+        JournalEntity child = new JournalEntity();
+        child.setTitle("Child");
+        child.setCurrency("CHF");
+        child.setPreviousJournalId(parent.getId());
+        child = service.saveJournal(child);
+
+        // Starting from parent (middle) should still find all 3 journals
+        List<String> chain = service.getJournalChainIds(parent.getId());
+        assertEquals(3, chain.size());
+        assertTrue(chain.contains(child.getId()));
+        assertTrue(chain.contains(parent.getId()));
+        assertTrue(chain.contains(grandparent.getId()));
+    }
+
+    @Test
+    void testGetJournalChainIds_chainOfThree_startFromRoot() {
+        service.deleteAll();
+        // Create grandparent -> parent -> child chain
+        JournalEntity grandparent = new JournalEntity();
+        grandparent.setTitle("Grandparent");
+        grandparent.setCurrency("CHF");
+        grandparent = service.saveJournal(grandparent);
+
+        JournalEntity parent = new JournalEntity();
+        parent.setTitle("Parent");
+        parent.setCurrency("CHF");
+        parent.setPreviousJournalId(grandparent.getId());
+        parent = service.saveJournal(parent);
+
+        JournalEntity child = new JournalEntity();
+        child.setTitle("Child");
+        child.setCurrency("CHF");
+        child.setPreviousJournalId(parent.getId());
+        child = service.saveJournal(child);
+
+        // Starting from grandparent (root) should still find all 3 journals
+        List<String> chain = service.getJournalChainIds(grandparent.getId());
+        assertEquals(3, chain.size());
+        assertTrue(chain.contains(child.getId()));
+        assertTrue(chain.contains(parent.getId()));
+        assertTrue(chain.contains(grandparent.getId()));
+    }
+
+    @Test
+    void testGetJournalChainIds_nullAndEmptyInput() {
+        assertTrue(service.getJournalChainIds(null).isEmpty());
+        assertTrue(service.getJournalChainIds("").isEmpty());
+    }
+
+    @Test
+    void testGetJournalChainIds_nonExistentJournal() {
+        List<String> chain = service.getJournalChainIds("non-existent-id");
+        assertTrue(chain.isEmpty());
+    }
+
     // Helper method to create a simple transaction with one entry
     private void createTransactionWithentry(LocalDate date, String accountNumber, String amount) {
         // Create account first

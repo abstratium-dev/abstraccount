@@ -2,11 +2,11 @@ import { Component, inject, OnInit, Signal, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { Controller, ReportTemplate, AccountEntryDTO, AccountTreeNode, TagDTO } from '../controller';
+import { Controller, ReportTemplate, AccountEntryDTO, AccountTreeNode, TagDTO, TransactionDTO } from '../controller';
 import { ModelService } from '../model.service';
 import { AccountService } from '../account.service';
-import { ReportConfig, ReportSection, ReportSectionResult, AccountSummary, PartnerSummary } from './reporting-types';
-import { createReportingContext, groupEntriesByAccount } from './reporting-context';
+import { ReportConfig, ReportSection, ReportSectionResult, AccountSummary, PartnerSummary, TagGroup } from './reporting-types';
+import { createReportingContext, groupEntriesByAccount, groupTransactionsByTag } from './reporting-context';
 import { FilterInputComponent } from '../journal/filter-input/filter-input.component';
 
 @Component({
@@ -33,6 +33,7 @@ export class ReportsComponent implements OnInit {
   
   // Report data
   entries: AccountEntryDTO[] = [];
+  transactions: TransactionDTO[] = [];
   reportSections: ReportSectionResult[] = [];
   tags: TagDTO[] = [];
   
@@ -214,18 +215,57 @@ export class ReportsComponent implements OnInit {
         return;
       }
 
-      // Load all entries for the selected journal with filters
-      this.entries = await this.controller.getEntriesForReport(
-        journalId,
-        this.startDate || undefined,
-        this.endDate || undefined,
-        undefined, // accountTypes
-        this.filterText || undefined
-      );
+      // Parse template configuration first to check if we need journal chain
+      const config: ReportConfig = JSON.parse(this.selectedTemplate.templateContent);
       
-      // Load account tree and tags
-      const accounts = await this.controller.getAccountTree(journalId);
-      this.tags = await this.controller.getTags(journalId);
+      // Check if any section requires loading from the entire journal chain
+      const useJournalChain = config.sections.some(s => s.useJournalChain);
+      
+      let accounts: AccountTreeNode[];
+      
+      if (useJournalChain) {
+        // Load ALL journals first to ensure we have the complete chain
+        const allJournals = await this.controller.listJournals();
+        console.log('Loaded all journals:', allJournals.length, allJournals.map(j => ({ id: j.id, previous: j.previousJournalId })));
+        
+        // Get all journals in the chain
+        const chainIds = this.getJournalChainIds(journalId, allJournals);
+        console.log('Report loading for journal chain:', chainIds);
+
+        // Load and merge account trees from ALL journals in the chain
+        // (account UUIDs are different when journals are copied)
+        accounts = await this.loadAndMergeAccountsFromChain(chainIds);
+        console.log('Loaded merged accounts from chain:', accounts.length);
+        
+        // Load tags from all journals in the chain
+        this.tags = await this.loadTagsFromChain(chainIds);
+        console.log('Loaded tags from chain:', this.tags.length);
+
+        // Load transactions from entire journal chain
+        this.transactions = await this.loadTransactionsFromChain(chainIds, allJournals);
+      } else {
+        // Standard: load only from current journal
+        console.log('Report loading for current journal only:', journalId);
+        
+        accounts = await this.controller.getAccountTree(journalId);
+        console.log('Loaded accounts from current journal:', accounts.length);
+        
+        this.tags = await this.controller.getTags(journalId);
+        console.log('Loaded tags from current journal:', this.tags.length);
+        
+        this.transactions = await this.controller.getTransactions(
+          journalId,
+          this.startDate || undefined,
+          this.endDate || undefined,
+          undefined,
+          undefined,
+          this.filterText || undefined
+        );
+        console.log('Loaded transactions from current journal:', this.transactions.length);
+      }
+      
+      // For entries, flatten from all transactions
+      this.entries = this.flattenEntriesFromTransactions(this.transactions);
 
       // Create reporting context
       const context = createReportingContext(
@@ -234,9 +274,6 @@ export class ReportsComponent implements OnInit {
         this.startDate || null,
         this.endDate || null
       );
-
-      // Parse template configuration
-      const config: ReportConfig = JSON.parse(this.selectedTemplate.templateContent);
 
       // Process each section
       this.reportSections = [];
@@ -250,6 +287,194 @@ export class ReportsComponent implements OnInit {
     } finally {
       this.loading = false;
     }
+  }
+
+  /**
+   * Loads transactions from all journals in the chain.
+   */
+  private async loadTransactionsFromChain(chainIds: string[], journals: any[]): Promise<TransactionDTO[]> {
+    // Build a map of journal IDs to titles (journal has 'title' field, not 'name')
+    const journalMap = new Map(journals.map(j => [j.id, j.title || j.id]));
+    
+    // Load transactions from all journals in the chain
+    const allTransactions: TransactionDTO[] = [];
+    for (const id of chainIds) {
+      try {
+        console.log(`Loading transactions for journal ${id}...`);
+        const txs = await this.controller.getTransactions(
+          id,
+          this.startDate || undefined,
+          this.endDate || undefined,
+          undefined,
+          undefined,
+          this.filterText || undefined
+        );
+        console.log(`Loaded ${txs.length} transactions from journal ${id}`);
+        
+        // Add journal info to each transaction
+        const journalName = journalMap.get(id) || id;
+        for (const tx of txs) {
+          tx.journalId = id;
+          tx.journalName = journalName;
+        }
+        
+        allTransactions.push(...txs);
+      } catch (err) {
+        console.error(`Failed to load transactions for journal ${id}:`, err);
+      }
+    }
+    
+    console.log(`Total transactions loaded: ${allTransactions.length}`);
+    return allTransactions;
+  }
+
+  /**
+   * Gets all journal IDs in the chain from the root to the starting journal.
+   * Walks backwards to find the root, then builds the chain from root to current.
+   */
+  private getJournalChainIds(startingJournalId: string, journals: any[]): string[] {
+    console.log('getJournalChainIds input:', { startingJournalId, journalCount: journals.length, journals: journals.map(j => ({ id: j.id, previousJournalId: j.previousJournalId })) });
+    
+    const byId = new Map(journals.map(j => [j.id, j]));
+    const byPrevId = new Map(journals.filter(j => j.previousJournalId).map(j => [j.previousJournalId, j]));
+    
+    console.log('byId keys:', Array.from(byId.keys()));
+    console.log('byPrevId keys:', Array.from(byPrevId.keys()));
+    
+    // First, walk backwards to find the root (ultimate ancestor)
+    const visited = new Set<string>();
+    let currentId: string | null = startingJournalId;
+    let iterations = 0;
+    
+    while (currentId && !visited.has(currentId) && iterations < 100) {
+      visited.add(currentId);
+      const journal = byId.get(currentId);
+      console.log(`Walking backwards: currentId=${currentId}, found journal=${!!journal}, previousJournalId=${journal?.previousJournalId}`);
+      currentId = journal?.previousJournalId || null;
+      iterations++;
+    }
+    
+    const visitedArray = Array.from(visited);
+    console.log('Visited set after backwards walk:', visitedArray);
+    
+    // Find the root (the earliest ancestor - last journal visited in backwards walk)
+    // When walking backwards from current journal, the last one visited is the root
+    let rootId: string | null = visitedArray[visitedArray.length - 1] || null;
+    
+    // Verify: root should have no previousJournalId
+    const rootJournal = rootId ? byId.get(rootId) : null;
+    if (rootJournal?.previousJournalId) {
+      // If the last visited still has a parent, something is wrong - fall back to starting journal
+      console.warn('Last visited journal still has parent, using starting journal as root');
+      rootId = startingJournalId;
+    }
+    
+    console.log('Root ID found:', rootId);
+    
+    // If no root found, use the starting journal
+    if (!rootId) {
+      rootId = startingJournalId;
+    }
+    
+    // Walk forward from root to build the chain in chronological order
+    const chainIds: string[] = [];
+    const forwardVisited = new Set<string>();
+    currentId = rootId;
+    iterations = 0;
+    
+    while (currentId && !forwardVisited.has(currentId) && iterations < 100) {
+      chainIds.push(currentId);
+      forwardVisited.add(currentId);
+      // Find the next journal (the one that has currentId as its previousJournalId)
+      const nextJournal = journals.find(j => j.previousJournalId === currentId);
+      console.log(`Walking forward: currentId=${currentId}, nextJournal found=${!!nextJournal}, nextId=${nextJournal?.id}`);
+      currentId = nextJournal?.id || null;
+      iterations++;
+    }
+    
+    console.log('Final chainIds:', chainIds);
+    return chainIds;
+  }
+
+  /**
+   * Loads tags from all journals in the chain.
+   */
+  private async loadTagsFromChain(chainIds: string[]): Promise<TagDTO[]> {
+    const allTags: TagDTO[] = [];
+    const seenKeys = new Set<string>();
+    
+    for (const journalId of chainIds) {
+      try {
+        const tags = await this.controller.getTags(journalId);
+        for (const tag of tags) {
+          const tagKey = `${tag.key}:${tag.value}`;
+          if (!seenKeys.has(tagKey)) {
+            seenKeys.add(tagKey);
+            allTags.push(tag);
+          }
+        }
+      } catch (err) {
+        console.error(`Failed to load tags for journal ${journalId}:`, err);
+      }
+    }
+    
+    return allTags;
+  }
+
+  /**
+   * Flattens entries from transactions into AccountEntryDTO array.
+   */
+  private flattenEntriesFromTransactions(transactions: TransactionDTO[]): AccountEntryDTO[] {
+    const entries: AccountEntryDTO[] = [];
+    
+    for (const tx of transactions) {
+      for (const entry of tx.entries) {
+        entries.push({
+          entryId: entry.id,
+          transactionId: tx.id,
+          transactionDate: tx.date,
+          description: tx.description,
+          commodity: entry.commodity,
+          amount: entry.amount,
+          runningBalance: 0,
+          note: entry.note,
+          accountId: entry.accountId,
+          partnerId: tx.partnerId,
+          partnerName: tx.partnerName,
+          status: tx.status,
+          tags: tx.tags ?? []
+        });
+      }
+    }
+    
+    return entries;
+  }
+
+  /**
+   * Loads account trees from all journals in the chain and merges them.
+   * Since account UUIDs are different when journals are copied, we need all trees
+   * to properly look up account types and build hierarchical paths.
+   */
+  private async loadAndMergeAccountsFromChain(chainIds: string[]): Promise<AccountTreeNode[]> {
+    const allAccounts: AccountTreeNode[] = [];
+    const seenIds = new Set<string>();
+    
+    for (const journalId of chainIds) {
+      try {
+        const accounts = await this.controller.getAccountTree(journalId);
+        console.log(`Loaded ${accounts.length} accounts from journal ${journalId}`);
+        for (const account of accounts) {
+          if (!seenIds.has(account.id)) {
+            seenIds.add(account.id);
+            allAccounts.push(account);
+          }
+        }
+      } catch (err) {
+        console.error(`Failed to load accounts for journal ${journalId}:`, err);
+      }
+    }
+    
+    return allAccounts;
   }
 
   private groupEntriesByPartner(entries: AccountEntryDTO[], accounts: AccountTreeNode[], sortColumn?: string, sortDirection?: 'asc' | 'desc'): PartnerSummary[] {
@@ -316,6 +541,7 @@ export class ReportsComponent implements OnInit {
   ): ReportSectionResult {
     let accountSummaries: AccountSummary[] = [];
     let partnerSummaries: PartnerSummary[] | undefined = undefined;
+    let tagGroups: TagGroup[] | undefined = undefined;
     let subtotal = 0;
     let commodity = 'CHF'; // Default commodity
 
@@ -324,7 +550,33 @@ export class ReportsComponent implements OnInit {
       commodity = this.entries[0].commodity;
     }
 
-    if (section.groupByPartner) {
+    if (section.calculated === 'tagGrouped' && section.tagKey) {
+      // Tag grouped report - group transactions by tag value
+      console.log('Processing tagGrouped section:', {
+        tagKey: section.tagKey,
+        tagValuePrefix: section.tagValuePrefix,
+        transactionCount: this.transactions.length
+      });
+      tagGroups = groupTransactionsByTag(
+        this.transactions,
+        section.tagKey,
+        section.tagValuePrefix,
+        section.defaultSortColumn || 'net',
+        section.defaultSortDirection || 'desc',
+        section.balanceAccountIds,
+        section.balanceAccountRegex,
+        section.balanceAccountNameRegex,
+        accounts
+      );
+      
+      // Filter out zero-balance groups if requested
+      if (this.hideZeroBalances) {
+        tagGroups = tagGroups.filter(g => g.netAmount !== 0);
+      }
+      
+      console.log('Tag groups result:', tagGroups);
+      subtotal = tagGroups.reduce((sum, g) => sum + g.netAmount, 0);
+    } else if (section.groupByPartner) {
       // Group entries by partner with default sorting
       const sortColumn = section.defaultSortColumn || 'partnerName';
       const sortDirection = section.defaultSortDirection || 'asc';
@@ -413,6 +665,7 @@ export class ReportsComponent implements OnInit {
       level: section.level || 3,
       accounts: accountSummaries,
       partners: partnerSummaries,
+      tagGroups,
       subtotal,
       commodity,
       showDebitsCredits: section.showDebitsCredits || false,
@@ -423,6 +676,65 @@ export class ReportsComponent implements OnInit {
       sortColumn: section.defaultSortColumn || null,
       sortDirection: section.defaultSortDirection || 'asc'
     };
+  }
+
+  /**
+   * Returns the status text for a tag group based on net amount.
+   */
+  getTagGroupStatus(netAmount: number): { text: string; cssClass: string } {
+    if (netAmount > 0) {
+      return { text: 'underpaid', cssClass: 'status-underpaid' };
+    } else if (netAmount < 0) {
+      return { text: 'overpaid', cssClass: 'status-overpaid' };
+    }
+    return { text: '', cssClass: '' };
+  }
+
+  /**
+   * Sort tag groups by the specified column
+   */
+  private sortTagGroups(groups: TagGroup[], column: string, direction: 'asc' | 'desc') {
+    groups.sort((a, b) => {
+      let comparison = 0;
+      switch (column) {
+        case 'net':
+          comparison = a.netAmount - b.netAmount;
+          break;
+        case 'date':
+          comparison = a.firstDate.localeCompare(b.firstDate);
+          break;
+        case 'tagValue':
+          comparison = a.tagValue.localeCompare(b.tagValue);
+          break;
+        case 'partnerName':
+          comparison = (a.partnerName || '').localeCompare(b.partnerName || '');
+          break;
+        default:
+          comparison = a.netAmount - b.netAmount;
+      }
+      return direction === 'asc' ? comparison : -comparison;
+    });
+  }
+
+  /**
+   * Handle column header click for sorting tag groups
+   */
+  onTagGroupSort(sectionIndex: number, column: string) {
+    const section = this.reportSections[sectionIndex];
+    if (!section.sortable || !section.tagGroups) {
+      return;
+    }
+
+    // Toggle sort direction if clicking the same column
+    if (section.sortColumn === column) {
+      section.sortDirection = section.sortDirection === 'asc' ? 'desc' : 'asc';
+    } else {
+      section.sortColumn = column;
+      section.sortDirection = 'asc';
+    }
+
+    // Re-sort the data
+    this.sortTagGroups(section.tagGroups, section.sortColumn, section.sortDirection);
   }
 
   /**
