@@ -9,7 +9,7 @@ import { Page, expect } from '@playwright/test';
  */
 export async function waitForMacrosPage(page: Page): Promise<void> {
   console.log('Waiting for macros page to load...');
-  await page.waitForSelector('h1:has-text("Transaction Macros")', { timeout: 10000 });
+  await page.waitForSelector('h2:has-text("Transaction Macros")', { timeout: 10000 });
   console.log('Macros page loaded');
 }
 

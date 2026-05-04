@@ -27,7 +27,7 @@ function getHomeLink(page: Page) {
  * Gets the accounts link
  */
 function getAccountsLink(page: Page) {
-  return page.locator('#accounts');
+  return page.locator('#accounts-table');
 }
 
 /**
@@ -65,20 +65,26 @@ export async function selectJournal(page: Page, journalTitle: string) {
   const selector = getJournalSelector(page);
   await expect(selector).toBeVisible({ timeout: 10000 });
   
-  // Find the option that contains the journal title and select it by value
+  // Find all options matching the journal title and select the LAST one
+  // (most recently created) to avoid picking a stale journal from a previous test run
   const options = await selector.locator('option').all();
+  let lastMatchValue: string | null = null;
   for (const option of options) {
     const text = await option.textContent();
     if (text && text.includes(journalTitle)) {
       const value = await option.getAttribute('value');
       if (value) {
-        await selector.selectOption(value);
-        console.log(`Journal "${journalTitle}" selected`);
-        return;
+        lastMatchValue = value;
       }
     }
   }
-  
+
+  if (lastMatchValue) {
+    await selector.selectOption(lastMatchValue);
+    console.log(`Journal "${journalTitle}" selected (last matching option)`);
+    return;
+  }
+
   throw new Error(`Could not find journal with title: ${journalTitle}`);
 }
 
@@ -135,6 +141,12 @@ export async function clickHomeLink(page: Page) {
  */
 export async function clickSettingsLink(page: Page) {
   console.log('Clicking settings link...');
+  // First open the menu dropdown
+  const menuBtn = page.locator('.menu-btn');
+  await expect(menuBtn).toBeVisible({ timeout: 10000 });
+  await menuBtn.click();
+  console.log('Menu button clicked');
+  // Now click the settings link
   const link = page.locator('#settings-link');
   await expect(link).toBeVisible({ timeout: 10000 });
   await link.click();

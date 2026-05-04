@@ -99,6 +99,7 @@ describe('JournalComponent', () => {
     const filterString = 'begin:20240101 end:20241231 invoice';
 
     component.onFilterChange(filterString);
+    await new Promise(resolve => setTimeout(resolve, 10)); // Wait for setTimeout in onFilterChange
     await fixture.whenStable();
 
     expect(controller.getTransactions).toHaveBeenCalledWith('1', undefined, undefined, undefined, undefined, filterString);
@@ -111,6 +112,7 @@ describe('JournalComponent', () => {
 
     component.selectedJournal = { id: '1', title: 'Journal 1', subtitle: null, currency: 'CHF', commodities: {}, logo: null, previousJournalId: null };
     component.onFilterChange('');
+    await new Promise(resolve => setTimeout(resolve, 10)); // Wait for setTimeout in onFilterChange
     await fixture.whenStable();
 
     expect(controller.getTransactions).toHaveBeenCalledWith('1', undefined, undefined, undefined, undefined, undefined);

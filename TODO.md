@@ -6,7 +6,6 @@ These TODOs are to be resolved by the developer, NOT THE LLM.
 
 - upgrade all and check security issues in github
 - update docs to describe the changes
-- ensure coverage goal, esp. ui, is met
 
 ## Today
 
@@ -23,16 +22,6 @@ These TODOs are to be resolved by the developer, NOT THE LLM.
   - translate the tax help page and put it in the wiki: http://vd.ch/index.php?id=2023786#c2112404
   - ask if my assumptions are correct: https://prestations.vd.ch/pub/101529
   - check list of what to do in which order
-
-- reports
-  - swiss reports should include french and english, see specs in docs folder
-
-- the swiss tax report is showing a positive value for B1 even though it is a loss.
-
-- add a report that shows unpaid sales invoices
-  - show that the transaction is from a previous journal
-
-- add a report that shows unpaid purchase invoices
 
 - year end taxes - use this for the macro and test it
   - 2024-12-31 * taxes based on equity tax (about 38 chf) and 15% of profit (0)
@@ -54,15 +43,20 @@ These TODOs are to be resolved by the developer, NOT THE LLM.
     1020    CHF -38.10
 
 
+- finish e2e tests
+  - add testing of filters
+  - add testing of entries (pivot)
 - write user guide
 - link the EQL docs to the user guide
-
+- deploy to test and prod
 
 
 ## Tomorrow
 
 - make backend calculate running total, so that other services could profit from that logic.
   - remove that logic from the ui
+
+- add a report that shows unpaid purchase invoices
 
 - macros
   - add a macro for purchasing something for manufacturing (4000)

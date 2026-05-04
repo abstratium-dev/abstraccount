@@ -9,7 +9,7 @@ import { Page, expect } from '@playwright/test';
  */
 export async function waitForReportsPage(page: Page): Promise<void> {
   console.log('Waiting for reports page to be visible...');
-  await page.waitForSelector('h1:has-text("Reports")', { state: 'visible', timeout: 10000 });
+  await page.waitForSelector('select#template-select', { state: 'visible', timeout: 10000 });
   console.log('Reports page is visible');
 }
 
@@ -30,19 +30,15 @@ export async function selectReportTemplate(page: Page, templateName: string): Pr
   }
   
   await page.selectOption('select#template-select', { label: matchingOption.trim() });
-  await page.waitForLoadState('networkidle');
-  
   console.log(`Report template "${templateName}" selected`);
 }
 
 /**
- * Click the Generate Report button
+ * Wait for the report output to be visible (report renders automatically on template selection)
  */
 export async function generateReport(page: Page): Promise<void> {
-  console.log('Clicking Generate Report button...');
-  await page.click('button:has-text("Generate Report")');
-  await page.waitForLoadState('networkidle');
-  await page.waitForSelector('.report-output', { state: 'visible', timeout: 10000 });
+  console.log('Waiting for report output...');
+  await page.waitForSelector('.report-output', { state: 'visible', timeout: 15000 });
   console.log('Report generated');
 }
 

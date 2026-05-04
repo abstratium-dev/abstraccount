@@ -426,14 +426,16 @@ export class AccountsTableComponent implements OnInit {
     this.modalAccountId = accountId;
     this.modalParentAccountId = null;
     this.showModal = true;
-    this.closeMenu();
+    // Defer closing the menu to allow the click action to complete
+    setTimeout(() => this.closeMenu(), 0);
   }
 
   openAddChildModal(parentAccountId: string): void {
     this.modalAccountId = null;
     this.modalParentAccountId = parentAccountId;
     this.showModal = true;
-    this.closeMenu();
+    // Defer closing the menu to allow the click action to complete
+    setTimeout(() => this.closeMenu(), 0);
   }
 
   async deleteAccount(accountId: string): Promise<void> {

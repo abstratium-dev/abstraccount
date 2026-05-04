@@ -313,7 +313,7 @@ test.describe('Initial Business Transactions', () => {
     
     // Navigate to accounts page
     console.log('--- Navigating to Accounts Page ---');
-    await page.click('a#accounts');
+    await page.click('a#accounts-table');
     await page.waitForLoadState('networkidle');
     
     // Define expected balances
@@ -348,7 +348,7 @@ test.describe('Initial Business Transactions', () => {
       console.log(`✓ Account ${account} balance verified: ${balance}`);
       
       // Go back to accounts list
-      await page.click('a#accounts');
+      await page.click('a#accounts-table');
       await page.waitForLoadState('networkidle');
     }
     

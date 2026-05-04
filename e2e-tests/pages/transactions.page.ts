@@ -10,6 +10,14 @@ import { Page, expect } from '@playwright/test';
 export async function waitForJournalPage(page: Page): Promise<void> {
   console.log('Waiting for journal page to load...');
   await page.waitForSelector('h1:has-text("Journal Viewer")', { timeout: 10000 });
+  // Log which journal is selected and any active filter
+  const journalId = await page.evaluate(() => localStorage.getItem('journalId'));
+  const filterStr = await page.evaluate(() => localStorage.getItem('abstraccount:globalEql'));
+  console.log(`Journal page: selected journalId = ${journalId}, filter = "${filterStr}"`);
+  // Wait for the transaction table to populate (data fetched async after page loads)
+  await page.waitForSelector('table tbody tr', { timeout: 15000 }).catch(() => {
+    console.log('No transaction rows found in table');
+  });
   console.log('Journal page loaded');
 }
 
@@ -145,57 +153,34 @@ export async function fillEntryAccount(page: Page, entryIndex: number, accountNu
   const entryItem = page.locator('.entry-item').nth(entryIndex);
   const accountInput = entryItem.locator('abs-autocomplete input.autocomplete-input').first();
   
-  // Click to focus and trigger the dropdown
+  // Press Escape to close any open dropdown, then click to focus
+  await accountInput.press('Escape');
   await accountInput.click();
-  
-  // Wait a moment for the dropdown to appear
-  await page.waitForTimeout(300);
-  
-  // Type the account number
+
+  // Fill with the account number to trigger a fresh search
   await accountInput.fill(accountNumber);
-  
-  // Wait for autocomplete results to appear and debounce to complete
-  await page.waitForSelector('.dropdown .dropdown-item:not(.loading):not(.no-results):not(.hint)', { timeout: 10000 });
-  await page.waitForTimeout(800); // Wait for debounce to complete and results to stabilize
-  
-  // Find the dropdown item that contains the exact account number followed by a space or colon
-  // This ensures we select "2800 Basic..." instead of "1 Assets" when searching for "2800"
-  // The regex ensures we match the account number as a complete token
-  const dropdownItems = page.locator('.dropdown .dropdown-item:not(.loading):not(.no-results):not(.hint)');
-  const count = await dropdownItems.count();
+
+  // Build a regex that matches the account number as a complete token (not a substring of another number)
+  const escapedNumber = accountNumber.replace(/\./g, '\\.');
+  const matchRegex = new RegExp(`(^|[>:\\s])${escapedNumber}(\\s|:|$)`);
+
+  // Wait for the specific matching dropdown item to appear (Playwright retries automatically).
+  // filter({ hasText }) combined with a regex ensures we don't match stale results.
+  const dropdownItemSelector = '.dropdown .dropdown-item:not(.loading):not(.no-results):not(.hint)';
+  const matchingItem = page.locator(dropdownItemSelector).filter({ hasText: matchRegex }).first();
+  await expect(matchingItem).toBeVisible({ timeout: 10000 });
+
+  // Snapshot all item texts for logging
+  const allItems = page.locator(dropdownItemSelector);
+  const count = await allItems.count();
   console.log(`Found ${count} dropdown items for account search: ${accountNumber}`);
-  
-  let foundItem = null;
-  for (let i = 0; i < count; i++) {
-    const item = dropdownItems.nth(i);
-    const text = await item.textContent();
-    if (text) {
-      // Check if the text contains the account number followed by a space, colon, or is at the end
-      const regex = new RegExp(`(^|[>:\\s])${accountNumber.replace(/\./g, '\\.')}(\\s|:|$)`);
-      if (regex.test(text)) {
-        console.log(`Matched dropdown item: "${text}"`);
-        foundItem = item;
-        break;
-      }
-    }
-  }
-  
-  if (foundItem) {
-    // Click the dropdown item to select it
-    // Use force: true to bypass actionability checks since the dropdown might be closing
-    await foundItem.click({ force: true });
-    // Wait for the dropdown to close and the value to be set
-    await page.waitForTimeout(500);
-    console.log(`Account selection completed for ${accountNumber}`);
-  } else {
-    console.error(`Could not find dropdown item for account number: ${accountNumber}`);
-    console.error(`Available items:`);
-    for (let i = 0; i < count; i++) {
-      const text = await dropdownItems.nth(i).textContent();
-      console.error(`  - "${text}"`);
-    }
-    throw new Error(`Could not find dropdown item for account number: ${accountNumber}`);
-  }
+  const matchedText = (await matchingItem.textContent() ?? '').trim();
+  console.log(`Matched dropdown item: "${matchedText}"`);
+
+  // Click using force:true to handle any blur-closes-dropdown timing
+  await matchingItem.click({ force: true });
+  // Wait for the input to update with the selected account's label
+  await expect(accountInput).not.toHaveValue('', { timeout: 5000 });
   
   console.log(`Entry ${entryIndex + 1} account filled`);
 }
@@ -310,8 +295,22 @@ export async function cancelTransaction(page: Page): Promise<void> {
  */
 export async function verifyTransactionExists(page: Page, description: string): Promise<void> {
   console.log(`Verifying transaction exists: ${description}`);
-  await page.waitForSelector(`td:has-text("${description}")`, { timeout: 5000 });
-  console.log(`Transaction "${description}" found in list`);
+  try {
+    await expect(page.locator(`td:has-text("${description}")`).first()).toBeVisible({ timeout: 15000 });
+    console.log(`Transaction "${description}" found in list`);
+  } catch (e) {
+    // Log visible transaction descriptions for debugging
+    const allDescCells = page.locator('td.description-cell, td:nth-child(4)');
+    const count = await allDescCells.count();
+    console.error(`Transaction "${description}" NOT found. Visible rows (${count}):`);
+    for (let i = 0; i < Math.min(count, 10); i++) {
+      const text = await allDescCells.nth(i).textContent().catch(() => '?');
+      console.error(`  [${i}]: "${text?.trim()}"`);
+    }
+    // Also log page URL for context
+    console.error(`Current URL: ${page.url()}`);
+    throw e;
+  }
 }
 
 /**

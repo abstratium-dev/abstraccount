@@ -27,7 +27,7 @@ VALUES (
         -- Section B: Net Profit
         '{"title":"B. BÉNÉFICE NET","level":1,"showAccounts":false},',
         
-        '{"title":"B.1 Bénéfice net ou perte (-) selon compte de profits et pertes de l''exercice","level":3,"calculated":"netIncome"},',
+        '{"title":"B.1 Bénéfice net ou perte (-) selon compte de profits et pertes de l''exercice","level":3,"calculated":"netIncome","invertSign":true},',
         '{"title":"B.2 Adaptation des comptes commerciaux aux règles du droit fiscal (+ ou -)","level":3,"showAccounts":false},',
         '{"title":"B.3 Distributions dissimulées de bénéfice et avantages procurés à des tiers","level":3,"showAccounts":false},',
         '{"title":"B.4 Bénéfice net ou perte de l''exercice","level":3,"showAccounts":false},',

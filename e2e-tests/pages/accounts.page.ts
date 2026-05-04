@@ -97,18 +97,32 @@ function getModalHeading(page: Page) {
 
 /**
  * Gets an account link by its account code/number
+ * The account code is at the start of the account name in the account-name-link element
  */
 function getAccountByCode(page: Page, code: string) {
-  return page.getByRole('link', { name: new RegExp(`^${code}$`) }).first();
+  // Match code at start of the account name (e.g., "1 Assets" or just "1")
+  // Using has-text with a pattern like "1 " or just the code for exact matches
+  const pattern = `${code} `;
+  return page.locator('.account-name-link').filter({ hasText: pattern }).first();
 }
 
 /**
- * Gets the context menu trigger for an account
- * This finds the ⋮ button next to an account
+ * Escapes special regex characters in a string
+ */
+function escapeRegExp(string: string): string {
+  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
+ * Gets the context menu trigger for an account by account name
+ * This finds the ⋮ button in the same row as the account
  */
 function getContextMenuTrigger(page: Page, accountName: string) {
-  // Find the account name, then find the nearest context menu trigger
-  return page.locator('.account-info', { has: page.getByText(accountName, { exact: false }) })
+  // Find the row containing the account name link with the given name
+  // Then find the context menu trigger in that row
+  // Escape special regex characters in the account name
+  const escapedName = escapeRegExp(accountName);
+  return page.locator('tr', { has: page.locator('.account-name-link').filter({ hasText: new RegExp(escapedName, 'i') }) })
     .locator('.context-menu-trigger')
     .first();
 }
@@ -131,6 +145,15 @@ export async function waitForAccountsPage(page: Page) {
   console.log('Waiting for accounts page to be visible...');
   await expect(getHeading(page)).toBeVisible({ timeout: 10000 });
   console.log('Accounts page is visible');
+}
+
+/**
+ * Waits for at least one account to appear in the table
+ */
+export async function waitForAccountInTable(page: Page) {
+  console.log('Waiting for account to appear in table...');
+  await expect(page.locator('.account-name-link').first()).toBeVisible({ timeout: 10000 });
+  console.log('Account is visible in table');
 }
 
 /**
@@ -227,12 +250,33 @@ export async function clickSave(page: Page) {
 }
 
 /**
+ * Checks if an error message is displayed in the modal
+ */
+async function checkForErrorMessage(page: Page): Promise<string | null> {
+  const errorDiv = page.locator('.error-message');
+  if (await errorDiv.isVisible({ timeout: 1000 }).catch(() => false)) {
+    return await errorDiv.textContent() ?? 'Unknown error';
+  }
+  return null;
+}
+
+/**
  * Waits for the modal to close
  */
 export async function waitForModalClose(page: Page) {
   console.log('Waiting for modal to close...');
-  await expect(getModalHeading(page)).not.toBeVisible({ timeout: 10000 });
-  console.log('Modal closed');
+  try {
+    await expect(getModalHeading(page)).not.toBeVisible({ timeout: 10000 });
+    console.log('Modal closed');
+  } catch (e) {
+    // Check if there's an error message in the modal
+    const errorMessage = await checkForErrorMessage(page);
+    if (errorMessage) {
+      console.log(`Modal error detected: ${errorMessage}`);
+      throw new Error(`Account save failed with error: ${errorMessage}`);
+    }
+    throw e;
+  }
 }
 
 /**
@@ -248,16 +292,19 @@ export async function createRootAccount(page: Page, name: string, type: string, 
   await waitForAccountModal(page);
   await fillAccountName(page, name);
   await selectAccountType(page, type);
-  
+
   // Set display order if provided, otherwise extract from account name
   const order = displayOrder ?? extractAccountNumber(name);
   if (order !== null) {
     await fillDisplayOrder(page, order);
   }
-  
+
   await clickSave(page);
   await waitForModalClose(page);
   console.log('Root account created');
+
+  // Wait for the account table to refresh and show the new account
+  await waitForAccountInTable(page);
 }
 
 /**
