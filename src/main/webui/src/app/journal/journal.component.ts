@@ -23,7 +23,14 @@ export class JournalComponent implements OnInit {
   
   // Filter — pre-load from storage so the effect and FilterInputComponent agree on the initial value
   filterString: string = (() => {
-    try { return localStorage.getItem('abstraccount:globalEql') ?? ''; } catch { return ''; }
+    try {
+      const stored = localStorage.getItem('abstraccount:globalEql');
+      // Treat the string "null" or "undefined" as empty (handles edge cases)
+      if (stored === 'null' || stored === 'undefined') {
+        return '';
+      }
+      return stored ?? '';
+    } catch { return ''; }
   })();
   private filterInitialized = false;
 

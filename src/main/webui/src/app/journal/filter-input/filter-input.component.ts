@@ -60,15 +60,11 @@ export class FilterInputComponent implements OnInit, OnDestroy {
     // Load from localStorage if available, otherwise use input value
     const stored = this.loadFromStorage();
     this.isProgrammaticUpdate = true;  // Prevent setter from re-emitting
-    if (stored !== null) {
-      this.filterText.set(stored);
-      this.hasLoadedFromStorage = true;
-      // Emit the loaded value so parent components get the stored filter immediately
-      this.filterChange.emit(stored);
-    } else {
-      this.filterText.set(this.filterText() || '');
-      this.hasLoadedFromStorage = true;
-    }
+    const effectiveValue = stored ?? '';
+    this.filterText.set(effectiveValue);
+    this.hasLoadedFromStorage = true;
+    // Always emit so parent components know the initial filter state
+    this.filterChange.emit(effectiveValue);
     this.isProgrammaticUpdate = false;
     this.updateSuggestions(this.filterText());
   }
@@ -236,6 +232,11 @@ export class FilterInputComponent implements OnInit, OnDestroy {
   private loadFromStorage(): string | null {
     try {
       const stored = localStorage.getItem(this.storageKey);
+      // Treat the string "null" or "undefined" as no filter (handles edge cases)
+      if (stored === 'null' || stored === 'undefined') {
+        localStorage.removeItem(this.storageKey);
+        return null;
+      }
       return stored;
     } catch (e) {
       console.error('Failed to load filter from localStorage:', e);
