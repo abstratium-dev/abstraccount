@@ -1,6 +1,5 @@
 package dev.abstratium.core.filter;
 
-import dev.abstratium.demo.Roles;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.security.TestSecurity;
 import org.junit.jupiter.api.Test;
@@ -21,7 +20,7 @@ import static org.hamcrest.CoreMatchers.is;
 class ConstraintViolationExceptionMapperTest {
 
     @Test
-    @TestSecurity(user = "testuser", roles = {Roles.USER})
+    @TestSecurity(user = "testuser", roles = {"user"})
     void testMySqlDuplicateEntryReturnsConflict() {
         given()
             .when()
@@ -35,7 +34,7 @@ class ConstraintViolationExceptionMapperTest {
     }
 
     @Test
-    @TestSecurity(user = "testuser", roles = {Roles.USER})
+    @TestSecurity(user = "testuser", roles = {"user"})
     void testH2UniqueViolationReturnsConflict() {
         given()
             .when()
@@ -49,7 +48,7 @@ class ConstraintViolationExceptionMapperTest {
     }
 
     @Test
-    @TestSecurity(user = "testuser", roles = {Roles.USER})
+    @TestSecurity(user = "testuser", roles = {"user"})
     void testForeignKeyChildViolationReturnsConflict() {
         given()
             .when()
@@ -63,7 +62,7 @@ class ConstraintViolationExceptionMapperTest {
     }
 
     @Test
-    @TestSecurity(user = "testuser", roles = {Roles.USER})
+    @TestSecurity(user = "testuser", roles = {"user"})
     void testForeignKeyParentViolationReturnsConflict() {
         given()
             .when()
@@ -77,7 +76,7 @@ class ConstraintViolationExceptionMapperTest {
     }
 
     @Test
-    @TestSecurity(user = "testuser", roles = {Roles.USER})
+    @TestSecurity(user = "testuser", roles = {"user"})
     void testForeignKeyByErrorCodeReturnsConflict() {
         given()
             .when()
@@ -91,7 +90,7 @@ class ConstraintViolationExceptionMapperTest {
     }
 
     @Test
-    @TestSecurity(user = "testuser", roles = {Roles.USER})
+    @TestSecurity(user = "testuser", roles = {"user"})
     void testUqConstraintNameOnlyReturnsConflict() {
         given()
             .when()
@@ -105,7 +104,7 @@ class ConstraintViolationExceptionMapperTest {
     }
 
     @Test
-    @TestSecurity(user = "testuser", roles = {Roles.USER})
+    @TestSecurity(user = "testuser", roles = {"user"})
     void testNullMessageFallsBackToCauseDetail() {
         given()
             .when()
@@ -119,7 +118,7 @@ class ConstraintViolationExceptionMapperTest {
     }
 
     @Test
-    @TestSecurity(user = "testuser", roles = {Roles.USER})
+    @TestSecurity(user = "testuser", roles = {"user"})
     void testNullCauseWithFkConstraintReturnsConflict() {
         given()
             .when()
@@ -133,7 +132,7 @@ class ConstraintViolationExceptionMapperTest {
     }
 
     @Test
-    @TestSecurity(user = "testuser", roles = {Roles.USER})
+    @TestSecurity(user = "testuser", roles = {"user"})
     void testUnknownConstraintViolationReturnsInternalServerError() {
         given()
             .when()
