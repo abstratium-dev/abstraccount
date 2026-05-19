@@ -18,13 +18,26 @@ These TODOs are to be resolved by the developer, NOT THE LLM.
 
 # TODOs for Abstracore (to be deleted downstream)
 
-- integrate toggles
-- create build scripts for maven and angular which output the test errors, so the LLM doesn't need to use maven and can optimise token usage. then update the skills and rules to use those scripts
+- fix refresh url bug
+
 - add an application title next to the abstratium logo
+
+- add toggles client
+
+- add "down for maintenance page"
+  - actually, nginx needs to use that
+  - "going down for maintenance at..." message of the day?
+
+- create build script for maven similar to the one for angular which output the test errors, so the LLM doesn't need to use maven and can optimise token usage. then update the skills and rules to use those scripts
+
 - banner / message - we should be able to configure the colour of it so each stage can have a different colour
+
 - fix tracking of the url in the auth service, so that if the user clicks or enters a link, they are redirected, regardless of whether they are already signed in, or need to sign in
+
 - allow other addresses than localhost to read management/metrics. need to also expose it in docker file?
+
 - add a link to the sbom in readme: e.g. https://github.com/abstratium-dev/abnemo/dependency-graph/sbom. although a copy needs adding to the release! what does the law say?
+
 - add observability (logging, metrics, tracing)
   - see https://quarkus.io/quarkus-workshop-langchain4j/section-1/step-10/#tracing
 
@@ -33,6 +46,7 @@ These TODOs are to be resolved by the developer, NOT THE LLM.
     quarkus.log.console.format=%d{HH:mm:ss} %-5p traceId=%X{traceId}, parentId=%X{parentId}, spanId=%X{spanId}, sampled=%X{sampled} [%c{2.}] (%t) %s%e%n  
     # enable tracing db requests
     quarkus.datasource.jdbc.telemetry=true
+
 - fix security testing
   - use # Disable OIDC tenant in test mode to allow @TestSecurity to work without 302 redirects
         %test.quarkus.oidc.tenant-enabled=false
