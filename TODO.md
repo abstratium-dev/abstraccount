@@ -11,7 +11,13 @@ These TODOs are to be resolved by the developer, NOT THE LLM.
 
 - check duty of care 754.   Personal liability for directors — While shareholders are protected, directors/gérants of an Sàrl can face personal liability if they breach their duty of care (CO Art. 754) toward the company. But that's unrelated to your TOS; it's about how you run the company internally.
 
+- add multi-tenancy
+
+- is this statement too bold? "Built on Swiss GAAP FER standards."
+
 - add envers
+
+- convert some modules to lazy
 
 - 2025 tax declr
   - bank statement
