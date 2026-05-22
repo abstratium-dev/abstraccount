@@ -40,10 +40,11 @@
                 ☀️
             }
         </button>
-        <a href="https://abstratium.dev/docs/legal">Legal</a>
+        &nbsp;|&nbsp;
+        <a id="legal" routerLink="/legal" routerLinkActive="inactive-link">legal</a>
+        &nbsp;|&nbsp;
+        <a id="home-link" routerLink="/" routerLinkActive="inactive-link">🏠</a>
         @if(isSignedIn) {
-            &nbsp;|&nbsp;
-            <a id="home-link" routerLink="/" routerLinkActive="inactive-link">🏠</a>
             &nbsp;|&nbsp;
             <select 
               id="journal-select" 

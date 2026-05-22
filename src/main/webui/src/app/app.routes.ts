@@ -2,6 +2,7 @@ import { Routes } from '@angular/router';
 import { authGuard } from './core/auth.guard';
 import { NotFoundComponent } from './core/not-found/not-found.component';
 import { SignedOutComponent } from './core/signed-out/signed-out.component';
+import { LandingComponent } from './landing/landing.component';
 import { JournalComponent } from './journal/journal.component';
 import { UploadComponent } from './upload/upload.component';
 import { CreateJournalComponent } from './create-journal/create-journal.component';
@@ -15,9 +16,10 @@ import { EntrySearchComponent } from './entry-search/entry-search.component';
 import { CloseBooksComponent } from './close-books/close-books.component';
 import { NewYearComponent } from './new-year/new-year.component';
 import { JournalHistoryComponent } from './journal-history/journal-history.component';
+import { LegalComponent } from './legal/legal.component';
 
 export const routes: Routes = [
-  { path: '',                          component: JournalComponent, canActivate: [authGuard] },
+  { path: '',                          component: LandingComponent },
   { path: 'journal',                   component: JournalComponent, canActivate: [authGuard] },
   { path: 'accounts-table',            component: AccountsTableComponent, canActivate: [authGuard] },
   { path: 'account/:accountId/ledger', component: AccountLedgerComponent, canActivate: [authGuard] },
@@ -32,5 +34,6 @@ export const routes: Routes = [
   { path: 'close-books',               component: CloseBooksComponent, canActivate: [authGuard] },
   { path: 'new-year',                  component: NewYearComponent, canActivate: [authGuard] },
   { path: 'journal-history',           component: JournalHistoryComponent, canActivate: [authGuard] },
+  { path: 'legal',                     component: LegalComponent },
   { path: '**',                        component: NotFoundComponent }
 ];

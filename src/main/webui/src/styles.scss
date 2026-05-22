@@ -2216,3 +2216,99 @@ button {
   white-space: nowrap;
   margin-left: auto;
 }
+
+/* ===== LANDING PAGE ===== */
+.landing-hero {
+  text-align: center;
+  padding: 4rem 2rem;
+  background: var(--color-bg-secondary);
+  border-radius: 12px;
+  border: 1px solid var(--color-border-primary);
+  margin-bottom: 3rem;
+
+  h1 {
+    margin: 0 0 1rem 0;
+    font-size: 2.5rem;
+    letter-spacing: 0.05em;
+  }
+
+  .description {
+    max-width: 600px;
+    margin: 0 auto 2rem auto;
+    font-size: 1.15rem;
+  }
+
+  .signup-note {
+    margin-top: 1.25rem;
+    font-size: 0.9rem;
+    color: var(--color-text-secondary);
+  }
+}
+
+.landing-icon {
+  width: 72px;
+  height: 72px;
+  margin: 0 auto 1.5rem auto;
+  color: var(--color-primary);
+}
+
+.landing-section {
+  margin-bottom: 3rem;
+}
+
+.landing-tile-grid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 1.5rem;
+
+  .landing-tile {
+    flex: 1 1 280px;
+    max-width: 340px;
+  }
+}
+
+.landing-tile {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  h3 {
+    margin: 0 0 0.75rem 0;
+    font-size: 1.1rem;
+  }
+
+  .description {
+    margin: 0;
+    font-size: 0.9rem;
+    line-height: 1.5;
+  }
+}
+
+.landing-tile-icon {
+  width: 48px;
+  height: 48px;
+  margin-bottom: 1rem;
+  color: var(--color-primary);
+  flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+  .landing-hero {
+    padding: 2.5rem 1rem;
+
+    h1 {
+      font-size: 1.75rem;
+    }
+
+    .description {
+      font-size: 1rem;
+    }
+  }
+
+  .landing-icon {
+    width: 56px;
+    height: 56px;
+  }
+}

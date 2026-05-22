@@ -1,0 +1,98 @@
+<div class="container">
+  <section class="landing-hero">
+    <div class="landing-icon">
+      <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="8" y="12" width="48" height="40" rx="4" stroke="currentColor" stroke-width="3"/>
+        <path d="M8 24h48" stroke="currentColor" stroke-width="2"/>
+        <path d="M20 36h8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        <path d="M20 44h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        <circle cx="44" cy="40" r="6" stroke="currentColor" stroke-width="2"/>
+        <path d="M42 40l1.5 1.5L46.5 38" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <h1>ABSTRACCOUNT</h1>
+    <p class="description">Modern accounting for professionals. Built on Swiss GAAP FER standards.</p>
+    <button (click)="signIn()">Sign In</button>
+    <p class="signup-note">Users will be able to sign up soon.</p>
+  </section>
+
+  <section class="landing-section">
+    <div class="tile-grid landing-tile-grid">
+      <div class="tile landing-tile">
+        <div class="landing-tile-icon">
+          <svg viewBox="0 0 48 48" fill="none"><path d="M12 36V20l8-8 8 8v16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 24h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M16 28h8v8H16z" stroke="currentColor" stroke-width="2"/><circle cx="32" cy="14" r="4" stroke="currentColor" stroke-width="2"/></svg>
+        </div>
+        <h3>Double-Entry Bookkeeping</h3>
+        <p class="description">Record transactions with debits and credits across accounts, supporting split transactions and attachments.</p>
+      </div>
+      <div class="tile landing-tile">
+        <div class="landing-tile-icon">
+          <svg viewBox="0 0 48 48" fill="none"><rect x="8" y="6" width="32" height="36" rx="3" stroke="currentColor" stroke-width="2"/><path d="M8 16h32" stroke="currentColor" stroke-width="2"/><path d="M14 26h8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M14 32h20" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="32" cy="24" r="3" stroke="currentColor" stroke-width="2"/></svg>
+        </div>
+        <h3>Swiss GAAP FER</h3>
+        <p class="description">Maintain a hierarchical chart of accounts aligned with Swiss GAAP FER standards. Organise assets, liabilities, equity, income, and expenses.</p>
+      </div>
+      <div class="tile landing-tile">
+        <div class="landing-tile-icon">
+          <svg viewBox="0 0 48 48" fill="none"><rect x="10" y="8" width="28" height="32" rx="3" stroke="currentColor" stroke-width="2"/><path d="M10 16h28" stroke="currentColor" stroke-width="2"/><path d="M16 24l4 4 8-8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <h3>Macros & Automation</h3>
+        <p class="description">Speed up entry with reusable macros for invoices, payments, and expense claims. Reduce repetitive data entry.</p>
+      </div>
+      <div class="tile landing-tile">
+        <div class="landing-tile-icon">
+          <svg viewBox="0 0 48 48" fill="none"><rect x="6" y="6" width="14" height="18" rx="2" stroke="currentColor" stroke-width="2"/><rect x="28" y="6" width="14" height="18" rx="2" stroke="currentColor" stroke-width="2"/><rect x="6" y="28" width="14" height="14" rx="2" stroke="currentColor" stroke-width="2"/><rect x="28" y="28" width="14" height="14" rx="2" stroke="currentColor" stroke-width="2"/><path d="M20 14h8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M20 34h8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </div>
+        <h3>Financial Reports</h3>
+        <p class="description">Generate balance sheets, income statements, cash flow reports, and trial balances at any point in time.</p>
+      </div>
+      <div class="tile landing-tile">
+        <div class="landing-tile-icon">
+          <svg viewBox="0 0 48 48" fill="none"><circle cx="24" cy="16" r="6" stroke="currentColor" stroke-width="2"/><path d="M12 40v-4a6 6 0 0 1 6-6h12a6 6 0 0 1 6 6v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M36 40v-4a6 6 0 0 0-3-5.2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </div>
+        <h3>Partner Management</h3>
+        <p class="description">Track customers, vendors, and employees. View partner-specific ledgers and transaction history.</p>
+      </div>
+      <div class="tile landing-tile">
+        <div class="landing-tile-icon">
+          <svg viewBox="0 0 48 48" fill="none"><rect x="8" y="6" width="32" height="36" rx="3" stroke="currentColor" stroke-width="2"/><path d="M8 16h32" stroke="currentColor" stroke-width="2"/><path d="M16 26l4 4 8-8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M16 36h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </div>
+        <h3>VAT & Compliance</h3>
+        <p class="description">Apply tax codes, generate VAT reports, and ensure compliance with audit trails and year-end closing.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="landing-section">
+    <div class="tile-grid landing-tile-grid">
+      <div class="tile landing-tile">
+        <div class="landing-tile-icon">
+          <svg viewBox="0 0 48 48" fill="none"><circle cx="24" cy="24" r="16" stroke="currentColor" stroke-width="2"/><path d="M24 14v10l6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M16 20h4v4h-4z" stroke="currentColor" stroke-width="2"/><path d="M28 14h4v4h-4z" stroke="currentColor" stroke-width="2"/></svg>
+        </div>
+        <h3>Multi-Currency</h3>
+        <p class="description">Work with custom currencies and automatic exchange-rate handling for international transactions.</p>
+      </div>
+      <div class="tile landing-tile">
+        <div class="landing-tile-icon">
+          <svg viewBox="0 0 48 48" fill="none"><rect x="8" y="10" width="32" height="28" rx="3" stroke="currentColor" stroke-width="2"/><path d="M8 18h32" stroke="currentColor" stroke-width="2"/><path d="M16 14v-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M24 14v-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M32 14v-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M14 26h4v4h-4z" stroke="currentColor" stroke-width="2"/></svg>
+        </div>
+        <h3>Fiscal Years</h3>
+        <p class="description">Define fiscal-year boundaries, lock closed periods, and open new years while preserving historical data.</p>
+      </div>
+      <div class="tile landing-tile">
+        <div class="landing-tile-icon">
+          <svg viewBox="0 0 48 48" fill="none"><rect x="8" y="6" width="32" height="36" rx="3" stroke="currentColor" stroke-width="2"/><path d="M8 14h32" stroke="currentColor" stroke-width="2"/><path d="M14 24l4 4 6-6 6 6 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <h3>Journal History</h3>
+        <p class="description">Review every change made to your journal with a complete audit trail and entry-search capabilities.</p>
+      </div>
+      <div class="tile landing-tile">
+        <div class="landing-tile-icon">
+          <svg viewBox="0 0 48 48" fill="none"><rect x="12" y="6" width="24" height="32" rx="3" stroke="currentColor" stroke-width="2"/><circle cx="24" cy="22" r="5" stroke="currentColor" stroke-width="2"/><path d="M24 17v3l2 2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M16 38l8 4 8-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <h3>Secure & Available Soon</h3>
+        <p class="description">Sign-up access is coming soon. In the meantime, authorised users can sign in to start using Abstraccount.</p>
+      </div>
+    </div>
+  </section>
+</div>

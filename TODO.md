@@ -9,9 +9,9 @@ These TODOs are to be resolved by the developer, NOT THE LLM.
 
 ## Today
 
-- add timeout for sign out back into abstracore
-  - commit 413b23a62faa1f767650ac89dff3c81f4d803ca6
-  - see auth.service.ts, header.component.ts, header.component.html, header.component.scss, auth.service.spec.ts, 
+- check duty of care 754.   Personal liability for directors — While shareholders are protected, directors/gérants of an Sàrl can face personal liability if they breach their duty of care (CO Art. 754) toward the company. But that's unrelated to your TOS; it's about how you run the company internally.
+
+- add envers
 
 - 2025 tax declr
   - bank statement
