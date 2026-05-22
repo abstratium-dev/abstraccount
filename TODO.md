@@ -37,6 +37,10 @@ These TODOs are to be resolved by the developer, NOT THE LLM.
 
 - gdpr conform pop up which says we don't use cookies except for functional ones and whatever else we need to say.
 
+  Cookie Notice
+    This website only uses essential cookies to ensure standard site functionality and security. We do not use tracking, profiling, or marketing cookies, meaning no consent is required. By continuing to browse, you agree to these technical necessities. Learn more in our [Privacy Policy].
+    [ Got it! ]
+
 - add toggles client - finish this
 
 - add "down for maintenance page"

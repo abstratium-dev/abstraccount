@@ -115,6 +115,8 @@ public class TogglesService {
                 return emptyResponse();
             }
 
+            // Suppress unsafe null inference: Response is not annotated for null analysis
+            @SuppressWarnings("null")
             String body = response.readEntity(String.class);
             ToggleResponse toggleResponse = objectMapper.readValue(body, ToggleResponse.class);
             if (toggleResponse == null) {
