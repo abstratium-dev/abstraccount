@@ -17,7 +17,7 @@
 
 .legal-subtitle {
   font-size: 1.1rem;
-  color: var(--text-muted);
+  color: var(--color-text-muted);
   max-width: 600px;
   margin: 0 auto;
 }
@@ -29,10 +29,10 @@
 }
 
 .notice-card {
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--color-border-primary);
   border-radius: 0.75rem;
   padding: 1.5rem;
-  background: var(--card-bg);
+  background: var(--color-bg-secondary);
 }
 
 .notice-card-header {
@@ -45,7 +45,7 @@
 .notice-icon {
   width: 2.5rem;
   height: 2.5rem;
-  color: var(--primary-color);
+  color: var(--color-primary);
   flex-shrink: 0;
 }
 
@@ -61,7 +61,7 @@
 }
 
 .notice-body {
-  color: var(--text-color);
+  color: var(--color-text-primary);
   line-height: 1.6;
 }
 
@@ -99,14 +99,18 @@
   text-align: center;
   display: inline-block;
   padding: 0.75rem;
-  background-color: #ffffff;
+  background-color: var(--color-bg-primary);
   border-radius: 0.5rem;
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--color-border-primary);
 }
 
 .contact-card-img {
   max-width: 100%;
   border-radius: 0.25rem;
+}
+
+:host-context([data-theme="dark"]) .contact-card-img {
+  filter: invert(1) hue-rotate(180deg);
 }
 
 @media (max-width: 600px) {
