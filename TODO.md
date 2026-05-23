@@ -18,29 +18,6 @@ These TODOs are to be resolved by the developer, NOT THE LLM.
 
 # TODOs for Abstracore (to be deleted downstream)
 
-- create python which can read the java coverage jacoco files and display them so that an llm can read the coverage, and add that to testing.md.
-
-    python3 -c "
-    import xml.etree.ElementTree as ET
-    tree = ET.parse('/shared2/abstratium/github.com/abstracore/target/jacoco-report/jacoco.xml')
-    root = tree.getroot()
-    for pkg in root.findall('package'):
-        if pkg.get('name') == 'dev/abstratium/core/service':
-            for cls in pkg.findall('class'):
-                name = cls.get('name')
-                for counter in cls.findall('counter'):
-                    print(f'{name.split(\"/\")[-1]}: {counter.get(\"type\")} missed={counter.get(\"missed\")} covered={counter.get(\"covered\")}')
-            for counter in pkg.findall('counter'):
-                print(f'Package total: {counter.get(\"type\")} missed={counter.get(\"missed\")} covered={counter.get(\"covered\")}')
-            break
-    "
-
-- gdpr conform pop up which says we don't use cookies except for functional ones and whatever else we need to say.
-
-  Cookie Notice
-    This website only uses essential cookies to ensure standard site functionality and security. We do not use tracking, profiling, or marketing cookies, meaning no consent is required. By continuing to browse, you agree to these technical necessities. Learn more in our [Privacy Policy].
-    [ Got it! ]
-
 - add toggles client - finish this
 
 - add "down for maintenance page"
