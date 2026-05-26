@@ -3,6 +3,11 @@
 Run Java tests via Maven (./mvnw verify) and extract key information for LLM consumption.
 This script ONLY runs Java backend tests (surefire + failsafe). Angular frontend tests
 are handled by run-ng-tests.py.
+
+Usage:
+    ./scripts/run-java-test.py              # Run all tests
+    ./scripts/run-java-test.py MyTest       # Run a single test class
+    ./scripts/run-java-test.py MyTest#method  # Run a single test method
 """
 
 import subprocess
@@ -108,10 +113,18 @@ def cleanup_old_tmp_files():
                 print(f"[cleanup] Error removing {old_file}: {e}")
 
 
-def run_mvn_test():
-    """Run mvn test and capture all output."""
+def run_mvn_test(test_filter=None):
+    """Run mvn test and capture all output.
+
+    Args:
+        test_filter: Optional test class or method to run (e.g., "MyTest" or "MyTest#testMethod")
+    """
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    output_file = TMP_DIR / f"java-test-{timestamp}.txt"
+    if test_filter:
+        safe_name = test_filter.replace("#", "_").replace(".", "_")
+        output_file = TMP_DIR / f"java-test-{safe_name}-{timestamp}.txt"
+    else:
+        output_file = TMP_DIR / f"java-test-{timestamp}.txt"
 
     TMP_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -119,6 +132,10 @@ def run_mvn_test():
     # so we skip it to keep this script Java-backend only.
     # exec.skip skips the exec-maven-plugin, used to add angular tests to the build
     cmd = ["./mvnw", "verify", "-B", "-Dexec.skip=true"]
+
+    if test_filter:
+        cmd.extend([f"-Dtest={test_filter}"])
+        print(f"[run] Running single test: {test_filter}")
 
     print(f"[run] Executing: {' '.join(cmd)}")
     print(f"[run] Working directory: {PROJECT_ROOT}")
@@ -460,8 +477,12 @@ def print_summary(results, output_file):
 
 
 def main():
+    test_filter = None
+    if len(sys.argv) > 1:
+        test_filter = sys.argv[1]
+
     cleanup_old_tmp_files()
-    output_file, return_code = run_mvn_test()
+    output_file, return_code = run_mvn_test(test_filter)
     results = parse_output(output_file)
     print_summary(results, output_file)
     sys.exit(return_code)

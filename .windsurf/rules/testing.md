@@ -4,7 +4,9 @@ description: Used when running tests.
 globs: src/test/java/**/.*,src/main/webui/**/*.spec.ts
 ---
 
-- Run backend java tests using `./scripts/run-java-tests.py` which gives you a summary of the errors so that you do not have to use tail! do not use `mvn test` or `mvn verify`.
+- Run all backend java tests using `./scripts/run-java-tests.py` which gives you a summary of the errors so that you do not have to use tail! do not use `mvn test` or `mvn verify`.
+  - To run a single test class: `./scripts/run-java-test.py MyTestClass`
+  - To run a single test method: `./scripts/run-java-test.py MyTestClass#testMethod`
 - Run angular tests with `./scripts/run-ng-tests.py` which gives a summary of the errors so that you do not have to use tail!
 - Do NOT use `ng test` as it hangs.
 - Fix tests which fail due to transactional errors last - those can be side effects of other tests failing. Fix the other failing tests first.

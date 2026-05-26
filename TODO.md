@@ -18,13 +18,7 @@ These TODOs are to be resolved by the developer, NOT THE LLM.
 
 # TODOs for Abstracore (to be deleted downstream)
 
-- add toggles client - finish this
-
-- add "down for maintenance page"
-  - actually, nginx needs to use that
-  - "going down for maintenance at..." message of the day? it comes out of the toggle
-
-- create build script for maven similar to the one for angular which output the test errors, so the LLM doesn't need to use maven and can optimise token usage. then update the skills and rules to use those scripts
+- modify run-java so that it can run a single test
 
 - allow other addresses than localhost to read management/metrics. need to also expose it in docker file?
 
