@@ -27,7 +27,9 @@ class TogglesServiceTest {
             return Map.of(
                     "abstratium.toggles.api.url", "http://localhost:19999",
                     "abstratium.toggles.cache.ttl-seconds", "60",
-                    "abstratium.stage", "test"
+                    "abstratium.stage", "test",
+                    "abstratium.toggles.context", "abstratium-public",
+                    "ABSTRATIUM_TOGGLES_CONTEXT", "abstratium-public"
             );
         }
     }

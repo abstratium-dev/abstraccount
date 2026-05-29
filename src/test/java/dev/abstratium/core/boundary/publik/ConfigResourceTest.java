@@ -25,7 +25,11 @@ class ConfigResourceTest {
     public static class TestProfile implements QuarkusTestProfile {
         @Override
         public Map<String, String> getConfigOverrides() {
-            return Map.of("abstratium.stage", "test");
+            return Map.of(
+                "abstratium.stage", "test",
+                "ABSTRA_WARNING_MESSAGE", "-",
+                "warning.message", "-"
+            );
         }
     }
 
