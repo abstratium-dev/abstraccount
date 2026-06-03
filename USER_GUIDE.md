@@ -93,6 +93,7 @@ _Replace all `TODO_...` values with the values generated above.
      -e QUARKUS_DATASOURCE_USERNAME="TODO_YOUR_USERNAME" \
      -e QUARKUS_DATASOURCE_PASSWORD="TODO_YOUR_SECURE_PASSWORD" \
      -e COOKIE_ENCRYPTION_SECRET="TODO_YOUR_COOKIE_ENCRYPTION_SECRET" \
+     -e DEFAULT_ORG_UUID="TODO_YOUR_GENERATED_DEFAULT_ORG_UUID" \
      ghcr.io/abstratium-dev/TODO:latest
    ```
 
@@ -105,6 +106,7 @@ _Replace all `TODO_...` values with the values generated above.
    - `ABSTRATIUM_TOGGLES_API_URL`: URL of the Abstoggle public API (e.g., `https://toggles.abstratium.dev`, required in production only)
    - `ABSTRATIUM_TOGGLES_CONTEXT`: Context for the Abstoggle public API (e.g., `abstratium-public-...`)
    - `STAGE`: Deployment stage identifier exposed to the frontend (e.g., "dev", "test", "prod", defaults to "dev")
+   - `DEFAULT_ORG_UUID`: UUID for the default organisation that existing data is migrated into (generate with `uuidgen`)
 
    **Optional Environment Variables:**
    - `ABSTRA_WARNING_MESSAGE`: Warning banner message displayed at the top of the UI (e.g., "You are in the TEST environment!"). Set to "-" or omit to hide the banner.
