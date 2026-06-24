@@ -13,6 +13,7 @@ These TODOs are to be resolved by the developer, NOT THE LLM.
 
 ## Today
 
+- use SecurityProblemLogger in all places where a security issue is detected
 
 ## Tomorrow
 
@@ -21,6 +22,13 @@ These TODOs are to be resolved by the developer, NOT THE LLM.
 
 
 # TODOs for Abstracore (to be deleted downstream)
+
+- make core classes use SecurityProblemLogger
+- add to application.properties - but change so that stage is in there so that i can't accidentally use a test token in prod (if the secret were the same one)
+  - this can be done using the stage prop in abstrauth and all abstracore apps
+  - quarkus.oidc.token.audience=$stage-${ABSTRATIUM_CLIENT_ID:abstratium-abstracore}
+  - quarkus.oidc.token.issuer=https://$stage-abstrauth.abstratium.dev
+
 
 - add version field and optimistic locking to all entities and always take the version from the client. write a doc about this and add it to abstracore and implement it as standard in the database.md file.
   - apply versioning to
