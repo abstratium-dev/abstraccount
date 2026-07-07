@@ -27,4 +27,5 @@ globs: e2e-tests/**/*.ts
 - tests should create isolated data if possible
 - read the relevant angular files to understand how the application works
 - stop and ask for help if you get stuck and are repeatedly getting the same failure.
+- add numbered logging to tests so that you can debug them easily
 
