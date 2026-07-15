@@ -65,6 +65,7 @@ CREATE DATABASE abstraccount CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 GRANT ALL PRIVILEGES ON abstraccount.* TO abstraccount@'%'; -- on own database
 
 FLUSH PRIVILEGES;
+USE abstraccount;
 ```
 
 exit, then reconnect using the new user:

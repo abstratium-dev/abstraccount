@@ -5,7 +5,7 @@ package dev.abstratium.abstraccount;
  */
 public interface Roles {
     /** The oauth client_id for the service */
-    String CLIENT_ID = "abstratium-abstraccount";
+    String CLIENT_ID = "abstratium_abstraccount";
 
     /** The user is simply that. Used to ensure that they can only call some APIs if they are also signed in. */
     String USER = CLIENT_ID + "_user";

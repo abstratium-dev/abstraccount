@@ -68,7 +68,9 @@ export class CreateJournalComponent {
       this.createResult = result;
     } catch (error: any) {
       this.creating = false;
-      this.createError = error.error?.message || 'Failed to create journal';
+      this.createError = error.status === 403
+        ? 'You do not have the required USER role to create a journal.'
+        : error.error?.message || 'Failed to create journal';
     }
   }
 

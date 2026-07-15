@@ -317,7 +317,7 @@ class AccountResourceTest {
             .post("/api/account")
         .then()
             .statusCode(400)
-            .body(containsString("Journal not found"));
+            .body(containsString("Journal not found - ensure a journal exists first"));
     }
     
     @Test

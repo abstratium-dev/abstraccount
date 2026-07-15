@@ -10,6 +10,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.junit.jupiter.api.BeforeEach;
+
+import dev.abstratium.abstraccount.Roles;
 import org.junit.jupiter.api.Test;
 
 import io.quarkus.test.junit.QuarkusTest;
@@ -22,7 +24,7 @@ class JournalResourceTest {
     private static boolean journalUploaded = false;
     
     @BeforeEach
-    @TestSecurity(user = "testUser", roles = {"abstratium-abstraccount_user"})
+    @TestSecurity(user = "testUser", roles = {Roles.USER})
     void uploadTestJournal() throws Exception {
         if (journalUploaded) {
             return;
@@ -40,7 +42,7 @@ class JournalResourceTest {
     }
     
     @Test
-    @TestSecurity(user = "testUser", roles = {"abstratium-abstraccount_user"})
+    @TestSecurity(user = "testUser", roles = {Roles.USER})
     void testCreateJournal() {
         Map<String, String> commodities = new HashMap<>();
         commodities.put("CHF", "1000.00");
@@ -69,7 +71,7 @@ class JournalResourceTest {
     }
     
     @Test
-    @TestSecurity(user = "testUser", roles = {"abstratium-abstraccount_user"})
+    @TestSecurity(user = "testUser", roles = {Roles.USER})
     void testCreateJournalMinimal() {
         CreateJournalRequest request = new CreateJournalRequest(
             null,
@@ -91,7 +93,7 @@ class JournalResourceTest {
     }
     
     @Test
-    @TestSecurity(user = "testUser", roles = {"abstratium-abstraccount_user"})
+    @TestSecurity(user = "testUser", roles = {Roles.USER})
     void testCreateJournalWithoutTitle() {
         String invalidJson = """
             {
@@ -112,7 +114,19 @@ class JournalResourceTest {
     }
     
     @Test
-    @TestSecurity(user = "testUser", roles = {"abstratium-abstraccount_user"})
+    @TestSecurity(user = "userWithoutRequiredRole", roles = {"other-role"})
+    void testCreateJournalWithoutRequiredRole() {
+        given()
+            .contentType(ContentType.JSON)
+            .body("{}")
+            .when().post("/api/journal/create")
+            .then()
+            .statusCode(403)
+            .body("title", is("Forbidden"));
+    }
+
+    @Test
+    @TestSecurity(user = "testUser", roles = {Roles.USER})
     void testCreateJournalWithoutCurrency() {
         String invalidJson = """
             {

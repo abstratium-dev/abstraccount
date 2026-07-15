@@ -248,7 +248,7 @@ public class AccountResource {
             // Validate journal exists
             if (!journalExists(request.journalId())) {
                 return Response.status(Response.Status.BAD_REQUEST)
-                    .entity("Journal not found")
+                    .entity("Journal not found - ensure a journal exists first")
                     .build();
             }
             

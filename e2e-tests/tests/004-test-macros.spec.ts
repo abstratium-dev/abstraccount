@@ -749,8 +749,8 @@ test.describe('Test Macros', () => {
     await invoiceInput.type('{next_invoice_SI}');
     await page.waitForTimeout(300);
     
-    console.log('Filling amount field (11.00 CHF)...');
-    await macrosPage.fillParameter(page, 'amount', '11.00');
+    console.log('Filling amount field (111 CHF)...');
+    await macrosPage.fillParameter(page, 'amount', '111');
     
     console.log('Filling description field...');
     await macrosPage.fillParameter(page, 'description', 'Test macros 004.4 second invoice');
@@ -816,7 +816,7 @@ test.describe('Test Macros', () => {
     await transactionsPage.verifyTransactionDetails(page, 'Test macros 004.4 second invoice', {
       date: '2026-08-07',
       partner: 'P00000014',
-      value: '11.00'
+      value: '111'
     });
     
     console.log('✓ Transaction created successfully via macro system');
@@ -824,7 +824,7 @@ test.describe('Test Macros', () => {
     console.log('  - Date: 2026-08-07');
     console.log('  - Partner: P00000014 (Microsoft)');
     console.log('  - Invoice: SI00000002 (auto-generated)');
-    console.log('  - Amount: CHF 11.00');
+    console.log('  - Amount: CHF 111');
     console.log('  - Status: Unpaid (will be used in test 004.5)');
     
     console.log('=== Test 4.4: Second Invoice - PASSED ===');
@@ -1696,9 +1696,9 @@ test.describe('Verify Reports After Macro Transactions', () => {
     await reportsPage.verifyReportContains(page, '1020', 'Bank Account');
     await reportsPage.verifyReportContains(page, '1,935.50', 'Bank balance');
     
-    // Account 1100: Receivables - Net Debit 11.00
+    // Account 1100: Receivables - Net Debit 111.00
     await reportsPage.verifyReportContains(page, '1100', 'Receivables');
-    await reportsPage.verifyReportContains(page, '11.00', 'Receivables balance');
+    await reportsPage.verifyReportContains(page, '111.00', 'Receivables balance');
     
     // Account 2800: Share Capital - Credit 2,000.00
     await reportsPage.verifyReportContains(page, '2800', 'Share Capital');
@@ -1722,6 +1722,92 @@ test.describe('Verify Reports After Macro Transactions', () => {
     
     console.log('✓ Trial Balance verified successfully!');
     console.log('=== Trial Balance Verification Complete ===');
+  });
+
+  test('should run Unpaid Sales Invoices report and validate SI00000002 is unpaid for 111 CHF', async ({ page }) => {
+    test.setTimeout(120_000);
+    console.log('=== Starting Unpaid Sales Invoices Report Validation ===');
+
+    // Navigate and authenticate
+    await page.goto('/');
+    const journalSelector = page.locator('#journal-select');
+    const isSignedIn = await journalSelector.isVisible({ timeout: 2000 }).catch(() => false);
+
+    if (!isSignedIn) {
+      console.log('Not signed in, performing authentication...');
+      await signedOutPage.waitForSignedOutPage(page);
+      await signedOutPage.clickSignIn(page);
+      await authSignInPage.waitForAuthSignInPage(page);
+      await authSignInPage.signIn(page, TEST_USER_EMAIL, TEST_USER_PASSWORD);
+      await authApprovalPage.waitForAuthApprovalPage(page);
+      await authApprovalPage.approveApplication(page, true);
+      await page.waitForURL(/http:\/\/localhost:8083/, { timeout: 10000 });
+      console.log('Authentication complete');
+    }
+
+    await headerPage.waitForHeader(page);
+    await headerPage.selectJournal(page, TEST_JOURNAL_NAME);
+
+    // Navigate to reports page
+    console.log('--- Navigating to Reports Page ---');
+    await page.click('a#reports');
+    await reportsPage.waitForReportsPage(page);
+
+    // Ensure "Hide zero-balance rows" is checked
+    console.log('--- Ensuring Hide zero-balance rows is checked ---');
+    const hideZeroCheckbox = page.locator('#hide-zero-balances');
+    await hideZeroCheckbox.waitFor({ state: 'visible', timeout: 5000 });
+    const isChecked = await hideZeroCheckbox.isChecked();
+    if (!isChecked) {
+      await hideZeroCheckbox.click();
+      console.log('✓ Hide zero-balance rows checkbox checked');
+    } else {
+      console.log('✓ Hide zero-balance rows was already checked');
+    }
+
+    // Select Unpaid Sales Invoices report
+    console.log('--- Selecting Unpaid Sales Invoices Report ---');
+    await reportsPage.selectReportTemplate(page, 'Unpaid Sales Invoices');
+    await reportsPage.generateReport(page);
+
+    // Validate SI00000002 appears with unpaid status and 111 CHF
+    console.log('--- Validating SI00000002 is unpaid for 111 CHF ---');
+
+    // Get report content
+    const content = await page.content();
+
+    // Verify SI00000002 appears in the report
+    if (!content.includes('SI00000002')) {
+      throw new Error('Invoice SI00000002 not found in Unpaid Sales Invoices report');
+    }
+    console.log('✓ Invoice SI00000002 found in report');
+
+    // Verify the invoice shows unpaid status (check for "unpaid" text near SI00000002)
+    // Look for a row or section containing SI00000002 and check for unpaid status
+    const si00000002Pattern = /SI00000002[\s\S]{0,500}unpaid/i;
+    if (!si00000002Pattern.test(content)) {
+      // Try alternative pattern (unpaid before SI00000002)
+      const altPattern = /unpaid[\s\S]{0,500}SI00000002/i;
+      if (!altPattern.test(content)) {
+        throw new Error('Invoice SI00000002 does not have status "unpaid" in the report');
+      }
+    }
+    console.log('✓ Invoice SI00000002 has status "unpaid"');
+
+    // Verify the amount is 111.00 CHF
+    // Look for 111.00 near SI00000002
+    const amountPattern = /SI00000002[\s\S]{0,300}111[.,]00|111[.,]00[\s\S]{0,300}SI00000002/;
+    if (!amountPattern.test(content)) {
+      throw new Error('Invoice SI00000002 does not show amount 111.00 CHF in the report');
+    }
+    console.log('✓ Invoice SI00000002 has amount 111.00 CHF');
+
+    console.log('✓ Unpaid Sales Invoices report validated successfully!');
+    console.log('  - SI00000002 is present in the report');
+    console.log('  - Status is "unpaid"');
+    console.log('  - Amount is 111.00 CHF');
+    console.log('  - Hide zero-balance rows is enabled');
+    console.log('=== Unpaid Sales Invoices Report Validation Complete ===');
   });
 });
 
