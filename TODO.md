@@ -9,10 +9,15 @@ These TODOs are to be resolved by the developer, NOT THE LLM.
 
 ## Today
 
+- improve onboarding - it's aweful at the moment. e.g.
+  - create a journal if none is found
+  - when reimporting, offer to delete same named journals
+
 - check duty of care 754.   Personal liability for directors — While shareholders are protected, directors/gérants of an Sàrl can face personal liability if they breach their duty of care (CO Art. 754) toward the company. But that's unrelated to your TOS; it's about how you run the company internally.
   - check gemini response
 
 - add multi-tenancy
+
 - add envers
 
 - bug: does adding new year copy the account descriptions?
