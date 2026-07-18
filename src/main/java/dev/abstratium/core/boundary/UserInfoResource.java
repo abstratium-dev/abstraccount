@@ -10,6 +10,9 @@ import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.container.ContainerRequestContext;
 import org.eclipse.microprofile.jwt.JsonWebToken;
+import org.jboss.logging.Logger;
+
+import dev.abstratium.core.util.ClientIpUtil;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -29,33 +32,36 @@ import java.util.Map;
 @Authenticated
 public class UserInfoResource {
 
+    private static final Logger log = Logger.getLogger(UserInfoResource.class);
+
     @Inject
     @IdToken
     JsonWebToken idToken;
 
+    /**
+     * Returns JWT payload (claims) without the signature.
+     * This is safe to expose to the Angular SPA.
+     * 
+     * The response matches the Token interface in auth.service.ts
+     */
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     public Map<String, Object> getUserInfo(@Context ContainerRequestContext requestContext) {
         Map<String, Object> userInfo = new HashMap<>();
-        
-        String email = idToken.getClaim("email");
-        String clientId = idToken.getAudience() != null && !idToken.getAudience().isEmpty() 
-            ? idToken.getAudience().iterator().next() : null;
 
-        userInfo.put("iss", idToken.getIssuer());
-        userInfo.put("sub", idToken.getSubject());
-        userInfo.put("email", email);
-        userInfo.put("email_verified", idToken.getClaim("email_verified"));
-        userInfo.put("name", idToken.getClaim("name"));  // Use claim directly, not getName()
-        userInfo.put("groups", idToken.getGroups());
-        userInfo.put("iat", idToken.getIssuedAtTime());
-        userInfo.put("exp", idToken.getExpirationTime());
+        for (String claimName : idToken.getClaimNames()) {
+            if(claimName.equals("raw_token")) continue;
+            userInfo.put(claimName, idToken.getClaim(claimName));
+        }
+
+        String clientId = idToken.getAudience() != null && !idToken.getAudience().isEmpty()
+            ? idToken.getAudience().iterator().next() : null;
         userInfo.put("client_id", clientId);
-        userInfo.put("jti", idToken.getClaim("jti"));
-        userInfo.put("upn", idToken.getName());  // getName() returns upn claim
-        userInfo.put("auth_method", idToken.getClaim("auth_method"));
         userInfo.put("isAuthenticated", true);
-        
+
+        String email = idToken.getClaim("email");
+        String clientIp = ClientIpUtil.getClientIp(requestContext);
+        log.info("User with ID " + idToken.getSubject() + " and email " + email + " has been read for client_id " + clientId + " from IP " + clientIp);
         return userInfo;
     }
 }

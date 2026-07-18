@@ -1,22 +1,23 @@
 import { Routes } from '@angular/router';
+import { AccountLedgerComponent } from './account-ledger/account-ledger.component';
+import { AccountsTableComponent } from './accounts-table/accounts-table.component';
+import { CloseBooksComponent } from './close-books/close-books.component';
 import { authGuard } from './core/auth.guard';
 import { NotFoundComponent } from './core/not-found/not-found.component';
+import { SignedInComponent } from './core/signed-in/signed-in.component';
 import { SignedOutComponent } from './core/signed-out/signed-out.component';
-import { LandingComponent } from './landing/landing.component';
-import { JournalComponent } from './journal/journal.component';
-import { UploadComponent } from './upload/upload.component';
 import { CreateJournalComponent } from './create-journal/create-journal.component';
-import { AccountsTableComponent } from './accounts-table/accounts-table.component';
-import { AccountLedgerComponent } from './account-ledger/account-ledger.component';
-import { SettingsComponent } from './settings/settings.component';
-import { ReportsComponent } from './reports/reports.component';
-import { PartnersComponent } from './partners/partners.component';
-import { MacrosComponent } from './macros/macros.component';
 import { EntrySearchComponent } from './entry-search/entry-search.component';
-import { CloseBooksComponent } from './close-books/close-books.component';
-import { NewYearComponent } from './new-year/new-year.component';
 import { JournalHistoryComponent } from './journal-history/journal-history.component';
+import { JournalComponent } from './journal/journal.component';
+import { LandingComponent } from './landing/landing.component';
 import { LegalComponent } from './legal/legal.component';
+import { MacrosComponent } from './macros/macros.component';
+import { NewYearComponent } from './new-year/new-year.component';
+import { PartnersComponent } from './partners/partners.component';
+import { ReportsComponent } from './reports/reports.component';
+import { SettingsComponent } from './settings/settings.component';
+import { UploadComponent } from './upload/upload.component';
 
 export const routes: Routes = [
   { path: '',                          component: LandingComponent },
@@ -35,5 +36,7 @@ export const routes: Routes = [
   { path: 'new-year',                  component: NewYearComponent, canActivate: [authGuard] },
   { path: 'journal-history',           component: JournalHistoryComponent, canActivate: [authGuard] },
   { path: 'legal',                     component: LegalComponent },
+  { path: 'signed-in',                 component: SignedInComponent, canActivate: [authGuard] },
+  { path: 'signed-out',                component: SignedOutComponent },
   { path: '**',                        component: NotFoundComponent }
 ];

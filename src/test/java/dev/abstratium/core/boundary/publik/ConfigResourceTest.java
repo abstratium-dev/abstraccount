@@ -1,8 +1,12 @@
 package dev.abstratium.core.boundary.publik;
 
 import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.junit.TestProfile;
+import io.quarkus.test.junit.QuarkusTestProfile;
 import io.restassured.http.ContentType;
 import org.junit.jupiter.api.Test;
+
+import java.util.Map;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.CoreMatchers.is;
@@ -15,7 +19,19 @@ import static org.hamcrest.CoreMatchers.notNullValue;
  * 3. The endpoint is NOT tracked by OIDC (no @PermitAll annotation needed)
  */
 @QuarkusTest
+@TestProfile(ConfigResourceTest.TestProfile.class)
 class ConfigResourceTest {
+
+    public static class TestProfile implements QuarkusTestProfile {
+        @Override
+        public Map<String, String> getConfigOverrides() {
+            return Map.of(
+                "abstratium.stage", "test",
+                "ABSTRA_WARNING_MESSAGE", "-",
+                "warning.message", "-"
+            );
+        }
+    }
 
     @Test
     void testConfigEndpointReturnsLogLevel() {
@@ -26,7 +42,9 @@ class ConfigResourceTest {
             .statusCode(200)
             .contentType(ContentType.JSON)
             .body("logLevel", notNullValue())
-            .body("logLevel", is("INFO")); // Default value from application.properties
+            .body("logLevel", is("INFO")) // Default value from application.properties
+            .body("warningMessage", notNullValue()) // Default "-" means no banner
+            .body("stage", notNullValue()); // Default "dev" or from test config
     }
 
     @Test
@@ -68,5 +86,71 @@ class ConfigResourceTest {
             // Verify it matches ISO-8601 format (basic check for 'T' and 'Z')
             .body("baselineBuildTimestamp", org.hamcrest.Matchers.containsString("T"))
             .body("baselineBuildTimestamp", org.hamcrest.Matchers.endsWith("Z"));
+    }
+
+    @Test
+    void testConfigEndpointReturnsWarningMessage() {
+        // Verify that warningMessage is returned (default "-" means no banner)
+        given()
+            .when()
+            .get("/public/config")
+            .then()
+            .statusCode(200)
+            .contentType(ContentType.JSON)
+            .body("warningMessage", notNullValue())
+            .body("warningMessage", is("-")); // Default "-" means no banner
+    }
+
+    @Test
+    void testConfigEndpointReturnsStage() {
+        // Verify that stage is returned (test profile uses "test")
+        given()
+            .when()
+            .get("/public/config")
+            .then()
+            .statusCode(200)
+            .contentType(ContentType.JSON)
+            .body("stage", notNullValue())
+            .body("stage", is("test")); // Test profile uses "test"
+    }
+
+    @Test
+    void testConfigEndpointReturnsWarningBgColor() {
+        // Verify that warningBgColor is returned (default value from application.properties)
+        given()
+            .when()
+            .get("/public/config")
+            .then()
+            .statusCode(200)
+            .contentType(ContentType.JSON)
+            .body("warningBgColor", notNullValue())
+            .body("warningBgColor", is("#fff3cd")); // Default from application.properties
+    }
+
+    @Test
+    void testConfigEndpointReturnsBrandFields() {
+        given()
+            .when()
+            .get("/public/config")
+            .then()
+            .statusCode(200)
+            .contentType(ContentType.JSON)
+            .body("brandLogoUrl", notNullValue())
+            .body("brandLogoUrl", is("https://abstratium.dev/abstratium-logo-small.png"))
+            .body("brandLogoAlt", notNullValue())
+            .body("brandLogoAlt", is("Abstratium Logo"))
+            .body("brandName", notNullValue())
+            .body("brandName", is("ABSTRATIUM"));
+    }
+
+    @Test
+    void testLegalContentIsNullWhenFileNotConfigured() {
+        given()
+            .when()
+            .get("/public/config")
+            .then()
+            .statusCode(200)
+            .contentType(ContentType.JSON)
+            .body("legalContent", org.hamcrest.Matchers.nullValue());
     }
 }

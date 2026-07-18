@@ -6,8 +6,22 @@ These TODOs are to be resolved by the developer, NOT THE LLM.
 
 - upgrade all and check security issues in github
 - update docs to describe the changes
+- audit that all JPQL and SQL is multi-tenant conform
+  - prompt:
+    - you are a software expert and know all about hibernate multitenancy using the discriminator approach, as well as envers. see @entity-manager-usage-constraints.md and ensure that the information in that file is adhered to in this project. for example: search for all native sql in `src/main/java` and tell the user that they exists and suggest updates so that JPA queries are used instead. for example: search for all bulk UPDATE and DELETE operations and tell the user that they exist and suggest updates so that non-bulk operations are used instead. you are free to address other potential issues related to using envers and multi-tenancy.
+- double check that the legal.component.html still conforms in terms of what the site does and which data is collected
 
 ## Today
+
+- [ ] **Replace the legal page** (`src/main/webui/src/app/core/legal/legal.component.html`) with one specific to your organisation — it MUST name the correct data controller, contact details, and applicable law. See the ⚠ LEGAL NOTICE at the top of this README.
+
+- `partner.data.file.path` -> needs to also be tenant compatible
+
+
+- change abstrauth so that this can use a dash not an underscore:
+  - Roles.java:
+    - String CLIENT_ID = "abstratium_abstraccount";
+
 
 - improve onboarding - it's aweful at the moment. e.g.
   - create a journal if none is found
@@ -66,6 +80,7 @@ These TODOs are to be resolved by the developer, NOT THE LLM.
 - link the EQL docs to the user guide
 - deploy to test and prod
 
+- use SecurityProblemLogger in all places where a security issue is detected
 
 ## Tomorrow
 

@@ -1,11 +1,34 @@
 # User Manual
 
+## Using abstracore
+
+TODO write detailed instructions on how your application works
+
+
+### Overview
+#### Key Features
+#### Core concepts
+#### Typical workflow
+
+---
+
 ## Installation
 
 It is intended that this component be run using docker.
 It supports MySql and will soon also support postgresql and MS SQL Server.
 
 You need to add a database/schema and a user to the database manually.
+
+### Prerequisites
+
+Before installation, ensure you have:
+
+- **Docker** installed and running
+- **MySQL 8.0+** database server
+- **Network connectivity** between Docker container and MySQL
+- **OpenSSL** for generating JWT keys
+- **GitHub account** (if pulling from GitHub Container Registry)
+- **nginx** or similar for reverse proxying and terminating TLS
 
 ### Create the Database, User and Grant Permissions
 
@@ -39,7 +62,7 @@ This project will automatically create all necessary tables and any initial data
 
 New versions will update the database as needed.
 
-### Generate TODO
+### Generate Environment Variables
 
 TODO any env vars that need generating are to be described here.
 
@@ -68,6 +91,7 @@ TODO any env vars that need generating are to be described here.
      -e QUARKUS_DATASOURCE_USERNAME="abstraccount" \
      -e QUARKUS_DATASOURCE_PASSWORD="TODO_YOUR_SECURE_PASSWORD" \
      -e COOKIE_ENCRYPTION_SECRET="TODO_YOUR_COOKIE_ENCRYPTION_SECRET" \
+     -e DEFAULT_ORG_UUID="TODO_YOUR_GENERATED_DEFAULT_ORG_UUID" \
      ghcr.io/abstratium-dev/abstraccount:latest
    ```
 
@@ -77,9 +101,44 @@ TODO any env vars that need generating are to be described here.
    - `QUARKUS_DATASOURCE_PASSWORD`: Database password (use strong, unique password)
    - `COOKIE_ENCRYPTION_SECRET`: Cookie encryption secret (min 32 chars, generate with `openssl rand -base64 32`)
    - `CSRF_TOKEN_SIGNATURE_KEY`: CSRF token signature key (min 32 chars, generate with `openssl rand -base64 64 | tr -d '\n'`)
-   
+   - `ABSTRATIUM_TOGGLES_API_URL`: URL of the Abstoggle public API (e.g., `https://toggles.abstratium.dev`, required in production only)
+   - `ABSTRATIUM_TOGGLES_CONTEXT`: Context for the Abstoggle public API (e.g., `abstratium-public-...`)
+   - `STAGE`: Deployment stage identifier exposed to the frontend (e.g., "dev", "test", "prod", defaults to "dev")
+   - `DEFAULT_ORG_UUID`: UUID for the default organisation that existing data is migrated into (generate with `uuidgen`)
+
    **Optional Environment Variables:**
+   - `ABSTRA_WARNING_MESSAGE`: Warning banner message displayed at the top of the UI (e.g., "You are in the TEST environment!"). Set to "-" or omit to hide the banner.
+   - `ABSTRA_WARNING_BG_COLOR`: Warning banner background colour (CSS colour value, e.g., `#ff4444` for red). Defaults to `#fff3cd` (amber yellow). Useful for differentiating environments at a glance.
+   - `ABSTRA_BRAND_LOGO_URL`: URL of the logo image shown in the header. Defaults to `https://abstratium.dev/abstratium-logo-small.png`.
+   - `ABSTRA_BRAND_LOGO_ALT`: Alt text for the header logo image. Defaults to `Abstratium Logo`.
+   - `ABSTRA_BRAND_NAME`: Brand name text shown next to the logo in the header. Defaults to `ABSTRATIUM`.
+   - `ABSTRA_LEGAL_CONTENT_FILE`: **Required for non-abstratium deployments.** Absolute path inside the container to an HTML file containing your organisation's legal page content. When set, this file's contents are served to the frontend and displayed instead of the built-in abstratium legal text — with no misconfiguration warnings. If this variable is not set and the deployment is not on `abstratium.dev`, the legal page will display a prominent error warning to users, and the home page will display a disclaimer stating that abstratium is not responsible for this deployment. Example: `-e ABSTRA_LEGAL_CONTENT_FILE=/config/legal.html -v /host/legal.html:/config/legal.html`.
    - `TODO_ENV_VAR_NAME`: TODO
+
+
+----
+
+> **⚠ LEGAL NOTICE FOR OPERATORS AND DEPLOYERS**
+>
+> This software ships with a legal page (`src/main/webui/src/app/core/legal/legal.component.html`)
+> that is **specific to abstratium informatique sàrl** and applies **only** to the official deployment
+> at **abstratium.dev**.
+>
+> If you deploy this software on **any other domain**, the legal page will automatically display a
+> prominent misconfiguration warning to users, and the abstratium legal text will be visually
+> invalidated. However, **you are still legally required** to:
+>
+> 1. Replace the legal page with one that correctly names **your** organisation as data controller.
+> 2. Ensure the page accurately reflects **your** data processing practices, applicable law, and contact details.
+> 3. Comply with the GDPR, Swiss revDSG, and any other applicable data protection law in your jurisdiction.
+>
+> Failure to do so may expose **you** (the operator) to regulatory action. abstratium informatique sàrl
+> accepts no liability whatsoever for deployments made by third parties.
+>
+> See the checklist below for full configuration steps.
+
+
+
 
 3. **Verify the container is running**:
    ```bash
@@ -92,29 +151,6 @@ TODO any env vars that need generating are to be described here.
 4. **Access the application**:
    - Main application: http://localhost:41083
    - Management interface: http://localhost:9005/m/info
-
-### Prerequisites
-
-Before installation, ensure you have:
-
-- **Docker** installed and running
-- **MySQL 8.0+** database server
-- **Network connectivity** between Docker container and MySQL
-- **OpenSSL** for generating JWT keys
-- **GitHub account** (if pulling from GitHub Container Registry)
-- **nginx** or similar for reverse proxying and terminating TLS
-
-## Initial Onboarding
-
-TODO
-
-## Account and Role Management
-
-This component requires that users can authenticate using an oauth authorization server. That requires that an administrator signs into something like `abstratium-abstrauth` first, to create the oauth2 client. The callback url should be `http://localhost:8083/oauth/callback` and one for the production environment, also ending in `/oauth/callback`. Use the `client_id` and `client_secret` that it provides, to set the values of the environment variables above, so that users can sign in.
-
-## TODO
-
-TODO describe other functionality here.
 
 ## Monitoring and Health Checks
 

@@ -1,7 +1,7 @@
 import { inject, Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
-import { ModelService } from './model.service';
+import { Config, ModelService } from './model.service';
 
 export interface TransactionDTO {
   id: string;
@@ -279,10 +279,10 @@ export class Controller {
   private modelService = inject(ModelService);
   private http = inject(HttpClient);
 
-  async loadConfig(): Promise<{logLevel: string}> {
+  async loadConfig(): Promise<Config> {
     try {
       const config = await firstValueFrom(
-        this.http.get<{logLevel: string}>('/public/config')
+        this.http.get<Config>('/public/config')
       );
       this.modelService.setConfig(config);
       return config;

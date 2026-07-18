@@ -19,6 +19,9 @@ export class HeaderComponent implements OnInit {
     private modelService = inject(ModelService);
     private router = inject(Router);
     themeService = inject(ThemeService);
+    protected brandLogoUrl$ = this.modelService.brandLogoUrl$;
+    protected brandLogoAlt$ = this.modelService.brandLogoAlt$;
+    protected brandName$ = this.modelService.brandName$;
 
     token!: Token;
     isSignedIn = false;
@@ -102,8 +105,12 @@ export class HeaderComponent implements OnInit {
         this.themeService.toggleTheme();
     }
 
-    signout() {
-        this.authService.signout();
+    signOut() {
+        this.authService.signOut();
+    }
+
+    signIn() {
+        this.authService.signIn();
     }
 
     toggleMenu(): void {
