@@ -1,5 +1,6 @@
 package dev.abstratium.abstraccount.boundary;
 
+import dev.abstratium.abstraccount.Roles;
 import dev.abstratium.abstraccount.entity.JournalEntity;
 import dev.abstratium.abstraccount.service.JournalPersistenceService;
 import io.quarkus.test.junit.QuarkusTest;
@@ -32,7 +33,7 @@ class JournalListIntegrationTest {
     }
 
     @Test
-    @TestSecurity(user = "testuser", roles = {"abstratium-abstraccount_user"})
+    @TestSecurity(user = "testuser", roles = {Roles.USER})
     void testListJournals_empty() {
         given()
             .contentType(ContentType.JSON)
@@ -44,7 +45,7 @@ class JournalListIntegrationTest {
     }
 
     @Test
-    @TestSecurity(user = "testuser", roles = {"abstratium-abstraccount_user"})
+    @TestSecurity(user = "testuser", roles = {Roles.USER})
     void testListJournals_single() {
         // Create a journal
         String journalId = createAndCommitJournal("Test Journal 2024", "CHF", null);
@@ -63,7 +64,7 @@ class JournalListIntegrationTest {
     }
 
     @Test
-    @TestSecurity(user = "testuser", roles = {"abstratium-abstraccount_user"})
+    @TestSecurity(user = "testuser", roles = {Roles.USER})
     void testListJournals_multiple() {
         // Create multiple journals
         createAndCommitJournal("Journal A", "CHF", null);
@@ -84,7 +85,7 @@ class JournalListIntegrationTest {
     }
 
     @Test
-    @TestSecurity(user = "testuser", roles = {"abstratium-abstraccount_user"})
+    @TestSecurity(user = "testuser", roles = {Roles.USER})
     void testGetJournalMetadata_success() {
         // Create a journal with subtitle
         String journalId = createAndCommitJournal("Test Journal", "CHF", "Test Subtitle");
@@ -103,7 +104,7 @@ class JournalListIntegrationTest {
     }
 
     @Test
-    @TestSecurity(user = "testuser", roles = {"abstratium-abstraccount_user"})
+    @TestSecurity(user = "testuser", roles = {Roles.USER})
     void testGetJournalMetadata_notFound() {
         given()
             .contentType(ContentType.JSON)
@@ -114,7 +115,7 @@ class JournalListIntegrationTest {
     }
 
     @Test
-    @TestSecurity(user = "testuser", roles = {"abstratium-abstraccount_user"})
+    @TestSecurity(user = "testuser", roles = {Roles.USER})
     void testGetJournalMetadata_withMultipleCommodities() {
         // Create a journal with multiple commodities
         String journalId = createMultiCurrencyJournal();
@@ -131,7 +132,7 @@ class JournalListIntegrationTest {
     }
 
     @Test
-    @TestSecurity(user = "testuser", roles = {"abstratium-abstraccount_user"})
+    @TestSecurity(user = "testuser", roles = {Roles.USER})
     void testListJournals_withNullSubtitle() {
         // Create a journal without subtitle (null is the default)
         createAndCommitJournal("Test Journal", "CHF", null);

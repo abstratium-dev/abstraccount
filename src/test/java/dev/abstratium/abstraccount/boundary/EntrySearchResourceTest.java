@@ -1,5 +1,7 @@
 package dev.abstratium.abstraccount.boundary;
 
+import dev.abstratium.abstraccount.Roles;
+
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.*;
 
@@ -19,7 +21,7 @@ class EntrySearchResourceTest {
     private String journalId;
     
     @BeforeEach
-    @TestSecurity(user = "testUser", roles = {"abstratium-abstraccount_user"})
+    @TestSecurity(user = "testUser", roles = {Roles.USER})
     void uploadTestJournal() throws Exception {
         String journalContent = Files.readString(Paths.get("src/test/resources/test-journal.txt"));
         
@@ -33,7 +35,7 @@ class EntrySearchResourceTest {
     }
     
     @Test
-    @TestSecurity(user = "testUser", roles = {"abstratium-abstraccount_user"})
+    @TestSecurity(user = "testUser", roles = {Roles.USER})
     void testGetAllEntrySearchResults() {
         given()
             .queryParam("journalId", journalId)
@@ -44,7 +46,7 @@ class EntrySearchResourceTest {
     }
 
     @Test
-    @TestSecurity(user = "testUser", roles = {"abstratium-abstraccount_user"})
+    @TestSecurity(user = "testUser", roles = {Roles.USER})
     void testFilterByAccountId() {
         EntrySearchDTO[] allEntries = given()
             .queryParam("journalId", journalId)
@@ -72,7 +74,7 @@ class EntrySearchResourceTest {
     }
 
     @Test
-    @TestSecurity(user = "testUser", roles = {"abstratium-abstraccount_user"})
+    @TestSecurity(user = "testUser", roles = {Roles.USER})
     void testEqlFilterByTag() {
         EntrySearchDTO[] filteredEntries = given()
             .queryParam("journalId", journalId)
@@ -91,7 +93,7 @@ class EntrySearchResourceTest {
     }
 
     @Test
-    @TestSecurity(user = "testUser", roles = {"abstratium-abstraccount_user"})
+    @TestSecurity(user = "testUser", roles = {Roles.USER})
     void testEqlFilterByTagKeyOnly() {
         EntrySearchDTO[] filteredEntries = given()
             .queryParam("journalId", journalId)
@@ -110,7 +112,7 @@ class EntrySearchResourceTest {
     }
 
     @Test
-    @TestSecurity(user = "testUser", roles = {"abstratium-abstraccount_user"})
+    @TestSecurity(user = "testUser", roles = {Roles.USER})
     void testEqlFilterNegateTag() {
         EntrySearchDTO[] allEntries = given()
             .queryParam("journalId", journalId)
@@ -137,7 +139,7 @@ class EntrySearchResourceTest {
     }
 
     @Test
-    @TestSecurity(user = "testUser", roles = {"abstratium-abstraccount_user"})
+    @TestSecurity(user = "testUser", roles = {Roles.USER})
     void testEqlFilterByAccountType() {
         EntrySearchDTO[] filteredEntries = given()
             .queryParam("journalId", journalId)
@@ -154,7 +156,7 @@ class EntrySearchResourceTest {
     }
 
     @Test
-    @TestSecurity(user = "testUser", roles = {"abstratium-abstraccount_user"})
+    @TestSecurity(user = "testUser", roles = {Roles.USER})
     void testEqlFilterByCommodity() {
         EntrySearchDTO[] allEntries = given()
             .queryParam("journalId", journalId)
@@ -182,7 +184,7 @@ class EntrySearchResourceTest {
     }
 
     @Test
-    @TestSecurity(user = "testUser", roles = {"abstratium-abstraccount_user"})
+    @TestSecurity(user = "testUser", roles = {Roles.USER})
     void testEqlFilterByDateRange() {
         EntrySearchDTO[] filteredEntries = given()
             .queryParam("journalId", journalId)
@@ -196,7 +198,7 @@ class EntrySearchResourceTest {
     }
 
     @Test
-    @TestSecurity(user = "testUser", roles = {"abstratium-abstraccount_user"})
+    @TestSecurity(user = "testUser", roles = {Roles.USER})
     void testEqlFilterByDescription() {
         EntrySearchDTO[] filteredEntries = given()
             .queryParam("journalId", journalId)
@@ -210,7 +212,7 @@ class EntrySearchResourceTest {
     }
 
     @Test
-    @TestSecurity(user = "testUser", roles = {"abstratium-abstraccount_user"})
+    @TestSecurity(user = "testUser", roles = {Roles.USER})
     void testEqlFilterNonExistentTagReturnsEmpty() {
         EntrySearchDTO[] filteredEntries = given()
             .queryParam("journalId", journalId)
@@ -224,7 +226,7 @@ class EntrySearchResourceTest {
     }
 
     @Test
-    @TestSecurity(user = "testUser", roles = {"abstratium-abstraccount_user"})
+    @TestSecurity(user = "testUser", roles = {Roles.USER})
     void testEqlFilterCombinedAndOr() {
         EntrySearchDTO[] allEntries = given()
             .queryParam("journalId", journalId)
@@ -246,7 +248,7 @@ class EntrySearchResourceTest {
     }
 
     @Test
-    @TestSecurity(user = "testUser", roles = {"abstratium-abstraccount_user"})
+    @TestSecurity(user = "testUser", roles = {Roles.USER})
     void testEqlFilterInvalidSyntaxReturns400() {
         given()
             .queryParam("journalId", journalId)
@@ -259,7 +261,7 @@ class EntrySearchResourceTest {
     }
 
     @Test
-    @TestSecurity(user = "testUser", roles = {"abstratium-abstraccount_user"})
+    @TestSecurity(user = "testUser", roles = {Roles.USER})
     void testMissingJournalIdReturns400() {
         given()
             .when().get("/api/entry-search/entries")
@@ -269,7 +271,7 @@ class EntrySearchResourceTest {
     }
 
     @Test
-    @TestSecurity(user = "testUser", roles = {"abstratium-abstraccount_user"})
+    @TestSecurity(user = "testUser", roles = {Roles.USER})
     void testEqlFilterByAmountGte() {
         EntrySearchDTO[] filteredEntries = given()
             .queryParam("journalId", journalId)
@@ -287,7 +289,7 @@ class EntrySearchResourceTest {
     }
 
     @Test
-    @TestSecurity(user = "testUser", roles = {"abstratium-abstraccount_user"})
+    @TestSecurity(user = "testUser", roles = {Roles.USER})
     void testEqlFilterByAmountLte() {
         EntrySearchDTO[] filteredEntries = given()
             .queryParam("journalId", journalId)
@@ -301,7 +303,7 @@ class EntrySearchResourceTest {
     }
 
     @Test
-    @TestSecurity(user = "testUser", roles = {"abstratium-abstraccount_user"})
+    @TestSecurity(user = "testUser", roles = {Roles.USER})
     void testEqlFilterByAmountEq() {
         EntrySearchDTO[] filteredEntries = given()
             .queryParam("journalId", journalId)
@@ -315,7 +317,7 @@ class EntrySearchResourceTest {
     }
 
     @Test
-    @TestSecurity(user = "testUser", roles = {"abstratium-abstraccount_user"})
+    @TestSecurity(user = "testUser", roles = {Roles.USER})
     void testEqlFilterByAmountGt() {
         EntrySearchDTO[] filteredEntries = given()
             .queryParam("journalId", journalId)
@@ -329,7 +331,7 @@ class EntrySearchResourceTest {
     }
 
     @Test
-    @TestSecurity(user = "testUser", roles = {"abstratium-abstraccount_user"})
+    @TestSecurity(user = "testUser", roles = {Roles.USER})
     void testEqlFilterByAmountLt() {
         EntrySearchDTO[] filteredEntries = given()
             .queryParam("journalId", journalId)
@@ -343,7 +345,7 @@ class EntrySearchResourceTest {
     }
 
     @Test
-    @TestSecurity(user = "testUser", roles = {"abstratium-abstraccount_user"})
+    @TestSecurity(user = "testUser", roles = {Roles.USER})
     void testEqlFilterByAmountNeg() {
         EntrySearchDTO[] filteredEntries = given()
             .queryParam("journalId", journalId)
@@ -361,7 +363,7 @@ class EntrySearchResourceTest {
     }
 
     @Test
-    @TestSecurity(user = "testUser", roles = {"abstratium-abstraccount_user"})
+    @TestSecurity(user = "testUser", roles = {Roles.USER})
     void testEqlFilterByAmountPos() {
         EntrySearchDTO[] filteredEntries = given()
             .queryParam("journalId", journalId)
@@ -379,7 +381,7 @@ class EntrySearchResourceTest {
     }
 
     @Test
-    @TestSecurity(user = "testUser", roles = {"abstratium-abstraccount_user"})
+    @TestSecurity(user = "testUser", roles = {Roles.USER})
     void testEqlFilterByNote_noMatch() {
         EntrySearchDTO[] filteredEntries = given()
             .queryParam("journalId", journalId)
@@ -393,7 +395,7 @@ class EntrySearchResourceTest {
     }
 
     @Test
-    @TestSecurity(user = "testUser", roles = {"abstratium-abstraccount_user"})
+    @TestSecurity(user = "testUser", roles = {Roles.USER})
     void testEqlFilterByNote_wildcard() {
         given()
             .queryParam("journalId", journalId)
@@ -404,7 +406,7 @@ class EntrySearchResourceTest {
     }
 
     @Test
-    @TestSecurity(user = "testUser", roles = {"abstratium-abstraccount_user"})
+    @TestSecurity(user = "testUser", roles = {Roles.USER})
     void testEqlFilterByAccountName() {
         given()
             .queryParam("journalId", journalId)
@@ -416,7 +418,7 @@ class EntrySearchResourceTest {
     }
 
     @Test
-    @TestSecurity(user = "testUser", roles = {"abstratium-abstraccount_user"})
+    @TestSecurity(user = "testUser", roles = {Roles.USER})
     void testEqlFilterByAccountName_noMatch() {
         EntrySearchDTO[] filteredEntries = given()
             .queryParam("journalId", journalId)
@@ -430,7 +432,7 @@ class EntrySearchResourceTest {
     }
 
     @Test
-    @TestSecurity(user = "testUser", roles = {"abstratium-abstraccount_user"})
+    @TestSecurity(user = "testUser", roles = {Roles.USER})
     void testEqlFilterByDescription_specific() {
         EntrySearchDTO[] filteredEntries = given()
             .queryParam("journalId", journalId)
@@ -448,7 +450,7 @@ class EntrySearchResourceTest {
     }
 
     @Test
-    @TestSecurity(user = "testUser", roles = {"abstratium-abstraccount_user"})
+    @TestSecurity(user = "testUser", roles = {Roles.USER})
     void testEqlFilterByPartner_noMatch() {
         EntrySearchDTO[] filteredEntries = given()
             .queryParam("journalId", journalId)
@@ -462,7 +464,7 @@ class EntrySearchResourceTest {
     }
 
     @Test
-    @TestSecurity(user = "testUser", roles = {"abstratium-abstraccount_user"})
+    @TestSecurity(user = "testUser", roles = {Roles.USER})
     void testFilterByAccountIdQueryParam_returnsOnlyThatAccount() {
         EntrySearchDTO[] allAccounts = given()
             .queryParam("journalId", journalId)
@@ -490,7 +492,7 @@ class EntrySearchResourceTest {
     }
 
     @Test
-    @TestSecurity(user = "testUser", roles = {"abstratium-abstraccount_user"})
+    @TestSecurity(user = "testUser", roles = {Roles.USER})
     void testEqlFilterByAccountId_emptyAccountId() {
         given()
             .queryParam("journalId", journalId)
@@ -501,7 +503,7 @@ class EntrySearchResourceTest {
     }
 
     @Test
-    @TestSecurity(user = "testUser", roles = {"abstratium-abstraccount_user"})
+    @TestSecurity(user = "testUser", roles = {Roles.USER})
     void testNoFilterReturnsSameAsEmptyFilter() {
         EntrySearchDTO[] withoutFilter = given()
             .queryParam("journalId", journalId)

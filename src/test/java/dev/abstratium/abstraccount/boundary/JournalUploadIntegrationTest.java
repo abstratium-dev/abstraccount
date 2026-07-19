@@ -1,5 +1,6 @@
 package dev.abstratium.abstraccount.boundary;
 
+import dev.abstratium.abstraccount.Roles;
 import dev.abstratium.abstraccount.entity.AccountEntity;
 import dev.abstratium.abstraccount.entity.JournalEntity;
 import dev.abstratium.abstraccount.model.AccountType;
@@ -40,7 +41,7 @@ class JournalUploadIntegrationTest {
     }
     
     @Test
-    @TestSecurity(user = "testuser", roles = {"abstratium-abstraccount_user"})
+    @TestSecurity(user = "testuser", roles = {Roles.USER})
     void testUploadJournalWithEquityHierarchy() throws IOException {
         // Load test journal file
         String journalContent = Files.readString(
@@ -144,7 +145,7 @@ class JournalUploadIntegrationTest {
     }
     
     @Test
-    @TestSecurity(user = "testuser", roles = {"abstratium-abstraccount_user"})
+    @TestSecurity(user = "testuser", roles = {Roles.USER})
     void testUploadInvalidJournal() {
         // Try to upload invalid content (blank journal should fail)
         given()
@@ -157,7 +158,7 @@ class JournalUploadIntegrationTest {
     }
     
     @Test
-    @TestSecurity(user = "testuser", roles = {"abstratium-abstraccount_user"})
+    @TestSecurity(user = "testuser", roles = {Roles.USER})
     void testUploadJournalWithoutAuthentication() {
         // This test verifies that @TestSecurity is working
         // The actual test without auth would fail with 401

@@ -45,6 +45,8 @@ describe('EntrySearchComponent', () => {
   ];
 
   beforeEach(async () => {
+    localStorage.clear();
+
     const controllerSpy = jasmine.createSpyObj('Controller', [
       'getEntrySearchResults',
       'getTags'

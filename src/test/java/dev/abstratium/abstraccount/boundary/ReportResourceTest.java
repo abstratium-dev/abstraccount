@@ -1,5 +1,7 @@
 package dev.abstratium.abstraccount.boundary;
 
+import dev.abstratium.abstraccount.Roles;
+
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.*;
 
@@ -13,7 +15,7 @@ import io.restassured.http.ContentType;
 class ReportResourceTest {
     
     @Test
-    @TestSecurity(user = "testUser", roles = {"abstratium-abstraccount_user"})
+    @TestSecurity(user = "testUser", roles = {Roles.USER})
     void testListTemplates() {
         given()
             .contentType(ContentType.JSON)
@@ -27,7 +29,7 @@ class ReportResourceTest {
     }
     
     @Test
-    @TestSecurity(user = "testUser", roles = {"abstratium-abstraccount_user"})
+    @TestSecurity(user = "testUser", roles = {Roles.USER})
     void testGetBalanceSheetTemplate() {
         given()
             .contentType(ContentType.JSON)
@@ -40,7 +42,7 @@ class ReportResourceTest {
     }
     
     @Test
-    @TestSecurity(user = "testUser", roles = {"abstratium-abstraccount_user"})
+    @TestSecurity(user = "testUser", roles = {Roles.USER})
     void testGetIncomeStatementTemplate() {
         given()
             .contentType(ContentType.JSON)
@@ -53,7 +55,7 @@ class ReportResourceTest {
     }
     
     @Test
-    @TestSecurity(user = "testUser", roles = {"abstratium-abstraccount_user"})
+    @TestSecurity(user = "testUser", roles = {Roles.USER})
     void testGetTrialBalanceTemplate() {
         given()
             .contentType(ContentType.JSON)
@@ -75,7 +77,7 @@ class ReportResourceTest {
     }
     
     @Test
-    @TestSecurity(user = "testUser", roles = {"abstratium-abstraccount_user"})
+    @TestSecurity(user = "testUser", roles = {Roles.USER})
     void testGetPartnerReportTemplate() {
         given()
             .contentType(ContentType.JSON)
@@ -92,7 +94,7 @@ class ReportResourceTest {
     }
     
     @Test
-    @TestSecurity(user = "testUser", roles = {"abstratium-abstraccount_user"})
+    @TestSecurity(user = "testUser", roles = {Roles.USER})
     void testPartnerReportHasCorrectSortConfiguration() {
         String templateContent = given()
             .contentType(ContentType.JSON)
