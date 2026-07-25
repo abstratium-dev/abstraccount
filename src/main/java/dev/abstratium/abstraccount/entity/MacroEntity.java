@@ -1,6 +1,7 @@
 package dev.abstratium.abstraccount.entity;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.TenantId;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -19,6 +20,10 @@ public class MacroEntity {
     
     @Column(nullable = false, length = 100)
     private String name;
+
+    @TenantId
+    @Column(name = "org_id", nullable = false, updatable = false, length = 36)
+    private String orgId;
     
     @Column(nullable = false, length = 500)
     private String description;

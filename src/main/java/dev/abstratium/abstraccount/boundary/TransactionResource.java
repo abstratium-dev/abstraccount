@@ -212,12 +212,9 @@ public class TransactionResource {
                 }
             }
             
-            // Persist changes
-            TransactionEntity updated = entityManager.merge(transaction);
-            
             LOG.infof("Successfully updated transaction: %s", transactionId);
             
-            return toDTO(updated);
+            return toDTO(transaction);
             
         } catch (WebApplicationException e) {
             throw e;

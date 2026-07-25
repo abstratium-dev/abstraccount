@@ -304,9 +304,10 @@ public class MacroServiceExecutionTest {
 
         // Insert transaction
         em.createNativeQuery(
-            "INSERT INTO T_transaction (id, journal_id, transaction_date, description, status) " +
-            "VALUES (:id, :journalId, :date, :description, :status)")
+            "INSERT INTO T_transaction (id, org_id, journal_id, transaction_date, description, status) " +
+            "VALUES (:id, :orgId, :journalId, :date, :description, :status)")
             .setParameter("id", transactionId)
+            .setParameter("orgId", "00000000-0000-0000-0000-000000000000")
             .setParameter("journalId", journalId)
             .setParameter("date", java.sql.Date.valueOf(LocalDate.now()))
             .setParameter("description", "Test transaction")
@@ -315,9 +316,10 @@ public class MacroServiceExecutionTest {
 
         // Insert invoice tag
         em.createNativeQuery(
-            "INSERT INTO T_tag (id, transaction_id, tag_key, tag_value) " +
-            "VALUES (:id, :transactionId, :tagKey, :tagValue)")
+            "INSERT INTO T_tag (id, org_id, transaction_id, tag_key, tag_value) " +
+            "VALUES (:id, :orgId, :transactionId, :tagKey, :tagValue)")
             .setParameter("id", UUID.randomUUID().toString())
+            .setParameter("orgId", "00000000-0000-0000-0000-000000000000")
             .setParameter("transactionId", transactionId)
             .setParameter("tagKey", "invoice")
             .setParameter("tagValue", invoiceNumber)

@@ -86,8 +86,18 @@ public class MacroService {
     @Transactional
     public MacroEntity updateMacro(MacroEntity macro) {
         LOG.debugf("Updating macro: %s", macro.getId());
-        macro.setModifiedDate(LocalDateTime.now());
-        return em.merge(macro);
+        MacroEntity existing = em.find(MacroEntity.class, macro.getId());
+        if (existing == null) {
+            throw new IllegalArgumentException("Macro not found: " + macro.getId());
+        }
+        existing.setName(macro.getName());
+        existing.setDescription(macro.getDescription());
+        existing.setParameters(macro.getParameters());
+        existing.setTemplate(macro.getTemplate());
+        existing.setValidation(macro.getValidation());
+        existing.setNotes(macro.getNotes());
+        existing.setModifiedDate(LocalDateTime.now());
+        return existing;
     }
     
     /**

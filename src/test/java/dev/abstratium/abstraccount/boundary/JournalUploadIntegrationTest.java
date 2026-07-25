@@ -5,6 +5,7 @@ import dev.abstratium.abstraccount.entity.AccountEntity;
 import dev.abstratium.abstraccount.entity.JournalEntity;
 import dev.abstratium.abstraccount.model.AccountType;
 import dev.abstratium.abstraccount.service.JournalPersistenceService;
+import dev.abstratium.core.util.TestTransactionHelper;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.security.TestSecurity;
 import io.restassured.http.ContentType;
@@ -33,11 +34,14 @@ class JournalUploadIntegrationTest {
     
     @Inject
     JournalPersistenceService persistenceService;
+
+    @Inject
+    TestTransactionHelper testTransactionHelper;
     
     @BeforeEach
     @Transactional
     void setUp() {
-        persistenceService.deleteAll();
+        testTransactionHelper.deleteAllData();
     }
     
     @Test

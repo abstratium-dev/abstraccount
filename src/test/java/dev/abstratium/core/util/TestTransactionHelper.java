@@ -2,6 +2,8 @@ package dev.abstratium.core.util;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import jakarta.persistence.EntityManager;
+import jakarta.transaction.Transactional;
 import jakarta.transaction.UserTransaction;
 
 /**
@@ -13,6 +15,9 @@ public class TestTransactionHelper {
 
     @Inject
     UserTransaction userTransaction;
+
+    @Inject
+    EntityManager entityManager;
 
     public void beginTransaction() throws Exception {
         int status = userTransaction.getStatus();
@@ -40,5 +45,16 @@ public class TestTransactionHelper {
 
     public int getStatus() throws Exception {
         return userTransaction.getStatus();
+    }
+
+    @Transactional
+    public void deleteAllData() {
+        entityManager.createQuery("DELETE FROM TagEntity").executeUpdate();
+        entityManager.createQuery("DELETE FROM EntryEntity").executeUpdate();
+        entityManager.createQuery("DELETE FROM TransactionEntity").executeUpdate();
+        entityManager.createQuery("UPDATE AccountEntity SET parentAccountId = NULL").executeUpdate();
+        entityManager.createQuery("DELETE FROM AccountEntity").executeUpdate();
+        entityManager.createQuery("UPDATE JournalEntity SET previousJournalId = NULL").executeUpdate();
+        entityManager.createQuery("DELETE FROM JournalEntity").executeUpdate();
     }
 }

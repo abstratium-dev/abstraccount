@@ -1,6 +1,7 @@
 package dev.abstratium.abstraccount.entity;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.TenantId;
 import java.math.BigDecimal;
 import java.util.UUID;
 
@@ -22,6 +23,10 @@ public class EntryEntity {
     
     @Column(name = "account_id", nullable = false)
     private String accountId;
+
+    @TenantId
+    @Column(name = "org_id", nullable = false, updatable = false, length = 36)
+    private String orgId;
     
     @Column(nullable = false)
     private String commodity;

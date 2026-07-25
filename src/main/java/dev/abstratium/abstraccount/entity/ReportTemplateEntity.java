@@ -1,6 +1,7 @@
 package dev.abstratium.abstraccount.entity;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.TenantId;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -18,6 +19,10 @@ public class ReportTemplateEntity {
     
     @Column(nullable = false, length = 255)
     private String name;
+
+    @TenantId
+    @Column(name = "org_id", nullable = false, updatable = false, length = 36)
+    private String orgId;
     
     @Column(columnDefinition = "TEXT")
     private String description;

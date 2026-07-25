@@ -4,10 +4,16 @@ import dev.abstratium.abstraccount.entity.JournalEntity;
 import dev.abstratium.abstraccount.entity.TagEntity;
 import dev.abstratium.abstraccount.entity.TransactionEntity;
 import dev.abstratium.abstraccount.model.TransactionStatus;
+import dev.abstratium.core.service.CurrentOrgContext;
+import dev.abstratium.core.util.TestTransactionHelper;
+import io.quarkus.test.TestTransaction;
 import io.quarkus.test.junit.QuarkusTest;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceException;
 import jakarta.transaction.Transactional;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
@@ -24,6 +30,20 @@ class TagServiceTest {
 
     @Inject
     EntityManager entityManager;
+
+    @Inject
+    CurrentOrgContext currentOrgContext;
+
+    @Inject
+    TestTransactionHelper transactionHelper;
+
+    @ConfigProperty(name = "default.org.uuid")
+    String defaultOrgId;
+
+    @BeforeEach
+    void setUp() {
+        currentOrgContext.setOrgId(defaultOrgId);
+    }
 
     private String createJournal() {
         JournalEntity journal = new JournalEntity();
@@ -71,6 +91,91 @@ class TagServiceTest {
 
         List<String> ciInvoices = tagService.searchTagValues(journalId, "invoice", "CI");
         assertEquals(List.of("CI00000001"), ciInvoices);
+    }
+
+    @Test
+    @TestTransaction
+    void directCrossOrganizationAccountInsertIsRejectedByForeignKey() {
+        String journalId = createJournal();
+
+        assertThrows(PersistenceException.class, () -> entityManager.createNativeQuery("""
+                        INSERT INTO T_account (id, account_name, type, journal_id, org_id, account_order)
+                        VALUES (:id, :name, :type, :journalId, :orgId, :accountOrder)
+                        """)
+                .setParameter("id", UUID.randomUUID().toString())
+                .setParameter("name", "Cross organization account")
+                .setParameter("type", "CASH")
+                .setParameter("journalId", journalId)
+                .setParameter("orgId", "second-org")
+                .setParameter("accountOrder", 1)
+                .executeUpdate());
+    }
+
+    @Test
+    void jpqlQueriesAreIsolatedByOrganizationDiscriminator() throws Exception {
+        JournalEntity defaultOrgJournal = new JournalEntity();
+        defaultOrgJournal.setTitle("Default organization journal");
+        defaultOrgJournal.setCurrency("CHF");
+        JournalEntity secondOrgJournal = new JournalEntity();
+        secondOrgJournal.setTitle("Second organization journal");
+        secondOrgJournal.setCurrency("CHF");
+
+        try {
+            persistJournal(defaultOrgId, defaultOrgJournal);
+            persistJournal("second-org", secondOrgJournal);
+
+            List<String> journalIds = List.of(defaultOrgJournal.getId(), secondOrgJournal.getId());
+            assertEquals(List.of(defaultOrgJournal.getId()), findJournalIds(defaultOrgId, journalIds));
+            assertEquals(List.of(secondOrgJournal.getId()), findJournalIds("second-org", journalIds));
+        } finally {
+            deleteJournal(defaultOrgId, defaultOrgJournal.getId());
+            deleteJournal("second-org", secondOrgJournal.getId());
+            currentOrgContext.setOrgId(defaultOrgId);
+        }
+    }
+
+    private void persistJournal(String orgId, JournalEntity journal) throws Exception {
+        currentOrgContext.setOrgId(orgId);
+        transactionHelper.beginTransaction();
+        entityManager.persist(journal);
+        transactionHelper.commitTransaction();
+        entityManager.clear();
+    }
+
+    private List<String> findJournalIds(String orgId, List<String> journalIds) throws Exception {
+        currentOrgContext.setOrgId(orgId);
+        transactionHelper.beginTransaction();
+        List<String> result = entityManager.createQuery(
+                        "SELECT j.id FROM JournalEntity j WHERE j.id IN :journalIds", String.class)
+                .setParameter("journalIds", journalIds)
+                .getResultList();
+        transactionHelper.commitTransaction();
+        entityManager.clear();
+        return result;
+    }
+
+    private void deleteJournal(String orgId, String journalId) throws Exception {
+        currentOrgContext.setOrgId(orgId);
+        transactionHelper.beginTransaction();
+        entityManager.createQuery("DELETE FROM JournalEntity j WHERE j.id = :journalId")
+                .setParameter("journalId", journalId)
+                .executeUpdate();
+        transactionHelper.commitTransaction();
+        entityManager.clear();
+    }
+
+    @Test
+    @Transactional
+    void searchTagValues_regexDoesNotReturnValuesFromAnotherOrganization() {
+        String journalId = createJournal();
+        createTransactionWithTag(journalId, "invoice", "SI00000001");
+        entityManager.flush();
+
+        assertEquals(List.of("SI00000001"), tagService.searchTagValues(journalId, "invoice", "SI.*"));
+
+        currentOrgContext.setOrgId("second-org");
+
+        assertTrue(tagService.searchTagValues(journalId, "invoice", "SI.*").isEmpty());
     }
 
     @Test

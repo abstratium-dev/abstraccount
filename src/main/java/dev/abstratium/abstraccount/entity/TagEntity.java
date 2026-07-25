@@ -1,6 +1,7 @@
 package dev.abstratium.abstraccount.entity;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.TenantId;
 import java.util.UUID;
 
 /**
@@ -19,6 +20,10 @@ public class TagEntity {
     @JoinColumn(name = "transaction_id", nullable = false)
     private TransactionEntity transaction;
     
+    @TenantId
+    @Column(name = "org_id", nullable = false, updatable = false, length = 36)
+    private String orgId;
+
     @Column(name = "tag_key", nullable = false)
     private String tagKey;
     

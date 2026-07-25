@@ -9,12 +9,11 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
-import com.google.common.annotations.VisibleForTesting;
-
 import dev.abstratium.abstraccount.entity.AccountEntity;
 import dev.abstratium.abstraccount.entity.EntryEntity;
 import dev.abstratium.abstraccount.entity.JournalEntity;
 import dev.abstratium.abstraccount.entity.TransactionEntity;
+import dev.abstratium.abstraccount.entity.TagEntity;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;
@@ -107,12 +106,18 @@ public class JournalPersistenceService {
      */
     @Transactional
     public JournalEntity saveJournal(JournalEntity journal) {
-        if (journal.getId() == null) {
+        JournalEntity existing = entityManager.find(JournalEntity.class, journal.getId());
+        if (existing == null) {
             entityManager.persist(journal);
             return journal;
-        } else {
-            return entityManager.merge(journal);
         }
+        existing.setLogo(journal.getLogo());
+        existing.setTitle(journal.getTitle());
+        existing.setSubtitle(journal.getSubtitle());
+        existing.setCurrency(journal.getCurrency());
+        existing.setPreviousJournalId(journal.getPreviousJournalId());
+        existing.setCommodities(new HashMap<>(journal.getCommodities()));
+        return existing;
     }
     
     /**
@@ -123,12 +128,18 @@ public class JournalPersistenceService {
      */
     @Transactional
     public AccountEntity saveAccount(AccountEntity account) {
-        if (account.getId() == null) {
+        AccountEntity existing = entityManager.find(AccountEntity.class, account.getId());
+        if (existing == null) {
             entityManager.persist(account);
             return account;
-        } else {
-            return entityManager.merge(account);
         }
+        existing.setName(account.getName());
+        existing.setType(account.getType());
+        existing.setNote(account.getNote());
+        existing.setParentAccountId(account.getParentAccountId());
+        existing.setJournalId(account.getJournalId());
+        existing.setAccountOrder(account.getAccountOrder());
+        return existing;
     }
     
     /**
@@ -139,12 +150,46 @@ public class JournalPersistenceService {
      */
     @Transactional
     public TransactionEntity saveTransaction(TransactionEntity transaction) {
-        if (transaction.getId() == null) {
+        TransactionEntity existing = entityManager.find(TransactionEntity.class, transaction.getId());
+        if (existing == null) {
             entityManager.persist(transaction);
             return transaction;
-        } else {
-            return entityManager.merge(transaction);
         }
+        existing.setTransactionDate(transaction.getTransactionDate());
+        existing.setStatus(transaction.getStatus());
+        existing.setDescription(transaction.getDescription());
+        existing.setPartnerId(transaction.getPartnerId());
+        existing.setJournalId(transaction.getJournalId());
+        existing.setTransactionOrder(transaction.getTransactionOrder());
+        if (existing == transaction) {
+            return existing;
+        }
+        new ArrayList<>(existing.getEntries()).forEach(existing::removeEntry);
+        for (EntryEntity sourceEntry : transaction.getEntries()) {
+            EntryEntity targetEntry = entityManager.find(EntryEntity.class, sourceEntry.getId());
+            if (targetEntry == null) {
+                targetEntry = sourceEntry;
+            } else {
+                targetEntry.setAccountId(sourceEntry.getAccountId());
+                targetEntry.setCommodity(sourceEntry.getCommodity());
+                targetEntry.setAmount(sourceEntry.getAmount());
+                targetEntry.setNote(sourceEntry.getNote());
+                targetEntry.setEntryOrder(sourceEntry.getEntryOrder());
+            }
+            existing.addEntry(targetEntry);
+        }
+        new LinkedHashSet<>(existing.getTags()).forEach(existing::removeTag);
+        for (TagEntity sourceTag : transaction.getTags()) {
+            TagEntity targetTag = entityManager.find(TagEntity.class, sourceTag.getId());
+            if (targetTag == null) {
+                targetTag = sourceTag;
+            } else {
+                targetTag.setTagKey(sourceTag.getTagKey());
+                targetTag.setTagValue(sourceTag.getTagValue());
+            }
+            existing.addTag(targetTag);
+        }
+        return existing;
     }
     
     /**
@@ -424,13 +469,4 @@ public class JournalPersistenceService {
         return new ArrayList<>(visited);
     }
 
-    /**
-     * Deletes all data from the database using cascade deletion.
-     * Useful for testing.
-     */
-    @Transactional
-    @VisibleForTesting
-    public void deleteAll() {
-        entityManager.createQuery("DELETE FROM JournalEntity").executeUpdate();
-    }
 }

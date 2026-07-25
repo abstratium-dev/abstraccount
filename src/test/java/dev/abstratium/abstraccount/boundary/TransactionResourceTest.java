@@ -17,6 +17,7 @@ import dev.abstratium.abstraccount.entity.TransactionEntity;
 import dev.abstratium.abstraccount.model.AccountType;
 import dev.abstratium.abstraccount.model.TransactionStatus;
 import dev.abstratium.abstraccount.service.JournalPersistenceService;
+import dev.abstratium.core.util.TestTransactionHelper;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.security.TestSecurity;
 import io.restassured.http.ContentType;
@@ -29,6 +30,9 @@ public class TransactionResourceTest {
     @Inject
     JournalPersistenceService persistenceService;
 
+    @Inject
+    TestTransactionHelper testTransactionHelper;
+
     private String journalId;
     private String accountId1;
     private String accountId2;
@@ -37,7 +41,7 @@ public class TransactionResourceTest {
     @Transactional
     public void setup() {
         // Clean up
-        persistenceService.deleteAll();
+        testTransactionHelper.deleteAllData();
 
         // Create a test journal
         JournalEntity journal = new JournalEntity();

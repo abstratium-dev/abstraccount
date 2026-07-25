@@ -2,6 +2,7 @@ package dev.abstratium.abstraccount.service;
 
 import dev.abstratium.abstraccount.entity.AccountEntity;
 import dev.abstratium.abstraccount.model.Journal;
+import dev.abstratium.core.util.TestTransactionHelper;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
@@ -30,11 +31,14 @@ class JournalAccountHierarchyTest {
     
     @Inject
     JournalPersistenceService persistenceService;
+
+    @Inject
+    TestTransactionHelper testTransactionHelper;
     
     @BeforeEach
     @Transactional
     void setUp() {
-        persistenceService.deleteAll();
+        testTransactionHelper.deleteAllData();
     }
     
     @Test

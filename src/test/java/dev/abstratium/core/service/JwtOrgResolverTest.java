@@ -1,11 +1,13 @@
 package dev.abstratium.core.service;
 
+import io.quarkus.hibernate.orm.PersistenceUnitExtension;
+import io.quarkus.test.junit.QuarkusTest;
+import jakarta.inject.Inject;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.nio.charset.StandardCharsets;
-import java.util.Base64;
-
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * Unit tests for JwtOrgResolver JWT payload parsing logic.
@@ -13,105 +15,75 @@ import static org.junit.jupiter.api.Assertions.*;
  * TokenResourceOrgIdTest, which verify that orgId-scoped entities resolve
  * to the correct organisation when a Bearer token is present.
  */
+@QuarkusTest
 public class JwtOrgResolverTest {
 
-    private final JwtOrgResolverUnderTest resolver = new JwtOrgResolverUnderTest();
+    @Inject
+    @PersistenceUnitExtension
+    JwtOrgResolver resolver;
 
-    private String buildJwt(String payloadJson) {
-        String header = Base64.getUrlEncoder().withoutPadding()
-                .encodeToString("{\"alg\":\"PS256\",\"typ\":\"JWT\"}".getBytes(StandardCharsets.UTF_8));
-        String payload = Base64.getUrlEncoder().withoutPadding()
-                .encodeToString(payloadJson.getBytes(StandardCharsets.UTF_8));
-        return header + "." + payload + ".fakesig";
+    @Inject
+    CurrentOrgContext currentOrgContext;
+
+    @ConfigProperty(name = "default.org.uuid")
+    String defaultOrgId;
+
+    @BeforeEach
+    void setUp() {
+        currentOrgContext.setOrgId(null);
     }
 
     @Test
-    public void testExtractOrgId_presentInPayload() {
-        String orgId = "abc123-def456";
-        String jwt = buildJwt("{\"sub\":\"user1\",\"orgId\":\"" + orgId + "\",\"exp\":9999999999}");
-        assertEquals(orgId, resolver.testExtractOrgId(jwt));
+    public void resolveTenantId_withOrgIdInContext_returnsOrgId() {
+        currentOrgContext.setOrgId("abc123-def456");
+        assertEquals("abc123-def456", resolver.resolveTenantId());
     }
 
     @Test
-    public void testExtractOrgId_notPresentInPayload() {
-        String jwt = buildJwt("{\"sub\":\"user1\",\"exp\":9999999999}");
-        assertNull(resolver.testExtractOrgId(jwt));
+    public void resolveTenantId_withNoOrgIdInContext_returnsDefaultOrgId() {
+        assertEquals(defaultOrgId, resolver.resolveTenantId());
     }
 
     @Test
-    public void testExtractOrgId_emptyPayload() {
-        String jwt = buildJwt("{}");
-        assertNull(resolver.testExtractOrgId(jwt));
+    public void resolveTenantId_withEmptyOrgIdInContext_returnsDefaultOrgId() {
+        currentOrgContext.setOrgId("");
+        assertEquals(defaultOrgId, resolver.resolveTenantId());
     }
 
     @Test
-    public void testExtractOrgId_malformedToken_twoPartsOnly() {
-        assertNull(resolver.testExtractOrgId("header.payload"));
+    public void resolveTenantId_withBlankOrgIdInContext_returnsDefaultOrgId() {
+        currentOrgContext.setOrgId("  ");
+        assertEquals(defaultOrgId, resolver.resolveTenantId());
     }
 
     @Test
-    public void testExtractOrgId_malformedToken_notBase64() {
-        assertNull(resolver.testExtractOrgId("a.!!!invalid!!!.c"));
+    public void resolveTenantId_withAnotherOrgIdInContext_returnsOrgId() {
+        currentOrgContext.setOrgId("second-org");
+        assertEquals("second-org", resolver.resolveTenantId());
     }
 
     @Test
-    public void testExtractOrgId_nullToken() {
-        assertNull(resolver.testExtractOrgId(null));
+    public void resolveTenantId_withNullOrgIdInContext_returnsDefaultOrgId() {
+        currentOrgContext.setOrgId(null);
+        assertEquals(defaultOrgId, resolver.resolveTenantId());
     }
 
     @Test
-    public void testExtractOrgId_emptyToken() {
-        assertNull(resolver.testExtractOrgId(""));
+    public void getDefaultTenantId_returnsConfiguredDefaultOrgId() {
+        assertEquals(defaultOrgId, resolver.getDefaultTenantId());
     }
 
     @Test
-    public void testExtractOrgId_orgIdIsUUID() {
+    public void resolveTenantId_withUuidOrgIdInContext_returnsOrgId() {
         String orgId = "00000000-0000-0000-0000-000000000000";
-        String jwt = buildJwt("{\"sub\":\"user1\",\"orgId\":\"" + orgId + "\"}");
-        assertEquals(orgId, resolver.testExtractOrgId(jwt));
+        currentOrgContext.setOrgId(orgId);
+        assertEquals(orgId, resolver.resolveTenantId());
     }
 
     @Test
-    public void testExtractOrgId_orgIdIsFirstClaim() {
-        String orgId = "first-claim-org";
-        String jwt = buildJwt("{\"orgId\":\"" + orgId + "\",\"sub\":\"user1\"}");
-        assertEquals(orgId, resolver.testExtractOrgId(jwt));
+    public void resolveTenantId_withNonUuidOrgIdInContext_returnsOrgId() {
+        currentOrgContext.setOrgId("first-claim-org");
+        assertEquals("first-claim-org", resolver.resolveTenantId());
     }
 
-    // ─────────────────────────────────────────────────────────
-    // Thin subclass to expose private method for testing
-    // ─────────────────────────────────────────────────────────
-
-    static class JwtOrgResolverUnderTest extends JwtOrgResolver {
-
-        String testExtractOrgId(String token) {
-            if (token == null || token.isBlank()) {
-                return null;
-            }
-            try {
-                String[] parts = token.split("\\.");
-                if (parts.length != 3) {
-                    return null;
-                }
-                String payload = new String(Base64.getUrlDecoder().decode(parts[1]));
-                int start = payload.indexOf("\"orgId\":\"");
-                if (start == -1) {
-                    return null;
-                }
-                start += 9;
-                int end = payload.indexOf("\"", start);
-                if (end == -1) {
-                    return null;
-                }
-                return payload.substring(start, end);
-            } catch (Exception e) {
-                return null;
-            }
-        }
-
-        @Override
-        public String resolveTenantId() {
-            return "00000000-0000-0000-0000-000000000000";
-        }
-    }
 }

@@ -1,6 +1,7 @@
 package dev.abstratium.abstraccount.entity;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.TenantId;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -29,11 +30,18 @@ public class JournalEntity {
     @Column(length = 10)
     private String currency;
 
+    @TenantId
+    @Column(name = "org_id", nullable = false, updatable = false, length = 36)
+    private String orgId;
+
     @Column(name = "previous_journal_id", length = 36)
     private String previousJournalId;
 
     @ElementCollection(fetch = FetchType.EAGER)
-    @CollectionTable(name = "T_journal_commodity", joinColumns = @JoinColumn(name = "journal_id"))
+    @CollectionTable(name = "T_journal_commodity", joinColumns = {
+        @JoinColumn(name = "journal_id", referencedColumnName = "id"),
+        @JoinColumn(name = "org_id", referencedColumnName = "org_id")
+    })
     @MapKeyColumn(name = "commodity_code")
     @Column(name = "display_precision", length = 20)
     private Map<String, String> commodities = new HashMap<>();

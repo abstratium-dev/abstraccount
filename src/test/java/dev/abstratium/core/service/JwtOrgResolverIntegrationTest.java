@@ -2,10 +2,9 @@ package dev.abstratium.core.service;
 
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.security.TestSecurity;
+import io.quarkus.test.security.oidc.Claim;
+import io.quarkus.test.security.oidc.OidcSecurity;
 import org.junit.jupiter.api.Test;
-
-import java.nio.charset.StandardCharsets;
-import java.util.Base64;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.is;
@@ -25,22 +24,11 @@ class JwtOrgResolverIntegrationTest {
 
     public static final String DEFAULT_ORG_ID = "00000000-0000-0000-0000-000000000000";
 
-    private String buildBearerToken(String payloadJson) {
-        String header = Base64.getUrlEncoder().withoutPadding()
-                .encodeToString("{\"alg\":\"PS256\",\"typ\":\"JWT\"}".getBytes(StandardCharsets.UTF_8));
-        String payload = Base64.getUrlEncoder().withoutPadding()
-                .encodeToString(payloadJson.getBytes(StandardCharsets.UTF_8));
-        return header + "." + payload + ".fakesig";
-    }
-
     @Test
     @TestSecurity(user = "testuser", roles = {"jwt-test-user"})
-    void resolveTenantId_withOrgIdInBearer_usesOrgId() {
-        String token = buildBearerToken(
-                "{\"sub\":\"testuser\",\"orgId\":\"" + DEFAULT_ORG_ID + "\",\"groups\":[\"jwt-test-user\"]}");
-
+    @OidcSecurity(claims = @Claim(key = "orgId", value = DEFAULT_ORG_ID))
+    void resolveTenantId_withVerifiedOrgIdClaim_usesOrgId() {
         given()
-            .header("Authorization", "Bearer " + token)
             .when()
             .get("/api/test/jwt-org")
             .then()
@@ -50,12 +38,8 @@ class JwtOrgResolverIntegrationTest {
 
     @Test
     @TestSecurity(user = "testuser", roles = {"jwt-test-user"})
-    void resolveTenantId_withNoOrgIdInBearer_usesDefault() {
-        String token = buildBearerToken(
-                "{\"sub\":\"testuser\",\"groups\":[\"jwt-test-user\"]}");
-
+    void resolveTenantId_withNoOrgIdClaim_usesTestDefault() {
         given()
-            .header("Authorization", "Bearer " + token)
             .when()
             .get("/api/test/jwt-org")
             .then()
@@ -65,24 +49,9 @@ class JwtOrgResolverIntegrationTest {
 
     @Test
     @TestSecurity(user = "testuser", roles = {"jwt-test-user"})
-    void resolveTenantId_withMalformedBearer_usesDefault() {
+    @OidcSecurity(claims = @Claim(key = "orgId", value = ""))
+    void resolveTenantId_withBlankOrgIdClaim_usesTestDefault() {
         given()
-            .header("Authorization", "Bearer not.a.valid.jwt.with.too.many.parts.here")
-            .when()
-            .get("/api/test/jwt-org")
-            .then()
-            .statusCode(200)
-            .body(is("\"" + DEFAULT_ORG_ID + "\""));
-    }
-
-    @Test
-    @TestSecurity(user = "testuser", roles = {"jwt-test-user"})
-    void resolveTenantId_withBearerHavingBlankOrgId_usesDefault() {
-        String token = buildBearerToken(
-                "{\"sub\":\"testuser\",\"orgId\":\"\",\"groups\":[\"jwt-test-user\"]}");
-
-        given()
-            .header("Authorization", "Bearer " + token)
             .when()
             .get("/api/test/jwt-org")
             .then()

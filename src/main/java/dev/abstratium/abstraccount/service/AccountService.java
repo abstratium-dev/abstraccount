@@ -162,7 +162,6 @@ public class AccountService {
         account.setParentAccountId(updatedAccount.getParentAccountId());
         account.setAccountOrder(updatedAccount.getAccountOrder());
         
-        em.merge(account);
         em.flush();
         return account;
     }

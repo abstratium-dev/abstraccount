@@ -18,8 +18,11 @@ import dev.abstratium.abstraccount.entity.TransactionEntity;
 import dev.abstratium.abstraccount.model.AccountType;
 import dev.abstratium.abstraccount.model.TransactionStatus;
 import dev.abstratium.abstraccount.service.JournalPersistenceService;
+import dev.abstratium.core.util.TestTransactionHelper;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.security.TestSecurity;
+import io.quarkus.test.security.oidc.Claim;
+import io.quarkus.test.security.oidc.OidcSecurity;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 
@@ -29,6 +32,9 @@ public class TagsResourceTest {
     @Inject
     JournalPersistenceService persistenceService;
 
+    @Inject
+    TestTransactionHelper testTransactionHelper;
+
     private String journalId1;
     private String journalId2;
 
@@ -36,7 +42,7 @@ public class TagsResourceTest {
     @Transactional
     public void setup() {
         // Clean up
-        persistenceService.deleteAll();
+        testTransactionHelper.deleteAllData();
 
         // Create two test journals
         JournalEntity journal1 = new JournalEntity();
@@ -82,6 +88,18 @@ public class TagsResourceTest {
             .statusCode(200)
             .body("size()", equalTo(4))
             .body("", hasItems("invoice", "project", "category", "department"));
+    }
+
+    @Test
+    @TestSecurity(user = "second-org-user", roles = {Roles.USER})
+    @OidcSecurity(claims = @Claim(key = "orgId", value = "second-org"))
+    public void testGetAllTagKeysDoesNotReturnAnotherOrganizationsTagKeys() {
+        given()
+        .when()
+            .get("/api/core/tags/keys")
+        .then()
+            .statusCode(200)
+            .body("$", empty());
     }
 
     @Test

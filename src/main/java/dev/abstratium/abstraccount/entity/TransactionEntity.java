@@ -2,6 +2,7 @@ package dev.abstratium.abstraccount.entity;
 
 import dev.abstratium.abstraccount.model.TransactionStatus;
 import jakarta.persistence.*;
+import org.hibernate.annotations.TenantId;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -36,6 +37,10 @@ public class TransactionEntity {
     
     @Column(name = "journal_id", nullable = false, length = 36)
     private String journalId;
+
+    @TenantId
+    @Column(name = "org_id", nullable = false, updatable = false, length = 36)
+    private String orgId;
     
     @Column(name = "transaction_order")
     private Long transactionOrder;

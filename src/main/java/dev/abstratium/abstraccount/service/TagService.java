@@ -1,5 +1,6 @@
 package dev.abstratium.abstraccount.service;
 
+import dev.abstratium.core.service.CurrentOrgContext;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -18,6 +19,9 @@ public class TagService {
 
     @PersistenceContext
     EntityManager em;
+
+    @jakarta.inject.Inject
+    CurrentOrgContext currentOrgContext;
 
     /**
      * Search for distinct tag values by key and optional prefix or pattern.
@@ -45,13 +49,15 @@ public class TagService {
         if (isRegex) {
             // Use native SQL query for regex support (JPQL doesn't support REGEXP)
             String sql = "SELECT DISTINCT t.tag_value FROM T_tag t " +
-                        "JOIN T_transaction tx ON t.transaction_id = tx.id " +
-                        "WHERE tx.journal_id = :journalId " +
+                        "JOIN T_transaction tx ON t.transaction_id = tx.id AND t.org_id = tx.org_id " +
+                        "WHERE tx.org_id = :orgId " +
+                        "AND tx.journal_id = :journalId " +
                         "AND t.tag_key = :tagKey " +
                         "AND t.tag_value REGEXP :pattern " +
                         "ORDER BY t.tag_value DESC";
             
             results = em.createNativeQuery(sql, String.class)
+                .setParameter("orgId", currentOrgContext.getOrgId())
                 .setParameter("journalId", journalId)
                 .setParameter("tagKey", tagKey)
                 .setParameter("pattern", prefix)

@@ -4,6 +4,7 @@ import dev.abstratium.abstraccount.entity.*;
 import dev.abstratium.abstraccount.entity.TagEntity;
 import dev.abstratium.abstraccount.model.AccountType;
 import dev.abstratium.abstraccount.model.TransactionStatus;
+import dev.abstratium.core.util.TestTransactionHelper;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.BeforeEach;
@@ -23,12 +24,15 @@ class JournalPersistenceServiceTest {
     
     @Inject
     JournalPersistenceService service;
+
+    @Inject
+    TestTransactionHelper testTransactionHelper;
     
     private String testJournalId;
     
     @BeforeEach
     void setUp() {
-        service.deleteAll();
+        testTransactionHelper.deleteAllData();
         // Create a test journal for tests that need it
         JournalEntity journal = new JournalEntity();
         journal.setTitle("Test Journal");
@@ -39,7 +43,7 @@ class JournalPersistenceServiceTest {
     @Test
     void testSaveAndLoadJournal() {
         // Delete the setUp journal first
-        service.deleteAll();
+        testTransactionHelper.deleteAllData();
         
         // Create journal with metadata and commodities
         JournalEntity journal = new JournalEntity();
@@ -71,7 +75,7 @@ class JournalPersistenceServiceTest {
     @Test
     void testLoadJournalWhenNoneExists() {
         // Delete the setUp journal first
-        service.deleteAll();
+        testTransactionHelper.deleteAllData();
         
         List<JournalEntity> journals = service.findAllJournals();
         assertTrue(journals.isEmpty());
@@ -320,7 +324,7 @@ class JournalPersistenceServiceTest {
     @Test
     void testUpdateJournal() {
         // Delete the setUp journal first
-        service.deleteAll();
+        testTransactionHelper.deleteAllData();
         
         // Create and save journal
         JournalEntity journal = new JournalEntity();
@@ -419,7 +423,7 @@ class JournalPersistenceServiceTest {
     @Test
     void testDeleteAll() {
         // Delete setUp journal first
-        service.deleteAll();
+        testTransactionHelper.deleteAllData();
         
         // Create and save data
         JournalEntity journal = new JournalEntity();
@@ -457,7 +461,7 @@ class JournalPersistenceServiceTest {
         ).isEmpty());
         
         // Delete all
-        service.deleteAll();
+        testTransactionHelper.deleteAllData();
         
         // Verify data is deleted
         assertTrue(service.findAllJournals().isEmpty());
@@ -1012,7 +1016,7 @@ class JournalPersistenceServiceTest {
 
     @Test
     void testGetJournalChainIds_chainOfThree_startFromMiddle() {
-        service.deleteAll();
+        testTransactionHelper.deleteAllData();
         // Create grandparent -> parent -> child chain
         JournalEntity grandparent = new JournalEntity();
         grandparent.setTitle("Grandparent");
@@ -1041,7 +1045,7 @@ class JournalPersistenceServiceTest {
 
     @Test
     void testGetJournalChainIds_chainOfThree_startFromRoot() {
-        service.deleteAll();
+        testTransactionHelper.deleteAllData();
         // Create grandparent -> parent -> child chain
         JournalEntity grandparent = new JournalEntity();
         grandparent.setTitle("Grandparent");

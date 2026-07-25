@@ -9,6 +9,8 @@ import dev.abstratium.abstraccount.model.AccountType;
 import dev.abstratium.abstraccount.model.TransactionStatus;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.security.TestSecurity;
+import io.quarkus.test.security.oidc.Claim;
+import io.quarkus.test.security.oidc.OidcSecurity;
 import io.restassured.http.ContentType;
 import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;
@@ -345,6 +347,54 @@ class AccountResourceTest {
     }
     
     @Test
+    @TestSecurity(user = "second-org-user", roles = {Roles.USER})
+    @OidcSecurity(claims = @Claim(key = "orgId", value = "second-org"))
+    void testCreateAccountWithAnotherOrganizationsParent_returnsBadRequest() {
+        String secondOrgJournalId = given()
+                .contentType(ContentType.JSON)
+                .body("""
+                        {
+                            "title": "Second organization journal",
+                            "currency": "CHF",
+                            "commodities": {}
+                        }
+                        """)
+            .when()
+                .post("/api/journal/create")
+            .then()
+                .statusCode(200)
+                .extract()
+                .path("id");
+
+        try {
+            given()
+                .contentType(ContentType.JSON)
+                .body("""
+                        {
+                            "name": "Cross organization child account",
+                            "type": "ASSET",
+                            "note": null,
+                            "parentAccountId": "%s",
+                            "journalId": "%s",
+                            "accountOrder": 1
+                        }
+                        """.formatted(assetsId, secondOrgJournalId))
+            .when()
+                .post("/api/account")
+            .then()
+                .statusCode(400)
+                .body(containsString("Parent account not found"));
+        } finally {
+            given()
+                .contentType(ContentType.JSON)
+            .when()
+                .delete("/api/journal/{journalId}", secondOrgJournalId)
+            .then()
+                .statusCode(200);
+        }
+    }
+
+    @Test
     @TestSecurity(user = "testuser", roles = {Roles.USER})
     void testUpdateAccount() {
         String requestBody = """
@@ -369,6 +419,29 @@ class AccountResourceTest {
             .body("note", equalTo("Updated note"));
     }
     
+    @Test
+    @TestSecurity(user = "second-org-user", roles = {Roles.USER})
+    @OidcSecurity(claims = @Claim(key = "orgId", value = "second-org"))
+    void testUpdateAccountFromAnotherOrganization_returnsNotFound() {
+        String requestBody = """
+            {
+                "name": "Cross organization update",
+                "type": "ASSET",
+                "note": "Must not be saved",
+                "parentAccountId": null,
+                "accountOrder": 1
+            }
+            """;
+
+        given()
+            .contentType(ContentType.JSON)
+            .body(requestBody)
+        .when()
+            .put("/api/account/" + assetsId)
+        .then()
+            .statusCode(404);
+    }
+
     @Test
     @TestSecurity(user = "testuser", roles = {Roles.USER})
     void testUpdateAccount_changeParent() {

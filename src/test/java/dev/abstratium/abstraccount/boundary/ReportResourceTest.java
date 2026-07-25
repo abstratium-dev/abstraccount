@@ -9,6 +9,8 @@ import org.junit.jupiter.api.Test;
 
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.security.TestSecurity;
+import io.quarkus.test.security.oidc.Claim;
+import io.quarkus.test.security.oidc.OidcSecurity;
 import io.restassured.http.ContentType;
 
 @QuarkusTest
@@ -67,6 +69,29 @@ class ReportResourceTest {
             .body("templateContent", notNullValue());
     }
     
+    @Test
+    @TestSecurity(user = "second-org-user", roles = {Roles.USER})
+    @OidcSecurity(claims = @Claim(key = "orgId", value = "second-org"))
+    void testListTemplatesDoesNotReturnAnotherOrganizationsTemplates() {
+        given()
+            .contentType(ContentType.JSON)
+            .when().get("/api/report/templates")
+            .then()
+            .statusCode(200)
+            .body("$", empty());
+    }
+
+    @Test
+    @TestSecurity(user = "second-org-user", roles = {Roles.USER})
+    @OidcSecurity(claims = @Claim(key = "orgId", value = "second-org"))
+    void testGetTemplateDoesNotReturnAnotherOrganizationsTemplate() {
+        given()
+            .contentType(ContentType.JSON)
+            .when().get("/api/report/templates/balance-sheet-001")
+            .then()
+            .statusCode(404);
+    }
+
     @Test
     void testListTemplatesWithoutAuth() {
         given()

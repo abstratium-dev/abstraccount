@@ -32,6 +32,8 @@ These TODOs are to be resolved by the developer, NOT THE LLM.
 
 - add multi-tenancy
 
+- do cascade delete with jpa not database
+
 - add envers
 
 - bug: does adding new year copy the account descriptions?
