@@ -388,14 +388,49 @@ public class JournalPersistenceService {
 
     /**
      * Deletes a specific journal and all its related data (accounts, transactions, entries, tags).
-     * Uses cascade deletion to delete all related data.
+     * Uses managed JPA updates and removals so lifecycle changes remain auditable.
      * 
      * @param journalId the ID of the journal to delete
      */
     @Transactional
     public void deleteJournal(String journalId) {
         JournalEntity journal = entityManager.find(JournalEntity.class, journalId);
+        if (journal == null) {
+            return;
+        }
+
+        List<JournalEntity> successors = entityManager.createQuery(
+                "SELECT j FROM JournalEntity j WHERE j.previousJournalId = :journalId",
+                JournalEntity.class)
+                .setParameter("journalId", journalId)
+                .getResultList();
+        successors.forEach(successor -> successor.setPreviousJournalId(null));
+        entityManager.flush();
+
+        List<TransactionEntity> transactions = entityManager.createQuery(
+                "SELECT t FROM TransactionEntity t WHERE t.journalId = :journalId",
+                TransactionEntity.class)
+                .setParameter("journalId", journalId)
+                .getResultList();
+        transactions.forEach(entityManager::remove);
+        entityManager.flush();
+
+        List<AccountEntity> accounts = entityManager.createQuery(
+                "SELECT a FROM AccountEntity a WHERE a.journalId = :journalId",
+                AccountEntity.class)
+                .setParameter("journalId", journalId)
+                .getResultList();
+        accounts.stream()
+                .filter(account -> account.getParentAccountId() != null)
+                .forEach(account -> account.setParentAccountId(null));
+        entityManager.flush();
+        accounts.forEach(entityManager::remove);
+        entityManager.flush();
+
+        journal.getCommodities().clear();
+        entityManager.flush();
         entityManager.remove(journal);
+        entityManager.flush();
     }
     
     /**

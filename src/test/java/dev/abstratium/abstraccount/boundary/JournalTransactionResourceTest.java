@@ -8,6 +8,7 @@ import dev.abstratium.abstraccount.entity.TagEntity;
 import dev.abstratium.abstraccount.entity.TransactionEntity;
 import dev.abstratium.abstraccount.model.AccountType;
 import dev.abstratium.abstraccount.model.TransactionStatus;
+import dev.abstratium.core.util.TestTransactionHelper;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.security.TestSecurity;
 import io.restassured.http.ContentType;
@@ -33,6 +34,9 @@ class JournalTransactionResourceTest {
     @Inject
     EntityManager em;
 
+    @Inject
+    TestTransactionHelper testTransactionHelper;
+
     private String journalId;
     private String assetAccountId;
     private String expenseAccountId;
@@ -40,15 +44,12 @@ class JournalTransactionResourceTest {
     @BeforeEach
     @Transactional
     void setUp() {
-        em.createQuery("DELETE FROM EntryEntity").executeUpdate();
-        em.createQuery("DELETE FROM TagEntity").executeUpdate();
-        em.createQuery("DELETE FROM TransactionEntity").executeUpdate();
-        em.createQuery("DELETE FROM AccountEntity").executeUpdate();
-        em.createQuery("DELETE FROM JournalEntity").executeUpdate();
+        testTransactionHelper.deleteAllData();
 
         JournalEntity journal = new JournalEntity();
         journal.setTitle("TX Resource Test Journal");
         journal.setCurrency("CHF");
+        journal.getCommodities().put("CHF", "2");
         em.persist(journal);
         journalId = journal.getId();
 
@@ -64,6 +65,7 @@ class JournalTransactionResourceTest {
         expense.setJournalId(journalId);
         expense.setName("5000 Expenses");
         expense.setType(AccountType.EXPENSE);
+        expense.setParentAccountId(assetAccountId);
         expense.setAccountOrder(2);
         em.persist(expense);
         expenseAccountId = expense.getId();
@@ -248,6 +250,8 @@ class JournalTransactionResourceTest {
     @Test
     @TestSecurity(user = "testuser", roles = {Roles.USER})
     void testDeleteJournal_existingJournal_deletesSuccessfully() {
+        String successorJournalId = createSuccessorJournal();
+
         given()
             .contentType(ContentType.JSON)
         .when()
@@ -264,6 +268,14 @@ class JournalTransactionResourceTest {
             .get("/api/journal/{journalId}/metadata", journalId)
         .then()
             .statusCode(404);
+
+        given()
+            .contentType(ContentType.JSON)
+        .when()
+            .get("/api/journal/{journalId}/metadata", successorJournalId)
+        .then()
+            .statusCode(200)
+            .body("previousJournalId", nullValue());
     }
 
     @Test
@@ -319,6 +331,17 @@ class JournalTransactionResourceTest {
         .then()
             .statusCode(200)
             .body("$", empty());
+    }
+
+    @Transactional
+    String createSuccessorJournal() {
+        JournalEntity successor = new JournalEntity();
+        successor.setTitle("Successor Journal");
+        successor.setCurrency("CHF");
+        successor.setPreviousJournalId(journalId);
+        em.persist(successor);
+        em.flush();
+        return successor.getId();
     }
 
     @Transactional

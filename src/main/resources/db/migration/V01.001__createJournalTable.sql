@@ -13,7 +13,7 @@ CREATE TABLE T_journal_commodity (
     commodity_code VARCHAR(10) NOT NULL,
     display_precision VARCHAR(20),
     PRIMARY KEY (journal_id, commodity_code),
-    CONSTRAINT FK_journal_commodity_journal FOREIGN KEY (journal_id) REFERENCES T_journal(id) ON DELETE CASCADE
+    CONSTRAINT FK_journal_commodity_journal FOREIGN KEY (journal_id) REFERENCES T_journal(id)
 );
 
 CREATE INDEX I_journal_commodity ON T_journal_commodity(journal_id, commodity_code);

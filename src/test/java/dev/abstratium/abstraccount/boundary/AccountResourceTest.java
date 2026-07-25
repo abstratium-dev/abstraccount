@@ -7,6 +7,7 @@ import dev.abstratium.abstraccount.entity.JournalEntity;
 import dev.abstratium.abstraccount.entity.TransactionEntity;
 import dev.abstratium.abstraccount.model.AccountType;
 import dev.abstratium.abstraccount.model.TransactionStatus;
+import dev.abstratium.core.util.TestTransactionHelper;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.security.TestSecurity;
 import io.quarkus.test.security.oidc.Claim;
@@ -30,6 +31,9 @@ class AccountResourceTest {
     
     @Inject
     EntityManager em;
+
+    @Inject
+    TestTransactionHelper testTransactionHelper;
     
     private String testJournalId;
     private String assetsId;
@@ -40,8 +44,7 @@ class AccountResourceTest {
     @Transactional
     void setUp() {
         // Clean up
-        em.createQuery("DELETE FROM AccountEntity").executeUpdate();
-        em.createQuery("DELETE FROM JournalEntity").executeUpdate();
+        testTransactionHelper.deleteAllData();
         
         // Create test journal
         JournalEntity journal = new JournalEntity();

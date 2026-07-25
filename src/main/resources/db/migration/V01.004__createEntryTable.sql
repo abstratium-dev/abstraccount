@@ -7,8 +7,8 @@ CREATE TABLE T_entry (
     amount DECIMAL(19, 4) NOT NULL,
     note VARCHAR(1000),
     entry_order INT NOT NULL,
-    CONSTRAINT FK_entry_transaction FOREIGN KEY (transaction_id) REFERENCES T_transaction(id) ON DELETE CASCADE,
-    CONSTRAINT FK_entry_account FOREIGN KEY (account_id) REFERENCES T_account(id) ON DELETE CASCADE
+    CONSTRAINT FK_entry_transaction FOREIGN KEY (transaction_id) REFERENCES T_transaction(id),
+    CONSTRAINT FK_entry_account FOREIGN KEY (account_id) REFERENCES T_account(id)
 );
 
 CREATE INDEX I_entry_account ON T_entry(account_id);

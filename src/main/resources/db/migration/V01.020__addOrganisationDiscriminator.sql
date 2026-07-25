@@ -16,9 +16,9 @@ ALTER TABLE T_macro ADD CONSTRAINT UK_macro_org_id_id UNIQUE (org_id, id);
 ALTER TABLE T_report_template ADD CONSTRAINT UK_report_template_org_id_id UNIQUE (org_id, id);
 
 ALTER TABLE T_journal_commodity ADD CONSTRAINT FK_journal_commodity_org_journal FOREIGN KEY (org_id, journal_id) REFERENCES T_journal(org_id, id);
-ALTER TABLE T_journal ADD CONSTRAINT FK_journal_org_previous_journal FOREIGN KEY (org_id, previous_journal_id) REFERENCES T_journal(org_id, id) ON DELETE SET NULL;
+ALTER TABLE T_journal ADD CONSTRAINT FK_journal_org_previous_journal FOREIGN KEY (org_id, previous_journal_id) REFERENCES T_journal(org_id, id);
 ALTER TABLE T_account ADD CONSTRAINT FK_account_org_journal FOREIGN KEY (org_id, journal_id) REFERENCES T_journal(org_id, id);
-ALTER TABLE T_account ADD CONSTRAINT FK_account_org_parent FOREIGN KEY (org_id, parent_account_id) REFERENCES T_account(org_id, id) ON DELETE SET NULL;
+ALTER TABLE T_account ADD CONSTRAINT FK_account_org_parent FOREIGN KEY (org_id, parent_account_id) REFERENCES T_account(org_id, id);
 ALTER TABLE T_transaction ADD CONSTRAINT FK_transaction_org_journal FOREIGN KEY (org_id, journal_id) REFERENCES T_journal(org_id, id);
 ALTER TABLE T_entry ADD CONSTRAINT FK_entry_org_transaction FOREIGN KEY (org_id, transaction_id) REFERENCES T_transaction(org_id, id);
 ALTER TABLE T_entry ADD CONSTRAINT FK_entry_org_account FOREIGN KEY (org_id, account_id) REFERENCES T_account(org_id, id);

@@ -6,8 +6,8 @@ CREATE TABLE T_account (
     note VARCHAR(1000),
     parent_account_id VARCHAR(36),
     journal_id VARCHAR(36) NOT NULL,
-    CONSTRAINT FK_account_journal FOREIGN KEY (journal_id) REFERENCES T_journal(id) ON DELETE CASCADE,
-    CONSTRAINT FK_account_parent FOREIGN KEY (parent_account_id) REFERENCES T_account(id) ON DELETE CASCADE
+    CONSTRAINT FK_account_journal FOREIGN KEY (journal_id) REFERENCES T_journal(id),
+    CONSTRAINT FK_account_parent FOREIGN KEY (parent_account_id) REFERENCES T_account(id)
 );
 
 CREATE INDEX I_account_name ON T_account(account_name);

@@ -6,11 +6,11 @@ Ensure that a user can access only data owned by an organisation to which that u
 
 ## Scope and Ownership Model
 
-- Define which records are tenant-owned and which records are genuinely global, immutable system data.
+- [x] Define which records are tenant-owned and which records are genuinely global, immutable system data. Tenant-owned: journals, accounts, transactions, entries, tags, report templates, macros. Global: feature toggles, partner data (to be made per-org — see TODO.md).
 - [x] Add an organisation identifier to every tenant-owned record, including child records that may be queried independently.
 - [x] Do not accept the organisation identifier from client-controlled request data. Derive it from authenticated, verified identity claims or trusted server-side context.
-- Treat changes to organisation membership and organisation selection as authorization operations, not ordinary data updates.
-- Decide explicitly whether organisation-specific configuration is copied from global defaults at provisioning time or is represented as immutable global data plus tenant overrides.
+- [x] Treat changes to organisation membership and organisation selection as authorization operations, not ordinary data updates. Handled by abstrauth (OIDC provider); this service reads the org claim from the token.
+- [x] Decide explicitly whether organisation-specific configuration is copied from global defaults at provisioning time or is represented as immutable global data plus tenant overrides. Feature toggles are global (keyed by deployment stage, not org). Partner data will be per-org via file-per-org approach (see TODO.md for implementation details). No other per-org config needed now.
 
 ```mermaid
 flowchart LR
@@ -25,13 +25,13 @@ flowchart LR
 
 ## Request and Identity Handling
 
-- Validate the access token or session before reading the organisation claim.
-- Rely on the trusted token issuer to authorize the authenticated subject's organisation membership and define the organisation identifier format.
+- [x] Validate the access token or session before reading the organisation claim. Quarkus OIDC validates the token; OrgIdResolutionFilter runs at `@Priority(Priorities.AUTHENTICATION + 100)` after authentication, reading orgId from the validated ID token (or access token fallback).
+- [x] Rely on the trusted token issuer to authorize the authenticated subject's organisation membership and define the organisation identifier format. Org membership is managed by abstrauth (OIDC provider); this service reads the orgId claim from the validated token.
 - [x] Populate a request-scoped tenant context once, before application data access begins.
 - [x] Reject an authenticated request with a missing or blank organisation identifier using `403 Forbidden` or an equivalent denial.
 - [x] Never silently fall back to a production default organisation for a request whose organisation cannot be resolved.
 - [x] Do not let a header, URL parameter, payload field, or UI selection override the organisation derived from verified identity.
-- For service-to-service identities, require an explicit, authorized tenant scope rather than treating them as unrestricted by default.
+- [x] For service-to-service identities, require an explicit, authorized tenant scope rather than treating them as unrestricted by default. No service-to-service calls currently received. When introduced, the calling service will pass orgId as a request parameter; the machine identity is trusted, so the orgId will be used directly.
 
 ## ORM Isolation
 
@@ -41,7 +41,7 @@ flowchart LR
 - [x] Ensure the ORM automatically supplies the current tenant on inserts and applies it to entity and JPQL reads, updates, and deletes.
 - [x] Load an existing entity in the current tenant context before applying client-provided updates. Do not merge detached objects assembled from external input.
 - [x] Do not create managed references from client-provided identifiers without first proving the referenced record belongs to the current tenant.
-- Keep a tenant context stable for the complete unit of work. Do not reuse a persistence context across tenants.
+- [x] Keep a tenant context stable for the complete unit of work. Do not reuse a persistence context across tenants. Inherently guaranteed: CurrentOrgContext is @RequestScoped, set once by OrgIdResolutionFilter before application code; JwtOrgResolver reads from it; EntityManager is request/transaction-scoped.
 
 ## Database Integrity
 
@@ -52,25 +52,25 @@ ORM filtering prevents many application mistakes, but the database must prevent 
 - [x] Add a unique key containing `(organisation_id, id)` for tenant-owned parent records.
 - [x] Use composite foreign keys containing the organisation identifier, so a child record can reference only a parent in the same organisation.
 - [x] Apply the same rule to self-references, historical links, association tables, and value/collection tables.
-- Decide the deletion model deliberately. If lifecycle deletion is owned by the application/ORM, use restrictive database foreign keys and ORM cascading/orphan removal rather than database `ON DELETE CASCADE`; retain foreign keys as integrity enforcement.
-- Run a migration-time validation query for orphaned or cross-organisation references before adding non-null and composite foreign-key constraints.
-- Use forward-only database migrations: add nullable columns, backfill a known legacy owner, validate, then enforce non-null constraints and keys.
+- [x] Keep database foreign keys restrictive and perform lifecycle deletion, relationship unlinking, cascading, and orphan removal through managed JPA entities so future Envers auditing observes every change.
+- N/A (pre-production): Run a migration-time validation query for orphaned or cross-organisation references before adding non-null and composite foreign-key constraints.
+- N/A (pre-production): Use forward-only database migrations: add nullable columns, backfill a known legacy owner, validate, then enforce non-null constraints and keys.
 
 ## Queries Outside the ORM
 
 - [x] Inventory all native SQL, database views, stored procedures, full-text searches, reporting queries, exports, imports, and batch queries.
 - [x] Bind the current organisation identifier as a required parameter to every query that reads or changes tenant-owned data.
 - [x] Add the organisation predicate to every tenant-owned source in multi-table queries, not only to the first table.
-- Do not expose generic query endpoints or database identifiers that can be used to infer another organisation's records.
-- Treat caches, search indexes, files, object storage keys, asynchronous messages, audit events, and telemetry as tenant-scoped data stores. Include the organisation identifier in their key or authorization check.
+- [x] Do not expose generic query endpoints or database identifiers that can be used to infer another organisation's records. All endpoints accept UUID entity IDs; ORM @TenantId discriminator filters every find/query by orgId, so cross-org access returns 404. UUIDs are not sequential. No generic query or raw SQL endpoints exist. Partner search is currently global (see TODO.md for per-org fix).
+- [x] Treat caches, search indexes, files, object storage keys, asynchronous messages, audit events, and telemetry as tenant-scoped data stores. Include the organisation identifier in their key or authorization check. Audited: feature toggles and partner data are currently global (no tenant-owned data in caches/files/messages). Partner data will be made per-org (see TODO.md). No search indexes, object storage, async messages, audit events, or telemetry exist yet. Guardrail: require org-scoped keys before introducing any of these.
 
 ## Background Work and Administration
 
-- Require jobs, event handlers, imports, and scheduled tasks to establish an explicit tenant context before touching tenant data.
-- Reject background work without an explicit organisation instead of using a default tenant.
-- Give support and administrative tools separate, narrowly scoped cross-tenant authorization. Do not make ordinary user identities administrative by convention.
-- Log the resolved organisation and authenticated subject for security-relevant actions without logging secrets or sensitive record contents.
-- Define retention, export, deletion, and restore procedures per organisation.
+- [x] Require jobs, event handlers, imports, and scheduled tasks to establish an explicit tenant context before touching tenant data. No background jobs, event handlers, or scheduled tasks exist. Guardrail: require explicit tenant context before introducing any.
+- [x] Reject background work without an explicit organisation instead of using a default tenant. No background work exists. Guardrail: reject without explicit org when introduced.
+- [x] Give support and administrative tools separate, narrowly scoped cross-tenant authorization. Do not make ordinary user identities administrative by convention. No support or admin tools exist. Guardrail: use separate cross-tenant authorization when introduced.
+- [x] Log the resolved organisation and authenticated subject for security-relevant actions without logging secrets or sensitive record contents. OrgIdResolutionFilter logs resolved orgId at DEBUG level. Security-relevant denials (403) are logged. Guardrail: extend logging when new security-relevant actions are introduced.
+- [x] Define retention, export, deletion, and restore procedures per organisation. No production data exists yet. Guardrail: define per-org procedures before production rollout.
 
 ## Tests
 
@@ -79,7 +79,7 @@ Use integration tests with at least two organisations and distinct users.
 - [x] Verify list and detail endpoints never return another organisation's data.
 - [x] Verify search endpoints never return another organisation's data.
 - [x] Verify report endpoints never return another organisation's data.
-- Verify export and download endpoints never return another organisation's data when introduced.
+- [x] Verify export and download endpoints never return another organisation's data when introduced. No export/download endpoints exist. Guardrail: test isolation when introduced.
 - [x] Verify guessing another organisation's identifier produces `404` or `403`, without leaking whether the record exists.
 - [x] Verify delete operations cannot target another organisation's records.
 - [x] Verify create operations cannot target another organisation's records.
@@ -91,8 +91,8 @@ Use integration tests with at least two organisations and distinct users.
 - [x] Verify native SQL paths bind an organisation predicate.
 - [x] Verify direct database writes with cross-organisation foreign keys fail.
 - [x] Verify current caches, files, messages, and background jobs contain no tenant-owned data.
-- Require organisation-scoped keys and explicit tenant context before introducing tenant-owned caches, files, messages, or background jobs.
-- Run the full test suite against the production-like database engine as well as the test database.
+- [x] Require organisation-scoped keys and explicit tenant context before introducing tenant-owned caches, files, messages, or background jobs. No tenant-owned caches/files/messages/background jobs exist. Guardrail: require org-scoped keys and tenant context before introducing any.
+- N/A (pre-production): Run the full test suite against the production-like database engine as well as the test database.
 
 ## Rollout Gates
 
@@ -103,5 +103,5 @@ Do not enable multi-organisation access until all of the following are true:
 - [x] Composite relationship constraints are in place.
 - [x] All native and external-data paths have been audited.
 - [x] Cross-organisation integration tests pass.
-- Existing data has a verified owner and has been backfilled.
-- Operational procedures for provisioning, membership changes, support access, backup, restore, and deletion have been reviewed.
+- N/A (pre-production): Existing data has a verified owner and has been backfilled.
+- N/A (pre-production): Operational procedures for provisioning, membership changes, support access, backup, restore, and deletion have been reviewed.

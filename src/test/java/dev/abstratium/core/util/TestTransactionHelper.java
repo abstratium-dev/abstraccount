@@ -55,6 +55,7 @@ public class TestTransactionHelper {
         entityManager.createQuery("UPDATE AccountEntity SET parentAccountId = NULL").executeUpdate();
         entityManager.createQuery("DELETE FROM AccountEntity").executeUpdate();
         entityManager.createQuery("UPDATE JournalEntity SET previousJournalId = NULL").executeUpdate();
+        entityManager.createNativeQuery("DELETE FROM T_journal_commodity").executeUpdate();
         entityManager.createQuery("DELETE FROM JournalEntity").executeUpdate();
     }
 }

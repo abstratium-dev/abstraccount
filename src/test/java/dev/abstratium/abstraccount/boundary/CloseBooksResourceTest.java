@@ -7,6 +7,7 @@ import dev.abstratium.abstraccount.entity.JournalEntity;
 import dev.abstratium.abstraccount.entity.TransactionEntity;
 import dev.abstratium.abstraccount.model.AccountType;
 import dev.abstratium.abstraccount.model.TransactionStatus;
+import dev.abstratium.core.util.TestTransactionHelper;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.security.TestSecurity;
 import io.restassured.http.ContentType;
@@ -30,6 +31,9 @@ public class CloseBooksResourceTest {
     @Inject
     EntityManager em;
 
+    @Inject
+    TestTransactionHelper testTransactionHelper;
+
     private String journalId;
     private String revenueAccountId;
     private String expenseAccountId;
@@ -39,11 +43,7 @@ public class CloseBooksResourceTest {
     @BeforeEach
     @Transactional
     public void setup() {
-        em.createQuery("DELETE FROM EntryEntity").executeUpdate();
-        em.createQuery("DELETE FROM TagEntity").executeUpdate();
-        em.createQuery("DELETE FROM TransactionEntity").executeUpdate();
-        em.createQuery("DELETE FROM AccountEntity").executeUpdate();
-        em.createQuery("DELETE FROM JournalEntity").executeUpdate();
+        testTransactionHelper.deleteAllData();
 
         JournalEntity journal = new JournalEntity();
         journal.setTitle("Test Journal for CloseBooks");

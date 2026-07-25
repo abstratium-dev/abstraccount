@@ -15,7 +15,15 @@ These TODOs are to be resolved by the developer, NOT THE LLM.
 
 - [ ] **Replace the legal page** (`src/main/webui/src/app/core/legal/legal.component.html`) with one specific to your organisation — it MUST name the correct data controller, contact details, and applicable law. See the ⚠ LEGAL NOTICE at the top of this README.
 
-- `partner.data.file.path` -> needs to also be tenant compatible
+- `partner.data.file.path` -> needs to also work with multiple tenants
+  - Replace single CSV file with a directory containing one CSV per org: `data/partners/{orgId}.csv`
+  - Replace `ConcurrentHashMap<String, PartnerData>` with `ConcurrentHashMap<String, ConcurrentHashMap<String, PartnerData>>` keyed by orgId
+  - `PartnerDataAdapter` loads/reloads per-org files lazily (on first access for an org) and caches
+  - File watcher monitors the `data/partners/` directory; on change, reload only the affected org's file
+  - `PartnerResource` passes the current orgId (from `JwtOrgResolver`/`CurrentOrgContext`) to the adapter
+  - If no file exists for an org, return empty list (no global fallback)
+  - Config property changes: `partner.data.file.path` → `partner.data.dir` (default: `data/partners`)
+  - Update `PartnerDataAdapterTest` to test multi-org isolation and missing-file behavior
 
 
 - change abstrauth so that this can use a dash not an underscore:
@@ -31,8 +39,16 @@ These TODOs are to be resolved by the developer, NOT THE LLM.
   - check gemini response
 
 - add multi-tenancy
+  - need a mechanism to copy macros and reports and perhaps other things, to other tenants
+  - offer swiss accounts for importing by adding them to the website
 
 - do cascade delete with jpa not database
+  - why isn't that on other entities? or is it because deletion is manual?
+
+- can we export stuff like accounts?
+
+
+- make all production stuff work with a non-default orgId by creating a new org and using that one
 
 - add envers
 
@@ -43,17 +59,7 @@ These TODOs are to be resolved by the developer, NOT THE LLM.
 
 - is this statement too bold? "Built on Swiss GAAP FER standards."
 
-- convert some modules to lazy
-
-- 2025 tax declr
-  - bank statement
-  - check bank statement matches balance sheet!
-  - explaination and company statement
-    - make note that things like monthly subscriptions are not pro rated since they are monthly and negligible for selling the company (and too small for accrural accounting)
-  - add reports and journal
-  - translate the tax help page and put it in the wiki: http://vd.ch/index.php?id=2023786#c2112404
-  - ask if my assumptions are correct: https://prestations.vd.ch/pub/101529
-  - check list of what to do in which order
+- convert some angular modules to lazy
 
 - year end taxes - use this for the macro and test it
   - 2024-12-31 * taxes based on equity tax (about 38 chf) and 15% of profit (0)

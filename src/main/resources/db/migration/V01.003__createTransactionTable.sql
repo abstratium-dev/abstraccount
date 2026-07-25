@@ -6,7 +6,7 @@ CREATE TABLE T_transaction (
     description VARCHAR(1000) NOT NULL,
     partner_id VARCHAR(100),
     journal_id VARCHAR(36) NOT NULL,
-    CONSTRAINT FK_transaction_journal FOREIGN KEY (journal_id) REFERENCES T_journal(id) ON DELETE CASCADE
+    CONSTRAINT FK_transaction_journal FOREIGN KEY (journal_id) REFERENCES T_journal(id)
 );
 
 CREATE INDEX I_transaction_date ON T_transaction(transaction_date);

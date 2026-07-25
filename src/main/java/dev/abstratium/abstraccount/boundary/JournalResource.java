@@ -282,7 +282,7 @@ public class JournalResource {
             JournalEntity journal = journalPersistenceService.findJournalById(journalId)
                 .orElseThrow(() -> new WebApplicationException("Journal not found: " + journalId, 404));
 
-            // let the db do cascade deletion
+            // Delete the owned graph through managed JPA entities.
             journalPersistenceService.deleteJournal(journalId);
             
             Map<String, Object> response = new HashMap<>();
