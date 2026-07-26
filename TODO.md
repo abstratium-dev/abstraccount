@@ -18,12 +18,15 @@ These TODOs are to be resolved by the developer, NOT THE LLM.
 - improve onboarding - it's aweful at the moment. e.g.
   - create a journal if none is found
   - when reimporting, offer to delete same named journals
+  - make journal dropdown better.
+
+- move export journal button and the checkbox into the menu
 
 - check duty of care 754.   Personal liability for directors — While shareholders are protected, directors/gérants of an Sàrl can face personal liability if they breach their duty of care (CO Art. 754) toward the company. But that's unrelated to your TOS; it's about how you run the company internally.
   - check gemini response
 
-- add export of journal with all accounts and transactions
-  - and offer to export with only accounts
+- fix JwtOrgResolver since it won't work in prod - see abstrauth
+  - ditto for OrgIdResolutionFilter
 
 - add multi-tenancy
   - need a mechanism to copy macros and reports and perhaps other things, to other tenants
