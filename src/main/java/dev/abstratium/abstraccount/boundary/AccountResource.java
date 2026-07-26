@@ -7,6 +7,7 @@ import dev.abstratium.abstraccount.entity.EntryEntity;
 import dev.abstratium.abstraccount.entity.TransactionEntity;
 import dev.abstratium.abstraccount.model.AccountType;
 import dev.abstratium.abstraccount.service.AccountService;
+import dev.abstratium.core.service.CurrentOrgContext;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.Consumes;
@@ -47,9 +48,12 @@ public class AccountResource {
     
     @Inject
     jakarta.persistence.EntityManager em;
-    
+
     @Inject
     PartnerDataAdapter partnerDataAdapter;
+
+    @Inject
+    CurrentOrgContext currentOrgContext;
     
     /**
      * Gets the account tree for a given journal.
@@ -143,7 +147,8 @@ public class AccountResource {
             @PathParam("journalId") String journalId,
             @PathParam("accountId") String accountId,
             @QueryParam("includeChildren") @DefaultValue("false") boolean includeChildren) {
-        LOG.debugf("Getting entries for account: %s in journal: %s (includeChildren: %s)", accountId, journalId, includeChildren);
+        String orgId = currentOrgContext.getOrgId();
+        LOG.debugf("Getting entries for account: %s in journal: %s (includeChildren: %s, org=%s)", accountId, journalId, includeChildren, orgId);
         
         // Determine which account IDs to query
         List<String> accountIds;
@@ -175,8 +180,8 @@ public class AccountResource {
         for (EntryEntity entry : entries) {
             TransactionEntity tx = entry.getTransaction();
             String partnerId = tx.getPartnerId();
-            String partnerName = partnerId != null 
-                ? partnerDataAdapter.getPartner(partnerId)
+            String partnerName = partnerId != null
+                ? partnerDataAdapter.getPartner(orgId, partnerId)
                     .map(p -> p.name())
                     .orElse(null)
                 : null;

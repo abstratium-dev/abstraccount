@@ -15,22 +15,6 @@ These TODOs are to be resolved by the developer, NOT THE LLM.
 
 - [ ] **Replace the legal page** (`src/main/webui/src/app/core/legal/legal.component.html`) with one specific to your organisation — it MUST name the correct data controller, contact details, and applicable law. See the ⚠ LEGAL NOTICE at the top of this README.
 
-- `partner.data.file.path` -> needs to also work with multiple tenants
-  - Replace single CSV file with a directory containing one CSV per org: `data/partners/{orgId}.csv`
-  - Replace `ConcurrentHashMap<String, PartnerData>` with `ConcurrentHashMap<String, ConcurrentHashMap<String, PartnerData>>` keyed by orgId
-  - `PartnerDataAdapter` loads/reloads per-org files lazily (on first access for an org) and caches
-  - File watcher monitors the `data/partners/` directory; on change, reload only the affected org's file
-  - `PartnerResource` passes the current orgId (from `JwtOrgResolver`/`CurrentOrgContext`) to the adapter
-  - If no file exists for an org, return empty list (no global fallback)
-  - Config property changes: `partner.data.file.path` → `partner.data.dir` (default: `data/partners`)
-  - Update `PartnerDataAdapterTest` to test multi-org isolation and missing-file behavior
-
-
-- change abstrauth so that this can use a dash not an underscore:
-  - Roles.java:
-    - String CLIENT_ID = "abstratium_abstraccount";
-
-
 - improve onboarding - it's aweful at the moment. e.g.
   - create a journal if none is found
   - when reimporting, offer to delete same named journals
@@ -38,15 +22,16 @@ These TODOs are to be resolved by the developer, NOT THE LLM.
 - check duty of care 754.   Personal liability for directors — While shareholders are protected, directors/gérants of an Sàrl can face personal liability if they breach their duty of care (CO Art. 754) toward the company. But that's unrelated to your TOS; it's about how you run the company internally.
   - check gemini response
 
+- add export of journal with all accounts and transactions
+  - and offer to export with only accounts
+
 - add multi-tenancy
   - need a mechanism to copy macros and reports and perhaps other things, to other tenants
   - offer swiss accounts for importing by adding them to the website
+    - as a basic import with no journal entries
 
 - do cascade delete with jpa not database
   - why isn't that on other entities? or is it because deletion is manual?
-
-- can we export stuff like accounts?
-
 
 - make all production stuff work with a non-default orgId by creating a new org and using that one
 

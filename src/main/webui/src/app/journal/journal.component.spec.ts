@@ -18,7 +18,8 @@ describe('JournalComponent', () => {
       'getTransactions',
       'getTags',
       'setSelectedJournalId',
-      'getAccountTree'
+      'getAccountTree',
+      'exportJournal'
     ]);
 
     await TestBed.configureTestingModule({
@@ -157,5 +158,59 @@ describe('JournalComponent', () => {
     expect(controller.getTransactions).toHaveBeenCalled();
     expect(component.tags).toEqual(mockTags);
     expect(component.transactions).toEqual(mockTransactions);
+  });
+
+  it('should export journal and trigger download', async () => {
+    const mockContent = '; title: Test\n; Currency: EUR\n';
+    controller.exportJournal.and.returnValue(Promise.resolve(mockContent));
+
+    component.selectedJournal = { id: '1', title: 'Test Journal', subtitle: null, currency: 'EUR', commodities: {}, logo: null, previousJournalId: null };
+
+    // Mock DOM APIs
+    const createElementSpy = spyOn(document, 'createElement').and.callThrough();
+    const clickSpy = spyOn(HTMLAnchorElement.prototype, 'click');
+    spyOn(window.URL, 'createObjectURL').and.returnValue('blob:mock');
+    spyOn(window.URL, 'revokeObjectURL');
+
+    await component.exportJournal();
+    await fixture.whenStable();
+
+    expect(controller.exportJournal).toHaveBeenCalledWith('1', true);
+    expect(component.exporting).toBe(false);
+    expect(component.exportError).toBeNull();
+    expect(clickSpy).toHaveBeenCalled();
+  });
+
+  it('should export journal without transactions when checkbox unchecked', async () => {
+    const mockContent = '; title: Test\n; Currency: EUR\n';
+    controller.exportJournal.and.returnValue(Promise.resolve(mockContent));
+
+    component.selectedJournal = { id: '1', title: 'Test Journal', subtitle: null, currency: 'EUR', commodities: {}, logo: null, previousJournalId: null };
+    component.includeTransactions = false;
+
+    await component.exportJournal();
+    await fixture.whenStable();
+
+    expect(controller.exportJournal).toHaveBeenCalledWith('1', false);
+  });
+
+  it('should handle export errors', async () => {
+    controller.exportJournal.and.returnValue(Promise.reject(new Error('Export failed')));
+
+    component.selectedJournal = { id: '1', title: 'Test Journal', subtitle: null, currency: 'EUR', commodities: {}, logo: null, previousJournalId: null };
+
+    await component.exportJournal();
+    await fixture.whenStable();
+
+    expect(component.exporting).toBe(false);
+    expect(component.exportError).toContain('Failed to export journal');
+  });
+
+  it('should not export when no journal is selected', async () => {
+    component.selectedJournal = null;
+
+    await component.exportJournal();
+
+    expect(controller.exportJournal).not.toHaveBeenCalled();
   });
 });

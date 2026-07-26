@@ -56,15 +56,16 @@ public class EntryQueryParser {
      *
      * @param query        the EQL expression (may be {@code null} or blank)
      * @param accountsById map of account ID → entity, used for accountname / accounttype predicates
+     * @param orgId        the organisation identifier for partner-name lookup
      * @return a predicate; returns an always-true predicate for blank input
      * @throws QueryParseException if the expression is syntactically invalid
      */
-    public Predicate<TransactionEntity> parse(String query, Map<String, AccountEntity> accountsById) {
+    public Predicate<TransactionEntity> parse(String query, Map<String, AccountEntity> accountsById, String orgId) {
         if (query == null || query.isBlank()) {
             return tx -> true;
         }
         Function<String, Optional<String>> partnerNameLookup = partnerDataAdapter != null
-                ? id -> partnerDataAdapter.getPartner(id).map(p -> p.name())
+                ? id -> partnerDataAdapter.getPartner(orgId, id).map(p -> p.name())
                 : id -> Optional.empty();
         Lexer lexer = new Lexer(query);
         List<Token> tokens = lexer.tokenize();

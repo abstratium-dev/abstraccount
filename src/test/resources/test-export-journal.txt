@@ -1,0 +1,39 @@
+; title: Export Test Journal
+; subtitle: Synthetic data for export integration test
+; Currency: EUR
+
+commodity EUR 1000.00
+
+account 1 Assets
+  ; type:Asset
+  ; note:All assets
+
+account 1 Assets:10 Cash
+  ; type:Cash
+
+account 2 Equity
+  ; type:Equity
+
+account 3 Revenue
+  ; type:Revenue
+
+account 4 Expenses
+  ; type:Expense
+
+2025-01-01 * Opening Balance
+    ; OpeningBalances:
+    1 Assets:10 Cash    EUR 5000.00
+    2 Equity    EUR -5000.00
+
+2025-02-15 * CUST-001 | First Sale
+    ; invoice:INV-TEST-001
+    1 Assets:10 Cash    EUR 800.00
+    3 Revenue    EUR -800.00
+
+2025-03-10 ! SUPP-001 | Office Supplies
+    4 Expenses    EUR 120.50
+    1 Assets:10 Cash    EUR -120.50
+
+2025-04-05 * Bank Fee
+    4 Expenses    EUR 15.00
+    1 Assets:10 Cash    EUR -15.00

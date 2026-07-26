@@ -37,6 +37,9 @@ export class JournalComponent implements OnInit {
   // Transaction modal
   showTransactionModal = false;
   editingTransactionId: string | null = null;
+  exporting = false;
+  exportError: string | null = null;
+  includeTransactions = true;
 
   // Context menu
   contextMenuTransactionId: string | null = null;
@@ -258,6 +261,30 @@ export class JournalComponent implements OnInit {
       // If keys are equal, compare by value
       return a.value.localeCompare(b.value);
     });
+  }
+
+  async exportJournal(): Promise<void> {
+    if (!this.selectedJournal) return;
+
+    this.exporting = true;
+    this.exportError = null;
+
+    try {
+      const content = await this.controller.exportJournal(this.selectedJournal.id, this.includeTransactions);
+      const blob = new Blob([content], { type: 'text/plain' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = (this.selectedJournal.title || 'journal').replace(/[^a-zA-Z0-9]/g, '_') + '.journal';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch (err: any) {
+      this.exportError = 'Failed to export journal: ' + (err?.error?.message ?? err.message);
+    } finally {
+      this.exporting = false;
+    }
   }
 
 }

@@ -1,19 +1,85 @@
 package dev.abstratium.abstraccount.boundary;
 
 import dev.abstratium.abstraccount.Roles;
+import dev.abstratium.abstraccount.adapters.PartnerDataAdapter;
 import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.junit.QuarkusTestProfile;
+import io.quarkus.test.junit.TestProfile;
 import io.quarkus.test.security.TestSecurity;
+import io.quarkus.test.security.oidc.Claim;
+import io.quarkus.test.security.oidc.OidcSecurity;
 import io.restassured.http.ContentType;
+import jakarta.inject.Inject;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Map;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.*;
 
 @QuarkusTest
+@TestProfile(PartnerResourceTest.TestPartnerDataProfile.class)
 class PartnerResourceTest {
+
+    public static final String TEST_ORG_ID = "partner-test-org";
+
+    public static class TestPartnerDataProfile implements QuarkusTestProfile {
+        @Override
+        public Map<String, String> getConfigOverrides() {
+            return Map.of("partner.data.dir", "target/partner-resource-test-partners");
+        }
+    }
+
+    @Inject
+    PartnerDataAdapter partnerDataAdapter;
+
+    private Path testDir;
+
+    @BeforeEach
+    void setUp() throws IOException {
+        testDir = Path.of("target/partner-resource-test-partners");
+        partnerDataAdapter.clearCache();
+        cleanTestDir();
+        Files.createDirectories(testDir);
+
+        String csvContent = """
+            "Partner Number","Name","Active"
+            "P00000001","Kutschera Anton","true"
+            "P00000002","abstratium informatique sàrl","true"
+            "P00000003","John Smith","true"
+            "P00000099","Inactive Partner","false"
+            """;
+        Files.writeString(testDir.resolve(TEST_ORG_ID + ".csv"), csvContent);
+    }
+
+    @AfterEach
+    void tearDown() throws IOException {
+        partnerDataAdapter.clearCache();
+        cleanTestDir();
+    }
+
+    private void cleanTestDir() throws IOException {
+        if (testDir != null && Files.exists(testDir)) {
+            try (var paths = Files.list(testDir)) {
+                paths.forEach(p -> {
+                    try {
+                        Files.deleteIfExists(p);
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                });
+            }
+        }
+    }
 
     @Test
     @TestSecurity(user = "testuser", roles = {Roles.USER})
+    @OidcSecurity(claims = @Claim(key = "orgId", value = TEST_ORG_ID))
     void testSearchPartners_noFilter_returnsActivePartners() {
         given()
             .contentType(ContentType.JSON)
@@ -28,6 +94,7 @@ class PartnerResourceTest {
 
     @Test
     @TestSecurity(user = "testuser", roles = {Roles.USER})
+    @OidcSecurity(claims = @Claim(key = "orgId", value = TEST_ORG_ID))
     void testSearchPartners_withMatchingFilter_returnsFiltered() {
         given()
             .contentType(ContentType.JSON)
@@ -42,6 +109,7 @@ class PartnerResourceTest {
 
     @Test
     @TestSecurity(user = "testuser", roles = {Roles.USER})
+    @OidcSecurity(claims = @Claim(key = "orgId", value = TEST_ORG_ID))
     void testSearchPartners_withNonMatchingFilter_returnsEmpty() {
         given()
             .contentType(ContentType.JSON)
@@ -55,6 +123,7 @@ class PartnerResourceTest {
 
     @Test
     @TestSecurity(user = "testuser", roles = {Roles.USER})
+    @OidcSecurity(claims = @Claim(key = "orgId", value = TEST_ORG_ID))
     void testSearchPartners_caseInsensitive() {
         given()
             .contentType(ContentType.JSON)
@@ -69,6 +138,7 @@ class PartnerResourceTest {
 
     @Test
     @TestSecurity(user = "testuser", roles = {Roles.USER})
+    @OidcSecurity(claims = @Claim(key = "orgId", value = TEST_ORG_ID))
     void testSearchPartners_sortedByPartnerNumber() {
         given()
             .contentType(ContentType.JSON)
@@ -81,6 +151,7 @@ class PartnerResourceTest {
 
     @Test
     @TestSecurity(user = "testuser", roles = {Roles.USER})
+    @OidcSecurity(claims = @Claim(key = "orgId", value = TEST_ORG_ID))
     void testGetPartner_existingPartner_returnsPartner() {
         given()
             .contentType(ContentType.JSON)
@@ -94,6 +165,7 @@ class PartnerResourceTest {
 
     @Test
     @TestSecurity(user = "testuser", roles = {Roles.USER})
+    @OidcSecurity(claims = @Claim(key = "orgId", value = TEST_ORG_ID))
     void testGetPartner_nonExistingPartner_returns404() {
         given()
             .contentType(ContentType.JSON)
@@ -105,6 +177,7 @@ class PartnerResourceTest {
 
     @Test
     @TestSecurity(user = "testuser", roles = {Roles.USER})
+    @OidcSecurity(claims = @Claim(key = "orgId", value = TEST_ORG_ID))
     void testSearchInvoices_missingJournalId_returns400() {
         given()
             .contentType(ContentType.JSON)
@@ -116,6 +189,7 @@ class PartnerResourceTest {
 
     @Test
     @TestSecurity(user = "testuser", roles = {Roles.USER})
+    @OidcSecurity(claims = @Claim(key = "orgId", value = TEST_ORG_ID))
     void testSearchInvoices_validJournalId_returnsEmptyOrList() {
         given()
             .contentType(ContentType.JSON)
@@ -129,6 +203,7 @@ class PartnerResourceTest {
 
     @Test
     @TestSecurity(user = "testuser", roles = {Roles.USER})
+    @OidcSecurity(claims = @Claim(key = "orgId", value = TEST_ORG_ID))
     void testSearchInvoices_withPrefix_returnsFiltered() {
         given()
             .contentType(ContentType.JSON)

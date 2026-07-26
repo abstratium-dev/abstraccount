@@ -17,6 +17,7 @@ import dev.abstratium.abstraccount.entity.TagEntity;
 import dev.abstratium.abstraccount.entity.TransactionEntity;
 import dev.abstratium.abstraccount.model.TransactionStatus;
 import dev.abstratium.abstraccount.service.JournalPersistenceService;
+import dev.abstratium.core.service.CurrentOrgContext;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;
@@ -49,9 +50,12 @@ public class TransactionResource {
     
     @Inject
     JournalPersistenceService journalPersistenceService;
-    
+
     @Inject
     PartnerDataAdapter partnerDataAdapter;
+
+    @Inject
+    CurrentOrgContext currentOrgContext;
     
     /**
      * Creates a new transaction with entries and tags.
@@ -312,8 +316,10 @@ public class TransactionResource {
     }
 
     private TransactionDTO toDTO(TransactionEntity transaction) {
+        String orgId = currentOrgContext.getOrgId();
+
         // Load accounts for this journal to join with entries
-        List<dev.abstratium.abstraccount.entity.AccountEntity> accounts = 
+        List<dev.abstratium.abstraccount.entity.AccountEntity> accounts =
             journalPersistenceService.loadAllAccounts(transaction.getJournalId());
         Map<String, dev.abstratium.abstraccount.entity.AccountEntity> accountMap = accounts.stream()
             .collect(Collectors.toMap(
@@ -345,8 +351,8 @@ public class TransactionResource {
             .collect(Collectors.toList());
         
         String partnerId = transaction.getPartnerId();
-        String partnerName = partnerId != null 
-            ? partnerDataAdapter.getPartner(partnerId)
+        String partnerName = partnerId != null
+            ? partnerDataAdapter.getPartner(orgId, partnerId)
                 .map(p -> p.name())
                 .orElse(null)
             : null;

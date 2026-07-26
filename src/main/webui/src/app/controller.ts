@@ -412,6 +412,22 @@ export class Controller {
     }
   }
 
+  async exportJournal(journalId: string, includeTransactions: boolean = true): Promise<string> {
+    try {
+      const params = includeTransactions ? {} : { params: { includeTransactions: 'false' } };
+      const content = await firstValueFrom(
+        this.http.get(`/api/journal/${journalId}/export`, {
+          responseType: 'text',
+          ...params
+        })
+      );
+      return content;
+    } catch (error) {
+      console.error('Error exporting journal:', error);
+      throw error;
+    }
+  }
+
   async deleteJournal(journalId: string): Promise<any> {
     try {
       const result = await firstValueFrom(

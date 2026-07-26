@@ -82,7 +82,7 @@ class EntryQueryParserTest {
     }
 
     private Predicate<TransactionEntity> parse(String query) {
-        return parser.parse(query, accounts);
+        return parser.parse(query, accounts, "org1");
     }
 
     private Predicate<TransactionEntity> parseWithPartnerNames(String query, java.util.function.Function<String, java.util.Optional<String>> nameLookup) {

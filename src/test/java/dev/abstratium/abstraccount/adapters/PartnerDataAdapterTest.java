@@ -15,6 +15,7 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -25,30 +26,54 @@ class PartnerDataAdapterTest {
     public static class TestPartnerDataProfile implements QuarkusTestProfile {
         @Override
         public Map<String, String> getConfigOverrides() {
-            return Map.of("partner.data.file.path", "target/test-partners.csv");
+            return Map.of("partner.data.dir", "target/test-partners");
         }
     }
 
     @Inject
     PartnerDataAdapter adapter;
 
-    private Path testFile;
+    private Path testDir;
 
     @BeforeEach
     void setUp() throws IOException {
-        testFile = Path.of("target/test-partners.csv");
-        Files.createDirectories(testFile.getParent());
+        testDir = Path.of("target/test-partners");
+        adapter.clearCache();
+        cleanTestDir();
+        Files.createDirectories(testDir);
     }
 
     @AfterEach
     void tearDown() throws IOException {
-        if (testFile != null && Files.exists(testFile)) {
-            Files.delete(testFile);
+        adapter.clearCache();
+        cleanTestDir();
+    }
+
+    private void cleanTestDir() throws IOException {
+        if (testDir != null && Files.exists(testDir)) {
+            try (Stream<Path> paths = Files.list(testDir)) {
+                paths.forEach(p -> {
+                    try {
+                        Files.deleteIfExists(p);
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                });
+            }
         }
     }
 
+    private Path orgFile(String orgId) {
+        return testDir.resolve(orgId + ".csv");
+    }
+
+    private void writeOrgFile(String orgId, String csvContent) throws IOException {
+        Files.createDirectories(testDir);
+        Files.writeString(orgFile(orgId), csvContent);
+    }
+
     @Test
-    void testLoadPartnerData() throws IOException {
+    void testLoadPartnerDataForOrg() throws IOException {
         // Given
         String csvContent = """
             "Partner Number","Name","Active"
@@ -56,26 +81,25 @@ class PartnerDataAdapterTest {
             "P00000002","abstratium informatique sàrl","true"
             "P00000003","other company","false"
             """;
-        Files.writeString(testFile, csvContent);
+        writeOrgFile("org1", csvContent);
 
         // When
-        adapter.loadPartnerData();
+        List<PartnerData> partners = adapter.getAllPartners("org1");
 
         // Then
-        List<PartnerData> partners = adapter.getAllPartners();
         assertEquals(3, partners.size());
 
-        Optional<PartnerData> partner1 = adapter.getPartner("P00000001");
+        Optional<PartnerData> partner1 = adapter.getPartner("org1", "P00000001");
         assertTrue(partner1.isPresent());
         assertEquals("Kutschera Anton", partner1.get().name());
         assertTrue(partner1.get().active());
 
-        Optional<PartnerData> partner2 = adapter.getPartner("P00000002");
+        Optional<PartnerData> partner2 = adapter.getPartner("org1", "P00000002");
         assertTrue(partner2.isPresent());
         assertEquals("abstratium informatique sàrl", partner2.get().name());
         assertTrue(partner2.get().active());
 
-        Optional<PartnerData> partner3 = adapter.getPartner("P00000003");
+        Optional<PartnerData> partner3 = adapter.getPartner("org1", "P00000003");
         assertTrue(partner3.isPresent());
         assertEquals("other company", partner3.get().name());
         assertFalse(partner3.get().active());
@@ -88,11 +112,10 @@ class PartnerDataAdapterTest {
             "Partner Number","Name","Active"
             "P00000001","Kutschera Anton","true"
             """;
-        Files.writeString(testFile, csvContent);
-        adapter.loadPartnerData();
+        writeOrgFile("org1", csvContent);
 
         // When
-        Optional<PartnerData> partner = adapter.getPartner("P99999999");
+        Optional<PartnerData> partner = adapter.getPartner("org1", "P99999999");
 
         // Then
         assertFalse(partner.isPresent());
@@ -104,13 +127,10 @@ class PartnerDataAdapterTest {
         String csvContent = """
             "Partner Number","Name","Active"
             """;
-        Files.writeString(testFile, csvContent);
-
-        // When
-        adapter.loadPartnerData();
+        writeOrgFile("org1", csvContent);
 
         // Then
-        List<PartnerData> partners = adapter.getAllPartners();
+        List<PartnerData> partners = adapter.getAllPartners("org1");
         assertTrue(partners.isEmpty());
     }
 
@@ -120,46 +140,72 @@ class PartnerDataAdapterTest {
         String csvContent = """
             "Partner Number","Name","Active"
             "P00000001","Kutschera Anton","true"
-            
-            "P00000002","abstratium informatique sàrl","true"
-            
-            """;
-        Files.writeString(testFile, csvContent);
 
-        // When
-        adapter.loadPartnerData();
+            "P00000002","abstratium informatique sàrl","true"
+
+            """;
+        writeOrgFile("org1", csvContent);
 
         // Then
-        List<PartnerData> partners = adapter.getAllPartners();
+        List<PartnerData> partners = adapter.getAllPartners("org1");
         assertEquals(2, partners.size());
     }
 
     @Test
-    void testReloadClearsCache() throws IOException {
+    void testMultiOrgIsolation() throws IOException {
+        // Given - two organisations with different partner data
+        writeOrgFile("org1", """
+            "Partner Number","Name","Active"
+            "P00000001","Org1 Partner","true"
+            """);
+        writeOrgFile("org2", """
+            "Partner Number","Name","Active"
+            "P00000002","Org2 Partner","true"
+            """);
+
+        // Then - each org sees only its own partners
+        assertTrue(adapter.getPartner("org1", "P00000001").isPresent());
+        assertFalse(adapter.getPartner("org1", "P00000002").isPresent());
+
+        assertTrue(adapter.getPartner("org2", "P00000002").isPresent());
+        assertFalse(adapter.getPartner("org2", "P00000001").isPresent());
+
+        assertEquals(1, adapter.getAllPartners("org1").size());
+        assertEquals(1, adapter.getAllPartners("org2").size());
+    }
+
+    @Test
+    void testMissingFileReturnsEmpty() {
+        // When - no file exists for an org
+        List<PartnerData> partners = adapter.getAllPartners("missing-org");
+
+        // Then
+        assertTrue(partners.isEmpty());
+        assertFalse(adapter.getPartner("missing-org", "P00000001").isPresent());
+    }
+
+    @Test
+    void testReloadForOrgUpdatesCache() throws IOException {
         // Given - initial data
-        String csvContent1 = """
+        writeOrgFile("org1", """
             "Partner Number","Name","Active"
             "P00000001","Kutschera Anton","true"
-            "P00000002","abstratium informatique sàrl","true"
-            """;
-        Files.writeString(testFile, csvContent1);
-        adapter.loadPartnerData();
-        assertEquals(2, adapter.getAllPartners().size());
+            """);
+        adapter.getAllPartners("org1");
+        assertEquals(1, adapter.getAllPartners("org1").size());
 
         // When - reload with different data
-        String csvContent2 = """
+        writeOrgFile("org1", """
             "Partner Number","Name","Active"
             "P00000003","other company","false"
-            """;
-        Files.writeString(testFile, csvContent2);
-        adapter.loadPartnerData();
+            """);
+        adapter.reloadPartnerDataForOrg("org1");
 
-        // Then - old data is gone, new data is present
-        List<PartnerData> partners = adapter.getAllPartners();
+        // Then - old data is gone, new data is present; other orgs unaffected
+        List<PartnerData> partners = adapter.getAllPartners("org1");
         assertEquals(1, partners.size());
-        assertFalse(adapter.getPartner("P00000001").isPresent());
-        assertFalse(adapter.getPartner("P00000002").isPresent());
-        assertTrue(adapter.getPartner("P00000003").isPresent());
+        assertFalse(adapter.getPartner("org1", "P00000001").isPresent());
+        assertTrue(adapter.getPartner("org1", "P00000003").isPresent());
     }
 
     @Test
@@ -230,42 +276,65 @@ class PartnerDataAdapterTest {
     @Test
     void testFileWatcherDetectsChanges() throws IOException, InterruptedException {
         // Given - initial data
-        String csvContent1 = """
+        writeOrgFile("org1", """
             "Partner Number","Name","Active"
             "P00000001","Kutschera Anton","true"
-            """;
-        Files.writeString(testFile, csvContent1);
-        adapter.loadPartnerData();
-        assertEquals(1, adapter.getAllPartners().size());
+            """);
+        adapter.getAllPartners("org1");
+        assertEquals(1, adapter.getAllPartners("org1").size());
 
         // When - modify file
-        String csvContent2 = """
+        writeOrgFile("org1", """
             "Partner Number","Name","Active"
             "P00000001","Kutschera Anton","true"
             "P00000002","abstratium informatique sàrl","true"
-            """;
-        Files.writeString(testFile, csvContent2);
+            """);
 
         // Wait for file watcher to detect change and reload
         // The watcher has a 100ms delay plus processing time
         Thread.sleep(500);
 
         // Then - data should be reloaded
-        List<PartnerData> partners = adapter.getAllPartners();
+        List<PartnerData> partners = adapter.getAllPartners("org1");
         assertEquals(2, partners.size());
-        assertTrue(adapter.getPartner("P00000002").isPresent());
+        assertTrue(adapter.getPartner("org1", "P00000002").isPresent());
+    }
+
+    @Test
+    void testFileWatcherOnlyReloadsChangedOrg() throws IOException, InterruptedException {
+        // Given - two orgs with data
+        writeOrgFile("org1", """
+            "Partner Number","Name","Active"
+            "P00000001","Org1 Partner","true"
+            """);
+        writeOrgFile("org2", """
+            "Partner Number","Name","Active"
+            "P00000002","Org2 Partner","true"
+            """);
+        adapter.getAllPartners("org1");
+        adapter.getAllPartners("org2");
+
+        // When - modify only org1's file
+        writeOrgFile("org1", """
+            "Partner Number","Name","Active"
+            "P00000001","Org1 Partner Updated","true"
+            """);
+
+        Thread.sleep(500);
+
+        // Then - org1 updated, org2 unchanged
+        assertEquals("Org1 Partner Updated", adapter.getPartner("org1", "P00000001").orElseThrow().name());
+        assertEquals("Org2 Partner", adapter.getPartner("org2", "P00000002").orElseThrow().name());
     }
 
     @Test
     void testConcurrentReadAccess() throws IOException, InterruptedException {
         // Given
-        String csvContent = """
+        writeOrgFile("org1", """
             "Partner Number","Name","Active"
             "P00000001","Kutschera Anton","true"
             "P00000002","abstratium informatique sàrl","true"
-            """;
-        Files.writeString(testFile, csvContent);
-        adapter.loadPartnerData();
+            """);
 
         // When - multiple threads read concurrently
         Thread[] readers = new Thread[10];
@@ -276,9 +345,9 @@ class PartnerDataAdapterTest {
             readers[i] = new Thread(() -> {
                 try {
                     for (int j = 0; j < 100; j++) {
-                        List<PartnerData> partners = adapter.getAllPartners();
+                        List<PartnerData> partners = adapter.getAllPartners("org1");
                         assertEquals(2, partners.size());
-                        Optional<PartnerData> partner = adapter.getPartner("P00000001");
+                        Optional<PartnerData> partner = adapter.getPartner("org1", "P00000001");
                         assertTrue(partner.isPresent());
                     }
                     success[index] = true;
@@ -301,19 +370,10 @@ class PartnerDataAdapterTest {
     }
 
     @Test
-    void testLoadNonExistentFile() throws IOException, InterruptedException {
-        // Given - file doesn't exist
-        if (Files.exists(testFile)) {
-            Files.delete(testFile);
-            // Wait for file watcher to settle
-            Thread.sleep(300);
-        }
-
-        // When - try to load (should not throw exception)
-        // Note: The cache might not be empty due to file watcher race conditions
-        // from previous tests, but the important thing is that loading a non-existent
-        // file doesn't throw an exception
-        assertDoesNotThrow(() -> adapter.loadPartnerData());
+    void testLoadNonExistentFileDoesNotThrow() {
+        // When/Then - loading a non-existent org file should not throw
+        assertDoesNotThrow(() -> adapter.getAllPartners("non-existent-org"));
+        assertDoesNotThrow(() -> adapter.getPartner("non-existent-org", "P00000001"));
     }
 
     @Test

@@ -16,6 +16,8 @@ import dev.abstratium.abstraccount.model.Journal;
 import dev.abstratium.abstraccount.service.EntryQueryParser;
 import dev.abstratium.abstraccount.service.JournalParser;
 import dev.abstratium.abstraccount.service.JournalPersistenceService;
+import dev.abstratium.abstraccount.service.JournalSerializer;
+import dev.abstratium.core.service.CurrentOrgContext;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.Consumes;
@@ -54,7 +56,13 @@ public class JournalResource {
     PartnerDataAdapter partnerDataAdapter;
 
     @Inject
+    CurrentOrgContext currentOrgContext;
+
+    @Inject
     EntryQueryParser entryQueryParser;
+
+    @Inject
+    JournalSerializer journalSerializer;
     
     /**
      * Gets transactions with their entries and tags.
@@ -77,6 +85,8 @@ public class JournalResource {
             @QueryParam("status") String status,
             @QueryParam("filter") String filter) {
 
+        String orgId = currentOrgContext.getOrgId();
+
         // Load all accounts eagerly so the parser can resolve account names / types
         List<dev.abstratium.abstraccount.entity.AccountEntity> accounts =
             journalPersistenceService.loadAllAccounts(journalId);
@@ -89,7 +99,7 @@ public class JournalResource {
         // Parse the EQL expression into a predicate
         java.util.function.Predicate<dev.abstratium.abstraccount.entity.TransactionEntity> txPredicate;
         try {
-            txPredicate = entryQueryParser.parse(filter, accountMap);
+            txPredicate = entryQueryParser.parse(filter, accountMap, orgId);
         } catch (EntryQueryParser.QueryParseException e) {
             throw new WebApplicationException(
                 jakarta.ws.rs.core.Response.status(400)
@@ -154,8 +164,8 @@ public class JournalResource {
                 .collect(Collectors.toList());
             
             String txPartnerId = txEntity.getPartnerId();
-            String txPartnerName = txPartnerId != null 
-                ? partnerDataAdapter.getPartner(txPartnerId)
+            String txPartnerName = txPartnerId != null
+                ? partnerDataAdapter.getPartner(orgId, txPartnerId)
                     .map(p -> p.name())
                     .orElse(null)
                 : null;
@@ -402,5 +412,133 @@ public class JournalResource {
                     .build()
             );
         }
+    }
+
+    /**
+     * Exports a journal as a plain-text journal file.
+     * Loads journal metadata, accounts, and all transactions from the database,
+     * reconstructs the Journal model, and serializes it.
+     *
+     * @param journalId the journal ID
+     * @param includeTransactions if false, transactions are omitted (default true)
+     * @return the journal file content as plain text
+     */
+    @GET
+    @Path("/{journalId}/export")
+    @Produces(MediaType.TEXT_PLAIN)
+    public String exportJournal(@PathParam("journalId") String journalId,
+                                @QueryParam("includeTransactions") Boolean includeTransactions) {
+        boolean withTransactions = includeTransactions == null || includeTransactions;
+        LOG.infof("Exporting journal: %s (includeTransactions=%s)", journalId, withTransactions);
+
+        JournalEntity journalEntity = journalPersistenceService.findJournalById(journalId)
+            .orElseThrow(() -> new WebApplicationException("Journal not found: " + journalId, 404));
+
+        java.util.List<dev.abstratium.abstraccount.entity.AccountEntity> accountEntities =
+            journalPersistenceService.loadAllAccounts(journalId);
+
+        // Build account model objects, preserving hierarchy
+        // Sort by depth to ensure parents are processed before children
+        Map<String, Integer> accountDepthMap = new HashMap<>();
+        for (dev.abstratium.abstraccount.entity.AccountEntity ae : accountEntities) {
+            int depth = 0;
+            String parentId = ae.getParentAccountId();
+            while (parentId != null) {
+                depth++;
+                final String pid = parentId;
+                dev.abstratium.abstraccount.entity.AccountEntity parent = accountEntities.stream()
+                    .filter(a -> a.getId().equals(pid)).findFirst().orElse(null);
+                parentId = parent != null ? parent.getParentAccountId() : null;
+            }
+            accountDepthMap.put(ae.getId(), depth);
+        }
+        Map<String, dev.abstratium.abstraccount.model.Account> accountModelMap = new HashMap<>();
+        accountEntities.stream()
+            .sorted((a, b) -> Integer.compare(
+                accountDepthMap.getOrDefault(a.getId(), 0),
+                accountDepthMap.getOrDefault(b.getId(), 0)))
+            .forEach(ae -> {
+                dev.abstratium.abstraccount.model.Account parent = null;
+                if (ae.getParentAccountId() != null) {
+                    parent = accountModelMap.get(ae.getParentAccountId());
+                }
+                dev.abstratium.abstraccount.model.Account accountModel = parent == null
+                    ? dev.abstratium.abstraccount.model.Account.root(ae.getId(), ae.getName(), ae.getType(), ae.getNote())
+                    : dev.abstratium.abstraccount.model.Account.child(ae.getId(), ae.getName(), ae.getType(), ae.getNote(), parent);
+                accountModelMap.put(ae.getId(), accountModel);
+            });
+
+        // Load all transactions with entries and tags
+        java.util.List<dev.abstratium.abstraccount.entity.EntryEntity> entryEntities =
+            journalPersistenceService.queryEntriesWithFilters(journalId, null, null, null, null, null, null, null, null, null);
+
+        // Deduplicate to get unique transactions, ordered by date and transactionOrder
+        Map<String, dev.abstratium.abstraccount.entity.TransactionEntity> transactionMap = new java.util.LinkedHashMap<>();
+        for (dev.abstratium.abstraccount.entity.EntryEntity entry : entryEntities) {
+            transactionMap.putIfAbsent(entry.getTransaction().getId(), entry.getTransaction());
+        }
+
+        // Build transaction model objects
+        List<dev.abstratium.abstraccount.model.Transaction> transactions = new ArrayList<>();
+        for (dev.abstratium.abstraccount.entity.TransactionEntity txEntity : transactionMap.values()) {
+            List<dev.abstratium.abstraccount.model.Tag> tags = txEntity.getTags().stream()
+                .map(tag -> dev.abstratium.abstraccount.model.Tag.keyValue(tag.getTagKey(), tag.getTagValue()))
+                .collect(Collectors.toList());
+
+            List<dev.abstratium.abstraccount.model.Entry> entries = txEntity.getEntries().stream()
+                .sorted((a, b) -> Integer.compare(a.getEntryOrder(), b.getEntryOrder()))
+                .map(entry -> {
+                    dev.abstratium.abstraccount.model.Account account = accountModelMap.get(entry.getAccountId());
+                    if (account == null) {
+                        // Fallback: create a minimal account if not found
+                        account = dev.abstratium.abstraccount.model.Account.root(
+                            entry.getAccountId(), "Unknown", dev.abstratium.abstraccount.model.AccountType.ASSET, null);
+                    }
+                    return dev.abstratium.abstraccount.model.Entry.simple(
+                        account,
+                        dev.abstratium.abstraccount.model.Amount.of(entry.getCommodity(), entry.getAmount()));
+                })
+                .collect(Collectors.toList());
+
+            transactions.add(new dev.abstratium.abstraccount.model.Transaction(
+                txEntity.getTransactionDate(),
+                txEntity.getStatus(),
+                txEntity.getDescription(),
+                txEntity.getPartnerId(),
+                txEntity.getId(),
+                tags,
+                entries
+            ));
+        }
+
+        // Build commodities list from journal entity
+        List<dev.abstratium.abstraccount.model.Commodity> commodities = new ArrayList<>();
+        for (var entry : journalEntity.getCommodities().entrySet()) {
+            commodities.add(new dev.abstratium.abstraccount.model.Commodity(
+                entry.getKey(), new java.math.BigDecimal(entry.getValue())));
+        }
+
+        // Build account list preserving original order
+        List<dev.abstratium.abstraccount.model.Account> accounts = accountEntities.stream()
+            .sorted((a, b) -> Integer.compare(
+                a.getAccountOrder() != null ? a.getAccountOrder() : 0,
+                b.getAccountOrder() != null ? b.getAccountOrder() : 0))
+            .map(ae -> accountModelMap.get(ae.getId()))
+            .collect(Collectors.toList());
+
+        Journal journal = new Journal(
+            journalEntity.getLogo(),
+            journalEntity.getTitle(),
+            journalEntity.getSubtitle(),
+            journalEntity.getCurrency(),
+            commodities,
+            accounts,
+            withTransactions ? transactions : List.of()
+        );
+
+        String content = journalSerializer.serialize(journal);
+        LOG.infof("Successfully exported journal: %s (%d accounts, %d transactions)",
+            journalId, accounts.size(), withTransactions ? transactions.size() : 0);
+        return content;
     }
 }

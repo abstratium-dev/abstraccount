@@ -13,13 +13,22 @@ import java.io.IOException;
 import java.nio.file.*;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
- * Adapter for loading and watching partner data from a CSV file.
- * Caches partner data in memory and automatically reloads when the file changes.
- * Thread-safe with read-write locking.
+ * Adapter for loading and watching per-organisation partner data from CSV files.
+ *
+ * <p>Each organisation has its own file: {@code <partner.data.dir>/<orgId>.csv}.
+ * Files are loaded lazily on first access and cached per organisation. A file watcher
+ * monitors the directory and reloads only the changed organisation's data.</p>
+ *
+ * <p><b>Why orgId is passed explicitly instead of injecting CurrentOrgContext:</b>
+ * This bean is {@code @ApplicationScoped} and its cache spans requests, whereas
+ * {@code CurrentOrgContext} is {@code @RequestScoped}. Injecting a request-scoped bean
+ * into an application-scoped bean would couple the adapter to an active HTTP request,
+ * making it unusable from background tasks, batch imports, scheduled jobs, or unit tests
+ * that call the adapter directly without a request context. By accepting {@code orgId}
+ * as a parameter, the adapter remains context-agnostic and the tenant boundary stays
+ * visible at every call site.</p>
  */
 @ApplicationScoped
 @Startup
@@ -27,24 +36,20 @@ public class PartnerDataAdapter {
 
     private static final Logger LOG = Logger.getLogger(PartnerDataAdapter.class);
 
-    @ConfigProperty(name = "partner.data.file.path")
-    String partnerDataFilePath;
+    @ConfigProperty(name = "partner.data.dir")
+    String partnerDataDir;
 
-    private final Map<String, PartnerData> partnerCache = new ConcurrentHashMap<>();
-    private final ReadWriteLock cacheLock = new ReentrantReadWriteLock();
-    
+    private final Map<String, Map<String, PartnerData>> partnerCache = new ConcurrentHashMap<>();
+    private final Set<String> attemptedLoads = ConcurrentHashMap.newKeySet();
+
     private WatchService watchService;
     private Thread watchThread;
     private volatile boolean running = false;
 
     @PostConstruct
     void init() {
-        LOG.info("Initializing PartnerDataAdapter with file: " + partnerDataFilePath);
-        
-        // Load initial data
-        loadPartnerData();
-        
-        // Start file watcher
+        LOG.info("Initializing PartnerDataAdapter with directory: " + partnerDataDir);
+
         startFileWatcher();
     }
 
@@ -55,85 +60,100 @@ public class PartnerDataAdapter {
     }
 
     /**
-     * Get partner data by partner number.
-     * Thread-safe read access with read lock.
+     * Get partner data by organisation and partner number.
+     * Lazy-loads the organisation's file on first access.
+     *
+     * @param orgId the organisation identifier
+     * @param partnerNumber the partner number
+     * @return optional partner data
      */
-    public Optional<PartnerData> getPartner(String partnerNumber) {
-        cacheLock.readLock().lock();
-        try {
-            return Optional.ofNullable(partnerCache.get(partnerNumber));
-        } finally {
-            cacheLock.readLock().unlock();
+    public Optional<PartnerData> getPartner(String orgId, String partnerNumber) {
+        if (orgId == null || orgId.isBlank() || partnerNumber == null || partnerNumber.isBlank()) {
+            return Optional.empty();
         }
+
+        Map<String, PartnerData> orgCache = getOrgCache(orgId);
+        return Optional.ofNullable(orgCache.get(partnerNumber));
     }
 
     /**
-     * Get all partner data.
-     * Thread-safe read access with read lock.
+     * Get all partner data for an organisation.
+     * Lazy-loads the organisation's file on first access.
+     *
+     * @param orgId the organisation identifier
+     * @return list of partner data
      */
-    public List<PartnerData> getAllPartners() {
-        cacheLock.readLock().lock();
-        try {
-            return new ArrayList<>(partnerCache.values());
-        } finally {
-            cacheLock.readLock().unlock();
+    public List<PartnerData> getAllPartners(String orgId) {
+        if (orgId == null || orgId.isBlank()) {
+            return List.of();
         }
+
+        Map<String, PartnerData> orgCache = getOrgCache(orgId);
+        return new ArrayList<>(orgCache.values());
     }
 
     /**
-     * Load partner data from CSV file.
-     * Thread-safe write access with write lock.
+     * Returns (or loads and caches) the partner map for the given organisation.
+     * Thread-safe: the same organisation loads only once.
      */
-    void loadPartnerData() {
-        Path filePath = Paths.get(partnerDataFilePath);
-        
+    private Map<String, PartnerData> getOrgCache(String orgId) {
+        return partnerCache.computeIfAbsent(orgId, this::loadPartnerDataForOrg);
+    }
+
+    /**
+     * Force a reload of a specific organisation's partner data.
+     */
+    void reloadPartnerDataForOrg(String orgId) {
+        partnerCache.put(orgId, loadPartnerDataForOrg(orgId));
+    }
+
+    /**
+     * Load partner data for a single organisation from its CSV file.
+     * Returns an empty map if the file does not exist or cannot be read.
+     */
+    Map<String, PartnerData> loadPartnerDataForOrg(String orgId) {
+        attemptedLoads.add(orgId);
+        Path filePath = getOrgFilePath(orgId);
+
         if (!Files.exists(filePath)) {
-            LOG.warn("Partner data file does not exist: " + partnerDataFilePath);
-            return;
+            LOG.debug("Partner data file does not exist for org " + orgId + ": " + filePath);
+            return new ConcurrentHashMap<>();
         }
 
-        cacheLock.writeLock().lock();
-        try {
-            LOG.info("Loading partner data from: " + partnerDataFilePath);
-            
-            // Clear existing cache
-            partnerCache.clear();
-            
-            // Read and parse CSV file
-            try (BufferedReader reader = Files.newBufferedReader(filePath)) {
-                String line;
-                boolean isFirstLine = true;
-                int lineNumber = 0;
-                
-                while ((line = reader.readLine()) != null) {
-                    lineNumber++;
-                    
-                    // Skip header line
-                    if (isFirstLine) {
-                        isFirstLine = false;
-                        continue;
-                    }
-                    
-                    // Skip empty lines
-                    if (line.trim().isEmpty()) {
-                        continue;
-                    }
-                    
-                    try {
-                        PartnerData partner = parseCsvLine(line);
-                        partnerCache.put(partner.partnerNumber(), partner);
-                    } catch (Exception e) {
-                        LOG.error("Error parsing line " + lineNumber + ": " + line, e);
-                    }
+        LOG.info("Loading partner data for org " + orgId + " from: " + filePath);
+
+        Map<String, PartnerData> orgCache = new ConcurrentHashMap<>();
+        try (BufferedReader reader = Files.newBufferedReader(filePath)) {
+            String line;
+            boolean isFirstLine = true;
+            int lineNumber = 0;
+
+            while ((line = reader.readLine()) != null) {
+                lineNumber++;
+
+                if (isFirstLine) {
+                    isFirstLine = false;
+                    continue;
                 }
-                
-                LOG.info("Loaded " + partnerCache.size() + " partners from file");
-            } catch (IOException e) {
-                LOG.error("Error reading partner data file: " + partnerDataFilePath, e);
+
+                if (line.trim().isEmpty()) {
+                    continue;
+                }
+
+                try {
+                    PartnerData partner = parseCsvLine(line);
+                    orgCache.put(partner.partnerNumber(), partner);
+                } catch (Exception e) {
+                    LOG.error("Error parsing line " + lineNumber + " for org " + orgId + ": " + line, e);
+                }
             }
-        } finally {
-            cacheLock.writeLock().unlock();
+
+            LOG.info("Loaded " + orgCache.size() + " partners for org " + orgId);
+        } catch (IOException e) {
+            LOG.error("Error reading partner data file for org " + orgId + ": " + filePath, e);
         }
+
+        return orgCache;
     }
 
     /**
@@ -142,15 +162,15 @@ public class PartnerDataAdapter {
      */
     PartnerData parseCsvLine(String line) {
         List<String> fields = parseCsvFields(line);
-        
+
         if (fields.size() != 3) {
             throw new IllegalArgumentException("Expected 3 fields, got " + fields.size());
         }
-        
+
         String partnerNumber = fields.get(0);
         String name = fields.get(1);
         boolean active = Boolean.parseBoolean(fields.get(2));
-        
+
         return new PartnerData(partnerNumber, name, active);
     }
 
@@ -161,10 +181,10 @@ public class PartnerDataAdapter {
         List<String> fields = new ArrayList<>();
         StringBuilder currentField = new StringBuilder();
         boolean inQuotes = false;
-        
+
         for (int i = 0; i < line.length(); i++) {
             char c = line.charAt(i);
-            
+
             if (c == '"') {
                 inQuotes = !inQuotes;
             } else if (c == ',' && !inQuotes) {
@@ -174,39 +194,33 @@ public class PartnerDataAdapter {
                 currentField.append(c);
             }
         }
-        
+
         // Add the last field
         fields.add(currentField.toString());
-        
+
         return fields;
     }
 
     /**
-     * Start watching the partner data file for changes.
+     * Start watching the partner data directory for changes.
      */
     void startFileWatcher() {
         try {
-            Path filePath = Paths.get(partnerDataFilePath);
-            Path directory = filePath.getParent();
-            
-            if (directory == null) {
-                directory = Paths.get(".");
-            }
-            
-            // Create directory if it doesn't exist
+            Path directory = Paths.get(partnerDataDir);
+
             if (!Files.exists(directory)) {
                 Files.createDirectories(directory);
-                LOG.info("Created directory: " + directory);
+                LOG.info("Created partner data directory: " + directory);
             }
-            
+
             watchService = FileSystems.getDefault().newWatchService();
             directory.register(watchService, StandardWatchEventKinds.ENTRY_MODIFY, StandardWatchEventKinds.ENTRY_CREATE);
-            
+
             running = true;
             watchThread = new Thread(this::watchForChanges, "PartnerDataWatcher");
             watchThread.setDaemon(true);
             watchThread.start();
-            
+
             LOG.info("Started file watcher for directory: " + directory);
         } catch (IOException e) {
             LOG.error("Failed to start file watcher", e);
@@ -214,11 +228,11 @@ public class PartnerDataAdapter {
     }
 
     /**
-     * Stop watching the partner data file.
+     * Stop watching the partner data directory.
      */
     void stopFileWatcher() {
         running = false;
-        
+
         if (watchThread != null) {
             watchThread.interrupt();
             try {
@@ -227,7 +241,7 @@ public class PartnerDataAdapter {
                 Thread.currentThread().interrupt();
             }
         }
-        
+
         if (watchService != null) {
             try {
                 watchService.close();
@@ -238,37 +252,38 @@ public class PartnerDataAdapter {
     }
 
     /**
-     * Watch for file changes and reload data when the file is modified.
+     * Watch for file changes and reload data for the affected organisation only.
      */
     void watchForChanges() {
-        Path fileName = Paths.get(partnerDataFilePath).getFileName();
-        
         while (running) {
             try {
                 WatchKey key = watchService.take();
-                
+
                 for (WatchEvent<?> event : key.pollEvents()) {
                     WatchEvent.Kind<?> kind = event.kind();
-                    
+
                     if (kind == StandardWatchEventKinds.OVERFLOW) {
                         continue;
                     }
-                    
+
                     @SuppressWarnings("unchecked")
                     WatchEvent<Path> ev = (WatchEvent<Path>) event;
                     Path changedFile = ev.context();
-                    
-                    // Check if the changed file is our partner data file
-                    if (changedFile.equals(fileName)) {
-                        LOG.info("Partner data file changed, reloading: " + changedFile);
-                        
-                        // Small delay to ensure file write is complete
-                        Thread.sleep(100);
-                        
-                        loadPartnerData();
+                    String fileName = changedFile.getFileName().toString();
+
+                    if (!fileName.endsWith(".csv")) {
+                        continue;
                     }
+
+                    String orgId = fileName.substring(0, fileName.length() - 4);
+                    LOG.info("Partner data file changed for org " + orgId + ", reloading: " + changedFile);
+
+                    // Small delay to ensure file write is complete
+                    Thread.sleep(100);
+
+                    reloadPartnerDataForOrg(orgId);
                 }
-                
+
                 boolean valid = key.reset();
                 if (!valid) {
                     LOG.warn("Watch key no longer valid");
@@ -282,5 +297,17 @@ public class PartnerDataAdapter {
                 LOG.error("Error in file watcher", e);
             }
         }
+    }
+
+    private Path getOrgFilePath(String orgId) {
+        return Paths.get(partnerDataDir, orgId + ".csv");
+    }
+
+    /**
+     * Clear the in-memory cache. Public for test cleanup only.
+     */
+    public void clearCache() {
+        partnerCache.clear();
+        attemptedLoads.clear();
     }
 }

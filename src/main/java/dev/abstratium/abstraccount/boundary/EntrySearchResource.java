@@ -17,6 +17,7 @@ import dev.abstratium.abstraccount.entity.JournalEntity;
 import dev.abstratium.abstraccount.entity.TransactionEntity;
 import dev.abstratium.abstraccount.service.EntryQueryParser;
 import dev.abstratium.abstraccount.service.JournalPersistenceService;
+import dev.abstratium.core.service.CurrentOrgContext;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.Consumes;
@@ -44,6 +45,9 @@ public class EntrySearchResource {
     
     @Inject
     PartnerDataAdapter partnerDataAdapter;
+
+    @Inject
+    CurrentOrgContext currentOrgContext;
 
     @Inject
     EntryQueryParser entryQueryParser;
@@ -74,6 +78,8 @@ public class EntrySearchResource {
                     .build());
         }
 
+        String orgId = currentOrgContext.getOrgId();
+
         // Load accounts (needed both for DB query and for EQL predicate resolution)
         Map<String, AccountEntity> accountMap = new HashMap<>();
         Map<String, JournalEntity> journalMap = new HashMap<>();
@@ -86,7 +92,7 @@ public class EntrySearchResource {
         // Parse EQL filter into a predicate
         Predicate<TransactionEntity> txPredicate;
         try {
-            txPredicate = entryQueryParser.parse(filter, accountMap);
+            txPredicate = entryQueryParser.parse(filter, accountMap, orgId);
         } catch (EntryQueryParser.QueryParseException e) {
             throw new WebApplicationException(
                 jakarta.ws.rs.core.Response.status(400)
@@ -139,7 +145,7 @@ public class EntrySearchResource {
                 .collect(Collectors.toList());
 
             String partnerName = tx.getPartnerId() != null
-                ? partnerDataAdapter.getPartner(tx.getPartnerId()).map(p -> p.name()).orElse(null)
+                ? partnerDataAdapter.getPartner(orgId, tx.getPartnerId()).map(p -> p.name()).orElse(null)
                 : null;
 
             result.add(new EntrySearchDTO(

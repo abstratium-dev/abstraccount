@@ -1,9 +1,23 @@
 <div class="container">
   <div class="page-header">
     <h1>Journal Viewer</h1>
-    <button *ngIf="selectedJournal" class="btn-add" (click)="openAddTransactionModal()">
-      Add Transaction
-    </button>
+    <div class="page-header-actions">
+      <label class="export-option" *ngIf="selectedJournal">
+        <input type="checkbox" [(ngModel)]="includeTransactions" />
+        Include transactions
+      </label>
+      <button *ngIf="selectedJournal" class="btn-secondary" (click)="exportJournal()" [disabled]="exporting">
+        {{ exporting ? 'Exporting...' : 'Export' }}
+      </button>
+      <button *ngIf="selectedJournal" class="btn-add" (click)="openAddTransactionModal()">
+        Add Transaction
+      </button>
+    </div>
+  </div>
+
+  <!-- Export Error -->
+  <div *ngIf="exportError" class="error-message">
+    <p>{{ exportError }}</p>
   </div>
 
   <!-- Error Display -->

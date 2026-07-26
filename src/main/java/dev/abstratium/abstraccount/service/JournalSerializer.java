@@ -5,7 +5,9 @@ import jakarta.enterprise.context.ApplicationScoped;
 
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Serializer for plain text accounting journal format.
@@ -26,6 +28,12 @@ public class JournalSerializer {
         }
         
         StringBuilder sb = new StringBuilder();
+        
+        // Build commodity precision map for amount formatting
+        Map<String, Integer> commodityDecimalPlaces = new HashMap<>();
+        for (Commodity commodity : journal.commodities()) {
+            commodityDecimalPlaces.put(commodity.code(), commodity.getDecimalPlaces());
+        }
         
         // Write metadata
         if (journal.logo() != null) {
@@ -89,9 +97,16 @@ public class JournalSerializer {
                 sb.append(transaction.date().format(DATE_FORMATTER))
                   .append(" ")
                   .append(formatTransactionStatus(transaction.status()))
-                  .append(" ")
-                  .append(transaction.description())
-                  .append("\n");
+                  .append(" ");
+
+                if (transaction.partnerId() != null && !transaction.partnerId().isBlank()) {
+                    sb.append(transaction.partnerId())
+                      .append(" | ")
+                      .append(transaction.description());
+                } else {
+                    sb.append(transaction.description());
+                }
+                sb.append("\n");
                 
                 // Transaction tags
                 for (Tag tag : transaction.tags()) {
@@ -109,15 +124,21 @@ public class JournalSerializer {
                     String fullPath = buildFullPath(entry.account());
                     sb.append(fullPath);
                     
+                    // Format amount using commodity display precision
+                    String commodityCode = entry.amount().commodity();
+                    int decimalPlaces = commodityDecimalPlaces.getOrDefault(commodityCode, entry.amount().quantity().scale());
+                    java.math.BigDecimal formattedAmount = entry.amount().quantity().setScale(decimalPlaces, java.math.RoundingMode.UNNECESSARY);
+                    String amountStr = formattedAmount.toPlainString();
+                    
                     // Pad to align amounts (minimum 4 spaces)
                     int padding = Math.max(4, 80 - fullPath.length() - 
-                                          entry.amount().commodity().length() - 
-                                          entry.amount().quantity().toPlainString().length());
+                                          commodityCode.length() - 
+                                          amountStr.length());
                     sb.append(" ".repeat(padding));
                     
-                    sb.append(entry.amount().commodity())
+                    sb.append(commodityCode)
                       .append(" ")
-                      .append(entry.amount().quantity().toPlainString())
+                      .append(amountStr)
                       .append("\n");
                 }
                 

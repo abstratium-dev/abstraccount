@@ -4,6 +4,7 @@ import dev.abstratium.abstraccount.Roles;
 import dev.abstratium.abstraccount.adapters.PartnerDataAdapter;
 import dev.abstratium.abstraccount.model.PartnerData;
 import dev.abstratium.abstraccount.service.TagService;
+import dev.abstratium.core.service.CurrentOrgContext;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
@@ -26,7 +27,10 @@ public class PartnerResource {
     
     @Inject
     PartnerDataAdapter partnerDataAdapter;
-    
+
+    @Inject
+    CurrentOrgContext currentOrgContext;
+
     @Inject
     TagService tagService;
     
@@ -40,9 +44,10 @@ public class PartnerResource {
     @GET
     @Path("/partners/search")
     public List<PartnerDTO> searchPartners(@QueryParam("q") String searchTerm) {
-        LOG.debugf("Searching partners with term: %s", searchTerm);
-        
-        List<PartnerData> allPartners = partnerDataAdapter.getAllPartners();
+        String orgId = currentOrgContext.getOrgId();
+        LOG.debugf("Searching partners with term: %s for org: %s", searchTerm, orgId);
+
+        List<PartnerData> allPartners = partnerDataAdapter.getAllPartners(orgId);
         
         // Filter to active partners only
         List<PartnerData> activePartners = allPartners.stream()
@@ -76,9 +81,10 @@ public class PartnerResource {
     @GET
     @Path("/partners/{partnerNumber}")
     public PartnerDTO getPartner(@PathParam("partnerNumber") String partnerNumber) {
-        LOG.debugf("Getting partner: %s", partnerNumber);
-        
-        return partnerDataAdapter.getPartner(partnerNumber)
+        String orgId = currentOrgContext.getOrgId();
+        LOG.debugf("Getting partner: %s for org: %s", partnerNumber, orgId);
+
+        return partnerDataAdapter.getPartner(orgId, partnerNumber)
             .filter(PartnerData::active)
             .map(p -> new PartnerDTO(p.partnerNumber(), p.name()))
             .orElseThrow(() -> new NotFoundException("Partner not found: " + partnerNumber));
