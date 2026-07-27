@@ -31,7 +31,22 @@ describe('HeaderComponent', () => {
     httpMock.verify();
   });
 
-  it('should create', () => {
-    expect(component).toBeTruthy();
+  it('shows the current journal name and Journal Management menu entry without a selector', () => {
+    component.isSignedIn = true;
+    component.selectedJournalId = 'journal-id';
+    component.journals = [{
+      id: 'journal-id', title: 'Current Journal', subtitle: null, currency: 'CHF',
+      commodities: { CHF: '1000.00' }, logo: null, previousJournalId: null
+    }];
+    component.menuOpen = true;
+
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('#journal-select')).toBeNull();
+    const journalNameLink = fixture.nativeElement.querySelector('#current-journal-name');
+    expect(journalNameLink.tagName).toBe('A');
+    expect(journalNameLink.getAttribute('href')).toBe('/journal-management');
+    expect(journalNameLink.textContent).toContain('Current Journal');
+    expect(fixture.nativeElement.querySelector('#journal-management').getAttribute('href')).toBe('/journal-management');
   });
 });

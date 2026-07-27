@@ -283,6 +283,49 @@ describe('ReportsComponent', () => {
     expect(component.reportSections[0].title).toBe('Net Income');
   });
 
+  it('labels a positive raw net result as Net Loss for lowercase net income titles', () => {
+    component.reportSections = [{
+      title: 'Net income', level: 1, accounts: [], subtotal: 10, commodity: 'CHF',
+      showDebitsCredits: false, showAccounts: true, groupByPartner: false,
+      invertSign: false, sortable: false, sortColumn: null, sortDirection: 'asc'
+    }];
+
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.total-label').textContent).toContain('Net Loss');
+    expect(fixture.nativeElement.querySelector('.total-amount').textContent).toContain('10.00 CHF');
+  });
+
+  it('labels a negative raw net result as Net Income with a positive display value', () => {
+    component.reportSections = [{
+      title: 'Net Income', level: 1, accounts: [], subtotal: -20, commodity: 'CHF',
+      showDebitsCredits: false, showAccounts: true, groupByPartner: false,
+      invertSign: false, sortable: false, sortColumn: null, sortDirection: 'asc'
+    }];
+
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.total-label').textContent).toContain('Net Income');
+    expect(fixture.nativeElement.querySelector('.total-amount').textContent).toContain('20.00 CHF');
+    expect(fixture.nativeElement.querySelector('.total-amount').textContent).not.toContain('-20.00 CHF');
+  });
+
+  it('includes current-year net income as positive equity in a balance-sheet section', () => {
+    const section = (component as any).processSection({
+      title: 'Current-year profit/loss', accountRegex: '^Current-year profit/loss$',
+      includeNetIncome: true, invertSign: true
+    }, {
+      netIncome: -20,
+      getEntriesByAccountRegex: () => []
+    }, []);
+
+    expect(section.accounts).toEqual([jasmine.objectContaining({
+      accountId: 'net-income', accountName: 'Net Income', balance: -20
+    })]);
+    expect(section.subtotal).toBe(-20);
+    expect(component.applyDisplaySign(section.accounts[0].balance, section.invertSign)).toBe(20);
+  });
+
   it('should handle template with invertSign option', async () => {
     const revenueEntries: AccountEntryDTO[] = [
       {

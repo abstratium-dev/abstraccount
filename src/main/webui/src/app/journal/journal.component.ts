@@ -1,6 +1,5 @@
 import { CommonModule } from '@angular/common';
 import { ChangeDetectorRef, Component, OnInit, ViewChild, effect, inject } from '@angular/core';
-import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AccountService } from '../account.service';
 import { Controller, JournalMetadataDTO, TransactionDTO, TagDTO } from '../controller';
@@ -10,7 +9,7 @@ import { TransactionEditModalComponent } from '../transaction-edit-modal/transac
 
 @Component({
   selector: 'journal',
-  imports: [CommonModule, FormsModule, RouterLink, FilterInputComponent, TransactionEditModalComponent],
+  imports: [CommonModule, RouterLink, FilterInputComponent, TransactionEditModalComponent],
   templateUrl: './journal.component.html',
   styleUrl: './journal.component.scss'
 })
@@ -37,9 +36,6 @@ export class JournalComponent implements OnInit {
   // Transaction modal
   showTransactionModal = false;
   editingTransactionId: string | null = null;
-  exporting = false;
-  exportError: string | null = null;
-  includeTransactions = true;
 
   // Context menu
   contextMenuTransactionId: string | null = null;
@@ -79,7 +75,7 @@ export class JournalComponent implements OnInit {
     if (this.modelService.journals$().length === 0) {
       let journals = await this.controller.listJournals();
       if (journals.length === 0) {
-        this.router.navigate(['/upload']);
+        this.router.navigate(['/create-journal']);
       } else {
         await this.controller.getAccountTree(this.modelService.selectedJournalId$()!);
       }
@@ -263,28 +259,5 @@ export class JournalComponent implements OnInit {
     });
   }
 
-  async exportJournal(): Promise<void> {
-    if (!this.selectedJournal) return;
-
-    this.exporting = true;
-    this.exportError = null;
-
-    try {
-      const content = await this.controller.exportJournal(this.selectedJournal.id, this.includeTransactions);
-      const blob = new Blob([content], { type: 'text/plain' });
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = (this.selectedJournal.title || 'journal').replace(/[^a-zA-Z0-9]/g, '_') + '.journal';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      window.URL.revokeObjectURL(url);
-    } catch (err: any) {
-      this.exportError = 'Failed to export journal: ' + (err?.error?.message ?? err.message);
-    } finally {
-      this.exporting = false;
-    }
-  }
 
 }

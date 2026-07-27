@@ -300,8 +300,8 @@
 
       <!-- Calculated value (e.g., net income) -->
       <div *ngIf="section.showAccounts && section.accounts.length === 0 && section.subtotal !== 0" [ngClass]="{'total-line': true, 'level-1': section.level === 1, 'level-2': section.level === 2, 'level-3': section.level === 3}">
-        <span class="total-label"><strong>{{ section.title.includes(netIncomeLabel) ? getNetIncomeLabel(section.subtotal) : section.title }}</strong></span>
-        <span class="total-amount"><strong>{{ formatCurrencyWithCommodity(applyDisplaySign(section.subtotal, section.invertSign), section.commodity) }}</strong></span>
+        <span class="total-label"><strong>{{ section.title.toLowerCase().includes(netIncomeLabel.toLowerCase()) ? getNetIncomeLabel(section.subtotal) : section.title }}</strong></span>
+        <span class="total-amount"><strong>{{ section.title.toLowerCase().includes(netIncomeLabel.toLowerCase()) ? formatNetResultWithCommodity(section.subtotal, section.commodity) : formatCurrencyWithCommodity(applyDisplaySign(section.subtotal, section.invertSign), section.commodity) }}</strong></span>
       </div>
     </div>
   </div>

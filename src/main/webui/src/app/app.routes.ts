@@ -9,6 +9,7 @@ import { SignedOutComponent } from './core/signed-out/signed-out.component';
 import { CreateJournalComponent } from './create-journal/create-journal.component';
 import { EntrySearchComponent } from './entry-search/entry-search.component';
 import { JournalHistoryComponent } from './journal-history/journal-history.component';
+import { JournalManagementComponent } from './journal-management/journal-management.component';
 import { JournalComponent } from './journal/journal.component';
 import { LandingComponent } from './landing/landing.component';
 import { LegalComponent } from './legal/legal.component';
@@ -16,7 +17,6 @@ import { MacrosComponent } from './macros/macros.component';
 import { NewYearComponent } from './new-year/new-year.component';
 import { PartnersComponent } from './partners/partners.component';
 import { ReportsComponent } from './reports/reports.component';
-import { SettingsComponent } from './settings/settings.component';
 import { UploadComponent } from './upload/upload.component';
 
 export const routes: Routes = [
@@ -26,7 +26,6 @@ export const routes: Routes = [
   { path: 'account/:accountId/ledger', component: AccountLedgerComponent, canActivate: [authGuard] },
   { path: 'upload',                    component: UploadComponent, canActivate: [authGuard] },
   { path: 'create-journal',            component: CreateJournalComponent, canActivate: [authGuard] },
-  { path: 'settings',                  component: SettingsComponent, canActivate: [authGuard] },
   { path: 'signed-out',                component: SignedOutComponent },
   { path: 'reports',                   component: ReportsComponent, canActivate: [authGuard] },
   { path: 'partners',                  component: PartnersComponent, canActivate: [authGuard] },
@@ -35,6 +34,7 @@ export const routes: Routes = [
   { path: 'close-books',               component: CloseBooksComponent, canActivate: [authGuard] },
   { path: 'new-year',                  component: NewYearComponent, canActivate: [authGuard] },
   { path: 'journal-history',           component: JournalHistoryComponent, canActivate: [authGuard] },
+  { path: 'journal-management',        component: JournalManagementComponent, canActivate: [authGuard] },
   { path: 'legal',                     component: LegalComponent },
   { path: 'signed-in',                 component: SignedInComponent, canActivate: [authGuard] },
   { path: 'signed-out',                component: SignedOutComponent },

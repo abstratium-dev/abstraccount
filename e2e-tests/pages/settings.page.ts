@@ -1,8 +1,8 @@
 import { expect, Page } from '@playwright/test';
 
 /**
- * Page Object Model for the Settings page
- * This page allows deleting journals
+ * Page Object Model for the Journal Management page (delete journal section)
+ * This page allows deleting journals via the Danger Zone
  */
 
 // ============================================================================
@@ -10,10 +10,10 @@ import { expect, Page } from '@playwright/test';
 // ============================================================================
 
 /**
- * Gets the heading "Settings"
+ * Gets the heading "Journal Management"
  */
 function getHeading(page: Page) {
-  return page.getByRole('heading', { name: /^Settings$/i });
+  return page.getByRole('heading', { name: /^Journal Management$/i });
 }
 
 /**
@@ -34,7 +34,7 @@ function getDeleteButton(page: Page) {
  * Gets the info message when no journal is selected
  */
 function getNoJournalMessage(page: Page) {
-  return page.getByText(/No journal selected/i);
+  return page.getByText(/No journal is currently selected/i);
 }
 
 // ============================================================================
@@ -42,12 +42,12 @@ function getNoJournalMessage(page: Page) {
 // ============================================================================
 
 /**
- * Waits for the settings page to be visible
+ * Waits for the journal management page to be visible
  */
 export async function waitForSettingsPage(page: Page) {
-  console.log('Waiting for settings page to be visible...');
+  console.log('Waiting for journal management page to be visible...');
   await expect(getHeading(page)).toBeVisible({ timeout: 10000 });
-  console.log('Settings page is visible');
+  console.log('Journal management page is visible');
 }
 
 /**
@@ -107,10 +107,10 @@ export async function deleteJournal(page: Page, journalName: string) {
 }
 
 /**
- * Verifies that the settings page is displayed correctly
+ * Verifies that the journal management page is displayed correctly
  */
 export async function verifySettingsPage(page: Page) {
-  console.log('Verifying settings page...');
+  console.log('Verifying journal management page...');
   await expect(getHeading(page)).toBeVisible();
-  console.log('Settings page verified');
+  console.log('Journal management page verified');
 }

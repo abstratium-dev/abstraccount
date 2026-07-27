@@ -51,18 +51,7 @@
         </a>
         @if(isSignedIn) {
             &nbsp;|&nbsp;
-            <select 
-              id="journal-select" 
-              [(ngModel)]="selectedJournalId" 
-              (change)="onJournalSelected()"
-              class="journal-selector">
-              <option [ngValue]="null">-- Select a journal --</option>
-              <option *ngFor="let journal of journals" [ngValue]="journal.id">
-                {{ journal.title }} ({{ journal.currency }})
-              </option>
-              <option [ngValue]="CREATE_OPTION">➕ Create New Journal...</option>
-              <option [ngValue]="IMPORT_OPTION">📤 Import Journal...</option>
-            </select>
+            <a id="current-journal-name" class="journal-name" routerLink="/journal-management" routerLinkActive="inactive-link">{{ currentJournalName }}</a>
             &nbsp;|&nbsp;
             <a id="journal" routerLink="/journal" routerLinkActive="inactive-link">journal</a>
             &nbsp;|&nbsp;
@@ -93,7 +82,7 @@
                         <a id="close-books" routerLink="/close-books" routerLinkActive="inactive-link" (click)="closeMenu()">close books at end of year</a>
                         <a id="new-year" routerLink="/new-year" routerLinkActive="inactive-link" (click)="closeMenu()">new year</a>
                         <a id="journal-history" routerLink="/journal-history" routerLinkActive="inactive-link" (click)="closeMenu()">journal history</a>
-                        <a id="settings-link" routerLink="/settings" routerLinkActive="inactive-link" (click)="closeMenu()">⚙️ settings</a>
+                        <a id="journal-management" routerLink="/journal-management" routerLinkActive="inactive-link" (click)="closeMenu()">journal management</a>
                     </div>
                 }
             </div>

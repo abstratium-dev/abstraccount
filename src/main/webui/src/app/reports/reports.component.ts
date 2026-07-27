@@ -761,6 +761,10 @@ export class ReportsComponent implements OnInit {
     return `${this.formatCurrency(value)} ${commodity}`;
   }
 
+  formatNetResultWithCommodity(value: number, commodity: string): string {
+    return this.formatCurrencyWithCommodity(Math.abs(value), commodity);
+  }
+
   getNetIncomeLabel(value: number): string {
     if (value < 0) {
       return this.netIncomeLabel;

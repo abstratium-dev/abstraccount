@@ -1,0 +1,109 @@
+<div class="container">
+  <div class="page-header">
+    <h1>Journal Management</h1>
+  </div>
+
+  <hr />
+
+  <section class="management-section">
+    <h2>Import Journal</h2>
+    <p>Import a journal file into this organization.</p>
+    <button id="import-journal" class="btn-secondary" (click)="importJournal()">Import Journal</button>
+  </section>
+
+  <hr />
+
+  <section class="management-section">
+    <h2>Create New Journal</h2>
+    <p>Start a new journal with the starter accounts and reports.</p>
+    <button id="create-journal" class="btn-primary" (click)="createJournal()">Create New Journal</button>
+  </section>
+
+  <hr />
+
+  <h2>Select Existing Journal</h2>
+
+  <div class="form-group">
+    <label for="journal-select">Journal</label>
+    <select id="journal-select" name="journal" [(ngModel)]="selectedJournalId" (ngModelChange)="onJournalSelected()">
+      <option *ngFor="let journal of journals" [ngValue]="journal.id">{{ journal.title }} ({{ journal.currency }})</option>
+    </select>
+  </div>
+
+  <section *ngIf="selectedJournal; else noJournal" class="management-card">
+    <p><strong>Title:</strong> {{ selectedJournal.title }}</p>
+    <p *ngIf="selectedJournal.subtitle"><strong>Subtitle:</strong> {{ selectedJournal.subtitle }}</p>
+    <p><strong>Currency:</strong> {{ selectedJournal.currency }}</p>
+
+    <hr />
+
+    <div class="management-section export-section">
+      <h2>Export</h2>
+      <label class="export-option">
+        <input type="checkbox" [(ngModel)]="includeTransactions" />
+        Include transactions
+      </label>
+      <button class="btn-secondary" (click)="exportJournal()" [disabled]="exporting">
+        {{ exporting ? 'Exporting...' : 'Export' }}
+      </button>
+    </div>
+
+    <div *ngIf="exportError" class="error-message">
+      <p>{{ exportError }}</p>
+    </div>
+
+    <hr />
+
+    <div class="danger-zone">
+      <h2>⚠️ Danger Zone</h2>
+      <div class="danger-content">
+        <h3>Delete Journal</h3>
+        <p>Once you delete a journal, there is no going back. This action <strong>cannot be undone</strong>.</p>
+        <div class="journal-info">
+          <strong>Journal to delete:</strong> {{ selectedJournal.title }}<br>
+          <strong>Currency:</strong> {{ selectedJournal.currency }}
+        </div>
+        <div class="confirmation-section">
+          <label for="confirmation-input">
+            Type <strong>{{ selectedJournal.title }}</strong> to confirm deletion:
+          </label>
+          <input
+            type="text"
+            id="confirmation-input"
+            [(ngModel)]="confirmationName"
+            [disabled]="deleting"
+            placeholder="Enter journal title"
+            class="confirmation-input"
+          />
+        </div>
+        <div *ngIf="deleteError" class="error-message">
+          {{ deleteError }}
+        </div>
+        <div class="button-group">
+          <button
+            id="delete-journal"
+            (click)="deleteJournal()"
+            [disabled]="!isConfirmationValid || deleting"
+            class="btn-danger">
+            @if (deleting) {
+              Deleting...
+            } @else {
+              Delete Journal Permanently
+            }
+          </button>
+          <button
+            id="cancel-delete"
+            (click)="cancelDelete()"
+            [disabled]="deleting"
+            class="btn-secondary">
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <ng-template #noJournal>
+    <div class="info-message">No journal is currently selected.</div>
+  </ng-template>
+</div>

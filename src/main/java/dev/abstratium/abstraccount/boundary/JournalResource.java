@@ -14,6 +14,7 @@ import dev.abstratium.abstraccount.adapters.PartnerDataAdapter;
 import dev.abstratium.abstraccount.entity.JournalEntity;
 import dev.abstratium.abstraccount.model.Journal;
 import dev.abstratium.abstraccount.service.EntryQueryParser;
+import dev.abstratium.abstraccount.service.JournalCreationService;
 import dev.abstratium.abstraccount.service.JournalParser;
 import dev.abstratium.abstraccount.service.JournalPersistenceService;
 import dev.abstratium.abstraccount.service.JournalSerializer;
@@ -51,6 +52,9 @@ public class JournalResource {
     
     @Inject
     JournalPersistenceService journalPersistenceService;
+
+    @Inject
+    JournalCreationService journalCreationService;
     
     @Inject
     PartnerDataAdapter partnerDataAdapter;
@@ -332,16 +336,7 @@ public class JournalResource {
         LOG.infof("Creating new journal: %s", request.title());
         
         try {
-            // Create journal entity
-            JournalEntity journalEntity = new JournalEntity();
-            journalEntity.setLogo(request.logo());
-            journalEntity.setTitle(request.title());
-            journalEntity.setSubtitle(request.subtitle());
-            journalEntity.setCurrency(request.currency());
-            journalEntity.setCommodities(request.commodities() != null ? request.commodities() : new HashMap<>());
-            
-            // Save to database
-            JournalEntity savedJournal = journalPersistenceService.saveJournal(journalEntity);
+            JournalEntity savedJournal = journalCreationService.createJournal(request);
             
             LOG.infof("Successfully created journal: %s with ID: %s", savedJournal.getTitle(), savedJournal.getId());
             

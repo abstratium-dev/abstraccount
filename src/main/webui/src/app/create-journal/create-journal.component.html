@@ -1,6 +1,7 @@
 <div class="create-journal-container">
   <div class="create-journal-card">
-    <h1>Create New Journal</h1>
+    <h1>Start Your Books</h1>
+    <p>Create a journal and we will add a starter chart of accounts for bank accounts, receivables, payables, equity, revenue, and common expenses.</p>
     
     <!-- Form -->
     <form *ngIf="!creating && !createResult" (ngSubmit)="onSubmit()" #journalForm="ngForm">
@@ -54,49 +55,9 @@
         />
       </div>
 
-      <div class="form-group">
-        <label>Commodities</label>
-        <div class="commodities-list">
-          <div *ngFor="let commodity of commodities; let i = index" class="commodity-row">
-            <input 
-              type="text" 
-              [(ngModel)]="commodity.code" 
-              [name]="'commodity-code-' + i"
-              placeholder="Code (e.g., CHF)"
-              class="form-input commodity-code"
-            />
-            <input 
-              type="text" 
-              [(ngModel)]="commodity.precision" 
-              [name]="'commodity-precision-' + i"
-              placeholder="Precision (e.g., 1000.00)"
-              class="form-input commodity-precision"
-            />
-            <button 
-              type="button" 
-              (click)="removeCommodity(i)" 
-              class="btn-icon btn-danger"
-              title="Remove commodity"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="18" y1="6" x2="6" y2="18"></line>
-                <line x1="6" y1="6" x2="18" y2="18"></line>
-              </svg>
-            </button>
-          </div>
-        </div>
-        <button type="button" (click)="addCommodity()" class="btn-secondary btn-add">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="12" y1="5" x2="12" y2="19"></line>
-            <line x1="5" y1="12" x2="19" y2="12"></line>
-          </svg>
-          Add Commodity
-        </button>
-      </div>
-
       <div class="form-actions">
         <button type="submit" [disabled]="!journalForm.valid" class="btn-primary">
-          Create Journal
+          Create Journal and Starter Accounts
         </button>
       </div>
     </form>
@@ -113,17 +74,16 @@
         <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
         <polyline points="22 4 12 14.01 9 11.01"></polyline>
       </svg>
-      <h2>Journal Created Successfully!</h2>
+      <h2>Your Books Are Ready!</h2>
       <div class="result-details">
         <p><strong>Title:</strong> {{ createResult.title }}</p>
         <p *ngIf="createResult.subtitle"><strong>Subtitle:</strong> {{ createResult.subtitle }}</p>
         <p><strong>Currency:</strong> {{ createResult.currency }}</p>
-        <p *ngIf="createResult.commodities && Object.keys(createResult.commodities).length > 0">
-          <strong>Commodities:</strong> {{ Object.keys(createResult.commodities).join(', ') }}
-        </p>
+        <p><strong>Commodity:</strong> {{ createResult.currency }}</p>
       </div>
       <div class="button-group">
         <button class="btn-primary" (click)="viewJournal()">View Journal</button>
+        <button class="btn-secondary" (click)="viewAccounts()">View Accounts</button>
         <button class="btn-secondary" (click)="resetForm()">Create Another</button>
       </div>
     </div>

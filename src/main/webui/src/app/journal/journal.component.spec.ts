@@ -1,6 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { FormsModule } from '@angular/forms';
-import { provideRouter } from '@angular/router';
+import { provideRouter, Router } from '@angular/router';
 import { JournalComponent } from './journal.component';
 import { Controller } from '../controller';
 import { provideHttpClient } from '@angular/common/http';
@@ -10,6 +9,7 @@ describe('JournalComponent', () => {
   let component: JournalComponent;
   let fixture: ComponentFixture<JournalComponent>;
   let controller: jasmine.SpyObj<Controller>;
+  let router: Router;
 
   beforeEach(async () => {
     const controllerSpy = jasmine.createSpyObj('Controller', [
@@ -18,12 +18,11 @@ describe('JournalComponent', () => {
       'getTransactions',
       'getTags',
       'setSelectedJournalId',
-      'getAccountTree',
-      'exportJournal'
+      'getAccountTree'
     ]);
 
     await TestBed.configureTestingModule({
-      imports: [JournalComponent, FormsModule],
+      imports: [JournalComponent],
       providers: [
         { provide: Controller, useValue: controllerSpy },
         provideHttpClient(),
@@ -35,10 +34,20 @@ describe('JournalComponent', () => {
     fixture = TestBed.createComponent(JournalComponent);
     component = fixture.componentInstance;
     controller = TestBed.inject(Controller) as jasmine.SpyObj<Controller>;
+    router = TestBed.inject(Router);
+    spyOn(router, 'navigate');
   });
 
   it('should create', () => {
     expect(component).toBeTruthy();
+  });
+
+  it('redirects to first-run setup when no journals exist', async () => {
+    controller.listJournals.and.returnValue(Promise.resolve([]));
+
+    await component.ngOnInit();
+
+    expect(router.navigate).toHaveBeenCalledWith(['/create-journal']);
   });
 
   it('should load journals on init', async () => {
@@ -160,57 +169,12 @@ describe('JournalComponent', () => {
     expect(component.transactions).toEqual(mockTransactions);
   });
 
-  it('should export journal and trigger download', async () => {
-    const mockContent = '; title: Test\n; Currency: EUR\n';
-    controller.exportJournal.and.returnValue(Promise.resolve(mockContent));
-
+  it('does not render export controls', () => {
     component.selectedJournal = { id: '1', title: 'Test Journal', subtitle: null, currency: 'EUR', commodities: {}, logo: null, previousJournalId: null };
 
-    // Mock DOM APIs
-    const createElementSpy = spyOn(document, 'createElement').and.callThrough();
-    const clickSpy = spyOn(HTMLAnchorElement.prototype, 'click');
-    spyOn(window.URL, 'createObjectURL').and.returnValue('blob:mock');
-    spyOn(window.URL, 'revokeObjectURL');
+    fixture.detectChanges();
 
-    await component.exportJournal();
-    await fixture.whenStable();
-
-    expect(controller.exportJournal).toHaveBeenCalledWith('1', true);
-    expect(component.exporting).toBe(false);
-    expect(component.exportError).toBeNull();
-    expect(clickSpy).toHaveBeenCalled();
-  });
-
-  it('should export journal without transactions when checkbox unchecked', async () => {
-    const mockContent = '; title: Test\n; Currency: EUR\n';
-    controller.exportJournal.and.returnValue(Promise.resolve(mockContent));
-
-    component.selectedJournal = { id: '1', title: 'Test Journal', subtitle: null, currency: 'EUR', commodities: {}, logo: null, previousJournalId: null };
-    component.includeTransactions = false;
-
-    await component.exportJournal();
-    await fixture.whenStable();
-
-    expect(controller.exportJournal).toHaveBeenCalledWith('1', false);
-  });
-
-  it('should handle export errors', async () => {
-    controller.exportJournal.and.returnValue(Promise.reject(new Error('Export failed')));
-
-    component.selectedJournal = { id: '1', title: 'Test Journal', subtitle: null, currency: 'EUR', commodities: {}, logo: null, previousJournalId: null };
-
-    await component.exportJournal();
-    await fixture.whenStable();
-
-    expect(component.exporting).toBe(false);
-    expect(component.exportError).toContain('Failed to export journal');
-  });
-
-  it('should not export when no journal is selected', async () => {
-    component.selectedJournal = null;
-
-    await component.exportJournal();
-
-    expect(controller.exportJournal).not.toHaveBeenCalled();
+    expect(fixture.nativeElement.textContent).not.toContain('Include transactions');
+    expect(fixture.nativeElement.textContent).not.toContain('Export');
   });
 });

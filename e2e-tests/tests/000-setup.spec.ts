@@ -107,8 +107,8 @@ test.describe('Setup: Authentication and Environment', () => {
         // Wait a moment for any navigation triggered by journal selection
         await page.waitForLoadState('networkidle');
         
-        // Navigate to settings page using the header link
-        await headerPage.clickSettingsLink(page);
+        // Navigate to journal management page using the header link
+        await headerPage.clickJournalManagementLink(page);
         await settingsPage.waitForSettingsPage(page);
         
         // Delete the journal

@@ -137,20 +137,20 @@ export async function clickHomeLink(page: Page) {
 }
 
 /**
- * Clicks the settings link to navigate to the settings page
+ * Clicks the journal management link to navigate to the journal management page
  */
-export async function clickSettingsLink(page: Page) {
-  console.log('Clicking settings link...');
+export async function clickJournalManagementLink(page: Page) {
+  console.log('Clicking journal management link...');
   // First open the menu dropdown
   const menuBtn = page.locator('.menu-btn');
   await expect(menuBtn).toBeVisible({ timeout: 10000 });
   await menuBtn.click();
   console.log('Menu button clicked');
-  // Now click the settings link
-  const link = page.locator('#settings-link');
+  // Now click the journal management link
+  const link = page.locator('#journal-management');
   await expect(link).toBeVisible({ timeout: 10000 });
   await link.click();
-  console.log('Settings link clicked');
+  console.log('Journal management link clicked');
 }
 
 /**
