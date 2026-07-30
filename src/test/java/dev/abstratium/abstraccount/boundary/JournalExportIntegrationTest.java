@@ -486,7 +486,7 @@ class JournalExportIntegrationTest {
             .contentType(io.restassured.http.ContentType.TEXT)
             .body(exportedContent)
         .when()
-            .post("/api/journal/upload")
+            .post("/api/journal/upload?replaceExisting=true")
         .then()
             .statusCode(200)
             .extract().jsonPath().getString("journalId");

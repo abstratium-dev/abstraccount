@@ -373,12 +373,48 @@ public class JournalResource {
     @POST
     @Path("/upload")
     @Consumes(MediaType.TEXT_PLAIN)
-    public Map<String, Object> uploadJournal(String journalContent) {
-        LOG.infof("Uploading journal, content length: %d", journalContent.length());
+    public Map<String, Object> uploadJournal(String journalContent,
+                                             @QueryParam("replaceExisting") boolean replaceExisting) {
+        LOG.infof("Uploading journal, content length: %d, replaceExisting: %s", journalContent.length(), replaceExisting);
         
         try {
             // Parse the journal
             Journal journal = journalParser.parse(journalContent);
+            
+            // Check for existing journals with the same title
+            List<JournalEntity> existingJournals = journalPersistenceService.findJournalsByTitle(journal.title());
+            
+            if (!existingJournals.isEmpty() && !replaceExisting) {
+                // Return 409 Conflict with list of conflicting journals
+                List<Map<String, String>> conflicts = existingJournals.stream()
+                    .map(j -> {
+                        Map<String, String> info = new HashMap<>();
+                        info.put("id", j.getId());
+                        info.put("title", j.getTitle());
+                        return info;
+                    })
+                    .collect(Collectors.toList());
+                
+                Map<String, Object> conflictResponse = new HashMap<>();
+                conflictResponse.put("status", "conflict");
+                conflictResponse.put("message", "Journals with the same title already exist");
+                conflictResponse.put("conflictingJournals", conflicts);
+                
+                throw new WebApplicationException(
+                    jakarta.ws.rs.core.Response.status(jakarta.ws.rs.core.Response.Status.CONFLICT)
+                        .entity(conflictResponse)
+                        .type(MediaType.APPLICATION_JSON)
+                        .build()
+                );
+            }
+            
+            // Delete existing journals with the same title if replaceExisting is true
+            if (replaceExisting && !existingJournals.isEmpty()) {
+                LOG.infof("Deleting %d existing journal(s) with title: %s", existingJournals.size(), journal.title());
+                for (JournalEntity existing : existingJournals) {
+                    journalPersistenceService.deleteJournal(existing.getId());
+                }
+            }
             
             // Persist to database
             String journalId = modelPersistenceService.persistJournalModel(journal);
@@ -392,10 +428,15 @@ public class JournalResource {
             summary.put("commodityCount", journal.commodities().size());
             summary.put("status", "success");
             summary.put("journalId", journalId);
+            if (replaceExisting && !existingJournals.isEmpty()) {
+                summary.put("replacedCount", existingJournals.size());
+            }
             
             LOG.infof("Successfully uploaded journal: %s", journal.title());
             return summary;
             
+        } catch (WebApplicationException e) {
+            throw e;
         } catch (Exception e) {
             LOG.error("Failed to upload journal", e);
             Map<String, Object> error = new HashMap<>();

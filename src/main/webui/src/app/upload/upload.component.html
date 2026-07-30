@@ -51,5 +51,24 @@
       <p class="error-message">{{ uploadError }}</p>
       <button class="btn-secondary" (click)="uploadError = null; uploadResult = null">Try Again</button>
     </div>
+
+    <div class="upload-conflict" *ngIf="pendingConflict">
+      <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="conflict-icon">
+        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+        <line x1="12" y1="9" x2="12" y2="13"></line>
+        <line x1="12" y1="17" x2="12.01" y2="17"></line>
+      </svg>
+      <h2>Journals with the same title already exist</h2>
+      <p class="conflict-message">The following journal(s) will be permanently deleted and replaced:</p>
+      <ul class="conflict-list">
+        <li *ngFor="let j of pendingConflict.journals">
+          <strong>{{ j.title }}</strong> <span class="journal-id">({{ j.id }})</span>
+        </li>
+      </ul>
+      <div class="conflict-actions">
+        <button class="btn-secondary" (click)="cancelReplace()">Cancel</button>
+        <button class="btn-danger" (click)="confirmReplace()">Delete &amp; Replace</button>
+      </div>
+    </div>
   </div>
 </div>

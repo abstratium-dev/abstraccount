@@ -323,6 +323,92 @@ class JournalTransactionResourceTest {
 
     @Test
     @TestSecurity(user = "testuser", roles = {Roles.USER})
+    void testUploadJournal_sameTitle_returnsConflict() {
+        String journalContent = """
+            ; title: TX Resource Test Journal
+            ; currency: CHF
+
+            account 1 Assets
+              ; type:Asset
+            """;
+
+        given()
+            .contentType(ContentType.TEXT)
+            .body(journalContent)
+        .when()
+            .post("/api/journal/upload")
+        .then()
+            .statusCode(409)
+            .body("status", equalTo("conflict"))
+            .body("conflictingJournals", not(empty()))
+            .body("conflictingJournals[0].title", equalTo("TX Resource Test Journal"));
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {Roles.USER})
+    void testUploadJournal_replaceExisting_deletesOldAndCreatesNew() {
+        String journalContent = """
+            ; title: TX Resource Test Journal
+            ; currency: CHF
+
+            account 1 Assets
+              ; type:Asset
+            account 2 Equity
+              ; type:Equity
+
+            2025-03-01 * Test transaction
+                1 Assets  CHF  100.00
+                2 Equity  CHF  -100.00
+            """;
+
+        // First verify the old journal exists
+        String oldJournalId = journalId;
+
+        given()
+            .contentType(ContentType.TEXT)
+            .queryParam("replaceExisting", "true")
+            .body(journalContent)
+        .when()
+            .post("/api/journal/upload")
+        .then()
+            .statusCode(200)
+            .body("status", equalTo("success"))
+            .body("journalId", notNullValue())
+            .body("replacedCount", equalTo(1))
+            .body("transactionCount", equalTo(1));
+
+        // Verify old journal is gone
+        given()
+            .contentType(ContentType.JSON)
+        .when()
+            .get("/api/journal/{journalId}/metadata", oldJournalId)
+        .then()
+            .statusCode(404);
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {Roles.USER})
+    void testUploadJournal_differentTitle_noConflict() {
+        String journalContent = """
+            ; title: A Different Title
+            ; currency: CHF
+
+            account 1 Assets
+              ; type:Asset
+            """;
+
+        given()
+            .contentType(ContentType.TEXT)
+            .body(journalContent)
+        .when()
+            .post("/api/journal/upload")
+        .then()
+            .statusCode(200)
+            .body("status", equalTo("success"));
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {Roles.USER})
     void testGetTransactions_nonExistentJournal_returnsEmpty() {
         given()
             .contentType(ContentType.JSON)

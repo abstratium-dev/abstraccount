@@ -106,6 +106,22 @@ export interface JournalUploadSummary {
   commodityCount: number;
   status: string;
   journalId: string;
+  replacedCount?: number;
+}
+
+export interface JournalConflictInfo {
+  status: string;
+  message: string;
+  conflictingJournals: { id: string; title: string }[];
+}
+
+export class JournalConflictError extends Error {
+  conflictingJournals: { id: string; title: string }[];
+  constructor(info: JournalConflictInfo) {
+    super(info.message);
+    this.name = 'JournalConflictError';
+    this.conflictingJournals = info.conflictingJournals;
+  }
 }
 
 export interface ReportTemplate {
@@ -391,11 +407,13 @@ export class Controller {
     }
   }
 
-  async uploadJournal(content: string): Promise<JournalUploadSummary> {
+  async uploadJournal(content: string, replaceExisting: boolean = false): Promise<JournalUploadSummary> {
     try {
+      const params = replaceExisting ? { params: { replaceExisting: 'true' } } : {};
       const result = await firstValueFrom(
         this.http.post<JournalUploadSummary>('/api/journal/upload', content, {
-          headers: { 'Content-Type': 'text/plain' }
+          headers: { 'Content-Type': 'text/plain' },
+          ...params
         })
       );
       this.modelService.setSelectedJournalId(result.journalId);
@@ -406,7 +424,10 @@ export class Controller {
       await this.getAccountTree(result.journalId);
 
       return result;
-    } catch (error) {
+    } catch (error: any) {
+      if (error.status === 409 && error.error?.conflictingJournals) {
+        throw new JournalConflictError(error.error as JournalConflictInfo);
+      }
       console.error('Error uploading journal:', error);
       throw error;
     }

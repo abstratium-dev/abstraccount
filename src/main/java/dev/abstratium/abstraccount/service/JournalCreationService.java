@@ -59,7 +59,11 @@ public class JournalCreationService {
         journal.setTitle(request.title());
         journal.setSubtitle(request.subtitle());
         journal.setCurrency(request.currency());
-        journal.setCommodities(Map.of(request.currency(), "1000.00"));
+        if (request.commodities() != null && !request.commodities().isEmpty()) {
+            journal.setCommodities(request.commodities());
+        } else {
+            journal.setCommodities(Map.of(request.currency(), "1000.00"));
+        }
 
         JournalEntity savedJournal = journalPersistenceService.saveJournal(journal);
         createStarterChart(savedJournal.getId());

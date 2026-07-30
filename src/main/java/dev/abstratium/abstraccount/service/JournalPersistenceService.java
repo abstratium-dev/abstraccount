@@ -55,6 +55,21 @@ public class JournalPersistenceService {
     }
     
     /**
+     * Finds all journals with the given title (case-sensitive, exact match).
+     * 
+     * @param title the journal title to search for
+     * @return List of journals with the matching title
+     */
+    @Transactional
+    public List<JournalEntity> findJournalsByTitle(String title) {
+        return entityManager.createQuery(
+            "SELECT j FROM JournalEntity j WHERE j.title = :title ORDER BY j.title",
+            JournalEntity.class)
+            .setParameter("title", title)
+            .getResultList();
+    }
+    
+    /**
      * Loads all accounts for a specific journal.
      * Accounts are loaded without their transactions/entries.
      * 

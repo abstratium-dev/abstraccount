@@ -54,8 +54,8 @@ class JournalCreationIntegrationTest {
             .then()
                 .statusCode(200)
                 .body("id", notNullValue())
-                .body("commodities.CHF", equalTo("1000.00"))
-                .body("commodities.USD", nullValue())
+                .body("commodities.USD", equalTo("100.00"))
+                .body("commodities.CHF", nullValue())
                 .extract()
                 .path("id");
 

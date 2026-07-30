@@ -1,10 +1,12 @@
 package dev.abstratium.abstraccount.boundary;
 
 import dev.abstratium.abstraccount.Roles;
+import dev.abstratium.core.util.TestTransactionHelper;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.*;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import io.quarkus.test.junit.QuarkusTest;
@@ -12,9 +14,25 @@ import io.quarkus.test.security.TestSecurity;
 import io.quarkus.test.security.oidc.Claim;
 import io.quarkus.test.security.oidc.OidcSecurity;
 import io.restassured.http.ContentType;
+import jakarta.inject.Inject;
+import jakarta.persistence.EntityManager;
+import jakarta.transaction.Transactional;
 
 @QuarkusTest
 class ReportResourceTest {
+
+    @Inject
+    TestTransactionHelper testTransactionHelper;
+
+    @Inject
+    EntityManager em;
+
+    @BeforeEach
+    @Transactional
+    void setUp() {
+        testTransactionHelper.deleteAllData();
+        em.createNativeQuery("DELETE FROM T_report_template WHERE org_id = 'second-org'").executeUpdate();
+    }
     
     @Test
     @TestSecurity(user = "testUser", roles = {Roles.USER})
