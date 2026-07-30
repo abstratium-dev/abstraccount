@@ -13,8 +13,15 @@
     <div class="landing-accent-line"></div>
     <h1>ABSTRACCOUNT</h1>
     <p class="description">Modern accounting for professionals. Built on Swiss GAAP FER standards.</p>
-    <button (click)="signIn()">Sign In</button>
-    <p class="signup-note">Users will be able to sign up soon.</p>
+    @if (isSignedIn) {
+      <div class="landing-actions">
+        <a routerLink="/journal" class="landing-action-link">Go to Journal</a>
+        <a routerLink="/accounts-table" class="landing-action-link">View Accounts</a>
+      </div>
+    } @else {
+      <button (click)="signIn()">Sign In</button>
+      <p class="signup-note">Users will be able to sign up soon.</p>
+    }
   </section>
 
   <div class="landing-section-label">Core Features</div>
