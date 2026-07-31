@@ -2,7 +2,7 @@ import { Component, inject, OnInit, Signal, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { Controller, ReportTemplate, AccountEntryDTO, AccountTreeNode, TagDTO, TransactionDTO } from '../controller';
+import { Controller, ReportTemplate, AccountEntryDTO, AccountTreeNode, TagDTO, TransactionDTO, ImportResult } from '../controller';
 import { ModelService } from '../model.service';
 import { AccountService } from '../account.service';
 import { ReportConfig, ReportSection, ReportSectionResult, AccountSummary, PartnerSummary, TagGroup } from './reporting-types';
@@ -44,6 +44,15 @@ export class ReportsComponent implements OnInit {
   
   // Display options
   hideZeroBalances = true;
+
+  // Import/export state
+  showImportDialog: boolean = false;
+  importResult: ImportResult | null = null;
+  importFileName: string = '';
+  importFileContent: string = '';
+  importInProgress: boolean = false;
+  importSuccessMessage: string = '';
+  importError: string = '';
 
   // Expose Math to template
   Math = Math;
@@ -859,5 +868,161 @@ export class ReportsComponent implements OnInit {
       return '';
     }
     return section.sortDirection === 'asc' ? ' ▲' : ' ▼';
+  }
+
+  // ===== Import / Export =====
+
+  async exportReportTemplates(): Promise<void> {
+    try {
+      const yaml = await this.controller.exportReportTemplates();
+      this.downloadFile(yaml, 'report-templates-export.yaml');
+    } catch (error) {
+      console.error('Error exporting report templates:', error);
+      this.error = 'Failed to export report templates.';
+    }
+  }
+
+  openImportDialog(): void {
+    this.showImportDialog = true;
+    this.importResult = null;
+    this.importFileName = '';
+    this.importFileContent = '';
+    this.importSuccessMessage = '';
+    this.importError = '';
+  }
+
+  closeImportDialog(): void {
+    this.showImportDialog = false;
+    this.importResult = null;
+    this.importFileName = '';
+    this.importFileContent = '';
+    this.importSuccessMessage = '';
+    this.importError = '';
+  }
+
+  onFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files.length > 0) {
+      const file = input.files[0];
+      this.importFileName = file.name;
+      const reader = new FileReader();
+      reader.onload = () => {
+        this.importFileContent = reader.result as string;
+      };
+      reader.readAsText(file);
+    }
+  }
+
+  async performImport(): Promise<void> {
+    if (!this.importFileContent) {
+      this.importError = 'Please select a file first.';
+      return;
+    }
+
+    this.importInProgress = true;
+    this.importError = '';
+    this.importSuccessMessage = '';
+
+    try {
+      const result = await this.controller.importReportTemplates(this.importFileContent);
+
+      if (result.status === 'conflict' && result.conflicts) {
+        this.importResult = result;
+      } else if (result.status === 'error') {
+        this.importError = result.message || 'Import failed due to invalid data.';
+      } else {
+        const count = result.imported ?? 0;
+        this.importSuccessMessage = `Successfully imported ${count} report template(s).`;
+        if (result.items) {
+          const renamed = result.items.filter(i => i.originalName !== i.finalName);
+          if (renamed.length > 0) {
+            this.importSuccessMessage += ` Renamed: ${renamed.map(i => i.finalName).join(', ')}.`;
+          }
+        }
+        this.importResult = null;
+        this.importFileContent = '';
+        this.importFileName = '';
+      }
+    } catch (error) {
+      console.error('Error importing report templates:', error);
+      this.importError = 'Failed to import report templates. Please check the file format.';
+    } finally {
+      this.importInProgress = false;
+    }
+  }
+
+  async resolveConflictsReplace(): Promise<void> {
+    if (!this.importResult?.conflicts) return;
+
+    this.importInProgress = true;
+    this.importError = '';
+
+    try {
+      const replaceIds = this.importResult.conflicts.map(c => c.existingId);
+      const result = await this.controller.importReportTemplates(this.importFileContent, replaceIds);
+
+      if (result.status === 'conflict' && result.conflicts) {
+        this.importResult = result;
+      } else if (result.status === 'error') {
+        this.importError = result.message || 'Import failed.';
+        this.importResult = null;
+      } else {
+        const count = result.imported ?? 0;
+        this.importSuccessMessage = `Successfully imported ${count} report template(s).`;
+        this.importResult = null;
+        this.importFileContent = '';
+        this.importFileName = '';
+      }
+    } catch (error) {
+      console.error('Error replacing report templates:', error);
+      this.importError = 'Failed to replace report templates.';
+    } finally {
+      this.importInProgress = false;
+    }
+  }
+
+  async resolveConflictsRename(): Promise<void> {
+    if (!this.importFileContent) return;
+
+    this.importInProgress = true;
+    this.importError = '';
+
+    try {
+      const result = await this.controller.importReportTemplates(this.importFileContent, [], true);
+
+      if (result.status === 'error') {
+        this.importError = result.message || 'Import failed.';
+        this.importResult = null;
+      } else {
+        const count = result.imported ?? 0;
+        this.importSuccessMessage = `Successfully imported ${count} report template(s).`;
+        if (result.items) {
+          const renamed = result.items.filter(i => i.originalName !== i.finalName);
+          if (renamed.length > 0) {
+            this.importSuccessMessage += ` Renamed: ${renamed.map(i => i.finalName).join(', ')}.`;
+          }
+        }
+        this.importResult = null;
+        this.importFileContent = '';
+        this.importFileName = '';
+      }
+    } catch (error) {
+      console.error('Error importing with rename:', error);
+      this.importError = 'Failed to import report templates.';
+    } finally {
+      this.importInProgress = false;
+    }
+  }
+
+  private downloadFile(content: string, filename: string): void {
+    const blob = new Blob([content], { type: 'text/yaml' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
   }
 }

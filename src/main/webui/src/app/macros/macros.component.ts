@@ -2,7 +2,7 @@ import { Component, OnInit, Signal, inject, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { Controller, MacroDTO, MacroParameterDTO } from '../controller';
+import { Controller, MacroDTO, MacroParameterDTO, ImportResult, ImportConflict } from '../controller';
 import { ModelService } from '../model.service';
 import { AutocompleteComponent, AutocompleteOption } from '../core/autocomplete/autocomplete.component';
 
@@ -23,6 +23,13 @@ export class MacrosComponent implements OnInit {
   parameterValues: Map<string, string> = new Map();
   showExecuteDialog: boolean = false;
   errorMessage: string = '';
+
+  showImportDialog: boolean = false;
+  importResult: ImportResult | null = null;
+  importFileName: string = '';
+  importFileContent: string = '';
+  importInProgress: boolean = false;
+  importSuccessMessage: string = '';
 
   constructor() {
   }
@@ -249,5 +256,160 @@ export class MacrosComponent implements OnInit {
       console.error('Error fetching invoices:', error);
       return [];
     }
+  }
+
+  // ===== Import / Export =====
+
+  async exportMacros(): Promise<void> {
+    try {
+      const yaml = await this.controller.exportMacros();
+      this.downloadFile(yaml, 'macros-export.yaml');
+    } catch (error) {
+      console.error('Error exporting macros:', error);
+      this.errorMessage = 'Failed to export macros.';
+    }
+  }
+
+  openImportDialog(): void {
+    this.showImportDialog = true;
+    this.importResult = null;
+    this.importFileName = '';
+    this.importFileContent = '';
+    this.importSuccessMessage = '';
+    this.errorMessage = '';
+  }
+
+  closeImportDialog(): void {
+    this.showImportDialog = false;
+    this.importResult = null;
+    this.importFileName = '';
+    this.importFileContent = '';
+    this.importSuccessMessage = '';
+  }
+
+  onFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files.length > 0) {
+      const file = input.files[0];
+      this.importFileName = file.name;
+      const reader = new FileReader();
+      reader.onload = () => {
+        this.importFileContent = reader.result as string;
+      };
+      reader.readAsText(file);
+    }
+  }
+
+  async performImport(): Promise<void> {
+    if (!this.importFileContent) {
+      this.errorMessage = 'Please select a file first.';
+      return;
+    }
+
+    this.importInProgress = true;
+    this.errorMessage = '';
+    this.importSuccessMessage = '';
+
+    try {
+      const result = await this.controller.importMacros(this.importFileContent);
+
+      if (result.status === 'conflict' && result.conflicts) {
+        this.importResult = result;
+      } else if (result.status === 'error') {
+        this.errorMessage = result.message || 'Import failed due to invalid data.';
+      } else {
+        const count = result.imported ?? 0;
+        this.importSuccessMessage = `Successfully imported ${count} macro(s).`;
+        if (result.items) {
+          const renamed = result.items.filter(i => i.originalName !== i.finalName);
+          if (renamed.length > 0) {
+            this.importSuccessMessage += ` Renamed: ${renamed.map(i => i.finalName).join(', ')}.`;
+          }
+        }
+        this.importResult = null;
+        this.importFileContent = '';
+        this.importFileName = '';
+      }
+    } catch (error) {
+      console.error('Error importing macros:', error);
+      this.errorMessage = 'Failed to import macros. Please check the file format.';
+    } finally {
+      this.importInProgress = false;
+    }
+  }
+
+  async resolveConflictsReplace(): Promise<void> {
+    if (!this.importResult?.conflicts) return;
+
+    this.importInProgress = true;
+    this.errorMessage = '';
+
+    try {
+      const replaceIds = this.importResult.conflicts.map(c => c.existingId);
+      const result = await this.controller.importMacros(this.importFileContent, replaceIds);
+
+      if (result.status === 'conflict' && result.conflicts) {
+        this.importResult = result;
+      } else if (result.status === 'error') {
+        this.errorMessage = result.message || 'Import failed.';
+        this.importResult = null;
+      } else {
+        const count = result.imported ?? 0;
+        this.importSuccessMessage = `Successfully imported ${count} macro(s).`;
+        this.importResult = null;
+        this.importFileContent = '';
+        this.importFileName = '';
+      }
+    } catch (error) {
+      console.error('Error replacing macros:', error);
+      this.errorMessage = 'Failed to replace macros.';
+    } finally {
+      this.importInProgress = false;
+    }
+  }
+
+  async resolveConflictsRename(): Promise<void> {
+    if (!this.importFileContent) return;
+
+    this.importInProgress = true;
+    this.errorMessage = '';
+
+    try {
+      const result = await this.controller.importMacros(this.importFileContent, [], true);
+
+      if (result.status === 'error') {
+        this.errorMessage = result.message || 'Import failed.';
+        this.importResult = null;
+      } else {
+        const count = result.imported ?? 0;
+        this.importSuccessMessage = `Successfully imported ${count} macro(s).`;
+        if (result.items) {
+          const renamed = result.items.filter(i => i.originalName !== i.finalName);
+          if (renamed.length > 0) {
+            this.importSuccessMessage += ` Renamed: ${renamed.map(i => i.finalName).join(', ')}.`;
+          }
+        }
+        this.importResult = null;
+        this.importFileContent = '';
+        this.importFileName = '';
+      }
+    } catch (error) {
+      console.error('Error importing with rename:', error);
+      this.errorMessage = 'Failed to import macros.';
+    } finally {
+      this.importInProgress = false;
+    }
+  }
+
+  private downloadFile(content: string, filename: string): void {
+    const blob = new Blob([content], { type: 'text/yaml' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
   }
 }

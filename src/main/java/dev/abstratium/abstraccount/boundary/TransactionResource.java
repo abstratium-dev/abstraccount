@@ -1,9 +1,7 @@
 package dev.abstratium.abstraccount.boundary;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -20,7 +18,6 @@ import dev.abstratium.abstraccount.service.JournalPersistenceService;
 import dev.abstratium.core.service.CurrentOrgContext;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
-import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
@@ -44,9 +41,6 @@ import jakarta.ws.rs.core.Response;
 public class TransactionResource {
     
     private static final Logger LOG = Logger.getLogger(TransactionResource.class);
-    
-    @Inject
-    EntityManager entityManager;
     
     @Inject
     JournalPersistenceService journalPersistenceService;
@@ -137,10 +131,8 @@ public class TransactionResource {
     public TransactionDTO getTransaction(@PathParam("transactionId") String transactionId) {
         LOG.debugf("Getting transaction: %s", transactionId);
         
-        TransactionEntity transaction = entityManager.find(TransactionEntity.class, transactionId);
-        if (transaction == null) {
-            throw new WebApplicationException("Transaction not found: " + transactionId, 404);
-        }
+        TransactionEntity transaction = journalPersistenceService.findTransactionById(transactionId)
+            .orElseThrow(() -> new WebApplicationException("Transaction not found: " + transactionId, 404));
         
         return toDTO(transaction);
     }
@@ -164,37 +156,24 @@ public class TransactionResource {
         validateUpdateEntriesBalance(request.entries());
         
         try {
-            // Find existing transaction
-            TransactionEntity transaction = entityManager.find(TransactionEntity.class, transactionId);
-            if (transaction == null) {
-                throw new WebApplicationException("Transaction not found: " + transactionId, 404);
-            }
+            // Ensure the transaction exists; journalId and order are preserved by the service.
+            TransactionEntity existing = journalPersistenceService.findTransactionById(transactionId)
+                .orElseThrow(() -> new WebApplicationException("Transaction not found: " + transactionId, 404));
             
-            // Update basic fields
+            // Build a detached transaction model from the request for the service to merge.
+            TransactionEntity transaction = new TransactionEntity();
+            transaction.setId(transactionId);
+            transaction.setJournalId(existing.getJournalId());
             transaction.setTransactionDate(request.date());
             transaction.setStatus(TransactionStatus.valueOf(request.status()));
             transaction.setDescription(request.description());
             transaction.setPartnerId(request.partnerId());
+            transaction.setTransactionOrder(existing.getTransactionOrder());
             
-            // Update entries - remove old ones and add new ones
-            // Clear existing entries
-            new ArrayList<>(transaction.getEntries()).forEach(transaction::removeEntry);
-            
-            // Add new entries
             if (request.entries() != null) {
                 for (UpdateEntryRequest entryReq : request.entries()) {
-                    EntryEntity entry;
-                    if (entryReq.id() != null) {
-                        // Try to reuse existing entry if ID is provided
-                        entry = entityManager.find(EntryEntity.class, entryReq.id());
-                        if (entry == null || entry.getTransaction() == null || !entry.getTransaction().getId().equals(transactionId)) {
-                            // Create new if not found or belongs to different transaction
-                            entry = new EntryEntity();
-                        }
-                    } else {
-                        entry = new EntryEntity();
-                    }
-                    
+                    EntryEntity entry = new EntryEntity();
+                    entry.setId(entryReq.id());
                     entry.setEntryOrder(entryReq.entryOrder());
                     entry.setAccountId(entryReq.accountId());
                     entry.setCommodity(entryReq.commodity());
@@ -203,9 +182,6 @@ public class TransactionResource {
                     transaction.addEntry(entry);
                 }
             }
-            
-            // Update tags - remove old ones and add new ones
-            new HashSet<>(transaction.getTags()).forEach(transaction::removeTag);
             
             if (request.tags() != null) {
                 for (TagDTO tagDto : request.tags()) {
@@ -216,9 +192,11 @@ public class TransactionResource {
                 }
             }
             
+            TransactionEntity saved = journalPersistenceService.saveTransaction(transaction);
+            
             LOG.infof("Successfully updated transaction: %s", transactionId);
             
-            return toDTO(transaction);
+            return toDTO(saved);
             
         } catch (WebApplicationException e) {
             throw e;
@@ -242,13 +220,11 @@ public class TransactionResource {
         LOG.infof("Deleting transaction: %s", transactionId);
         
         try {
-            TransactionEntity transaction = entityManager.find(TransactionEntity.class, transactionId);
-            if (transaction == null) {
-                throw new WebApplicationException("Transaction not found: " + transactionId, 404);
-            }
+            TransactionEntity transaction = journalPersistenceService.findTransactionById(transactionId)
+                .orElseThrow(() -> new WebApplicationException("Transaction not found: " + transactionId, 404));
             
             String description = transaction.getDescription();
-            entityManager.remove(transaction);
+            journalPersistenceService.deleteTransaction(transactionId);
             
             Map<String, Object> response = new HashMap<>();
             response.put("status", "success");

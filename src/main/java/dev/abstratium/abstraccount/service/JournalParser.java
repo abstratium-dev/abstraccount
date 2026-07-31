@@ -174,6 +174,10 @@ public class JournalParser {
                             String key = tagMatcher.group(1).trim();
                             String value = tagMatcher.group(2).trim();
 
+                            if ("id".equalsIgnoreCase(key)) {
+                                continue;
+                            }
+
                             if (value.isEmpty()) {
                                 // Simple tag (e.g., "Payment:")
                                 transactionTags.add(Tag.simple(key));

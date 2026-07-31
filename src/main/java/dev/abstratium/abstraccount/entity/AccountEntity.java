@@ -3,6 +3,7 @@ package dev.abstratium.abstraccount.entity;
 import dev.abstratium.abstraccount.model.AccountType;
 import jakarta.persistence.*;
 import org.hibernate.annotations.TenantId;
+import org.hibernate.envers.Audited;
 import java.util.UUID;
 
 /**
@@ -11,6 +12,7 @@ import java.util.UUID;
  */
 @Entity
 @Table(name = "T_account")
+@Audited
 public class AccountEntity {
     
     @Id

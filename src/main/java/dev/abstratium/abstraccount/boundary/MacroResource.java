@@ -15,6 +15,7 @@ import dev.abstratium.abstraccount.model.Transaction;
 import dev.abstratium.abstraccount.service.AccountService;
 import dev.abstratium.abstraccount.service.JournalParser;
 import dev.abstratium.abstraccount.service.JournalPersistenceService;
+import dev.abstratium.abstraccount.service.MacroImportExportService;
 import dev.abstratium.abstraccount.service.MacroService;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
@@ -23,6 +24,7 @@ import jakarta.ws.rs.core.MediaType;
 import org.jboss.logging.Logger;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -53,7 +55,10 @@ public class MacroResource {
     
     @Inject
     ObjectMapper objectMapper;
-    
+
+    @Inject
+    MacroImportExportService macroImportExportService;
+
     /**
      * Gets all macros.
      * Macros are independent of journals.
@@ -217,7 +222,87 @@ public class MacroResource {
         macroService.deleteMacro(macroId);
         return jakarta.ws.rs.core.Response.noContent().build();
     }
-    
+
+    /**
+     * Exports all macros for the current organisation as YAML.
+     *
+     * @return the macros as a YAML document
+     */
+    @GET
+    @Path("/export")
+    @Produces("text/yaml")
+    public String exportMacros() {
+        LOG.info("Exporting macros as YAML");
+        return macroImportExportService.exportMacros();
+    }
+
+    /**
+     * Imports one or more macros from a YAML file.
+     *
+     * @param yamlContent the YAML file content
+     * @param replaceIds optional comma-separated list of existing macro IDs to replace
+     * @param autoRename if true, duplicate names not listed in {@code replaceIds}
+     *                   are imported with a counter suffix instead of returning a conflict
+     * @return a summary of imported macros, or a 409 conflict if duplicates exist
+     */
+    @POST
+    @Path("/import")
+    @Consumes("text/yaml")
+    @Produces(MediaType.APPLICATION_JSON)
+    public jakarta.ws.rs.core.Response importMacros(String yamlContent,
+                                                    @QueryParam("replaceIds") String replaceIds,
+                                                    @QueryParam("autoRename") boolean autoRename) {
+        LOG.infof("Importing macros from YAML, replaceIds=%s, autoRename=%s", replaceIds, autoRename);
+
+        try {
+            List<String> replaceIdList = parseReplaceIds(replaceIds);
+            ImportResult result = macroImportExportService.importMacros(yamlContent, replaceIdList, autoRename);
+
+            if (!result.conflicts().isEmpty()) {
+                Map<String, Object> conflictResponse = new HashMap<>();
+                conflictResponse.put("status", "conflict");
+                conflictResponse.put("message", "Some imported macro names already exist");
+                conflictResponse.put("conflicts", result.conflicts());
+                return jakarta.ws.rs.core.Response.status(jakarta.ws.rs.core.Response.Status.CONFLICT)
+                    .entity(conflictResponse)
+                    .type(MediaType.APPLICATION_JSON)
+                    .build();
+            }
+
+            Map<String, Object> summary = new HashMap<>();
+            summary.put("status", "success");
+            summary.put("imported", result.importedItems().size());
+            summary.put("items", result.importedItems());
+            return jakarta.ws.rs.core.Response.ok(summary).build();
+
+        } catch (IllegalArgumentException e) {
+            LOG.errorf(e, "Macro import validation failed");
+            Map<String, Object> error = new HashMap<>();
+            error.put("status", "error");
+            error.put("message", e.getMessage());
+            return jakarta.ws.rs.core.Response.status(jakarta.ws.rs.core.Response.Status.BAD_REQUEST)
+                .entity(error)
+                .type(MediaType.APPLICATION_JSON)
+                .build();
+        } catch (Exception e) {
+            LOG.errorf(e, "Macro import failed");
+            Map<String, Object> error = new HashMap<>();
+            error.put("status", "error");
+            error.put("message", e.getMessage());
+            return jakarta.ws.rs.core.Response.status(jakarta.ws.rs.core.Response.Status.INTERNAL_SERVER_ERROR)
+                .entity(error)
+                .type(MediaType.APPLICATION_JSON)
+                .build();
+        }
+    }
+
+    private List<String> parseReplaceIds(String replaceIds) {
+        if (replaceIds == null || replaceIds.isBlank()) {
+            return List.of();
+        }
+        return List.of(replaceIds.split(","));
+    }
+
     /**
      * Converts a MacroEntity to a MacroDTO.
      */

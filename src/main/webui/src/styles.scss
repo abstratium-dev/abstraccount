@@ -1707,6 +1707,18 @@ button {
   }
 }
 
+.macros-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+
+  h2 {
+    margin: 0;
+    color: var(--color-text-primary);
+  }
+}
+
 .macros-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
@@ -1844,6 +1856,57 @@ button {
   border-radius: 4px;
   border-left: 4px solid var(--color-error);
   margin: 1rem 0;
+}
+
+.success-message {
+  background: var(--color-success-bg);
+  color: var(--color-success-text);
+  padding: 1rem;
+  border-radius: 4px;
+  border-left: 4px solid var(--color-success);
+  margin: 1rem 0;
+}
+
+.import-export-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.import-form {
+  p {
+    margin-bottom: 1rem;
+    color: var(--color-text-primary);
+  }
+
+  input[type="file"] {
+    margin-bottom: 1rem;
+    width: 100%;
+  }
+
+  .file-name {
+    color: var(--color-text-secondary);
+    font-size: 0.9rem;
+    margin: 0.5rem 0;
+  }
+}
+
+.conflict-resolution {
+  p {
+    margin-bottom: 1rem;
+    color: var(--color-text-primary);
+  }
+}
+
+.conflict-list {
+  list-style: disc;
+  padding-left: 2rem;
+  margin-bottom: 1.5rem;
+
+  li {
+    color: var(--color-text-primary);
+    padding: 0.25rem 0;
+  }
 }
 
 .close-btn {

@@ -480,5 +480,9 @@ class JournalParserTest {
         
         // Should have 11 entries (3 Equity + 5 Assets + 3 Liabilities)
         assertEquals(11, transaction.entries().size(), "Transaction should have 11 entries despite comment lines between them");
+        
+        // The "id" line should not be parsed as a tag
+        assertFalse(transaction.tags().stream().anyMatch(tag -> "id".equals(tag.key())),
+            "Transaction ID should not be parsed as a tag");
     }
 }

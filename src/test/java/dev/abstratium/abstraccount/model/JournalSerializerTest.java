@@ -143,7 +143,6 @@ class JournalSerializerTest {
         Entry entry2 = Entry.simple(liabilities, Amount.of("CHF", "-100.00"));
         
         List<Tag> tags = List.of(
-            Tag.keyValue("id", "bcba9da2-81be-4a78-b4a3-fbd856ad7dde"),
             Tag.keyValue("invoice", "PI00000017")
         );
         
@@ -168,6 +167,7 @@ class JournalSerializerTest {
         
         assertTrue(result.contains("2025-01-04 * Purchase"));
         assertTrue(result.contains("; invoice:PI00000017"));
+        assertFalse(result.contains("; id:"), "Transaction ID should not be serialized as a tag");
     }
     
     @Test

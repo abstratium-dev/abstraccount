@@ -168,6 +168,43 @@ class JournalRoundTripTest {
     }
     
     @Test
+    void testRoundTripFiltersIdTag() {
+        String original = """
+            account 1 Assets
+              ; type:Asset
+
+            account 2 Liabilities
+              ; type:Liability
+
+            2025-01-04 * Purchase
+                ; id:some-uuid-123
+                ; invoice:INV-001
+                1 Assets    CHF 100.00
+                2 Liabilities    CHF -100.00
+            """;
+
+        Journal journal1 = parser.parse(original);
+        String serialized = serializer.serialize(journal1);
+        Journal journal2 = parser.parse(serialized);
+
+        Transaction tx1 = journal1.transactions().get(0);
+        Transaction tx2 = journal2.transactions().get(0);
+
+        // "id" should not be present as a tag in either parse
+        assertFalse(tx1.tags().stream().anyMatch(tag -> "id".equals(tag.key())),
+            "Parser should not parse 'id' as a tag");
+        assertFalse(tx2.tags().stream().anyMatch(tag -> "id".equals(tag.key())),
+            "Serializer should not emit 'id' as a tag");
+
+        // Other tags should be preserved
+        assertEquals("INV-001", tx1.getTagValue("invoice"));
+        assertEquals("INV-001", tx2.getTagValue("invoice"));
+
+        // Serialized content should not contain "; id:"
+        assertFalse(serialized.contains("; id:"), "Serialized output should not contain id tags");
+    }
+
+    @Test
     void testRoundTripMultipleTransactions() {
         String original = """
             account 1 Assets
@@ -220,7 +257,6 @@ class JournalRoundTripTest {
         Entry entry2 = Entry.simple(equity, Amount.of("CHF", "-1500.50"));
         
         List<Tag> tags = List.of(
-            Tag.keyValue("id", "uuid-123"),
             Tag.simple("Opening")
         );
         

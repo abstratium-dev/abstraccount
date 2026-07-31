@@ -27,19 +27,10 @@ These TODOs are to be resolved by the developer, NOT THE LLM.
     - as a basic import with no journal entries
   - test real life multitenancy
 
-- import and export of journal seems to add tags for ID but do i need that?
-
-- do cascade delete with jpa not database
-  - why isn't that on other entities? or is it because deletion is manual?
-
 - make all production stuff work with a non-default orgId by creating a new org and using that one
-
-- add envers
 
 - bug: does adding new year copy the account descriptions?
   - llm says no bug but why is 2026 empty?
-
-- bug: light mode: menu on left of screen for year end etc. isn't really visible.
 
 - is this statement too bold? "Built on Swiss GAAP FER standards."
 
@@ -75,6 +66,8 @@ These TODOs are to be resolved by the developer, NOT THE LLM.
 - use SecurityProblemLogger in all places where a security issue is detected
 
 ## Tomorrow
+
+- edit and delete (manage) reports and macros.
 
 - make backend calculate running total, so that other services could profit from that logic.
   - remove that logic from the ui

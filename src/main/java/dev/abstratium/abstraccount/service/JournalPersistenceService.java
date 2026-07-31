@@ -55,6 +55,18 @@ public class JournalPersistenceService {
     }
     
     /**
+     * Finds a transaction by its ID.
+     *
+     * @param transactionId the transaction ID
+     * @return Optional containing the transaction, or empty if not found
+     */
+    @Transactional
+    public Optional<TransactionEntity> findTransactionById(String transactionId) {
+        TransactionEntity transaction = entityManager.find(TransactionEntity.class, transactionId);
+        return Optional.ofNullable(transaction);
+    }
+    
+    /**
      * Finds all journals with the given title (case-sensitive, exact match).
      * 
      * @param title the journal title to search for
@@ -181,30 +193,59 @@ public class JournalPersistenceService {
         }
         new ArrayList<>(existing.getEntries()).forEach(existing::removeEntry);
         for (EntryEntity sourceEntry : transaction.getEntries()) {
-            EntryEntity targetEntry = entityManager.find(EntryEntity.class, sourceEntry.getId());
-            if (targetEntry == null) {
-                targetEntry = sourceEntry;
-            } else {
-                targetEntry.setAccountId(sourceEntry.getAccountId());
-                targetEntry.setCommodity(sourceEntry.getCommodity());
-                targetEntry.setAmount(sourceEntry.getAmount());
-                targetEntry.setNote(sourceEntry.getNote());
-                targetEntry.setEntryOrder(sourceEntry.getEntryOrder());
+            EntryEntity targetEntry = null;
+            if (sourceEntry.getId() != null) {
+                targetEntry = entityManager.find(EntryEntity.class, sourceEntry.getId());
+                if (targetEntry == null || targetEntry.getTransaction() == null
+                        || !targetEntry.getTransaction().getId().equals(existing.getId())) {
+                    targetEntry = null;
+                }
             }
+            if (targetEntry == null) {
+                targetEntry = new EntryEntity();
+            }
+            targetEntry.setAccountId(sourceEntry.getAccountId());
+            targetEntry.setCommodity(sourceEntry.getCommodity());
+            targetEntry.setAmount(sourceEntry.getAmount());
+            targetEntry.setNote(sourceEntry.getNote());
+            targetEntry.setEntryOrder(sourceEntry.getEntryOrder());
             existing.addEntry(targetEntry);
         }
         new LinkedHashSet<>(existing.getTags()).forEach(existing::removeTag);
         for (TagEntity sourceTag : transaction.getTags()) {
-            TagEntity targetTag = entityManager.find(TagEntity.class, sourceTag.getId());
-            if (targetTag == null) {
-                targetTag = sourceTag;
-            } else {
-                targetTag.setTagKey(sourceTag.getTagKey());
-                targetTag.setTagValue(sourceTag.getTagValue());
+            TagEntity targetTag = null;
+            if (sourceTag.getId() != null) {
+                targetTag = entityManager.find(TagEntity.class, sourceTag.getId());
+                if (targetTag == null || targetTag.getTransaction() == null
+                        || !targetTag.getTransaction().getId().equals(existing.getId())) {
+                    targetTag = null;
+                }
             }
+            if (targetTag == null) {
+                targetTag = new TagEntity();
+            }
+            targetTag.setTagKey(sourceTag.getTagKey());
+            targetTag.setTagValue(sourceTag.getTagValue());
             existing.addTag(targetTag);
         }
         return existing;
+    }
+    
+    /**
+     * Deletes a transaction. Its entries and tags are cascade-removed via JPA
+     * so that Envers lifecycle listeners can capture each deletion.
+     *
+     * @param transactionId the transaction ID
+     * @throws IllegalArgumentException if the transaction does not exist
+     */
+    @Transactional
+    public void deleteTransaction(String transactionId) {
+        TransactionEntity transaction = entityManager.find(TransactionEntity.class, transactionId);
+        if (transaction == null) {
+            throw new IllegalArgumentException("Transaction not found: " + transactionId);
+        }
+        entityManager.remove(transaction);
+        entityManager.flush();
     }
     
     /**

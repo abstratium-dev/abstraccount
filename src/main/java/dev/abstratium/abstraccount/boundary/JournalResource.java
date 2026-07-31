@@ -518,6 +518,7 @@ public class JournalResource {
         List<dev.abstratium.abstraccount.model.Transaction> transactions = new ArrayList<>();
         for (dev.abstratium.abstraccount.entity.TransactionEntity txEntity : transactionMap.values()) {
             List<dev.abstratium.abstraccount.model.Tag> tags = txEntity.getTags().stream()
+                .filter(tag -> !"id".equalsIgnoreCase(tag.getTagKey()))
                 .map(tag -> dev.abstratium.abstraccount.model.Tag.keyValue(tag.getTagKey(), tag.getTagValue()))
                 .collect(Collectors.toList());
 

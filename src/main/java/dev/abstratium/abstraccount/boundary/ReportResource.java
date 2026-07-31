@@ -2,6 +2,7 @@ package dev.abstratium.abstraccount.boundary;
 
 import dev.abstratium.abstraccount.Roles;
 import dev.abstratium.abstraccount.entity.ReportTemplateEntity;
+import dev.abstratium.abstraccount.service.ReportTemplateImportExportService;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;
@@ -9,7 +10,9 @@ import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import org.jboss.logging.Logger;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -25,7 +28,10 @@ public class ReportResource {
     
     @Inject
     EntityManager em;
-    
+
+    @Inject
+    ReportTemplateImportExportService reportTemplateImportExportService;
+
     /**
      * Lists all available report templates.
      * 
@@ -73,5 +79,85 @@ public class ReportResource {
             template.getDescription(),
             template.getTemplateContent()
         );
+    }
+
+    /**
+     * Exports all report templates for the current organisation as YAML.
+     *
+     * @return the report templates as a YAML document
+     */
+    @GET
+    @Path("/templates/export")
+    @Produces("text/yaml")
+    public String exportReportTemplates() {
+        LOG.info("Exporting report templates as YAML");
+        return reportTemplateImportExportService.exportReportTemplates();
+    }
+
+    /**
+     * Imports one or more report templates from a YAML file.
+     *
+     * @param yamlContent the YAML file content
+     * @param replaceIds optional comma-separated list of existing report template IDs to replace
+     * @param autoRename if true, duplicate names not listed in {@code replaceIds}
+     *                   are imported with a counter suffix instead of returning a conflict
+     * @return a summary of imported report templates, or a 409 conflict if duplicates exist
+     */
+    @POST
+    @Path("/templates/import")
+    @Consumes("text/yaml")
+    @Produces(MediaType.APPLICATION_JSON)
+    public jakarta.ws.rs.core.Response importReportTemplates(String yamlContent,
+                                                               @QueryParam("replaceIds") String replaceIds,
+                                                               @QueryParam("autoRename") boolean autoRename) {
+        LOG.infof("Importing report templates from YAML, replaceIds=%s, autoRename=%s", replaceIds, autoRename);
+
+        try {
+            List<String> replaceIdList = parseReplaceIds(replaceIds);
+            ImportResult result = reportTemplateImportExportService.importReportTemplates(yamlContent, replaceIdList, autoRename);
+
+            if (!result.conflicts().isEmpty()) {
+                Map<String, Object> conflictResponse = new HashMap<>();
+                conflictResponse.put("status", "conflict");
+                conflictResponse.put("message", "Some imported report template names already exist");
+                conflictResponse.put("conflicts", result.conflicts());
+                return jakarta.ws.rs.core.Response.status(jakarta.ws.rs.core.Response.Status.CONFLICT)
+                    .entity(conflictResponse)
+                    .type(MediaType.APPLICATION_JSON)
+                    .build();
+            }
+
+            Map<String, Object> summary = new HashMap<>();
+            summary.put("status", "success");
+            summary.put("imported", result.importedItems().size());
+            summary.put("items", result.importedItems());
+            return jakarta.ws.rs.core.Response.ok(summary).build();
+
+        } catch (IllegalArgumentException e) {
+            LOG.errorf(e, "Report template import validation failed");
+            Map<String, Object> error = new HashMap<>();
+            error.put("status", "error");
+            error.put("message", e.getMessage());
+            return jakarta.ws.rs.core.Response.status(jakarta.ws.rs.core.Response.Status.BAD_REQUEST)
+                .entity(error)
+                .type(MediaType.APPLICATION_JSON)
+                .build();
+        } catch (Exception e) {
+            LOG.errorf(e, "Report template import failed");
+            Map<String, Object> error = new HashMap<>();
+            error.put("status", "error");
+            error.put("message", e.getMessage());
+            return jakarta.ws.rs.core.Response.status(jakarta.ws.rs.core.Response.Status.INTERNAL_SERVER_ERROR)
+                .entity(error)
+                .type(MediaType.APPLICATION_JSON)
+                .build();
+        }
+    }
+
+    private List<String> parseReplaceIds(String replaceIds) {
+        if (replaceIds == null || replaceIds.isBlank()) {
+            return List.of();
+        }
+        return List.of(replaceIds.split(","));
     }
 }

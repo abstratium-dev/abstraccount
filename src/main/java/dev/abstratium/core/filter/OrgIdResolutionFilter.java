@@ -1,14 +1,12 @@
 package dev.abstratium.core.filter;
 
 import io.quarkus.oidc.IdToken;
-import io.quarkus.runtime.LaunchMode;
 import jakarta.annotation.Priority;
 import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.Priorities;
 import jakarta.ws.rs.container.ContainerRequestContext;
 import jakarta.ws.rs.container.ContainerRequestFilter;
-import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.ext.Provider;
 import org.eclipse.microprofile.jwt.JsonWebToken;
 import org.jboss.logging.Logger;
@@ -44,8 +42,11 @@ public class OrgIdResolutionFilter implements ContainerRequestFilter {
 
     @Override
     public void filter(ContainerRequestContext requestContext) throws IOException {
+        currentOrgContext.setRequestPath(requestContext.getUriInfo().getPath());
+        currentOrgContext.setRequestMethod(requestContext.getMethod());
+
         String orgId = extractOrgIdFromIdToken();
-        if (orgId == null || orgId.isBlank()) {
+        if (orgId == null) {
             orgId = extractOrgIdFromAccessToken();
         }
         if (orgId != null && !orgId.isBlank()) {
@@ -53,13 +54,6 @@ public class OrgIdResolutionFilter implements ContainerRequestFilter {
             log.debugv("Resolved orgId={0} for request {1}", orgId, requestContext.getUriInfo().getPath());
             return;
         }
-        if (isProduction() && requestContext.getUriInfo().getPath().startsWith("api/")) {
-            requestContext.abortWith(Response.status(Response.Status.FORBIDDEN).build());
-        }
-    }
-
-    boolean isProduction() {
-        return LaunchMode.current() == LaunchMode.NORMAL;
     }
 
     private String extractOrgIdFromIdToken() {
@@ -67,7 +61,10 @@ public class OrgIdResolutionFilter implements ContainerRequestFilter {
             try {
                 Object claim = idTokenInstance.get().getClaim("orgId");
                 if (claim != null) {
-                    return claim.toString();
+                    String orgId = claim.toString();
+                    if (!orgId.isBlank()) {
+                        return orgId;
+                    }
                 }
             } catch (Exception e) {
                 log.debug("Failed to extract orgId from ID token", e);
@@ -81,7 +78,10 @@ public class OrgIdResolutionFilter implements ContainerRequestFilter {
             try {
                 Object claim = accessTokenInstance.get().getClaim("orgId");
                 if (claim != null) {
-                    return claim.toString();
+                    String orgId = claim.toString();
+                    if (!orgId.isBlank()) {
+                        return orgId;
+                    }
                 }
             } catch (Exception e) {
                 log.debug("Failed to extract orgId from access token", e);

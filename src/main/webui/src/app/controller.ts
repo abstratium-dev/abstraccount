@@ -157,6 +157,26 @@ export interface MacroDTO {
   modifiedDate: string;
 }
 
+export interface ImportConflict {
+  existingId: string;
+  name: string;
+  artefactType: string;
+}
+
+export interface ImportedItemSummary {
+  originalName: string;
+  finalName: string;
+  id: string;
+}
+
+export interface ImportResult {
+  status: 'success' | 'conflict' | 'error';
+  message?: string;
+  conflicts?: ImportConflict[];
+  imported?: number;
+  items?: ImportedItemSummary[];
+}
+
 export interface CloseAccountPreviewDTO {
   accountId: string;
   accountCodePath: string;
@@ -556,6 +576,46 @@ export class Controller {
     }
   }
 
+  async exportReportTemplates(): Promise<string> {
+    try {
+      return await firstValueFrom(
+        this.http.get('/api/report/templates/export', { responseType: 'text' })
+      );
+    } catch (error) {
+      console.error('Error exporting report templates:', error);
+      throw error;
+    }
+  }
+
+  async importReportTemplates(yamlContent: string, replaceIds?: string[], autoRename?: boolean): Promise<ImportResult> {
+    try {
+      let params = new HttpParams();
+      if (replaceIds && replaceIds.length > 0) {
+        params = params.set('replaceIds', replaceIds.join(','));
+      }
+      if (autoRename) {
+        params = params.set('autoRename', 'true');
+      }
+      const response = await firstValueFrom(
+        this.http.post<ImportResult>('/api/report/templates/import', yamlContent, {
+          params,
+          headers: { 'Content-Type': 'text/yaml' }
+        })
+      );
+      await this.listReportTemplates();
+      return response;
+    } catch (error: any) {
+      if (error.status === 409) {
+        return error.error as ImportResult;
+      }
+      if (error.status === 400) {
+        return error.error as ImportResult;
+      }
+      console.error('Error importing report templates:', error);
+      throw error;
+    }
+  }
+
   async getEntriesForReport(
     journalId: string,
     startDate?: string,
@@ -682,6 +742,46 @@ export class Controller {
       return transactionId;
     } catch (error) {
       console.error('Error executing macro:', error);
+      throw error;
+    }
+  }
+
+  async exportMacros(): Promise<string> {
+    try {
+      return await firstValueFrom(
+        this.http.get('/api/macro/export', { responseType: 'text' })
+      );
+    } catch (error) {
+      console.error('Error exporting macros:', error);
+      throw error;
+    }
+  }
+
+  async importMacros(yamlContent: string, replaceIds?: string[], autoRename?: boolean): Promise<ImportResult> {
+    try {
+      let params = new HttpParams();
+      if (replaceIds && replaceIds.length > 0) {
+        params = params.set('replaceIds', replaceIds.join(','));
+      }
+      if (autoRename) {
+        params = params.set('autoRename', 'true');
+      }
+      const response = await firstValueFrom(
+        this.http.post<ImportResult>('/api/macro/import', yamlContent, {
+          params,
+          headers: { 'Content-Type': 'text/yaml' }
+        })
+      );
+      await this.listMacros();
+      return response;
+    } catch (error: any) {
+      if (error.status === 409) {
+        return error.error as ImportResult;
+      }
+      if (error.status === 400) {
+        return error.error as ImportResult;
+      }
+      console.error('Error importing macros:', error);
       throw error;
     }
   }

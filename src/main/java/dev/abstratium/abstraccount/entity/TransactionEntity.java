@@ -3,6 +3,7 @@ package dev.abstratium.abstraccount.entity;
 import dev.abstratium.abstraccount.model.TransactionStatus;
 import jakarta.persistence.*;
 import org.hibernate.annotations.TenantId;
+import org.hibernate.envers.Audited;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -16,6 +17,7 @@ import java.util.UUID;
  */
 @Entity
 @Table(name = "T_transaction")
+@Audited
 public class TransactionEntity {
     
     @Id

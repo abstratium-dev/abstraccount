@@ -8,7 +8,6 @@ This document describes how to implement entity auditing using Hibernate Envers 
 
 - Automatic audit tracking for all entity changes (create, update, delete)
 - User attribution via custom revision entity
-- Change notes for semantic context
 - REST API for querying audit history
 
 ## Dependencies
@@ -173,7 +172,7 @@ Static analysis or code review should verify:
 
 ## Custom Revision Entity
 
-Create a custom revision entity to capture user information and change notes:
+Create a custom revision entity to capture user information:
 
 ```java
 @Entity
@@ -194,9 +193,6 @@ public class RevisionInfo {
     @Column(name = "correlation_id")
     private String correlationId;
 
-    @Column(name = "change_note")
-    private String changeNote;
-
     // Getters and setters...
 
     public static class RevisionInfoListener implements RevisionListener {
@@ -206,7 +202,6 @@ public class RevisionInfo {
             RevisionInfo revisionInfo = (RevisionInfo) revisionEntity;
             revisionInfo.setRevtstmp(Instant.now().toEpochMilli());
             revisionInfo.setUsername(getCurrentUsername());
-            revisionInfo.setChangeNote(getCurrentChangeNote());
         }
 
         private String getCurrentUsername() {
@@ -220,100 +215,10 @@ public class RevisionInfo {
             }
             return "system";
         }
-
-        private String getCurrentChangeNote() {
-            try {
-                ChangeNoteContext ctx = CDI.current().select(ChangeNoteContext.class).get();
-                if (ctx != null && ctx.hasChangeNote()) {
-                    return ctx.getChangeNote();
-                }
-            } catch (Exception e) {
-                // No request context available
-            }
-            return null;
-        }
     }
 }
 ```
 
-## Change Note Pattern
-
-Implement a request-scoped context to capture change notes from REST calls:
-
-```java
-@RequestScoped
-public class ChangeNoteContext {
-    private String changeNote;
-
-    public String getChangeNote() { return changeNote; }
-    public void setChangeNote(String changeNote) { this.changeNote = changeNote; }
-    public boolean hasChangeNote() { return changeNote != null && !changeNote.isBlank(); }
-}
-```
-
-Create an interceptor to validate and capture change notes:
-
-```java
-@Interceptor
-@RequiresChangeNote
-@Priority(Interceptor.Priority.APPLICATION)
-public class ChangeNoteInterceptor {
-
-    @Context
-    UriInfo uriInfo;
-
-    @Inject
-    ChangeNoteContext changeNoteContext;
-
-    @ConfigProperty(name = "change.note.mandatory", defaultValue = "true")
-    boolean changeNoteMandatory;
-
-    @AroundInvoke
-    public Object intercept(InvocationContext ctx) throws Exception {
-        String changeNote = uriInfo.getQueryParameters().getFirst("changeNote");
-
-        if (changeNoteMandatory && (changeNote == null || changeNote.isBlank())) {
-            throw HttpProblem.builder()
-                .withStatus(Response.Status.BAD_REQUEST)
-                .withTitle("Bad Request")
-                .withDetail("Missing required query parameter: changeNote")
-                .build();
-        }
-
-        if (changeNote != null && !changeNote.isBlank()) {
-            changeNoteContext.setChangeNote(changeNote);
-        }
-
-        return ctx.proceed();
-    }
-}
-```
-
-```java
-@InterceptorBinding
-@Target({ElementType.TYPE, ElementType.METHOD})
-@Retention(RetentionPolicy.RUNTIME)
-public @interface RequiresChangeNote {
-}
-```
-
-Apply the annotation to mutating REST endpoints:
-
-```java
-@POST
-@RequiresChangeNote
-public EntityDto create(EntityDto request) { ... }
-
-@PUT
-@Path("/{id}")
-@RequiresChangeNote
-public EntityDto update(@PathParam("id") String id, EntityDto request) { ... }
-
-@DELETE
-@Path("/{id}")
-@RequiresChangeNote
-public Response delete(@PathParam("id") String id) { ... }
-```
 
 ## Database Schema
 
@@ -325,13 +230,11 @@ CREATE TABLE REVINFO (
     REV BIGINT AUTO_INCREMENT PRIMARY KEY,
     REVTSTMP BIGINT,
     username VARCHAR(255),
-    correlation_id VARCHAR(255),
-    change_note VARCHAR(255)
+    correlation_id VARCHAR(255)
 );
 
 CREATE INDEX I_revinfo_timestamp ON REVINFO(REVTSTMP);
 CREATE INDEX I_revinfo_correlation_id ON REVINFO(correlation_id);
-CREATE INDEX I_revinfo_change_note ON REVINFO(change_note);
 ```
 
 **Entity audit table (one per audited entity):**
@@ -488,7 +391,7 @@ public class HistoryService {
     EntityManager em;
 
     public List<HistoryEntryDto> searchHistory(String search, int limit, int offset) {
-        // Query REVINFO with optional filtering on username/changeNote
+        // Query REVINFO with optional filtering on username
     }
 
     public List<HistoryChangeDto> getRevisionDetails(long rev) {
@@ -539,9 +442,9 @@ When building as a GraalVM native image:
 
 Write `@QuarkusTest` integration tests that:
 
-1. Create entities via REST with `changeNote` query parameter
+1. Create entities via REST
 2. Verify history entries are recorded
-3. Test history search by username and change note
+3. Test history search by username
 4. Verify entity revision history retrieval
 
 Example test pattern:
@@ -554,7 +457,6 @@ class HistoryResourceTest {
     void testCreateAndRetrieveHistory() {
         // Create entity
         given()
-            .queryParam("changeNote", "Creating test entity")
             .body(Map.of("name", "test-entity"))
             .post("/api/entities")
             .then()

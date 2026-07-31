@@ -1,5 +1,11 @@
 <div class="reports-container">
 
+  <!-- Import/Export actions -->
+  <div class="import-export-actions" style="margin-bottom: 1rem;">
+    <button class="btn-secondary" (click)="exportReportTemplates()">Export Templates</button>
+    <button class="btn-secondary" (click)="openImportDialog()">Import Templates</button>
+  </div>
+
   <!-- Error message -->
   <div *ngIf="error" class="error-message">
     {{ error }}
@@ -310,4 +316,58 @@
   <div *ngIf="selectedTemplate && reportSections.length === 0 && !loading && !error" class="no-data">
     No data to display for the selected report and filters.
   </div>
+
+  <!-- Import Dialog -->
+  @if (showImportDialog) {
+    <div class="modal-overlay" (click)="closeImportDialog()">
+      <div class="modal-content" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <h2>Import Report Templates</h2>
+          <button class="close-btn" (click)="closeImportDialog()">✕</button>
+        </div>
+        <div class="modal-body">
+          @if (importError) {
+            <div class="error-message">{{ importError }}</div>
+          }
+          @if (importSuccessMessage) {
+            <div class="success-message">{{ importSuccessMessage }}</div>
+          }
+
+          @if (!importResult) {
+            <div class="import-form">
+              <p>Select a YAML file to import report templates from.</p>
+              <input type="file" accept=".yaml,.yml" (change)="onFileSelected($event)" />
+              @if (importFileName) {
+                <p class="file-name">Selected: {{ importFileName }}</p>
+              }
+              <div class="actions">
+                <button class="btn-primary" (click)="performImport()" [disabled]="importInProgress || !importFileContent">
+                  {{ importInProgress ? 'Importing...' : 'Import' }}
+                </button>
+                <button class="btn-secondary" (click)="closeImportDialog()">Cancel</button>
+              </div>
+            </div>
+          } @else {
+            <div class="conflict-resolution">
+              <p>The following report templates already exist. Choose how to handle them:</p>
+              <ul class="conflict-list">
+                @for (conflict of importResult.conflicts; track conflict.name) {
+                  <li>{{ conflict.name }}</li>
+                }
+              </ul>
+              <div class="actions">
+                <button class="btn-danger" (click)="resolveConflictsReplace()" [disabled]="importInProgress">
+                  {{ importInProgress ? 'Replacing...' : 'Replace Originals' }}
+                </button>
+                <button class="btn-primary" (click)="resolveConflictsRename()" [disabled]="importInProgress">
+                  {{ importInProgress ? 'Importing...' : 'Keep Both (Rename)' }}
+                </button>
+                <button class="btn-secondary" (click)="closeImportDialog()">Cancel</button>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+  }
 </div>

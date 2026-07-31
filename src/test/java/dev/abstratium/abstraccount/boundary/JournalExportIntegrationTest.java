@@ -200,6 +200,56 @@ class JournalExportIntegrationTest {
 
     @Test
     @TestSecurity(user = "testuser", roles = {Roles.USER})
+    void testExportDoesNotContainIdTags() {
+        String journalContent = """
+            ; title: ID Tag Test
+            ; Currency: CHF
+
+            commodity CHF 1000.00
+
+            account 1 Assets
+              ; type:Asset
+
+            account 2 Liabilities
+              ; type:Liability
+
+            2025-01-01 * Purchase with id tag
+                ; id:fdde1faa-b9b9-45cf-959b-122a39cf72a3
+                ; invoice:INV-001
+                1 Assets    CHF 100.00
+                2 Liabilities    CHF -100.00
+            """;
+
+        // Upload the journal
+        String journalId = given()
+            .contentType(io.restassured.http.ContentType.TEXT)
+            .body(journalContent)
+        .when()
+            .post("/api/journal/upload")
+        .then()
+            .statusCode(200)
+            .extract().jsonPath().getString("journalId");
+
+        // Export the journal
+        String exportedContent = given()
+            .accept(io.restassured.http.ContentType.TEXT)
+        .when()
+            .get("/api/journal/" + journalId + "/export")
+        .then()
+            .statusCode(200)
+            .extract().asString();
+
+        // The exported content should NOT contain "; id:" tags
+        assertFalse(exportedContent.contains("; id:"),
+            "Exported journal should not contain id tags");
+
+        // But it should still contain the legitimate invoice tag
+        assertTrue(exportedContent.contains("; invoice:INV-001"),
+            "Exported journal should contain legitimate tags");
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {Roles.USER})
     void testExportNonExistentJournalReturns404() {
         given()
             .accept(io.restassured.http.ContentType.TEXT)

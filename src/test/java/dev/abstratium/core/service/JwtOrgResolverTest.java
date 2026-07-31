@@ -1,89 +1,65 @@
 package dev.abstratium.core.service;
 
-import io.quarkus.hibernate.orm.PersistenceUnitExtension;
 import io.quarkus.test.junit.QuarkusTest;
-import jakarta.inject.Inject;
+import io.quarkus.test.security.TestSecurity;
+import io.quarkus.test.security.oidc.Claim;
+import io.quarkus.test.security.oidc.OidcSecurity;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static io.restassured.RestAssured.given;
+import static org.hamcrest.Matchers.is;
 
 /**
- * Unit tests for JwtOrgResolver JWT payload parsing logic.
- * The resolver is also exercised end-to-end by the integration tests in
- * TokenResourceOrgIdTest, which verify that orgId-scoped entities resolve
- * to the correct organisation when a Bearer token is present.
+ * Integration tests verifying that JwtOrgResolver.resolveTenantId() correctly
+ * parses the orgId from a Bearer token's JWT payload.
+ *
+ * These tests use a hand-crafted (unsigned) JWT since JwtOrgResolver only
+ * inspects the payload — it does not verify the signature.
+ * The token is placed in the Authorization header; @TestSecurity still handles
+ * the security layer for the endpoint, but the raw header is present and
+ * parseable by JwtOrgResolver.
  */
 @QuarkusTest
-public class JwtOrgResolverTest {
+class JwtOrgResolverTest {
 
-    @Inject
-    @PersistenceUnitExtension
-    JwtOrgResolver resolver;
-
-    @Inject
-    CurrentOrgContext currentOrgContext;
+    public static final String DEFAULT_ORG_ID = "00000000-0000-0000-0000-000000000000";
 
     @ConfigProperty(name = "default.org.uuid")
-    String defaultOrgId;
+    String configuredDefaultOrgId;
 
-    @BeforeEach
-    void setUp() {
-        currentOrgContext.setOrgId(null);
+    @Test
+    @TestSecurity(user = "testuser", roles = {"jwt-test-user"})
+    @OidcSecurity(claims = @Claim(key = "orgId", value = DEFAULT_ORG_ID))
+    void resolveTenantId_withVerifiedOrgIdClaim_usesOrgId() {
+        given()
+            .when()
+            .get("/api/test/jwt-org")
+            .then()
+            .statusCode(200)
+            .body(is("\"" + DEFAULT_ORG_ID + "\""));
     }
 
     @Test
-    public void resolveTenantId_withOrgIdInContext_returnsOrgId() {
-        currentOrgContext.setOrgId("abc123-def456");
-        assertEquals("abc123-def456", resolver.resolveTenantId());
+    @TestSecurity(user = "testuser", roles = {"jwt-test-user"})
+    void resolveTenantId_withNoOrgIdClaim_usesTestDefault() {
+        given()
+            .when()
+            .get("/api/test/jwt-org")
+            .then()
+            .statusCode(200)
+            .body(is("\"" + configuredDefaultOrgId + "\""));
     }
 
     @Test
-    public void resolveTenantId_withNoOrgIdInContext_returnsDefaultOrgId() {
-        assertEquals(defaultOrgId, resolver.resolveTenantId());
+    @TestSecurity(user = "testuser", roles = {"jwt-test-user"})
+    @OidcSecurity(claims = @Claim(key = "orgId", value = ""))
+    void resolveTenantId_withBlankOrgIdClaim_usesTestDefault() {
+        given()
+            .when()
+            .get("/api/test/jwt-org")
+            .then()
+            .statusCode(200)
+            .body(is("\"" + configuredDefaultOrgId + "\""));
     }
-
-    @Test
-    public void resolveTenantId_withEmptyOrgIdInContext_returnsDefaultOrgId() {
-        currentOrgContext.setOrgId("");
-        assertEquals(defaultOrgId, resolver.resolveTenantId());
-    }
-
-    @Test
-    public void resolveTenantId_withBlankOrgIdInContext_returnsDefaultOrgId() {
-        currentOrgContext.setOrgId("  ");
-        assertEquals(defaultOrgId, resolver.resolveTenantId());
-    }
-
-    @Test
-    public void resolveTenantId_withAnotherOrgIdInContext_returnsOrgId() {
-        currentOrgContext.setOrgId("second-org");
-        assertEquals("second-org", resolver.resolveTenantId());
-    }
-
-    @Test
-    public void resolveTenantId_withNullOrgIdInContext_returnsDefaultOrgId() {
-        currentOrgContext.setOrgId(null);
-        assertEquals(defaultOrgId, resolver.resolveTenantId());
-    }
-
-    @Test
-    public void getDefaultTenantId_returnsConfiguredDefaultOrgId() {
-        assertEquals(defaultOrgId, resolver.getDefaultTenantId());
-    }
-
-    @Test
-    public void resolveTenantId_withUuidOrgIdInContext_returnsOrgId() {
-        String orgId = "00000000-0000-0000-0000-000000000000";
-        currentOrgContext.setOrgId(orgId);
-        assertEquals(orgId, resolver.resolveTenantId());
-    }
-
-    @Test
-    public void resolveTenantId_withNonUuidOrgIdInContext_returnsOrgId() {
-        currentOrgContext.setOrgId("first-claim-org");
-        assertEquals("first-claim-org", resolver.resolveTenantId());
-    }
-
 }

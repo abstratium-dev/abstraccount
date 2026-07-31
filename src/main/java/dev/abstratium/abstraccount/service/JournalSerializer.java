@@ -110,6 +110,9 @@ public class JournalSerializer {
                 
                 // Transaction tags
                 for (Tag tag : transaction.tags()) {
+                    if ("id".equalsIgnoreCase(tag.key())) {
+                        continue;
+                    }
                     if (tag.isSimple()) {
                         sb.append("    ; ").append(tag.key()).append(":\n");
                     } else {

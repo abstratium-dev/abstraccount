@@ -59,7 +59,7 @@ The `T_journal_commodity` table defines commodities/currencies used in a journal
 
 **Constraints:**
 - Primary key: (`journal_id`, `commodity_code`)
-- `FK_journal_commodity_journal`: Foreign key to T_journal with CASCADE delete
+- `FK_journal_commodity_journal`: Foreign key to T_journal
 
 **Indices:**
 - `I_journal_commodity`: Index on (`journal_id`, `commodity_code`)
@@ -91,8 +91,8 @@ The `T_account` table stores chart of accounts with support for hierarchical str
 - `EXPENSE`: Expenses
 
 **Constraints:**
-- `FK_account_journal`: Foreign key to T_journal with CASCADE delete
-- `FK_account_parent`: Foreign key to T_account (self-reference) with CASCADE delete
+- `FK_account_journal`: Foreign key to T_journal
+- `FK_account_parent`: Foreign key to T_account (self-reference)
 
 **Indices:**
 - `I_account_name`: Index on account_name for searching
@@ -122,7 +122,7 @@ The `T_transaction` table stores transaction headers with date, status, and part
 - `RECONCILED`: Transaction reconciled with bank statement
 
 **Constraints:**
-- `FK_transaction_journal`: Foreign key to T_journal with CASCADE delete
+- `FK_transaction_journal`: Foreign key to T_journal
 
 **Indices:**
 - `I_transaction_date`: Index on transaction_date for date range queries
@@ -153,8 +153,8 @@ The `T_entry` table stores individual journal entries (debits and credits) for e
 - `entry_order` (INT): Display order within transaction
 
 **Constraints:**
-- `FK_entry_transaction`: Foreign key to T_transaction with CASCADE delete
-- `FK_entry_account`: Foreign key to T_account with CASCADE delete
+- `FK_entry_transaction`: Foreign key to T_transaction
+- `FK_entry_account`: Foreign key to T_account
 
 **Indices:**
 - `I_entry_account`: Index on account_id for account queries
@@ -176,7 +176,7 @@ The `T_tag` table stores key-value tags for categorizing and filtering transacti
 - `tag_value` (VARCHAR(500)): Tag value
 
 **Constraints:**
-- `FK_tag_transaction`: Foreign key to T_transaction with CASCADE delete
+- `FK_tag_transaction`: Foreign key to T_transaction
 
 **Indices:**
 - `I_tag_transaction`: Index on transaction_id for transaction loading
@@ -303,12 +303,15 @@ Strategic indexes are placed for common query patterns:
 
 ## Cascade Delete Behavior
 
-The schema uses CASCADE deletes to maintain referential integrity:
+The schema itself does **not** declare `ON DELETE CASCADE` on any foreign key.
+Cascading deletions are performed by the application through JPA-managed entities
+so that Hibernate Envers lifecycle listeners can capture every deletion.
 
-- Deleting a journal cascades to all accounts, transactions, and commodities
-- Deleting an account cascades to all child accounts and entries
-- Deleting a transaction cascades to all entries and tags
-- This ensures no orphaned records remain in the database
+- Deleting a journal removes its commodities, accounts, transactions, entries, and tags via the `JournalPersistenceService`.
+- Deleting an account is only allowed when it has no child accounts and no referencing entries.
+- Deleting a transaction removes its entries and tags through the `cascade = CascadeType.ALL` and `orphanRemoval = true` mappings on `TransactionEntity`.
+
+This keeps the database schema free of cascading constraints while ensuring that no orphaned records remain.
 
 ## Maintenance
 

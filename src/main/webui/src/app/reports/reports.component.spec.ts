@@ -1,7 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { FormsModule } from '@angular/forms';
 import { ReportsComponent } from './reports.component';
-import { Controller, ReportTemplate, AccountEntryDTO, AccountTreeNode, TagDTO } from '../controller';
+import { Controller, ReportTemplate, AccountEntryDTO, AccountTreeNode, TagDTO, ImportResult } from '../controller';
 import { ModelService } from '../model.service';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
@@ -74,7 +74,9 @@ describe('ReportsComponent', () => {
       'getEntriesForReport',
       'getAccountTree',
       'getTags',
-      'getTransactions'
+      'getTransactions',
+      'exportReportTemplates',
+      'importReportTemplates'
     ]);
 
     const modelServiceSpy = jasmine.createSpyObj('ModelService', [
@@ -940,5 +942,111 @@ describe('ReportsComponent', () => {
     expect(component.filterText).toBe('begin:20240101 end:20241231 invoice:123 not:draft');
     expect(component.startDate).toBe('2024-01-01');
     expect(component.endDate).toBe('2024-12-31');
+  });
+
+  it('should call exportReportTemplates on controller when exporting', async () => {
+    controller.exportReportTemplates.and.returnValue(Promise.resolve('yaml content'));
+
+    spyOn(URL, 'createObjectURL').and.returnValue('blob:url');
+    spyOn(URL, 'revokeObjectURL');
+
+    await component.exportReportTemplates();
+
+    expect(controller.exportReportTemplates).toHaveBeenCalled();
+  });
+
+  it('should open and close import dialog', () => {
+    component.openImportDialog();
+    expect(component.showImportDialog).toBeTrue();
+
+    component.closeImportDialog();
+    expect(component.showImportDialog).toBeFalse();
+    expect(component.importFileName).toBe('');
+    expect(component.importFileContent).toBe('');
+  });
+
+  it('should perform import and show success message', async () => {
+    const result: ImportResult = {
+      status: 'success',
+      imported: 1,
+      items: [{ originalName: 'Template1', finalName: 'Template1', id: 'id1' }]
+    };
+    controller.importReportTemplates.and.returnValue(Promise.resolve(result));
+    component.importFileContent = 'yaml content';
+
+    await component.performImport();
+
+    expect(controller.importReportTemplates).toHaveBeenCalledWith('yaml content');
+    expect(component.importSuccessMessage).toContain('1');
+    expect(component.importResult).toBeNull();
+  });
+
+  it('should show conflict dialog when import detects conflicts', async () => {
+    const result: ImportResult = {
+      status: 'conflict',
+      conflicts: [{ existingId: 'existing-id', name: 'DupTemplate', artefactType: 'report_template' }]
+    };
+    controller.importReportTemplates.and.returnValue(Promise.resolve(result));
+    component.importFileContent = 'yaml content';
+
+    await component.performImport();
+
+    expect(component.importResult).not.toBeNull();
+    expect(component.importResult?.conflicts?.length).toBe(1);
+  });
+
+  it('should show error message on import error status', async () => {
+    const result: ImportResult = {
+      status: 'error',
+      message: 'Invalid JSON in template_content'
+    };
+    controller.importReportTemplates.and.returnValue(Promise.resolve(result));
+    component.importFileContent = 'yaml content';
+
+    await component.performImport();
+
+    expect(component.importError).toContain('Invalid JSON');
+  });
+
+  it('should resolve conflicts by replacing originals', async () => {
+    component.importResult = {
+      status: 'conflict',
+      conflicts: [{ existingId: 'old-id', name: 'OldTemplate', artefactType: 'report_template' }]
+    };
+    component.importFileContent = 'yaml content';
+
+    const successResult: ImportResult = {
+      status: 'success',
+      imported: 1,
+      items: [{ originalName: 'OldTemplate', finalName: 'OldTemplate', id: 'new-id' }]
+    };
+    controller.importReportTemplates.and.returnValue(Promise.resolve(successResult));
+
+    await component.resolveConflictsReplace();
+
+    expect(controller.importReportTemplates).toHaveBeenCalledWith('yaml content', ['old-id']);
+    expect(component.importSuccessMessage).toContain('1');
+    expect(component.importResult).toBeNull();
+  });
+
+  it('should resolve conflicts by renaming duplicates', async () => {
+    component.importResult = {
+      status: 'conflict',
+      conflicts: [{ existingId: 'old-id', name: 'DupTemplate', artefactType: 'report_template' }]
+    };
+    component.importFileContent = 'yaml content';
+
+    const successResult: ImportResult = {
+      status: 'success',
+      imported: 1,
+      items: [{ originalName: 'DupTemplate', finalName: 'DupTemplate (1)', id: 'new-id' }]
+    };
+    controller.importReportTemplates.and.returnValue(Promise.resolve(successResult));
+
+    await component.resolveConflictsRename();
+
+    expect(controller.importReportTemplates).toHaveBeenCalledWith('yaml content', [], true);
+    expect(component.importSuccessMessage).toContain('DupTemplate (1)');
+    expect(component.importResult).toBeNull();
   });
 });
