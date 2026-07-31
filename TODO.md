@@ -13,7 +13,10 @@ These TODOs are to be resolved by the developer, NOT THE LLM.
 
 ## Today
 
+- update JWT/OIDC token verification settings (mp.jwt.verify.audiences, mp.jwt.verify.issuer) in all downstream abstracore-based repositories to match the abstrauth token issuer/audience per stage
+
 - use SecurityProblemLogger in all places where a security issue is detected
+- add multitenancy by using the document MULTITENANCY_IMPLEMENTATION_CHECKLIST.md
 
 ## Tomorrow
 
@@ -22,6 +25,22 @@ These TODOs are to be resolved by the developer, NOT THE LLM.
 
 
 # TODOs for Abstracore (to be deleted downstream)
+
+- add this to end of angular.md in .devis/rules:
+
+    ## Zoneless change detection
+
+    This app uses `provideZonelessChangeDetection()` (no Zone.js). State changes must explicitly notify Angular.
+
+    - **New components must use `ChangeDetectionStrategy.OnPush`** — never `Eager` or `Default`. Convert existing components to `OnPush` when you modify them.
+    - **Template-bound mutable state must be a signal.** Use `signal()` for flags, form state, and copy-to-clipboard states; use `model()` for two-way bindings. Read in templates with `()`, and write with `.set()` / `.update()`. Plain fields that change after first render will cause `ExpressionChangedAfterItHasBeenCheckedError` or stale UI.
+    - **Keep async results in the model.** HTTP results go through the `Controller` into `ModelService` signals; components read them via `modelService.foo$()`.
+    - **React to signal changes with `effect()`**, not `ngOnChanges` or manual subscriptions.
+    - **Avoid `NgZone` APIs** such as `onStable`, `onMicrotaskEmpty`, `onUnstable`, and `isStable` — they do not emit in zoneless mode.
+    - **In tests, always provide `provideZonelessChangeDetection()`** in `TestBed`. Prefer `await fixture.whenStable()` over `fixture.detectChanges()`. If a test mutates plain state, expect `ExpressionChangedAfterItHasBeenCheckedError`.
+
+
+
 
 - search all env files for "noreply" and don't use that!
 - add to application.properties - but change so that stage is in there so that i can't accidentally use a test token in prod (if the secret were the same one)
