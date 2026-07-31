@@ -45,8 +45,7 @@
 .header-right {
     a {
         color: var(--color-link) !important;
-        text-decoration: none !important;
-        cursor: pointer;
+        text-decoration: none;
         transition: color 0.2s ease;
 
         &:hover {
@@ -60,7 +59,7 @@
             text-decoration: none !important;
 
             &:hover {
-                color: var(--color-text-primary) !important;
+                color: var(--color-text-primary);
                 text-decoration: none !important;
             }
         }

@@ -13,13 +13,12 @@ These TODOs are to be resolved by the developer, NOT THE LLM.
 
 ## Today
 
+- use SecurityProblemLogger in all places where a security issue is detected
+
 - [ ] **Replace the legal page** (`src/main/webui/src/app/core/legal/legal.component.html`) with one specific to your organisation — it MUST name the correct data controller, contact details, and applicable law. See the ⚠ LEGAL NOTICE at the top of this README.
 
 - check duty of care 754.   Personal liability for directors — While shareholders are protected, directors/gérants of an Sàrl can face personal liability if they breach their duty of care (CO Art. 754) toward the company. But that's unrelated to your TOS; it's about how you run the company internally.
   - check gemini response
-
-- fix JwtOrgResolver since it won't work in prod - see abstrauth
-  - ditto for OrgIdResolutionFilter
 
 - add multi-tenancy
   - need a mechanism to copy macros and reports and perhaps other things, to other tenants
@@ -62,8 +61,7 @@ These TODOs are to be resolved by the developer, NOT THE LLM.
 - write user guide
 - link the EQL docs to the user guide
 - deploy to test and prod
-
-- use SecurityProblemLogger in all places where a security issue is detected
+- update JWT/OIDC token verification settings (mp.jwt.verify.audiences, mp.jwt.verify.issuer) in all downstream abstracore-based repositories to match the abstrauth token issuer/audience per stage
 
 ## Tomorrow
 
