@@ -1,29 +1,40 @@
 <div class="container">
   <h2>Partners</h2>
 
-  <div class="partners-actions">
-    <button
-      id="add-partner-button"
-      class="btn-primary"
-      (click)="toggleAddForm()"
-      [disabled]="addingPartner">
-      {{ showAddForm ? 'Cancel' : 'Add Partner' }}
-    </button>
-    <button
-      id="import-partners-button"
-      class="btn-secondary"
-      (click)="onImportClick()"
-      [disabled]="importingPartners">
-      {{ importingPartners ? 'Importing...' : 'Import CSV' }}
-    </button>
-    <input
-      type="file"
-      id="partner-file-input"
-      #partnerFileInput
-      accept=".csv,text/csv,text/plain"
-      style="display: none;"
-      (change)="onFileSelected($event)" />
+  <div class="page-menu-header">
+    <div class="menu-wrapper">
+      <button class="menu-btn" (click)="toggleMenu()" aria-label="Partner options">☰</button>
+      @if (menuOpen) {
+        <div class="menu-dropdown" (click)="$event.stopPropagation()">
+          <button
+            id="add-partner-button"
+            (click)="toggleAddForm(); closeMenu()">
+            {{ showAddForm ? 'Cancel Add Partner' : 'Add Partner' }}
+          </button>
+          <button
+            id="import-partners-button"
+            (click)="onImportClick(); closeMenu()"
+            [disabled]="importingPartners">
+            {{ importingPartners ? 'Importing...' : 'Import CSV' }}
+          </button>
+          <button
+            id="export-partners-button"
+            (click)="onExportClick(); closeMenu()"
+            [disabled]="exportingPartners">
+            {{ exportingPartners ? 'Exporting...' : 'Export CSV' }}
+          </button>
+        </div>
+      }
+    </div>
   </div>
+
+  <input
+    type="file"
+    id="partner-file-input"
+    #partnerFileInput
+    accept=".csv,text/csv,text/plain"
+    style="display: none;"
+    (change)="onFileSelected($event)" />
 
   <form *ngIf="showAddForm" id="add-partner-form" (ngSubmit)="onAddPartner()" class="add-partner-form">
     <div class="form-group">

@@ -232,6 +232,34 @@ public class PartnerDataAdapter {
     }
 
     /**
+     * Export all partners for an organisation as CSV content.
+     *
+     * <p>The returned string has the same format as the import CSV: a header
+     * line followed by one line per partner (including inactive ones), sorted
+     * by partner number. This is suitable for downloading as a {@code .csv}
+     * file that can later be re-imported via {@link #replacePartners}.</p>
+     *
+     * @param orgId the organisation identifier
+     * @return the full CSV content, or just the header line if the
+     *         organisation has no partners
+     */
+    public String exportPartners(String orgId) {
+        if (orgId == null || orgId.isBlank()) {
+            throw new IllegalArgumentException("orgId cannot be null or blank");
+        }
+
+        List<PartnerData> partners = getAllPartners(orgId);
+        partners.sort(Comparator.comparing(PartnerData::partnerNumber));
+
+        StringBuilder sb = new StringBuilder();
+        sb.append(CSV_HEADER).append(System.lineSeparator());
+        for (PartnerData partner : partners) {
+            sb.append(formatCsvLine(partner)).append(System.lineSeparator());
+        }
+        return sb.toString();
+    }
+
+    /**
      * Overwrite the organisation's CSV file with the supplied partners.
      * The file is written with a header line followed by one line per partner.
      */

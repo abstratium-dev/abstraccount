@@ -102,7 +102,7 @@ These values are extracted from the balance sheet at the closing date.
 
 #### A.8 - Total Liabilities to Shareholders, Related Parties, and Group Companies
 **Calculation:** Sum of account 2:20:220:2210 (Autres dettes à court terme - may include shareholder loans)
-- Specifically account 2210.001 (Anton Kutschera) and similar related party accounts
+- Specifically account 2210.001 (Ant) and similar related party accounts
 - **Account Type:** LIABILITY
 - **Account Regex:** `^2:20:220:2210`
 - **Note:** Requires manual review to identify related party liabilities

@@ -79,7 +79,7 @@ class PartnerDataAdapterTest {
         // Given
         String csvContent = """
             "Partner Number","Name","Active"
-            "P00000001","Kutschera Anton","true"
+            "P00000001","Ant","true"
             "P00000002","abstratium informatique sàrl","true"
             "P00000003","other company","false"
             """;
@@ -93,7 +93,7 @@ class PartnerDataAdapterTest {
 
         Optional<PartnerData> partner1 = adapter.getPartner("org1", "P00000001");
         assertTrue(partner1.isPresent());
-        assertEquals("Kutschera Anton", partner1.get().name());
+        assertEquals("Ant", partner1.get().name());
         assertTrue(partner1.get().active());
 
         Optional<PartnerData> partner2 = adapter.getPartner("org1", "P00000002");
@@ -112,7 +112,7 @@ class PartnerDataAdapterTest {
         // Given
         String csvContent = """
             "Partner Number","Name","Active"
-            "P00000001","Kutschera Anton","true"
+            "P00000001","Ant","true"
             """;
         writeOrgFile("org1", csvContent);
 
@@ -141,7 +141,7 @@ class PartnerDataAdapterTest {
         // Given
         String csvContent = """
             "Partner Number","Name","Active"
-            "P00000001","Kutschera Anton","true"
+            "P00000001","Ant","true"
 
             "P00000002","abstratium informatique sàrl","true"
 
@@ -191,7 +191,7 @@ class PartnerDataAdapterTest {
         // Given - initial data
         writeOrgFile("org1", """
             "Partner Number","Name","Active"
-            "P00000001","Kutschera Anton","true"
+            "P00000001","Ant","true"
             """);
         adapter.getAllPartners("org1");
         assertEquals(1, adapter.getAllPartners("org1").size());
@@ -213,11 +213,11 @@ class PartnerDataAdapterTest {
     @Test
     void testParseCsvLine() {
         // When
-        PartnerData partner = adapter.parseCsvLine("\"P00000001\",\"Kutschera Anton\",\"true\"");
+        PartnerData partner = adapter.parseCsvLine("\"P00000001\",\"Ant\",\"true\"");
 
         // Then
         assertEquals("P00000001", partner.partnerNumber());
-        assertEquals("Kutschera Anton", partner.name());
+        assertEquals("Ant", partner.name());
         assertTrue(partner.active());
     }
 
@@ -254,12 +254,12 @@ class PartnerDataAdapterTest {
     @Test
     void testParseCsvFields() {
         // When
-        List<String> fields = adapter.parseCsvFields("\"P00000001\",\"Kutschera Anton\",\"true\"");
+        List<String> fields = adapter.parseCsvFields("\"P00000001\",\"Ant\",\"true\"");
 
         // Then
         assertEquals(3, fields.size());
         assertEquals("P00000001", fields.get(0));
-        assertEquals("Kutschera Anton", fields.get(1));
+        assertEquals("Ant", fields.get(1));
         assertEquals("true", fields.get(2));
     }
 
@@ -280,7 +280,7 @@ class PartnerDataAdapterTest {
         // Given - initial data
         writeOrgFile("org1", """
             "Partner Number","Name","Active"
-            "P00000001","Kutschera Anton","true"
+            "P00000001","Ant","true"
             """);
         adapter.getAllPartners("org1");
         assertEquals(1, adapter.getAllPartners("org1").size());
@@ -288,7 +288,7 @@ class PartnerDataAdapterTest {
         // When - modify file
         writeOrgFile("org1", """
             "Partner Number","Name","Active"
-            "P00000001","Kutschera Anton","true"
+            "P00000001","Ant","true"
             "P00000002","abstratium informatique sàrl","true"
             """);
 
@@ -334,7 +334,7 @@ class PartnerDataAdapterTest {
         // Given
         writeOrgFile("org1", """
             "Partner Number","Name","Active"
-            "P00000001","Kutschera Anton","true"
+            "P00000001","Ant","true"
             "P00000002","abstratium informatique sàrl","true"
             """);
 
@@ -672,6 +672,66 @@ class PartnerDataAdapterTest {
         PartnerData partner = new PartnerData("P00000001", "Partner \"Co\"", true);
         String line = adapter.formatCsvLine(partner);
         assertEquals("\"P00000001\",\"Partner \"\"Co\"\"\",\"true\"", line);
+    }
+
+    // ========================================================================
+    // exportPartners tests
+    // ========================================================================
+
+    @Test
+    void testExportPartners_returnsCsvWithHeaderAndAllPartners() throws IOException {
+        writeOrgFile("org-export", """
+            "Partner Number","Name","Active"
+            "P00000002","Beta","true"
+            "P00000001","Alpha","true"
+            "P00000003","Gamma","false"
+            """);
+
+        String csv = adapter.exportPartners("org-export");
+
+        String[] lines = csv.split("\\R", -1);
+        assertEquals("\"Partner Number\",\"Name\",\"Active\"", lines[0]);
+        // Sorted by partner number
+        assertEquals("\"P00000001\",\"Alpha\",\"true\"", lines[1]);
+        assertEquals("\"P00000002\",\"Beta\",\"true\"", lines[2]);
+        // Inactive partners are included
+        assertEquals("\"P00000003\",\"Gamma\",\"false\"", lines[3]);
+    }
+
+    @Test
+    void testExportPartners_emptyOrg_returnsHeaderOnly() {
+        String csv = adapter.exportPartners("org-empty");
+        String[] lines = csv.split("\\R", -1);
+        assertEquals("\"Partner Number\",\"Name\",\"Active\"", lines[0]);
+        // No data lines (the second element is the trailing empty from the final newline)
+        assertEquals("", lines[1]);
+        assertEquals(2, lines.length);
+    }
+
+    @Test
+    void testExportPartners_roundTripsThroughReplacePartners() throws IOException {
+        writeOrgFile("org-roundtrip", """
+            "Partner Number","Name","Active"
+            "P00000001","Round Trip","true"
+            "P00000002","Other, Inc.","true"
+            """);
+
+        String exported = adapter.exportPartners("org-roundtrip");
+
+        // Clear cache so replace reads fresh
+        adapter.clearCache();
+        ImportPartnersResult result = adapter.replacePartners("org-roundtrip", exported);
+
+        assertTrue(result.isValid());
+        assertEquals(2, result.importedCount());
+        assertEquals("Round Trip", adapter.getPartner("org-roundtrip", "P00000001").orElseThrow().name());
+        assertEquals("Other, Inc.", adapter.getPartner("org-roundtrip", "P00000002").orElseThrow().name());
+    }
+
+    @Test
+    void testExportPartners_blankOrgId_throws() {
+        assertThrows(IllegalArgumentException.class, () -> adapter.exportPartners(""));
+        assertThrows(IllegalArgumentException.class, () -> adapter.exportPartners(null));
     }
 
     // ========================================================================

@@ -9,11 +9,11 @@ class PartnerDataTest {
     @Test
     void testCreateValidPartnerData() {
         // When
-        PartnerData partner = new PartnerData("P00000001", "Kutschera Anton", true);
+        PartnerData partner = new PartnerData("P00000001", "Ant", true);
 
         // Then
         assertEquals("P00000001", partner.partnerNumber());
-        assertEquals("Kutschera Anton", partner.name());
+        assertEquals("Ant", partner.name());
         assertTrue(partner.active());
     }
 
@@ -71,8 +71,8 @@ class PartnerDataTest {
     @Test
     void testPartnerDataEquality() {
         // Given
-        PartnerData partner1 = new PartnerData("P00000001", "Kutschera Anton", true);
-        PartnerData partner2 = new PartnerData("P00000001", "Kutschera Anton", true);
+        PartnerData partner1 = new PartnerData("P00000001", "Ant", true);
+        PartnerData partner2 = new PartnerData("P00000001", "Ant", true);
         PartnerData partner3 = new PartnerData("P00000002", "Other Name", false);
 
         // Then
@@ -83,8 +83,8 @@ class PartnerDataTest {
     @Test
     void testPartnerDataHashCode() {
         // Given
-        PartnerData partner1 = new PartnerData("P00000001", "Kutschera Anton", true);
-        PartnerData partner2 = new PartnerData("P00000001", "Kutschera Anton", true);
+        PartnerData partner1 = new PartnerData("P00000001", "Ant", true);
+        PartnerData partner2 = new PartnerData("P00000001", "Ant", true);
 
         // Then
         assertEquals(partner1.hashCode(), partner2.hashCode());
@@ -93,7 +93,7 @@ class PartnerDataTest {
     @Test
     void testPartnerDataToString() {
         // Given
-        PartnerData partner = new PartnerData("P00000001", "Kutschera Anton", true);
+        PartnerData partner = new PartnerData("P00000001", "Ant", true);
 
         // When
         String toString = partner.toString();
@@ -101,7 +101,7 @@ class PartnerDataTest {
         // Then
         assertNotNull(toString);
         assertTrue(toString.contains("P00000001"));
-        assertTrue(toString.contains("Kutschera Anton"));
+        assertTrue(toString.contains("Ant"));
         assertTrue(toString.contains("true"));
     }
 

@@ -85,7 +85,7 @@ These TODOs are to be resolved by the developer, NOT THE LLM.
         1:10:120:1200 Inventory of hardware and components                         CHF  20.17
         4:4000:4000 Purchases of raw materials and components for manufacturing    CHF  20.17
         4:4000:4000 Purchases of raw materials and components for manufacturing    CHF -20.17
-        2:20:220:2210:2210.001 Anton Kutschera                                     CHF -20.17
+        2:20:220:2210:2210.001 Ant                                     CHF -20.17
 
   - add a macro for purchasing something for resale (4200)
 
@@ -96,7 +96,7 @@ These TODOs are to be resolved by the developer, NOT THE LLM.
         1:1230 Goods held for resale               CHF  8.36
         4:4200 Purchases of goods for resale       CHF  8.36
         4:4200 Purchases of goods for resale       CHF -8.36
-        2:2210.001 Anton Kutschera                 CHF -214.06
+        2:2210.001 Ant                             CHF -214.06
 
 - Link to receipt documents
 - reports

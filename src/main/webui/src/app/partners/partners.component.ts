@@ -40,6 +40,10 @@ export class PartnersComponent implements OnInit {
 
   // Import partners state
   importingPartners = false;
+  // Export partners state
+  exportingPartners = false;
+  // Context menu state
+  menuOpen = false;
   @ViewChild('partnerFileInput') partnerFileInput?: ElementRef<HTMLInputElement>;
 
   readonly globalFilter: string = (() => {
@@ -160,6 +164,44 @@ export class PartnersComponent implements OnInit {
    */
   onImportClick() {
     this.partnerFileInput?.nativeElement.click();
+  }
+
+  /**
+   * Triggered when the user clicks the "Export CSV" button.
+   * Downloads all partners as a CSV file from the backend.
+   */
+  async onExportClick() {
+    this.exportingPartners = true;
+    try {
+      const csv = await this.controller.exportPartners();
+      this.downloadFile(csv, 'partners.csv');
+      this.toastService.success('Partners exported.');
+    } catch (err) {
+      console.error('Failed to export partners:', err);
+      this.toastService.error('Failed to export partners');
+    } finally {
+      this.exportingPartners = false;
+    }
+  }
+
+  private downloadFile(content: string, filename: string): void {
+    const blob = new Blob([content], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+  }
+
+  toggleMenu(): void {
+    this.menuOpen = !this.menuOpen;
+  }
+
+  closeMenu(): void {
+    this.menuOpen = false;
   }
 
   /**

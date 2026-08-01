@@ -869,6 +869,22 @@ export class Controller {
   }
 
   /**
+   * Export all partners for the current organisation as CSV.
+   * Returns the raw CSV content (including header line) which can be
+   * downloaded as a .csv file or re-imported via importPartners().
+   */
+  async exportPartners(): Promise<string> {
+    try {
+      return await firstValueFrom(
+        this.http.get('/api/partners/export', { responseType: 'text' })
+      );
+    } catch (error) {
+      console.error('Error exporting partners:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Get all entries with EQL filtering for entry search.
    */
   async getEntrySearchResults(journalId: string, accountId?: string, filter?: string): Promise<EntrySearchDTO[]> {

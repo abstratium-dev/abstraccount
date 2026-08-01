@@ -122,7 +122,7 @@ The journal file contains a **minimal subset** of the complete Swiss SME account
 - ❌ 2120 Leasing obligations (MISSING)
 - ❌ 2140 Other interest-bearing short-term liabilities (MISSING)
 - ✅ 2160 Autres dettes à court terme non rémunérées (PRESENT - but standard calls this non-interest bearing)
-- ✅ 2160.001 Anton Kutschera (CUSTOM sub-account)
+- ✅ 2160.001 Ant (CUSTOM sub-account)
 
 **Anomaly:** Account 2160 is placed under "210 Interest-bearing" but is named "non-remunerated" (non-interest bearing). This is a classification inconsistency.
 
@@ -285,7 +285,7 @@ The journal file contains a **minimal subset** of the complete Swiss SME account
 ### 1. **Account 2160 Classification - Employee Expense Reimbursements** 🟢
 - **Location:** Under `210 Dettes à court terme portant intérêt / Current interest-bearing liabilities`
 - **Name:** `2160 Autres dettes à court terme non rémunérées / Other non-remunerated short-term liabilities`
-- **Purpose:** Tracks amounts owed to employees (e.g., Anton Kutschera) for business expenses paid from personal funds
+- **Purpose:** Tracks amounts owed to employees (e.g., Ant) for business expenses paid from personal funds
 - **Interest Requirement:** **NO** - In Switzerland, companies are **not required** to pay interest on employee expense reimbursements unless:
   - The amount is explicitly structured as a loan with interest terms
   - There's a written agreement specifying interest

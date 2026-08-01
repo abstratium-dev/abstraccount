@@ -27,6 +27,22 @@ export async function goToPartnersPage(page: Page): Promise<void> {
 // ============================================================================
 
 /**
+ * Open the partners context menu (the ☰ button in the top-right).
+ * Required before clicking menu items such as "Add Partner" or "Import CSV".
+ */
+export async function openPartnersMenu(page: Page): Promise<void> {
+  // Use .page-menu-header to scope to the partners page menu (the header also
+  // has a .menu-btn, so we must be specific to avoid strict-mode violations).
+  const menuBtn = page.locator('.page-menu-header .menu-btn');
+  await expect(menuBtn).toBeVisible({ timeout: 10000 });
+  // Only open if the dropdown is not already visible
+  const dropdownVisible = await page.locator('.page-menu-header .menu-dropdown').isVisible().catch(() => false);
+  if (!dropdownVisible) {
+    await menuBtn.click();
+  }
+}
+
+/**
  * Add a partner via the "Add Partner" form on the partners page.
  * Assumes the user is already on the partners page.
  *
@@ -35,6 +51,9 @@ export async function goToPartnersPage(page: Page): Promise<void> {
  */
 export async function addPartner(page: Page, name: string): Promise<void> {
   console.log(`Adding partner: ${name}`);
+
+  // Open the context menu to reveal the "Add Partner" button
+  await openPartnersMenu(page);
 
   // Click the "Add Partner" button to show the form
   const addButton = page.locator('#add-partner-button');

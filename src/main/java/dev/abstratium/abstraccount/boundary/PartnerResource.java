@@ -123,6 +123,28 @@ public class PartnerResource {
     }
 
     /**
+     * Export all partners for the current organisation as a CSV file.
+     *
+     * <p>The response body is the raw CSV content (text/csv) in the same format
+     * accepted by {@link #importPartners}, including the header line and one
+     * row per partner (active and inactive) sorted by partner number.</p>
+     *
+     * @return the CSV content
+     */
+    @GET
+    @Path("/partners/export")
+    @Produces({MediaType.TEXT_PLAIN, "text/csv"})
+    public Response exportPartners() {
+        String orgId = currentOrgContext.getOrgId();
+        LOG.infof("Exporting partners as CSV for org: %s", orgId);
+
+        String csv = partnerDataAdapter.exportPartners(orgId);
+        return Response.ok(csv)
+            .header("Content-Disposition", "attachment; filename=\"partners.csv\"")
+            .build();
+    }
+
+    /**
      * Replace all partners for the current organisation from an imported CSV file.
      *
      * <p>The request body is the raw CSV content (text/csv). The backend fully

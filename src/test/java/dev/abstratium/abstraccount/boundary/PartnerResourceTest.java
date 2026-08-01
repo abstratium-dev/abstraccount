@@ -49,7 +49,7 @@ class PartnerResourceTest {
 
         String csvContent = """
             "Partner Number","Name","Active"
-            "P00000001","Kutschera Anton","true"
+            "P00000001","Ant","true"
             "P00000002","abstratium informatique sàrl","true"
             "P00000003","John Smith","true"
             "P00000099","Inactive Partner","false"
@@ -378,6 +378,67 @@ class PartnerResourceTest {
     }
 
     // ========================================================================
+    // GET /api/partners/export - export partners as CSV
+    // ========================================================================
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {Roles.USER})
+    @OidcSecurity(claims = @Claim(key = "orgId", value = TEST_ORG_ID))
+    void testExportPartners_returnsCsvWithHeaderAndData() {
+        given()
+        .when()
+            .get("/api/partners/export")
+        .then()
+            .statusCode(200)
+            .body(containsString("\"Partner Number\",\"Name\",\"Active\""))
+            .body(containsString("Ant"));
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {Roles.USER})
+    @OidcSecurity(claims = @Claim(key = "orgId", value = TEST_ORG_ID))
+    void testExportPartners_exportedCsvCanBeReimported() {
+        // Export the current partners
+        String exported = given()
+        .when()
+            .get("/api/partners/export")
+        .then()
+            .statusCode(200)
+            .extract().asString();
+
+        // Re-import the exported content (replace)
+        given()
+            .contentType("text/csv")
+            .body(exported)
+        .when()
+            .post("/api/partners/import")
+        .then()
+            .statusCode(200)
+            .body("errors", empty());
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {Roles.USER})
+    @OidcSecurity(claims = @Claim(key = "orgId", value = TEST_ORG_ID))
+    void testExportPartners_hasContentDispositionHeader() {
+        given()
+        .when()
+            .get("/api/partners/export")
+        .then()
+            .statusCode(200)
+            .header("Content-Disposition", containsString("partners.csv"));
+    }
+
+    @Test
+    void testExportPartners_unauthenticated_returns401() {
+        given()
+        .when()
+            .get("/api/partners/export")
+        .then()
+            .statusCode(anyOf(equalTo(401), equalTo(403)));
+    }
+
+    // ========================================================================
     // POST /api/partners/import - replace partners from CSV
     // ========================================================================
 
@@ -414,7 +475,7 @@ class PartnerResourceTest {
         // Old partner from setup data is gone
         given()
             .contentType(ContentType.JSON)
-            .queryParam("q", "Kutschera")
+            .queryParam("q", "Ant")
         .when()
             .get("/api/partners/search")
         .then()
@@ -506,12 +567,12 @@ class PartnerResourceTest {
         // Confirm existing partner is present
         given()
             .contentType(ContentType.JSON)
-            .queryParam("q", "Kutschera")
+            .queryParam("q", "Ant")
         .when()
             .get("/api/partners/search")
         .then()
             .statusCode(200)
-            .body("[0].name", equalTo("Kutschera Anton"));
+            .body("[0].name", equalTo("Ant"));
 
         // Attempt an invalid import
         String badCsv = """
@@ -529,12 +590,12 @@ class PartnerResourceTest {
         // Existing partner is still there
         given()
             .contentType(ContentType.JSON)
-            .queryParam("q", "Kutschera")
+            .queryParam("q", "Ant")
         .when()
             .get("/api/partners/search")
         .then()
             .statusCode(200)
-            .body("[0].name", equalTo("Kutschera Anton"));
+            .body("[0].name", equalTo("Ant"));
     }
 
     @Test

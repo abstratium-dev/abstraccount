@@ -54,7 +54,7 @@ describe('PartnersComponent', () => {
   ];
 
   beforeEach(async () => {
-    const controllerSpy = jasmine.createSpyObj('Controller', ['searchPartners', 'createPartner', 'importPartners']);
+    const controllerSpy = jasmine.createSpyObj('Controller', ['searchPartners', 'createPartner', 'importPartners', 'exportPartners']);
     const modelServiceSpy = jasmine.createSpyObj('ModelService', [], {
       transactions$: signal(mockTransactions),
       selectedJournalId$: signal('journal1')
@@ -468,5 +468,69 @@ describe('PartnersComponent', () => {
     await component.onFileSelected(event);
 
     expect(inputElement.value).toBe('');
+  });
+
+  // ========================================================================
+  // Context menu tests
+  // ========================================================================
+
+  it('should toggle menu open and closed', () => {
+    expect(component.menuOpen).toBe(false);
+    component.toggleMenu();
+    expect(component.menuOpen).toBe(true);
+    component.toggleMenu();
+    expect(component.menuOpen).toBe(false);
+  });
+
+  it('should close menu when closeMenu is called', () => {
+    component.menuOpen = true;
+    component.closeMenu();
+    expect(component.menuOpen).toBe(false);
+  });
+
+  // ========================================================================
+  // Export CSV tests
+  // ========================================================================
+
+  it('should export partners and show success toast', async () => {
+    const csvContent = '"Partner Number","Name","Active"\n"P00000001","Test","true"\n';
+    controller.exportPartners.and.returnValue(Promise.resolve(csvContent));
+
+    spyOn(component as any, 'downloadFile');
+
+    await component.onExportClick();
+
+    expect(controller.exportPartners).toHaveBeenCalled();
+    expect((component as any).downloadFile).toHaveBeenCalledWith(csvContent, 'partners.csv');
+    expect(toastService.success).toHaveBeenCalledWith('Partners exported.');
+    expect(component.exportingPartners).toBe(false);
+  });
+
+  it('should show error toast when export fails', async () => {
+    controller.exportPartners.and.returnValue(Promise.reject(new Error('Network error')));
+
+    await component.onExportClick();
+
+    expect(toastService.error).toHaveBeenCalledWith('Failed to export partners');
+    expect(component.exportingPartners).toBe(false);
+  });
+
+  it('should set exportingPartners to true during export and false after', async () => {
+    let resolveExport: (value: string) => void;
+    const exportPromise = new Promise<string>((resolve) => {
+      resolveExport = resolve;
+    });
+    controller.exportPartners.and.returnValue(exportPromise);
+
+    spyOn(component as any, 'downloadFile');
+
+    const clickPromise = component.onExportClick();
+
+    expect(component.exportingPartners).toBe(true);
+
+    resolveExport!('csv content');
+    await clickPromise;
+
+    expect(component.exportingPartners).toBe(false);
   });
 });
