@@ -1,6 +1,6 @@
 import { HttpClient, provideHttpClient, withXsrfConfiguration } from '@angular/common/http';
 import { ApplicationConfig, inject, provideAppInitializer, provideZoneChangeDetection } from '@angular/core';
-import { provideRouter } from '@angular/router';
+import { provideRouter, withInMemoryScrolling } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 
 import { routes } from './app.routes';
@@ -11,7 +11,7 @@ import { RouteTrackingService } from './core/route-tracking.service';
 export const appConfig: ApplicationConfig = {
   providers: [
     provideZoneChangeDetection({ eventCoalescing: true }),
-    provideRouter(routes),
+    provideRouter(routes, withInMemoryScrolling({ anchorScrolling: 'enabled' })),
     provideHttpClient(
       withXsrfConfiguration({
         cookieName: 'XSRF-TOKEN',

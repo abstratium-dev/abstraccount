@@ -1,0 +1,169 @@
+<div class="user-guide-page">
+  <h1 class="guide-title">User Guide</h1>
+  <p class="guide-intro">
+    This guide walks you through building an accounting journal from scratch: creating a chart of accounts, recording transactions, running reports, closing a year, and opening a new one.
+  </p>
+
+  <nav class="guide-toc" aria-label="Table of contents">
+    <h2>On this page</h2>
+    <ul>
+      <li><a [routerLink]="['/user-guide']" fragment="getting-started">Getting started</a></li>
+      <li><a [routerLink]="['/user-guide']" fragment="accounts">Create your accounts</a></li>
+      <li><a [routerLink]="['/user-guide']" fragment="journal">Record journal entries</a></li>
+      <li><a [routerLink]="['/user-guide']" fragment="macros">Use macros for recurring entries</a></li>
+      <li><a [routerLink]="['/user-guide']" fragment="reports">View reports</a></li>
+      <li><a [routerLink]="['/user-guide']" fragment="close-books">Close the books at year end</a></li>
+      <li><a [routerLink]="['/user-guide']" fragment="new-year">Open a new year</a></li>
+      <li><a [routerLink]="['/user-guide']" fragment="filters">Use filters</a></li>
+      <li><a [routerLink]="['/user-guide']" fragment="printing">Print the journal and accounts</a></li>
+    </ul>
+  </nav>
+
+  <section id="getting-started" class="guide-section">
+    <h2>Getting started</h2>
+    <p>
+      Before you can record transactions you need a journal. Use <strong>Journal Management</strong> to see your existing journals, or <strong>Create Journal</strong> to make a new one.
+      When you create a journal you give it a title, currency, and optional logo. Once the journal is selected, the navigation links for <strong>Journal</strong>, <strong>Accounts</strong>, <strong>Reports</strong>, and the other tools become active.
+    </p>
+  </section>
+
+  <section id="accounts" class="guide-section">
+    <h2>Create your accounts</h2>
+    <p>
+      The application is built around <strong>double-entry bookkeeping</strong>. This means every transaction affects at least two accounts and the total debits must equal the total credits.
+      The accounting equation is:
+    </p>
+    <p class="formula">Assets = Liabilities + Equity</p>
+    <p>
+      Each account has a <strong>normal balance</strong> that tells you whether it is increased by a debit or a credit:
+    </p>
+    <ul>
+      <li><strong>ASSET</strong> and <strong>CASH</strong> accounts increase with debits and decrease with credits. Examples: bank account, cash on hand, receivables.</li>
+      <li><strong>LIABILITY</strong> accounts increase with credits and decrease with debits. Examples: loans, payables.</li>
+      <li><strong>EQUITY</strong> accounts increase with credits. Examples: capital, retained earnings.</li>
+      <li><strong>REVENUE</strong> accounts increase with credits. Examples: sales, interest income.</li>
+      <li><strong>EXPENSE</strong> accounts increase with debits. Examples: rent, salaries, utilities.</li>
+    </ul>
+    <p>
+      Open the <strong>Accounts</strong> page to build your chart of accounts. Click <strong>Add Account</strong> to create a top-level account, or click an existing account to add a child account underneath it.
+      The <strong>Account Name</strong> starts with a numeric code, for example <code>1020 Bank Account</code>, and the first word is used as the account code. You can also add a note and a display order to control sorting.
+    </p>
+    <p>
+      Parent accounts let you organise the chart into a tree. For example, an <code>1000 Cash</code> parent may have children <code>1010 Cash on Hand</code> and <code>1020 Bank Account</code>.
+      Balances shown in the accounts table are rolled up through the hierarchy, so a parent shows the total of itself and all descendants.
+    </p>
+    <p>
+      Clicking an account name opens the <strong>Account Ledger</strong>, where you can see every entry that touched that account, including optional children, a running balance, and a chart of the balance over time.
+    </p>
+  </section>
+
+  <section id="journal" class="guide-section">
+    <h2>Record journal entries</h2>
+    <p>
+      Open the <strong>Journal</strong> page to see all recorded transactions. Click the <strong>Add Transaction</strong> button to create a new one.
+    </p>
+    <p>
+      In the transaction dialog, enter the following:
+    </p>
+    <ul>
+      <li><strong>Date</strong>: the date of the transaction. Use chronological order for the best running-balance experience.</li>
+      <li><strong>Status</strong>: <code>CLEARED</code>, <code>PENDING</code>, or <code>RECONCILED</code>.</li>
+      <li><strong>Description</strong>: a short explanation of the transaction, for example "Office rent January".</li>
+      <li><strong>Partner</strong>: optionally select a business partner. This is useful for customer and supplier tracking.</li>
+      <li><strong>Tags</strong>: optional labels in the form <code>key:value</code> or <code>key</code>. Tags help you group and filter entries later.</li>
+    </ul>
+    <p>
+      Each <strong>Entry</strong> line in a transaction contains an account, a commodity (usually the journal currency), and an amount.
+      Enter positive numbers for debits and negative numbers for credits. The application shows a balance indicator at the bottom of the dialog; it must be zero before you can save the transaction.
+    </p>
+    <p>
+      As a simple example, when you pay office rent from the bank account you would debit the expense and credit the bank:
+    </p>
+    <ul>
+      <li>Expense account: <code>1000.00</code> (debit)</li>
+      <li>Bank account: <code>-1000.00</code> (credit)</li>
+    </ul>
+    <p>
+      Saved transactions appear immediately in the journal. You can edit or delete a transaction through the context menu in the journal list.
+    </p>
+  </section>
+
+  <section id="macros" class="guide-section">
+    <h2>Use macros for recurring entries</h2>
+    <p>
+      The <strong>Macros</strong> page lists predefined templates that generate complete journal entries from a few parameters. They are useful for recurring events such as monthly depreciation, salary payments, or loan interest.
+    </p>
+    <p>
+      To run a macro, choose it from the list, fill in the parameters (dates, amounts, accounts, and so on), and click the generate button. The application creates the corresponding transaction and returns you to the journal.
+    </p>
+    <p>
+      Macros use the same accounts and partners as manual transactions, so make sure the relevant accounts exist before running a macro that depends on them.
+    </p>
+  </section>
+
+  <section id="reports" class="guide-section">
+    <h2>View reports</h2>
+    <p>
+      The <strong>Reports</strong> page lets you generate formatted views of your data. Choose a report template, such as a <strong>Trial Balance</strong> or <strong>Profit and Loss</strong> statement, and set the date range you want to cover.
+    </p>
+    <p>
+      A <strong>trial balance</strong> lists every account with its current balance. In a healthy set of books, the sum of all debit balances equals the sum of all credit balances. Use the <strong>Hide zero balances</strong> option to focus on accounts with activity.
+    </p>
+    <p>
+      Some reports can look across the whole journal chain, including opening balances carried from previous years. Select the appropriate template option or use the date filters to control the period shown.
+    </p>
+  </section>
+
+  <section id="close-books" class="guide-section">
+    <h2>Close the books at year end</h2>
+    <p>
+      At the end of a financial year, revenue and expense accounts should be reset to zero and their net result transferred to an equity account. This is called <strong>closing the books</strong>.
+    </p>
+    <p>
+      Open the <strong>Close Books at End of Year</strong> page, choose the closing date (typically the last day of the year), and select the equity account that should receive the year's result, for example an account with the code path <code>2:290:2979</code>.
+    </p>
+    <p>
+      The application shows a preview of the affected income and expense accounts and the amounts that will be transferred. Review the preview and confirm to create the closing transactions. After closing, the revenue and expense accounts have zero balances and the equity account reflects the net income or loss for the year.
+    </p>
+  </section>
+
+  <section id="new-year" class="guide-section">
+    <h2>Open a new year</h2>
+    <p>
+      After closing the previous year, use the <strong>New Year</strong> page to create the next journal. The new journal copies the chart of accounts and any non-zero opening balances from the current one.
+    </p>
+    <p>
+      Provide an opening date (usually the first day of the new year), a title, the <strong>retained earnings</strong> account, and the <strong>annual profit and loss</strong> account.
+      The application previews the accounts that will be created and the opening balance transactions. Confirm to create the new journal and then switch to it to continue recording the next period.
+    </p>
+    <p>
+      You can see the chain of linked journals on the <strong>Journal History</strong> page. This makes it easy to move backwards and forwards through previous financial years.
+    </p>
+  </section>
+
+  <section id="filters" class="guide-section">
+    <h2>Use filters</h2>
+    <p>
+      Many pages share a filter input that lets you narrow the displayed data. You can combine several search tokens.
+    </p>
+    <ul>
+      <li>Free text searches descriptions and account names in the current view.</li>
+      <li><code>tag:key:value</code> or <code>tag:key</code> limits results to transactions with a matching tag.</li>
+      <li><code>partner:PARTNER_ID</code> shows only transactions for that partner.</li>
+      <li><code>begin:YYYYMMDD</code> and <code>end:YYYYMMDD</code> restrict the date range.</li>
+    </ul>
+    <p>
+      On the <strong>Journal</strong> and <strong>Accounts</strong> pages you can also click a tag or partner directly to add that filter automatically. The filter is saved in the page so you can navigate away and come back without losing it.
+    </p>
+  </section>
+
+  <section id="printing" class="guide-section">
+    <h2>Print the journal and accounts</h2>
+    <p>
+      Every list and report is designed to be printable. Open the browser print dialog (for example, Ctrl+P or Command+P) from the <strong>Journal</strong>, <strong>Accounts</strong>, or <strong>Reports</strong> page.
+    </p>
+    <p>
+      The print layout automatically hides the navigation and shows a header with the journal title, subtitle, and currency. Apply filters before printing to control exactly which transactions or accounts appear in the output.
+    </p>
+  </section>
+</div>

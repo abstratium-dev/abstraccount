@@ -83,5 +83,9 @@ export const routes: Routes = [
     canActivate: [authGuard],
     loadComponent: () => import('./core/signed-in/signed-in.component').then(m => m.SignedInComponent)
   },
+  {
+    path: 'user-guide',
+    loadComponent: () => import('./user-guide/user-guide.component').then(m => m.UserGuideComponent)
+  },
   { path: '**',                        component: NotFoundComponent }
 ];
