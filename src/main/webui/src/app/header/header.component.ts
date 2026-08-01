@@ -1,9 +1,9 @@
 import { CommonModule } from '@angular/common';
-import { Component, effect, inject, OnInit } from '@angular/core';
+import { Component, effect, inject } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import { AuthService, Token } from '../core/auth.service';
 import { ThemeService } from '../core/theme.service';
-import { Controller, JournalMetadataDTO } from '../controller';
+import { JournalMetadataDTO } from '../controller';
 import { ModelService } from '../model.service';
 
 @Component({
@@ -12,9 +12,8 @@ import { ModelService } from '../model.service';
     templateUrl: './header.component.html',
     styleUrl: './header.component.scss',
 })
-export class HeaderComponent implements OnInit {
+export class HeaderComponent {
     private authService = inject(AuthService);
-    private controller = inject(Controller);
     private modelService = inject(ModelService);
     themeService = inject(ThemeService);
     protected brandLogoUrl$ = this.modelService.brandLogoUrl$;
@@ -54,21 +53,6 @@ export class HeaderComponent implements OnInit {
         });
     }
 
-    async ngOnInit(): Promise<void> {
-        if (this.isSignedIn) {
-            await this.loadJournals();
-        }
-    }
-    
-    async loadJournals(): Promise<void> {
-        try {
-            this.journals = await this.controller.listJournals();
-            
-        } catch (err) {
-            console.error('Failed to load journals:', err);
-        }
-    }
-    
     get currentJournalName(): string {
         return this.journals.find(journal => journal.id === this.selectedJournalId)?.title || 'No journal selected';
     }
