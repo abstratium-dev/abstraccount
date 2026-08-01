@@ -5,6 +5,8 @@ import { Router } from '@angular/router';
 import { Controller, MacroDTO, MacroParameterDTO, ImportResult, ImportConflict } from '../controller';
 import { ModelService } from '../model.service';
 import { AutocompleteComponent, AutocompleteOption } from '../core/autocomplete/autocomplete.component';
+import { ConfirmDialogService } from '../core/confirm-dialog/confirm-dialog.service';
+import { ToastService } from '../core/toast/toast.service';
 
 @Component({
   selector: 'macros',
@@ -16,6 +18,8 @@ export class MacrosComponent implements OnInit {
   private controller = inject(Controller);
   private modelService = inject(ModelService);
   private router = inject(Router);
+  private confirmDialog = inject(ConfirmDialogService);
+  private toast = inject(ToastService);
 
   macros: Signal<MacroDTO[]> = this.modelService.macros$;
   
@@ -29,7 +33,8 @@ export class MacrosComponent implements OnInit {
   importFileName: string = '';
   importFileContent: string = '';
   importInProgress: boolean = false;
-  importSuccessMessage: string = '';
+
+  menuOpen: boolean = false;
 
   constructor() {
   }
@@ -78,6 +83,30 @@ export class MacrosComponent implements OnInit {
     this.selectedMacro = null;
     this.parameterValues.clear();
     this.errorMessage = '';
+  }
+
+  async deleteMacro(macro: MacroDTO, event: Event): Promise<void> {
+    event.stopPropagation();
+    const confirmed = await this.confirmDialog.confirm({
+      title: 'Delete Macro',
+      message: `Are you sure you want to delete the macro "${macro.name}"?`,
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      confirmClass: 'btn-danger',
+    });
+    if (!confirmed) {
+      return;
+    }
+
+    this.errorMessage = '';
+    try {
+      await this.controller.deleteMacro(macro.id);
+      this.toast.success(`Macro "${macro.name}" deleted.`);
+    } catch (error) {
+      console.error('Error deleting macro:', error);
+      this.errorMessage = `Failed to delete macro "${macro.name}".`;
+      this.toast.error(`Failed to delete macro "${macro.name}".`);
+    }
   }
 
   getParameterValue(paramName: string): string {
@@ -260,6 +289,26 @@ export class MacrosComponent implements OnInit {
 
   // ===== Import / Export =====
 
+  async importBuiltinMacros(): Promise<void> {
+    this.openImportDialog();
+    this.errorMessage = '';
+    this.importInProgress = true;
+    try {
+      const response = await fetch('/builtin/macros-export.yaml');
+      if (!response.ok) {
+        throw new Error(`Failed to load built-in macros: ${response.status}`);
+      }
+      this.importFileContent = await response.text();
+      this.importFileName = 'macros-export.yaml (built-in)';
+    } catch (error) {
+      console.error('Error loading built-in macros:', error);
+      this.errorMessage = 'Failed to load built-in macros.';
+      this.importInProgress = false;
+      return;
+    }
+    await this.performImport();
+  }
+
   async exportMacros(): Promise<void> {
     try {
       const yaml = await this.controller.exportMacros();
@@ -275,7 +324,6 @@ export class MacrosComponent implements OnInit {
     this.importResult = null;
     this.importFileName = '';
     this.importFileContent = '';
-    this.importSuccessMessage = '';
     this.errorMessage = '';
   }
 
@@ -284,7 +332,14 @@ export class MacrosComponent implements OnInit {
     this.importResult = null;
     this.importFileName = '';
     this.importFileContent = '';
-    this.importSuccessMessage = '';
+  }
+
+  toggleMenu(): void {
+    this.menuOpen = !this.menuOpen;
+  }
+
+  closeMenu(): void {
+    this.menuOpen = false;
   }
 
   onFileSelected(event: Event): void {
@@ -308,7 +363,6 @@ export class MacrosComponent implements OnInit {
 
     this.importInProgress = true;
     this.errorMessage = '';
-    this.importSuccessMessage = '';
 
     try {
       const result = await this.controller.importMacros(this.importFileContent);
@@ -319,16 +373,15 @@ export class MacrosComponent implements OnInit {
         this.errorMessage = result.message || 'Import failed due to invalid data.';
       } else {
         const count = result.imported ?? 0;
-        this.importSuccessMessage = `Successfully imported ${count} macro(s).`;
+        let message = `Successfully imported ${count} macro(s).`;
         if (result.items) {
           const renamed = result.items.filter(i => i.originalName !== i.finalName);
           if (renamed.length > 0) {
-            this.importSuccessMessage += ` Renamed: ${renamed.map(i => i.finalName).join(', ')}.`;
+            message += ` Renamed: ${renamed.map(i => i.finalName).join(', ')}.`;
           }
         }
-        this.importResult = null;
-        this.importFileContent = '';
-        this.importFileName = '';
+        this.toast.success(message);
+        this.closeImportDialog();
       }
     } catch (error) {
       console.error('Error importing macros:', error);
@@ -355,10 +408,8 @@ export class MacrosComponent implements OnInit {
         this.importResult = null;
       } else {
         const count = result.imported ?? 0;
-        this.importSuccessMessage = `Successfully imported ${count} macro(s).`;
-        this.importResult = null;
-        this.importFileContent = '';
-        this.importFileName = '';
+        this.toast.success(`Successfully imported ${count} macro(s).`);
+        this.closeImportDialog();
       }
     } catch (error) {
       console.error('Error replacing macros:', error);
@@ -382,16 +433,15 @@ export class MacrosComponent implements OnInit {
         this.importResult = null;
       } else {
         const count = result.imported ?? 0;
-        this.importSuccessMessage = `Successfully imported ${count} macro(s).`;
+        let message = `Successfully imported ${count} macro(s).`;
         if (result.items) {
           const renamed = result.items.filter(i => i.originalName !== i.finalName);
           if (renamed.length > 0) {
-            this.importSuccessMessage += ` Renamed: ${renamed.map(i => i.finalName).join(', ')}.`;
+            message += ` Renamed: ${renamed.map(i => i.finalName).join(', ')}.`;
           }
         }
-        this.importResult = null;
-        this.importFileContent = '';
-        this.importFileName = '';
+        this.toast.success(message);
+        this.closeImportDialog();
       }
     } catch (error) {
       console.error('Error importing with rename:', error);

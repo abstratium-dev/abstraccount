@@ -8,6 +8,8 @@ import { AccountService } from '../account.service';
 import { ReportConfig, ReportSection, ReportSectionResult, AccountSummary, PartnerSummary, TagGroup } from './reporting-types';
 import { createReportingContext, groupEntriesByAccount, groupTransactionsByTag } from './reporting-context';
 import { FilterInputComponent } from '../journal/filter-input/filter-input.component';
+import { ToastService } from '../core/toast/toast.service';
+import { ConfirmDialogService } from '../core/confirm-dialog/confirm-dialog.service';
 
 @Component({
   selector: 'reports',
@@ -20,6 +22,8 @@ export class ReportsComponent implements OnInit {
   private controller = inject(Controller);
   modelService = inject(ModelService);
   accountService = inject(AccountService);
+  private toast = inject(ToastService);
+  private confirmDialog = inject(ConfirmDialogService);
 
   readonly netIncomeLabel = 'Net Income';
 
@@ -51,8 +55,9 @@ export class ReportsComponent implements OnInit {
   importFileName: string = '';
   importFileContent: string = '';
   importInProgress: boolean = false;
-  importSuccessMessage: string = '';
   importError: string = '';
+
+  menuOpen: boolean = false;
 
   // Expose Math to template
   Math = Math;
@@ -872,6 +877,26 @@ export class ReportsComponent implements OnInit {
 
   // ===== Import / Export =====
 
+  async importBuiltinReportTemplates(): Promise<void> {
+    this.openImportDialog();
+    this.importError = '';
+    this.importInProgress = true;
+    try {
+      const response = await fetch('/builtin/report-templates-export.yaml');
+      if (!response.ok) {
+        throw new Error(`Failed to load built-in report templates: ${response.status}`);
+      }
+      this.importFileContent = await response.text();
+      this.importFileName = 'report-templates-export.yaml (built-in)';
+    } catch (error) {
+      console.error('Error loading built-in report templates:', error);
+      this.importError = 'Failed to load built-in report templates.';
+      this.importInProgress = false;
+      return;
+    }
+    await this.performImport();
+  }
+
   async exportReportTemplates(): Promise<void> {
     try {
       const yaml = await this.controller.exportReportTemplates();
@@ -882,12 +907,38 @@ export class ReportsComponent implements OnInit {
     }
   }
 
+  async deleteReportTemplate(template: ReportTemplate): Promise<void> {
+    const confirmed = await this.confirmDialog.confirm({
+      title: 'Delete Report Template',
+      message: `Are you sure you want to delete the report template "${template.name}"?`,
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      confirmClass: 'btn-danger',
+    });
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      await this.controller.deleteReportTemplate(template.id);
+      this.toast.success(`Report template "${template.name}" deleted.`);
+      if (this.selectedTemplateId === template.id) {
+        this.selectedTemplateId = null;
+        this.selectedTemplate = null;
+        this.reportSections = [];
+      }
+    } catch (error) {
+      console.error('Error deleting report template:', error);
+      this.error = `Failed to delete report template "${template.name}".`;
+      this.toast.error(`Failed to delete report template "${template.name}".`);
+    }
+  }
+
   openImportDialog(): void {
     this.showImportDialog = true;
     this.importResult = null;
     this.importFileName = '';
     this.importFileContent = '';
-    this.importSuccessMessage = '';
     this.importError = '';
   }
 
@@ -896,8 +947,15 @@ export class ReportsComponent implements OnInit {
     this.importResult = null;
     this.importFileName = '';
     this.importFileContent = '';
-    this.importSuccessMessage = '';
     this.importError = '';
+  }
+
+  toggleMenu(): void {
+    this.menuOpen = !this.menuOpen;
+  }
+
+  closeMenu(): void {
+    this.menuOpen = false;
   }
 
   onFileSelected(event: Event): void {
@@ -921,7 +979,6 @@ export class ReportsComponent implements OnInit {
 
     this.importInProgress = true;
     this.importError = '';
-    this.importSuccessMessage = '';
 
     try {
       const result = await this.controller.importReportTemplates(this.importFileContent);
@@ -932,16 +989,15 @@ export class ReportsComponent implements OnInit {
         this.importError = result.message || 'Import failed due to invalid data.';
       } else {
         const count = result.imported ?? 0;
-        this.importSuccessMessage = `Successfully imported ${count} report template(s).`;
+        let message = `Successfully imported ${count} report template(s).`;
         if (result.items) {
           const renamed = result.items.filter(i => i.originalName !== i.finalName);
           if (renamed.length > 0) {
-            this.importSuccessMessage += ` Renamed: ${renamed.map(i => i.finalName).join(', ')}.`;
+            message += ` Renamed: ${renamed.map(i => i.finalName).join(', ')}.`;
           }
         }
-        this.importResult = null;
-        this.importFileContent = '';
-        this.importFileName = '';
+        this.toast.success(message);
+        this.closeImportDialog();
       }
     } catch (error) {
       console.error('Error importing report templates:', error);
@@ -968,10 +1024,8 @@ export class ReportsComponent implements OnInit {
         this.importResult = null;
       } else {
         const count = result.imported ?? 0;
-        this.importSuccessMessage = `Successfully imported ${count} report template(s).`;
-        this.importResult = null;
-        this.importFileContent = '';
-        this.importFileName = '';
+        this.toast.success(`Successfully imported ${count} report template(s).`);
+        this.closeImportDialog();
       }
     } catch (error) {
       console.error('Error replacing report templates:', error);
@@ -995,16 +1049,15 @@ export class ReportsComponent implements OnInit {
         this.importResult = null;
       } else {
         const count = result.imported ?? 0;
-        this.importSuccessMessage = `Successfully imported ${count} report template(s).`;
+        let message = `Successfully imported ${count} report template(s).`;
         if (result.items) {
           const renamed = result.items.filter(i => i.originalName !== i.finalName);
           if (renamed.length > 0) {
-            this.importSuccessMessage += ` Renamed: ${renamed.map(i => i.finalName).join(', ')}.`;
+            message += ` Renamed: ${renamed.map(i => i.finalName).join(', ')}.`;
           }
         }
-        this.importResult = null;
-        this.importFileContent = '';
-        this.importFileName = '';
+        this.toast.success(message);
+        this.closeImportDialog();
       }
     } catch (error) {
       console.error('Error importing with rename:', error);

@@ -1,0 +1,148 @@
+---
+abstraccount_export_version: "1.0"
+artefact_type: "report_templates"
+items:
+- name: "Balance Sheet"
+  description: "Standard balance sheet showing assets, liabilities, and equity"
+  template_content: "{\"sections\":[{ \"title\":\"Assets\",\"level\":1,\"showAccounts\"\
+    :false},{ \"title\":\"Cash and Cash Equivalents\",\"level\":2,\"accountTypes\"\
+    :[\"CASH\"],\"showSubtotals\":true},{ \"title\":\"Other Assets\",\"level\":2,\"\
+    accountTypes\":[\"ASSET\"],\"showSubtotals\":true},{ \"title\":\"Total Assets\"\
+    ,\"accountTypes\":[\"CASH\",\"ASSET\"],\"showAccounts\":false},{ \"title\":\"\
+    Liabilities and Equity\",\"level\":1,\"showAccounts\":false},{ \"title\":\"Liabilities\"\
+    ,\"level\":2,\"accountTypes\":[\"LIABILITY\"],\"showSubtotals\":true,\"invertSign\"\
+    :true},{ \"title\":\"Equity\",\"level\":2,\"accountTypes\":[\"EQUITY\"],\"showSubtotals\"\
+    :true,\"invertSign\":true,\"includeNetIncome\":false},{ \"title\":\"Net Income/Loss\"\
+    ,\"level\":2,\"invertSign\":true,\"calculated\":\"netIncome\"},{ \"title\":\"\
+    Total Liabilities and Equity\",\"accountTypes\":[\"LIABILITY\",\"EQUITY\"],\"\
+    showAccounts\":false,\"includeNetIncome\":true,\"invertSign\":true}]}"
+- name: "Income Statement"
+  description: "Profit and loss statement showing revenue and expenses"
+  template_content: "{\"sections\":[{ \"title\":\"Revenue\",\"accountTypes\":[\"REVENUE\"\
+    ],\"showSubtotals\":true,\"invertSign\":true},{ \"title\":\"Expenses\",\"accountTypes\"\
+    :[\"EXPENSE\"],\"showSubtotals\":true},{ \"title\":\"Net Income\",\"calculated\"\
+    :\"netIncome\"}]}"
+- name: "Partner Activity Report"
+  description: "Income and expenses grouped by partner"
+  template_content: "{\"sections\":[  {\"title\":\"Partner Activity\",\"groupByPartner\"\
+    :true,\"sortable\":true,\"defaultSortColumn\":\"net\",\"defaultSortDirection\"\
+    :\"desc\"}]}"
+- name: "Swiss Balance Sheet (Bilan)"
+  description: "Swiss SME standard balance sheet format (KMU-Kontenplan)"
+  template_content: "{\"sections\":[{\"title\":\"Actifs / Assets\",\"level\":1,\"\
+    showAccounts\":false},{\"title\":\"Trésorerie / Cash and Cash Equivalents\",\"\
+    level\":2,\"accountTypes\":[\"CASH\"]},{\"title\":\"Autres actifs / Other Assets\"\
+    ,\"level\":2,\"accountTypes\":[\"ASSET\"]},{\"title\":\"Total des actifs / Total\
+    \ Assets\",\"level\":2,\"accountTypes\":[\"ASSET\",\"CASH\"],\"showAccounts\"\
+    :false},{\"title\":\"Passifs / Liabilities\",\"level\":1,\"showAccounts\":false},{\"\
+    title\":\"Dettes / Liabilities\",\"level\":2,\"accountTypes\":[\"LIABILITY\"],\"\
+    invertSign\":true},{\"title\":\"Capitaux propres / Equity\",\"level\":1,\"showAccounts\"\
+    :false},{\"title\":\"Capitaux propres / Equity\",\"level\":2,\"accountTypes\"\
+    :[\"EQUITY\"],\"invertSign\":true,\"includeNetIncome\":true},{\"title\":\"Total\
+    \ des capitaux propres / Total Equity\",\"level\":2,\"accountTypes\":[\"EQUITY\"\
+    ],\"showAccounts\":false,\"includeNetIncome\":true,\"invertSign\":true},{\"title\"\
+    :\"Total des passifs et capitaux propres / Total Liabilities and Equity\",\"level\"\
+    :1,\"accountTypes\":[\"LIABILITY\",\"EQUITY\"],\"showAccounts\":false,\"includeNetIncome\"\
+    :true,\"invertSign\":true}]}"
+- name: "Swiss Income Statement (Compte de résultat)"
+  description: "Swiss SME standard income statement format (KMU-Kontenplan)"
+  template_content: "{\"sections\":[{\"title\":\"Produits / Revenue\",\"level\":1,\"\
+    showAccounts\":false},{\"title\":\"Chiffre d'affaires net / Net Sales and Service\
+    \ Revenue\",\"level\":2,\"accountTypes\":[\"REVENUE\"],\"invertSign\":true,\"\
+    showSubtotals\":true},{\"title\":\"Total des produits / Total Revenue\",\"level\"\
+    :2,\"accountTypes\":[\"REVENUE\"],\"showAccounts\":false,\"invertSign\":true},{\"\
+    title\":\"Charges / Expenses\",\"level\":1,\"showAccounts\":false},{\"title\"\
+    :\"Charges de marchandises et de matériel / Cost of Materials and Goods\",\"level\"\
+    :2,\"accountRegex\":\"^4 \",\"showSubtotals\":true},{\"title\":\"Charges de personnel\
+    \ / Personnel Expenses\",\"level\":2,\"accountRegex\":\"^5 \",\"showSubtotals\"\
+    :true},{\"title\":\"Autres charges d'exploitation / Other Operating Expenses\"\
+    ,\"level\":2,\"accountRegex\":\"^6 \",\"showSubtotals\":true},{\"title\":\"Total\
+    \ des charges / Total Expenses\",\"level\":2,\"accountTypes\":[\"EXPENSE\"],\"\
+    showAccounts\":false},{\"title\":\"Résultat de l'exercice / Net Income\",\"level\"\
+    :1,\"calculated\":\"netIncome\"}]}"
+- name: "Swiss Tax Declaration (Déclaration fiscale suisse)"
+  description: "Swiss corporate tax declaration form with sections A (General Information),\
+    \ B (Net Profit), and C (Capital and Reserves)"
+  template_content: "{\"sections\":[{\"title\":\"A. INDICATIONS GÉNÉRALES\",\"level\"\
+    :1,\"showAccounts\":false},{\"title\":\"À compléter obligatoirement selon comptes\
+    \ déposés à la date de bouclement\",\"level\":2,\"showAccounts\":false},{\"title\"\
+    :\"A.1 Total des créances résultant des ventes de biens et de prestations services\"\
+    ,\"level\":3,\"accountRegex\":\"^1:10:110\",\"showSubtotals\":false},{\"title\"\
+    :\"A.2 Total des créances/prêts envers des actionnaires, des proches et/ou des\
+    \ sociétés du groupe\",\"level\":3,\"accountRegex\":\"^1:10:13\",\"showSubtotals\"\
+    :false},{\"title\":\"A.3 Total des stocks\",\"level\":3,\"accountRegex\":\"^1:10:120\"\
+    ,\"showSubtotals\":false},{\"title\":\"A.4 Total des participations\",\"level\"\
+    :3,\"accountRegex\":\"^1:14:14\",\"showSubtotals\":false},{\"title\":\"A.5 Total\
+    \ de l'actif immobilisé (sans les participations A.4)\",\"level\":3,\"accountRegex\"\
+    :\"^1:14:15\",\"showSubtotals\":false},{\"title\":\"A.6 Total du bilan\",\"level\"\
+    :3,\"accountTypes\":[\"ASSET\",\"CASH\"],\"showAccounts\":false},{\"title\":\"\
+    A.7 Total des passifs transitoires / de régularisation\",\"level\":3,\"accountRegex\"\
+    :\"^2:20:23\",\"invertSign\":true,\"showSubtotals\":false},{\"title\":\"A.8 Total\
+    \ des dettes envers des actionnaires, des proches et/ou des sociétés du groupe\"\
+    ,\"level\":3,\"accountRegex\":\"^2:20:220:2210\",\"invertSign\":true,\"showSubtotals\"\
+    :false},{\"title\":\"A.9 Total des provisions\",\"level\":3,\"accountRegex\":\"\
+    ^2:20:24\",\"invertSign\":true,\"showSubtotals\":false},{\"title\":\"A.10 Total\
+    \ des produits nets des ventes de biens et des prestations de services\",\"level\"\
+    :3,\"accountTypes\":[\"REVENUE\"],\"invertSign\":true,\"showAccounts\":false},{\"\
+    title\":\"A.11 Total des amortissements et des corrections de valeurs\",\"level\"\
+    :3,\"accountRegex\":\"^6:6800\",\"showSubtotals\":false},{\"title\":\"B. BÉNÉ\
+    FICE NET\",\"level\":1,\"showAccounts\":false},{\"title\":\"B.1 Bénéfice net ou\
+    \ perte (-) selon compte de profits et pertes de l'exercice\",\"level\":3,\"calculated\"\
+    :\"netIncome\",\"invertSign\":true},{\"title\":\"B.2 Adaptation des comptes commerciaux\
+    \ aux règles du droit fiscal (+ ou -)\",\"level\":3,\"showAccounts\":false},{\"\
+    title\":\"B.3 Distributions dissimulées de bénéfice et avantages procurés à des\
+    \ tiers\",\"level\":3,\"showAccounts\":false},{\"title\":\"B.4 Bénéfice net ou\
+    \ perte de l'exercice\",\"level\":3,\"showAccounts\":false},{\"title\":\"B.5 Pertes\
+    \ non compensées des 7 exercices précédents (PF 2018 à 2024)\",\"level\":3,\"\
+    showAccounts\":false},{\"title\":\"B.6 Bénéfice net ou perte après imputation\
+    \ des pertes\",\"level\":3,\"showAccounts\":false},{\"title\":\"B.7 Bénéfice net\
+    \ imposable ou perte en Suisse\",\"level\":3,\"showAccounts\":false},{\"title\"\
+    :\"B.8 Bénéfice net imposable ou perte dans le canton\",\"level\":3,\"showAccounts\"\
+    :false},{\"title\":\"B.9 Réduction pour participation en %\",\"level\":3,\"showAccounts\"\
+    :false},{\"title\":\"C. CAPITAL ET RÉSERVES\",\"level\":1,\"showAccounts\":false},{\"\
+    title\":\"C.0 Dividende de l'exercice selon décision de l'AG\",\"level\":3,\"\
+    showAccounts\":false},{\"title\":\"Capital et réserves après répartition et distribution\
+    \ du dividende de l'exercice\",\"level\":2,\"showAccounts\":false},{\"title\"\
+    :\"C.1 Capital-actions, capital social ou parts sociales versées\",\"level\":3,\"\
+    accountRegex\":\"^2:28:280\",\"invertSign\":true,\"showAccounts\":false},{\"title\"\
+    :\"C.2 Réserve générale\",\"level\":3,\"accountRegex\":\"^2:29:290:2900\",\"invertSign\"\
+    :true,\"showSubtotals\":false},{\"title\":\"C.3 Autres réserves\",\"level\":3,\"\
+    accountRegex\":\"^2:29:290:29[0-6]\",\"invertSign\":true,\"showSubtotals\":false},{\"\
+    title\":\"C.4 Réserves provenant d'apports en capital\",\"level\":3,\"accountRegex\"\
+    :\"^2:29:290:2970\",\"invertSign\":true,\"showSubtotals\":false},{\"title\":\"\
+    C.5 Réserve de réévaluation\",\"level\":3,\"accountRegex\":\"^2:29:290:2950\"\
+    ,\"invertSign\":true,\"showSubtotals\":false},{\"title\":\"C.6 Actions propres\"\
+    ,\"level\":3,\"accountRegex\":\"^2:29:290:2960\",\"showSubtotals\":false},{\"\
+    title\":\"C.7 Report de bénéfices pertes\",\"level\":3,\"accountRegex\":\"^2:29:290:2979\"\
+    ,\"invertSign\":true,\"showSubtotals\":false},{\"title\":\"C.8 Réserves latentes\
+    \ imposées comme bénéfice (+ ou -)\",\"level\":3,\"showAccounts\":false},{\"title\"\
+    :\"C.9 Fonds propres nets (fortune nette globale) du bilan fiscal\",\"level\"\
+    :3,\"accountTypes\":[\"EQUITY\"],\"invertSign\":true,\"includeNetIncome\":true,\"\
+    showAccounts\":false},{\"title\":\"C.10 Capital propre dissimulé\",\"level\":3,\"\
+    showAccounts\":false},{\"title\":\"C.11 Réduction du capital selon art. 118 LI\"\
+    ,\"level\":3,\"showAccounts\":false},{\"title\":\"C.12 Capital total imposable\
+    \ (au minimum le capital libéré)\",\"level\":3,\"showAccounts\":false},{\"title\"\
+    :\"C.13 Capital imposable en Suisse\",\"level\":3,\"showAccounts\":false},{\"\
+    title\":\"C.14 Capital imposable dans le canton\",\"level\":3,\"showAccounts\"\
+    :false}]}"
+- name: "Trial Balance"
+  description: "Trial balance showing all accounts with debits and credits"
+  template_content: "{\"sections\":[{ \"title\":\"Cash\",\"accountTypes\":[\"CASH\"\
+    ],\"showDebitsCredits\":true},{ \"title\":\"Assets\",\"accountTypes\":[\"ASSET\"\
+    ],\"showDebitsCredits\":true},{ \"title\":\"Liabilities\",\"accountTypes\":[\"\
+    LIABILITY\"],\"showDebitsCredits\":true,\"invertSign\":true},{ \"title\":\"Equity\"\
+    ,\"accountTypes\":[\"EQUITY\"],\"showDebitsCredits\":true,\"invertSign\":true},{\
+    \ \"title\":\"Revenue\",\"accountTypes\":[\"REVENUE\"],\"showDebitsCredits\":true,\"\
+    invertSign\":true},{ \"title\":\"Expenses\",\"accountTypes\":[\"EXPENSE\"],\"\
+    showDebitsCredits\":true}]}"
+- name: "Unpaid Sales Invoices"
+  description: "List of unpaid sales invoices with outstanding balances. Groups transactions\
+    \ by invoice tag value (invoice:SI*) and shows net balance per invoice. The balance\
+    \ is calculated only from Accounts Receivable (account 1100) - if the net in AR\
+    \ is zero, the invoice is paid. Searches across all journals in the chain."
+  template_content: "{\n      \"sections\": [\n        {\n          \"title\": \"\
+    Unpaid Sales Invoices\",\n          \"calculated\": \"tagGrouped\",\n        \
+    \  \"tagKey\": \"invoice\",\n          \"tagValuePrefix\": \"SI\",\n         \
+    \ \"balanceAccountNameRegex\": \"1100\",\n          \"useJournalChain\": true,\n\
+    \          \"sortable\": true,\n          \"defaultSortColumn\": \"net\",\n  \
+    \        \"defaultSortDirection\": \"desc\"\n        }\n      ]\n    }"

@@ -1733,11 +1733,38 @@ button {
   padding: 1.5rem;
   cursor: pointer;
   transition: all 0.2s ease;
+  position: relative;
 
   &:hover {
     border-color: var(--color-primary);
     box-shadow: 0 2px 8px var(--shadow-sm);
     transform: translateY(-2px);
+  }
+
+  .macro-delete-btn {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    background: transparent;
+    border: none;
+    color: var(--color-text-tertiary);
+    font-size: 1rem;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0.25rem 0.4rem;
+    border-radius: 4px;
+    opacity: 0;
+    transition: all 0.2s ease;
+
+    &:hover {
+      background: var(--color-error);
+      color: white;
+      opacity: 1;
+    }
+  }
+
+  &:hover .macro-delete-btn {
+    opacity: 1;
   }
 
   h3 {

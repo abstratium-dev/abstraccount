@@ -616,6 +616,19 @@ export class Controller {
     }
   }
 
+  async deleteReportTemplate(templateId: string): Promise<void> {
+    try {
+      await firstValueFrom(
+        this.http.delete<void>(`/api/report/templates/${templateId}`)
+      );
+      // Refresh report template list
+      await this.listReportTemplates();
+    } catch (error) {
+      console.error('Error deleting report template:', error);
+      throw error;
+    }
+  }
+
   async getEntriesForReport(
     journalId: string,
     startDate?: string,

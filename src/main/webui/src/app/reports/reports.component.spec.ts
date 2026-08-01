@@ -3,6 +3,8 @@ import { FormsModule } from '@angular/forms';
 import { ReportsComponent } from './reports.component';
 import { Controller, ReportTemplate, AccountEntryDTO, AccountTreeNode, TagDTO, ImportResult } from '../controller';
 import { ModelService } from '../model.service';
+import { ToastService } from '../core/toast/toast.service';
+import { ConfirmDialogService } from '../core/confirm-dialog/confirm-dialog.service';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { signal } from '@angular/core';
@@ -12,6 +14,8 @@ describe('ReportsComponent', () => {
   let fixture: ComponentFixture<ReportsComponent>;
   let controller: jasmine.SpyObj<Controller>;
   let modelService: jasmine.SpyObj<ModelService>;
+  let toast: jasmine.SpyObj<ToastService>;
+  let confirmDialog: jasmine.SpyObj<ConfirmDialogService>;
 
   const mockTemplates: ReportTemplate[] = [
     {
@@ -76,7 +80,8 @@ describe('ReportsComponent', () => {
       'getTags',
       'getTransactions',
       'exportReportTemplates',
-      'importReportTemplates'
+      'importReportTemplates',
+      'deleteReportTemplate'
     ]);
 
     const modelServiceSpy = jasmine.createSpyObj('ModelService', [
@@ -89,12 +94,16 @@ describe('ReportsComponent', () => {
       journals$: signal([{ id: 'journal1', title: 'Test Journal', subtitle: null, currency: 'CHF', commodities: {}, logo: null, previousJournalId: null }]),
       accounts$: signal(mockAccounts)
     });
+    const toastSpy = jasmine.createSpyObj('ToastService', ['success', 'error', 'info', 'show']);
+    const confirmDialogSpy = jasmine.createSpyObj('ConfirmDialogService', ['confirm']);
 
     await TestBed.configureTestingModule({
       imports: [ReportsComponent, FormsModule],
       providers: [
         { provide: Controller, useValue: controllerSpy },
         { provide: ModelService, useValue: modelServiceSpy },
+        { provide: ToastService, useValue: toastSpy },
+        { provide: ConfirmDialogService, useValue: confirmDialogSpy },
         provideHttpClient(),
         provideHttpClientTesting()
       ]
@@ -104,6 +113,8 @@ describe('ReportsComponent', () => {
     component = fixture.componentInstance;
     controller = TestBed.inject(Controller) as jasmine.SpyObj<Controller>;
     modelService = TestBed.inject(ModelService) as jasmine.SpyObj<ModelService>;
+    toast = TestBed.inject(ToastService) as jasmine.SpyObj<ToastService>;
+    confirmDialog = TestBed.inject(ConfirmDialogService) as jasmine.SpyObj<ConfirmDialogService>;
   });
 
   it('should create', () => {
@@ -965,7 +976,7 @@ describe('ReportsComponent', () => {
     expect(component.importFileContent).toBe('');
   });
 
-  it('should perform import and show success message', async () => {
+  it('should close import dialog and show success toast on import', async () => {
     const result: ImportResult = {
       status: 'success',
       imported: 1,
@@ -973,11 +984,13 @@ describe('ReportsComponent', () => {
     };
     controller.importReportTemplates.and.returnValue(Promise.resolve(result));
     component.importFileContent = 'yaml content';
+    component.showImportDialog = true;
 
     await component.performImport();
 
     expect(controller.importReportTemplates).toHaveBeenCalledWith('yaml content');
-    expect(component.importSuccessMessage).toContain('1');
+    expect(toast.success).toHaveBeenCalledWith(jasmine.stringMatching(/Successfully imported 1 report template\(s\)/));
+    expect(component.showImportDialog).toBeFalse();
     expect(component.importResult).toBeNull();
   });
 
@@ -1008,12 +1021,13 @@ describe('ReportsComponent', () => {
     expect(component.importError).toContain('Invalid JSON');
   });
 
-  it('should resolve conflicts by replacing originals', async () => {
+  it('should resolve conflicts by replacing originals and close dialog with toast', async () => {
     component.importResult = {
       status: 'conflict',
       conflicts: [{ existingId: 'old-id', name: 'OldTemplate', artefactType: 'report_template' }]
     };
     component.importFileContent = 'yaml content';
+    component.showImportDialog = true;
 
     const successResult: ImportResult = {
       status: 'success',
@@ -1025,16 +1039,18 @@ describe('ReportsComponent', () => {
     await component.resolveConflictsReplace();
 
     expect(controller.importReportTemplates).toHaveBeenCalledWith('yaml content', ['old-id']);
-    expect(component.importSuccessMessage).toContain('1');
+    expect(toast.success).toHaveBeenCalledWith(jasmine.stringMatching(/Successfully imported 1 report template\(s\)/));
+    expect(component.showImportDialog).toBeFalse();
     expect(component.importResult).toBeNull();
   });
 
-  it('should resolve conflicts by renaming duplicates', async () => {
+  it('should resolve conflicts by renaming duplicates and close dialog with toast', async () => {
     component.importResult = {
       status: 'conflict',
       conflicts: [{ existingId: 'old-id', name: 'DupTemplate', artefactType: 'report_template' }]
     };
     component.importFileContent = 'yaml content';
+    component.showImportDialog = true;
 
     const successResult: ImportResult = {
       status: 'success',
@@ -1046,7 +1062,102 @@ describe('ReportsComponent', () => {
     await component.resolveConflictsRename();
 
     expect(controller.importReportTemplates).toHaveBeenCalledWith('yaml content', [], true);
-    expect(component.importSuccessMessage).toContain('DupTemplate (1)');
+    expect(toast.success).toHaveBeenCalledWith(jasmine.stringMatching(/Successfully imported 1 report template\(s\).*DupTemplate \(1\)/));
+    expect(component.showImportDialog).toBeFalse();
     expect(component.importResult).toBeNull();
+  });
+
+  it('should fetch built-in report templates and import them', async () => {
+    const result: ImportResult = {
+      status: 'success',
+      imported: 2,
+      items: []
+    };
+    controller.importReportTemplates.and.returnValue(Promise.resolve(result));
+    spyOn(window, 'fetch').and.returnValue(Promise.resolve({
+      ok: true,
+      status: 200,
+      text: () => Promise.resolve('builtin yaml content')
+    } as Response));
+
+    await component.importBuiltinReportTemplates();
+
+    expect(window.fetch).toHaveBeenCalledWith('/builtin/report-templates-export.yaml');
+    expect(controller.importReportTemplates).toHaveBeenCalledWith('builtin yaml content');
+    expect(toast.success).toHaveBeenCalledWith(jasmine.stringMatching(/Successfully imported 2 report template\(s\)/));
+    expect(component.showImportDialog).toBeFalse();
+  });
+
+  it('should show error and not import when built-in fetch fails', async () => {
+    spyOn(window, 'fetch').and.returnValue(Promise.resolve({
+      ok: false,
+      status: 404,
+      text: () => Promise.resolve('')
+    } as Response));
+
+    await component.importBuiltinReportTemplates();
+
+    expect(window.fetch).toHaveBeenCalledWith('/builtin/report-templates-export.yaml');
+    expect(controller.importReportTemplates).not.toHaveBeenCalled();
+    expect(component.importError).toContain('built-in');
+    expect(component.importInProgress).toBeFalse();
+  });
+
+  it('should toggle and close menu', () => {
+    expect(component.menuOpen).toBeFalse();
+
+    component.toggleMenu();
+    expect(component.menuOpen).toBeTrue();
+
+    component.toggleMenu();
+    expect(component.menuOpen).toBeFalse();
+
+    component.menuOpen = true;
+    component.closeMenu();
+    expect(component.menuOpen).toBeFalse();
+  });
+
+  it('should delete report template and clear selection when confirmed', async () => {
+    const testTemplate = mockTemplates[0];
+    component.selectedTemplateId = testTemplate.id;
+    component.selectedTemplate = testTemplate;
+    controller.deleteReportTemplate.and.returnValue(Promise.resolve());
+    confirmDialog.confirm.and.returnValue(Promise.resolve(true));
+
+    await component.deleteReportTemplate(testTemplate);
+
+    expect(confirmDialog.confirm).toHaveBeenCalledWith(jasmine.objectContaining({
+      title: 'Delete Report Template',
+      message: jasmine.stringMatching(testTemplate.name),
+      confirmText: 'Delete',
+      confirmClass: 'btn-danger',
+    }));
+    expect(controller.deleteReportTemplate).toHaveBeenCalledWith(testTemplate.id);
+    expect(toast.success).toHaveBeenCalledWith(jasmine.stringMatching(/Report template.*deleted/));
+    expect(component.selectedTemplateId).toBeNull();
+    expect(component.selectedTemplate).toBeNull();
+    expect(component.reportSections.length).toBe(0);
+  });
+
+  it('should not delete report template when confirmation is cancelled', async () => {
+    const testTemplate = mockTemplates[0];
+    confirmDialog.confirm.and.returnValue(Promise.resolve(false));
+
+    await component.deleteReportTemplate(testTemplate);
+
+    expect(controller.deleteReportTemplate).not.toHaveBeenCalled();
+    expect(toast.success).not.toHaveBeenCalled();
+  });
+
+  it('should show error toast when report template delete fails', async () => {
+    const testTemplate = mockTemplates[0];
+    confirmDialog.confirm.and.returnValue(Promise.resolve(true));
+    controller.deleteReportTemplate.and.returnValue(Promise.reject(new Error('Network error')));
+
+    await component.deleteReportTemplate(testTemplate);
+
+    expect(controller.deleteReportTemplate).toHaveBeenCalledWith(testTemplate.id);
+    expect(component.error).toContain('Failed to delete');
+    expect(toast.error).toHaveBeenCalledWith(jasmine.stringMatching(/Failed to delete report template.*Balance Sheet/));
   });
 });

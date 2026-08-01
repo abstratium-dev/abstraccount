@@ -40,6 +40,20 @@ public class ReportTemplateImportExportService {
     private final ObjectMapper yamlMapper = new ObjectMapper(new YAMLFactory());
 
     /**
+     * Deletes a report template by ID.
+     *
+     * @param templateId the template ID
+     */
+    @Transactional
+    public void deleteReportTemplate(String templateId) {
+        LOG.debugf("Deleting report template: %s", templateId);
+        ReportTemplateEntity template = em.find(ReportTemplateEntity.class, templateId);
+        if (template != null) {
+            em.remove(template);
+        }
+    }
+
+    /**
      * Exports all report templates for the current organisation as YAML.
      */
     @Transactional

@@ -1,9 +1,15 @@
 <div class="macros-container">
   <div class="macros-header">
     <h2>Transaction Macros</h2>
-    <div class="import-export-actions">
-      <button class="btn-secondary" (click)="exportMacros()">Export</button>
-      <button class="btn-secondary" (click)="openImportDialog()">Import</button>
+    <div class="menu-wrapper">
+      <button class="menu-btn" (click)="toggleMenu()" aria-label="Macro options">☰</button>
+      @if (menuOpen) {
+        <div class="menu-dropdown" (click)="$event.stopPropagation()">
+          <button (click)="exportMacros(); closeMenu()">Export</button>
+          <button (click)="openImportDialog(); closeMenu()">Import</button>
+          <button (click)="importBuiltinMacros(); closeMenu()">Import Built-in</button>
+        </div>
+      }
     </div>
   </div>
   
@@ -19,6 +25,7 @@
     <div class="macros-grid">
       @for (macro of macros(); track macro.id) {
         <div class="macro-card" (click)="selectMacro(macro)">
+          <button class="macro-delete-btn" (click)="deleteMacro(macro, $event)" title="Delete macro" aria-label="Delete macro">🗑️</button>
           <h3>{{ macro.name }}</h3>
           @if (macro.description) {
             <p class="macro-description">{{ macro.description }}</p>
@@ -106,9 +113,6 @@
         <div class="modal-body">
           @if (errorMessage) {
             <div class="error-message">{{ errorMessage }}</div>
-          }
-          @if (importSuccessMessage) {
-            <div class="success-message">{{ importSuccessMessage }}</div>
           }
 
           @if (!importResult) {

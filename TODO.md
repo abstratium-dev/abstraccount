@@ -20,11 +20,6 @@ These TODOs are to be resolved by the developer, NOT THE LLM.
 - check duty of care 754.   Personal liability for directors — While shareholders are protected, directors/gérants of an Sàrl can face personal liability if they breach their duty of care (CO Art. 754) toward the company. But that's unrelated to your TOS; it's about how you run the company internally.
   - check gemini response
 
-- add multi-tenancy
-  - offer swiss accounts for importing by adding them to the website
-    - as a basic import with no journal entries
-  - test real life multitenancy
-
 - make all production stuff work with a non-default orgId by creating a new org and using that one
 
 - bug: does adding new year copy the account descriptions?
@@ -32,7 +27,15 @@ These TODOs are to be resolved by the developer, NOT THE LLM.
 
 - is this statement too bold? "Built on Swiss GAAP FER standards."
 
-- convert some angular modules to lazy
+- finish e2e tests
+  - add testing of filters
+  - add testing of entries (pivot)
+  - multitenancy tests
+- write user guide
+- link the EQL docs to the user guide
+- deploy to test and prod
+
+## Tomorrow
 
 - year end taxes - use this for the macro and test it
   - 2024-12-31 * taxes based on equity tax (about 38 chf) and 15% of profit (0)
@@ -53,18 +56,9 @@ These TODOs are to be resolved by the developer, NOT THE LLM.
     2208    CHF  38.10
     1020    CHF -38.10
 
+- edit reports
 
-- finish e2e tests
-  - add testing of filters
-  - add testing of entries (pivot)
-- write user guide
-- link the EQL docs to the user guide
-- deploy to test and prod
-- update JWT/OIDC token verification settings (mp.jwt.verify.audiences, mp.jwt.verify.issuer) in all downstream abstracore-based repositories to match the abstrauth token issuer/audience per stage
-
-## Tomorrow
-
-- edit and delete (manage) reports and macros.
+- edit macros
 
 - make backend calculate running total, so that other services could profit from that logic.
   - remove that logic from the ui
@@ -96,8 +90,6 @@ These TODOs are to be resolved by the developer, NOT THE LLM.
 - reports
   - configure which reports are added to the "reports bar" at the top, without having to be chosen from the dropdown, but simply clicked on.
 
-- ability to edit and manage macros
-- ability to edit and manage reports
 - ebita report
 - [ ] - Update README.md with project-specific information
 - [ ] - Update DATABASE.md with project-specific information

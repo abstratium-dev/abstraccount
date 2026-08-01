@@ -1,42 +1,87 @@
 import { Routes } from '@angular/router';
-import { AccountLedgerComponent } from './account-ledger/account-ledger.component';
-import { AccountsTableComponent } from './accounts-table/accounts-table.component';
-import { CloseBooksComponent } from './close-books/close-books.component';
 import { authGuard } from './core/auth.guard';
 import { NotFoundComponent } from './core/not-found/not-found.component';
-import { SignedInComponent } from './core/signed-in/signed-in.component';
-import { SignedOutComponent } from './core/signed-out/signed-out.component';
-import { CreateJournalComponent } from './create-journal/create-journal.component';
-import { EntrySearchComponent } from './entry-search/entry-search.component';
-import { JournalHistoryComponent } from './journal-history/journal-history.component';
-import { JournalManagementComponent } from './journal-management/journal-management.component';
-import { JournalComponent } from './journal/journal.component';
 import { LandingComponent } from './landing/landing.component';
-import { LegalComponent } from './legal/legal.component';
-import { MacrosComponent } from './macros/macros.component';
-import { NewYearComponent } from './new-year/new-year.component';
-import { PartnersComponent } from './partners/partners.component';
-import { ReportsComponent } from './reports/reports.component';
-import { UploadComponent } from './upload/upload.component';
 
 export const routes: Routes = [
   { path: '',                          component: LandingComponent },
-  { path: 'journal',                   component: JournalComponent, canActivate: [authGuard] },
-  { path: 'accounts-table',            component: AccountsTableComponent, canActivate: [authGuard] },
-  { path: 'account/:accountId/ledger', component: AccountLedgerComponent, canActivate: [authGuard] },
-  { path: 'upload',                    component: UploadComponent, canActivate: [authGuard] },
-  { path: 'create-journal',            component: CreateJournalComponent, canActivate: [authGuard] },
-  { path: 'signed-out',                component: SignedOutComponent },
-  { path: 'reports',                   component: ReportsComponent, canActivate: [authGuard] },
-  { path: 'partners',                  component: PartnersComponent, canActivate: [authGuard] },
-  { path: 'macros',                    component: MacrosComponent, canActivate: [authGuard] },
-  { path: 'entry-search',              component: EntrySearchComponent, canActivate: [authGuard] },
-  { path: 'close-books',               component: CloseBooksComponent, canActivate: [authGuard] },
-  { path: 'new-year',                  component: NewYearComponent, canActivate: [authGuard] },
-  { path: 'journal-history',           component: JournalHistoryComponent, canActivate: [authGuard] },
-  { path: 'journal-management',        component: JournalManagementComponent, canActivate: [authGuard] },
-  { path: 'legal',                     component: LegalComponent },
-  { path: 'signed-in',                 component: SignedInComponent, canActivate: [authGuard] },
-  { path: 'signed-out',                component: SignedOutComponent },
+  {
+    path: 'journal',
+    canActivate: [authGuard],
+    loadComponent: () => import('./journal/journal.component').then(m => m.JournalComponent)
+  },
+  {
+    path: 'accounts-table',
+    canActivate: [authGuard],
+    loadComponent: () => import('./accounts-table/accounts-table.component').then(m => m.AccountsTableComponent)
+  },
+  {
+    path: 'account/:accountId/ledger',
+    canActivate: [authGuard],
+    loadComponent: () => import('./account-ledger/account-ledger.component').then(m => m.AccountLedgerComponent)
+  },
+  {
+    path: 'upload',
+    canActivate: [authGuard],
+    loadComponent: () => import('./upload/upload.component').then(m => m.UploadComponent)
+  },
+  {
+    path: 'create-journal',
+    canActivate: [authGuard],
+    loadComponent: () => import('./create-journal/create-journal.component').then(m => m.CreateJournalComponent)
+  },
+  {
+    path: 'signed-out',
+    loadComponent: () => import('./core/signed-out/signed-out.component').then(m => m.SignedOutComponent)
+  },
+  {
+    path: 'reports',
+    canActivate: [authGuard],
+    loadComponent: () => import('./reports/reports.component').then(m => m.ReportsComponent)
+  },
+  {
+    path: 'partners',
+    canActivate: [authGuard],
+    loadComponent: () => import('./partners/partners.component').then(m => m.PartnersComponent)
+  },
+  {
+    path: 'macros',
+    canActivate: [authGuard],
+    loadComponent: () => import('./macros/macros.component').then(m => m.MacrosComponent)
+  },
+  {
+    path: 'entry-search',
+    canActivate: [authGuard],
+    loadComponent: () => import('./entry-search/entry-search.component').then(m => m.EntrySearchComponent)
+  },
+  {
+    path: 'close-books',
+    canActivate: [authGuard],
+    loadComponent: () => import('./close-books/close-books.component').then(m => m.CloseBooksComponent)
+  },
+  {
+    path: 'new-year',
+    canActivate: [authGuard],
+    loadComponent: () => import('./new-year/new-year.component').then(m => m.NewYearComponent)
+  },
+  {
+    path: 'journal-history',
+    canActivate: [authGuard],
+    loadComponent: () => import('./journal-history/journal-history.component').then(m => m.JournalHistoryComponent)
+  },
+  {
+    path: 'journal-management',
+    canActivate: [authGuard],
+    loadComponent: () => import('./journal-management/journal-management.component').then(m => m.JournalManagementComponent)
+  },
+  {
+    path: 'legal',
+    loadComponent: () => import('./legal/legal.component').then(m => m.LegalComponent)
+  },
+  {
+    path: 'signed-in',
+    canActivate: [authGuard],
+    loadComponent: () => import('./core/signed-in/signed-in.component').then(m => m.SignedInComponent)
+  },
   { path: '**',                        component: NotFoundComponent }
 ];

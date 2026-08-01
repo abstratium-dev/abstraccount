@@ -1,9 +1,25 @@
 <div class="reports-container">
 
-  <!-- Import/Export actions -->
-  <div class="import-export-actions" style="margin-bottom: 1rem;">
-    <button class="btn-secondary" (click)="exportReportTemplates()">Export Templates</button>
-    <button class="btn-secondary" (click)="openImportDialog()">Import Templates</button>
+  <div class="reports-header">
+    <div class="menu-wrapper">
+      <button class="menu-btn" (click)="toggleMenu()" aria-label="Report template options">☰</button>
+      @if (menuOpen) {
+        <div class="menu-dropdown" (click)="$event.stopPropagation()">
+          <button (click)="exportReportTemplates(); closeMenu()">Export Templates</button>
+          <button (click)="openImportDialog(); closeMenu()">Import Templates</button>
+          <button (click)="importBuiltinReportTemplates(); closeMenu()">Import Built-in</button>
+          @if (templates().length > 0) {
+            <div class="menu-separator"></div>
+            @for (template of templates(); track template.id) {
+              <div class="menu-report-item">
+                <span class="menu-report-name">{{ template.name }}</span>
+                <button class="menu-report-delete" (click)="deleteReportTemplate(template); closeMenu()" title="Delete report template" aria-label="Delete {{ template.name }}">🗑️</button>
+              </div>
+            }
+          }
+        </div>
+      }
+    </div>
   </div>
 
   <!-- Error message -->
@@ -328,9 +344,6 @@
         <div class="modal-body">
           @if (importError) {
             <div class="error-message">{{ importError }}</div>
-          }
-          @if (importSuccessMessage) {
-            <div class="success-message">{{ importSuccessMessage }}</div>
           }
 
           @if (!importResult) {

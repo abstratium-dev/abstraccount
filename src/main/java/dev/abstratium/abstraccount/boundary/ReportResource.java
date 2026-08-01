@@ -82,6 +82,25 @@ public class ReportResource {
     }
 
     /**
+     * Deletes a report template.
+     *
+     * @param templateId the template ID
+     */
+    @DELETE
+    @Path("/templates/{templateId}")
+    public jakarta.ws.rs.core.Response deleteReportTemplate(@PathParam("templateId") String templateId) {
+        LOG.debugf("Deleting report template: %s", templateId);
+
+        ReportTemplateEntity existing = em.find(ReportTemplateEntity.class, templateId);
+        if (existing == null) {
+            throw new jakarta.ws.rs.NotFoundException("Report template not found");
+        }
+
+        reportTemplateImportExportService.deleteReportTemplate(templateId);
+        return jakarta.ws.rs.core.Response.noContent().build();
+    }
+
+    /**
      * Exports all report templates for the current organisation as YAML.
      *
      * @return the report templates as a YAML document

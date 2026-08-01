@@ -1,10 +1,12 @@
 package dev.abstratium.abstraccount.boundary;
 
 import dev.abstratium.abstraccount.Roles;
+import dev.abstratium.abstraccount.entity.ReportTemplateEntity;
 import dev.abstratium.core.util.TestTransactionHelper;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -118,6 +120,31 @@ class ReportResourceTest {
             .then()
             .statusCode(anyOf(equalTo(400), equalTo(401)));
     }
+
+    @Test
+    @TestSecurity(user = "testUser", roles = {Roles.USER})
+    void testDeleteTemplate() {
+        String templateId = createReportTemplate("ToDelete", "{\"sections\":[]}");
+
+        given()
+            .contentType(ContentType.JSON)
+            .when().delete("/api/report/templates/" + templateId)
+            .then()
+            .statusCode(204);
+
+        ReportTemplateEntity deleted = em.find(ReportTemplateEntity.class, templateId);
+        assertNull(deleted);
+    }
+
+    @Test
+    @TestSecurity(user = "testUser", roles = {Roles.USER})
+    void testDeleteNonExistentTemplateReturns404() {
+        given()
+            .contentType(ContentType.JSON)
+            .when().delete("/api/report/templates/non-existent-id")
+            .then()
+            .statusCode(404);
+    }
     
     @Test
     @TestSecurity(user = "testUser", roles = {Roles.USER})
@@ -159,5 +186,16 @@ class ReportResourceTest {
             templateContent.contains("\"defaultSortDirection\":\"desc\""),
             "Template should have defaultSortDirection set to 'desc'"
         );
+    }
+
+    @Transactional
+    String createReportTemplate(String name, String templateContent) {
+        ReportTemplateEntity template = new ReportTemplateEntity();
+        template.setName(name);
+        template.setDescription("Description for " + name);
+        template.setTemplateContent(templateContent);
+        em.persist(template);
+        em.flush();
+        return template.getId();
     }
 }
