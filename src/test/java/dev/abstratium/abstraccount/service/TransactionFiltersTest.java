@@ -197,4 +197,47 @@ class TransactionFiltersTest {
         assertFalse(notCleared.matches(cleared));
         assertTrue(notCleared.matches(pending));
     }
+
+    @Test
+    void descriptionContains_filtersCaseInsensitively() {
+        TransactionFilter filter = TransactionFilters.descriptionContains("invoice");
+
+        Account account1 = Account.root("acc1", "Test Account", AccountType.ASSET, null);
+        Account account2 = Account.root("equity", "Equity", AccountType.EQUITY, null);
+        Entry entry1 = Entry.simple(account1, Amount.of("CHF", "100.00"));
+        Entry entry2 = Entry.simple(account2, Amount.of("CHF", "-100.00"));
+
+        Transaction withMixedCase = new Transaction(LocalDate.now(), TransactionStatus.CLEARED,
+            "Paid INVOICE #42", null, "tx1", List.of(), List.of(entry1, entry2));
+        Transaction withLowerCase = new Transaction(LocalDate.now(), TransactionStatus.CLEARED,
+            "invoice payment", null, "tx2", List.of(), List.of(entry1, entry2));
+        Transaction withoutMatch = new Transaction(LocalDate.now(), TransactionStatus.CLEARED,
+            "Salary payment", null, "tx3", List.of(), List.of(entry1, entry2));
+
+        assertTrue(filter.matches(withMixedCase));
+        assertTrue(filter.matches(withLowerCase));
+        assertFalse(filter.matches(withoutMatch));
+    }
+
+    @Test
+    void all_matchesEveryTransaction() {
+        TransactionFilter filter = TransactionFilters.all();
+
+        Transaction cleared = createTestTransaction(LocalDate.now(), TransactionStatus.CLEARED, "acc1");
+        Transaction pending = createTestTransaction(LocalDate.now(), TransactionStatus.PENDING, "acc2");
+
+        assertTrue(filter.matches(cleared));
+        assertTrue(filter.matches(pending));
+    }
+
+    @Test
+    void none_matchesNoTransaction() {
+        TransactionFilter filter = TransactionFilters.none();
+
+        Transaction cleared = createTestTransaction(LocalDate.now(), TransactionStatus.CLEARED, "acc1");
+        Transaction pending = createTestTransaction(LocalDate.now(), TransactionStatus.PENDING, "acc2");
+
+        assertFalse(filter.matches(cleared));
+        assertFalse(filter.matches(pending));
+    }
 }

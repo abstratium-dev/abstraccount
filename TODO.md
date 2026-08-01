@@ -21,7 +21,6 @@ These TODOs are to be resolved by the developer, NOT THE LLM.
   - check gemini response
 
 - add multi-tenancy
-  - need a mechanism to copy macros and reports and perhaps other things, to other tenants
   - offer swiss accounts for importing by adding them to the website
     - as a basic import with no journal entries
   - test real life multitenancy

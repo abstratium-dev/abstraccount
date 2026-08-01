@@ -110,6 +110,73 @@ class SecurityHeadersFilterTest {
         assertNull(headers.getFirst("Strict-Transport-Security"));
     }
 
+    @Test
+    void testHstsWithSubdomainsButNoPreload() throws Exception {
+        filter.cspEnabled = false;
+        filter.hstsEnabled = true;
+        filter.hstsMaxAge = 604800;
+        filter.hstsIncludeSubDomains = true;
+        filter.hstsPreload = false;
+
+        filter.filter(request, response);
+
+        String hsts = (String) headers.getFirst("Strict-Transport-Security");
+        assertNotNull(hsts);
+        assertTrue(hsts.contains("max-age=604800"));
+        assertTrue(hsts.contains("includeSubDomains"));
+        assertFalse(hsts.contains("preload"));
+    }
+
+    @Test
+    void testHstsWithPreloadButNoSubdomains() throws Exception {
+        filter.cspEnabled = false;
+        filter.hstsEnabled = true;
+        filter.hstsMaxAge = 604800;
+        filter.hstsIncludeSubDomains = false;
+        filter.hstsPreload = true;
+
+        filter.filter(request, response);
+
+        String hsts = (String) headers.getFirst("Strict-Transport-Security");
+        assertNotNull(hsts);
+        assertTrue(hsts.contains("max-age=604800"));
+        assertFalse(hsts.contains("includeSubDomains"));
+        assertTrue(hsts.contains("preload"));
+    }
+
+    @Test
+    void testAlwaysOnSecurityHeadersArePresent() throws Exception {
+        // These headers are added regardless of csp/hsts configuration.
+        filter.cspEnabled = false;
+        filter.hstsEnabled = false;
+        filter.hstsMaxAge = 0;
+        filter.hstsIncludeSubDomains = false;
+        filter.hstsPreload = false;
+
+        filter.filter(request, response);
+
+        assertEquals("nosniff", headers.getFirst("X-Content-Type-Options"));
+        assertEquals("DENY", headers.getFirst("X-Frame-Options"));
+        assertEquals("1; mode=block", headers.getFirst("X-XSS-Protection"));
+        assertEquals("strict-origin-when-cross-origin", headers.getFirst("Referrer-Policy"));
+        assertEquals("geolocation=(), microphone=(), camera=(), payment=()",
+            headers.getFirst("Permissions-Policy"));
+    }
+
+    @Test
+    void testCspUsesConfiguredPolicyValue() throws Exception {
+        filter.cspEnabled = true;
+        filter.cspPolicy = "default-src 'none'";
+        filter.hstsEnabled = false;
+        filter.hstsMaxAge = 0;
+        filter.hstsIncludeSubDomains = false;
+        filter.hstsPreload = false;
+
+        filter.filter(request, response);
+
+        assertEquals("default-src 'none'", headers.getFirst("Content-Security-Policy"));
+    }
+
     private static class StubResponseContext implements ContainerResponseContext {
         private final MultivaluedMap<String, Object> headers;
 
