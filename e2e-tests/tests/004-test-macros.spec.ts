@@ -1,12 +1,11 @@
 import { test, expect } from '@playwright/test';
-import * as signedOutPage from '../pages/signed-out.page';
-import * as authSignInPage from '../pages/auth-signin.page';
-import * as authApprovalPage from '../pages/auth-approval.page';
 import * as headerPage from '../pages/header.page';
 import * as transactionsPage from '../pages/transactions.page';
 import * as macrosPage from '../pages/macros.page';
 import * as reportsPage from '../pages/reports.page';
-import { TEST_JOURNAL_NAME, TEST_USER_EMAIL, TEST_USER_PASSWORD } from './test-constants';
+import * as partnersPage from '../pages/partners.page';
+import { authenticate } from './auth-helper';
+import { TEST_JOURNAL_NAME, TEST_USER_EMAIL, TEST_USER_PASSWORD, TEST_PARTNERS } from './test-constants';
 
 /**
  * Test 4: Test Macros - BankingExpense
@@ -29,21 +28,12 @@ test.describe('Test Macros', () => {
     await page.goto('/');
     
     // Check if we need to sign in
-    const journalSelector = page.locator('#journal-select');
-    const isSignedIn = await journalSelector.isVisible({ timeout: 2000 }).catch(() => false);
+    const signOutLink = page.locator('#signout-link');
+    const isSignedIn = await signOutLink.isVisible({ timeout: 2000 }).catch(() => false);
     
     if (!isSignedIn) {
       console.log('Not signed in, performing authentication...');
-      
-      // Perform sign-in flow
-      await signedOutPage.waitForSignedOutPage(page);
-      await signedOutPage.clickSignIn(page);
-      await authSignInPage.waitForAuthSignInPage(page);
-      await authSignInPage.signIn(page, TEST_USER_EMAIL, TEST_USER_PASSWORD);
-      await authApprovalPage.waitForAuthApprovalPage(page);
-      await authApprovalPage.approveApplication(page, true);
-      await page.waitForURL(/http:\/\/localhost:8083/, { timeout: 10000 });
-      
+      await authenticate(page, TEST_USER_EMAIL, TEST_USER_PASSWORD);
       console.log('Authentication complete');
     } else {
       console.log('Already signed in');
@@ -56,13 +46,23 @@ test.describe('Test Macros', () => {
     // Step 1: Select the journal and navigate to transactions page
     // ========================================================================
     console.log('--- Step 1: Selecting Journal ---');
-    
+
     await headerPage.selectJournal(page, TEST_JOURNAL_NAME);
     await headerPage.clickJournalLink(page);
     await transactionsPage.waitForJournalPage(page);
-    
+
     console.log('Journal page loaded');
-    
+
+    // ========================================================================
+    // Ensure required partners exist before running macros
+    // ========================================================================
+    console.log('--- Ensuring required partners exist ---');
+    await partnersPage.ensurePartnersExist(page, TEST_PARTNERS);
+
+    // Navigate back to the journal page after partner creation
+    await headerPage.clickJournalLink(page);
+    await transactionsPage.waitForJournalPage(page);
+
     // ========================================================================
     // Step 2: Delete existing "Test macros 004.1" transaction if it exists
     // ========================================================================
@@ -255,21 +255,12 @@ test.describe('Test Macros', () => {
     await page.goto('/');
     
     // Check if we need to sign in
-    const journalSelector = page.locator('#journal-select');
-    const isSignedIn = await journalSelector.isVisible({ timeout: 2000 }).catch(() => false);
+    const signOutLink = page.locator('#signout-link');
+    const isSignedIn = await signOutLink.isVisible({ timeout: 2000 }).catch(() => false);
     
     if (!isSignedIn) {
       console.log('Not signed in, performing authentication...');
-      
-      // Perform sign-in flow
-      await signedOutPage.waitForSignedOutPage(page);
-      await signedOutPage.clickSignIn(page);
-      await authSignInPage.waitForAuthSignInPage(page);
-      await authSignInPage.signIn(page, TEST_USER_EMAIL, TEST_USER_PASSWORD);
-      await authApprovalPage.waitForAuthApprovalPage(page);
-      await authApprovalPage.approveApplication(page, true);
-      await page.waitForURL(/http:\/\/localhost:8083/, { timeout: 10000 });
-      
+      await authenticate(page, TEST_USER_EMAIL, TEST_USER_PASSWORD);
       console.log('Authentication complete');
     } else {
       console.log('Already signed in');
@@ -488,21 +479,12 @@ test.describe('Test Macros', () => {
     await page.goto('/');
     
     // Check if we need to sign in
-    const journalSelector = page.locator('#journal-select');
-    const isSignedIn = await journalSelector.isVisible({ timeout: 2000 }).catch(() => false);
+    const signOutLink = page.locator('#signout-link');
+    const isSignedIn = await signOutLink.isVisible({ timeout: 2000 }).catch(() => false);
     
     if (!isSignedIn) {
       console.log('Not signed in, performing authentication...');
-      
-      // Perform sign-in flow
-      await signedOutPage.waitForSignedOutPage(page);
-      await signedOutPage.clickSignIn(page);
-      await authSignInPage.waitForAuthSignInPage(page);
-      await authSignInPage.signIn(page, TEST_USER_EMAIL, TEST_USER_PASSWORD);
-      await authApprovalPage.waitForAuthApprovalPage(page);
-      await authApprovalPage.approveApplication(page, true);
-      await page.waitForURL(/http:\/\/localhost:8083/, { timeout: 10000 });
-      
+      await authenticate(page, TEST_USER_EMAIL, TEST_USER_PASSWORD);
       console.log('Authentication complete');
     } else {
       console.log('Already signed in');
@@ -675,21 +657,12 @@ test.describe('Test Macros', () => {
     await page.goto('/');
     
     // Check if we need to sign in
-    const journalSelector = page.locator('#journal-select');
-    const isSignedIn = await journalSelector.isVisible({ timeout: 2000 }).catch(() => false);
+    const signOutLink = page.locator('#signout-link');
+    const isSignedIn = await signOutLink.isVisible({ timeout: 2000 }).catch(() => false);
     
     if (!isSignedIn) {
       console.log('Not signed in, performing authentication...');
-      
-      // Perform sign-in flow
-      await signedOutPage.waitForSignedOutPage(page);
-      await signedOutPage.clickSignIn(page);
-      await authSignInPage.waitForAuthSignInPage(page);
-      await authSignInPage.signIn(page, TEST_USER_EMAIL, TEST_USER_PASSWORD);
-      await authApprovalPage.waitForAuthApprovalPage(page);
-      await authApprovalPage.approveApplication(page, true);
-      await page.waitForURL(/http:\/\/localhost:8083/, { timeout: 10000 });
-      
+      await authenticate(page, TEST_USER_EMAIL, TEST_USER_PASSWORD);
       console.log('Authentication complete');
     } else {
       console.log('Already signed in');
@@ -838,21 +811,12 @@ test.describe('Test Macros', () => {
     await page.goto('/');
     
     // Check if we need to sign in
-    const journalSelector = page.locator('#journal-select');
-    const isSignedIn = await journalSelector.isVisible({ timeout: 2000 }).catch(() => false);
+    const signOutLink = page.locator('#signout-link');
+    const isSignedIn = await signOutLink.isVisible({ timeout: 2000 }).catch(() => false);
     
     if (!isSignedIn) {
       console.log('Not signed in, performing authentication...');
-      
-      // Perform sign-in flow
-      await signedOutPage.waitForSignedOutPage(page);
-      await signedOutPage.clickSignIn(page);
-      await authSignInPage.waitForAuthSignInPage(page);
-      await authSignInPage.signIn(page, TEST_USER_EMAIL, TEST_USER_PASSWORD);
-      await authApprovalPage.waitForAuthApprovalPage(page);
-      await authApprovalPage.approveApplication(page, true);
-      await page.waitForURL(/http:\/\/localhost:8083/, { timeout: 10000 });
-      
+      await authenticate(page, TEST_USER_EMAIL, TEST_USER_PASSWORD);
       console.log('Authentication complete');
     } else {
       console.log('Already signed in');
@@ -1025,21 +989,12 @@ test.describe('Test Macros', () => {
     await page.goto('/');
     
     // Check if we need to sign in
-    const journalSelector = page.locator('#journal-select');
-    const isSignedIn = await journalSelector.isVisible({ timeout: 2000 }).catch(() => false);
+    const signOutLink = page.locator('#signout-link');
+    const isSignedIn = await signOutLink.isVisible({ timeout: 2000 }).catch(() => false);
     
     if (!isSignedIn) {
       console.log('Not signed in, performing authentication...');
-      
-      // Perform sign-in flow
-      await signedOutPage.waitForSignedOutPage(page);
-      await signedOutPage.clickSignIn(page);
-      await authSignInPage.waitForAuthSignInPage(page);
-      await authSignInPage.signIn(page, TEST_USER_EMAIL, TEST_USER_PASSWORD);
-      await authApprovalPage.waitForAuthApprovalPage(page);
-      await authApprovalPage.approveApplication(page, true);
-      await page.waitForURL(/http:\/\/localhost:8083/, { timeout: 10000 });
-      
+      await authenticate(page, TEST_USER_EMAIL, TEST_USER_PASSWORD);
       console.log('Authentication complete');
     } else {
       console.log('Already signed in');
@@ -1205,21 +1160,12 @@ test.describe('Test Macros', () => {
     await page.goto('/');
     
     // Check if we need to sign in
-    const journalSelector = page.locator('#journal-select');
-    const isSignedIn = await journalSelector.isVisible({ timeout: 2000 }).catch(() => false);
+    const signOutLink = page.locator('#signout-link');
+    const isSignedIn = await signOutLink.isVisible({ timeout: 2000 }).catch(() => false);
     
     if (!isSignedIn) {
       console.log('Not signed in, performing authentication...');
-      
-      // Perform sign-in flow
-      await signedOutPage.waitForSignedOutPage(page);
-      await signedOutPage.clickSignIn(page);
-      await authSignInPage.waitForAuthSignInPage(page);
-      await authSignInPage.signIn(page, TEST_USER_EMAIL, TEST_USER_PASSWORD);
-      await authApprovalPage.waitForAuthApprovalPage(page);
-      await authApprovalPage.approveApplication(page, true);
-      await page.waitForURL(/http:\/\/localhost:8083/, { timeout: 10000 });
-      
+      await authenticate(page, TEST_USER_EMAIL, TEST_USER_PASSWORD);
       console.log('Authentication complete');
     } else {
       console.log('Already signed in');
@@ -1402,18 +1348,12 @@ test.describe('Verify Reports After Macro Transactions', () => {
     
     // Navigate and authenticate
     await page.goto('/');
-    const journalSelector = page.locator('#journal-select');
-    const isSignedIn = await journalSelector.isVisible({ timeout: 2000 }).catch(() => false);
+    const signOutLink = page.locator('#signout-link');
+    const isSignedIn = await signOutLink.isVisible({ timeout: 2000 }).catch(() => false);
     
     if (!isSignedIn) {
       console.log('Not signed in, performing authentication...');
-      await signedOutPage.waitForSignedOutPage(page);
-      await signedOutPage.clickSignIn(page);
-      await authSignInPage.waitForAuthSignInPage(page);
-      await authSignInPage.signIn(page, TEST_USER_EMAIL, TEST_USER_PASSWORD);
-      await authApprovalPage.waitForAuthApprovalPage(page);
-      await authApprovalPage.approveApplication(page, true);
-      await page.waitForURL(/http:\/\/localhost:8083/, { timeout: 10000 });
+      await authenticate(page, TEST_USER_EMAIL, TEST_USER_PASSWORD);
       console.log('Authentication complete');
     }
     
@@ -1466,18 +1406,12 @@ test.describe('Verify Reports After Macro Transactions', () => {
     
     // Navigate and authenticate
     await page.goto('/');
-    const journalSelector = page.locator('#journal-select');
-    const isSignedIn = await journalSelector.isVisible({ timeout: 2000 }).catch(() => false);
+    const signOutLink = page.locator('#signout-link');
+    const isSignedIn = await signOutLink.isVisible({ timeout: 2000 }).catch(() => false);
     
     if (!isSignedIn) {
       console.log('Not signed in, performing authentication...');
-      await signedOutPage.waitForSignedOutPage(page);
-      await signedOutPage.clickSignIn(page);
-      await authSignInPage.waitForAuthSignInPage(page);
-      await authSignInPage.signIn(page, TEST_USER_EMAIL, TEST_USER_PASSWORD);
-      await authApprovalPage.waitForAuthApprovalPage(page);
-      await authApprovalPage.approveApplication(page, true);
-      await page.waitForURL(/http:\/\/localhost:8083/, { timeout: 10000 });
+      await authenticate(page, TEST_USER_EMAIL, TEST_USER_PASSWORD);
       console.log('Authentication complete');
     }
     
@@ -1521,18 +1455,12 @@ test.describe('Verify Reports After Macro Transactions', () => {
     
     // Navigate and authenticate
     await page.goto('/');
-    const journalSelector = page.locator('#journal-select');
-    const isSignedIn = await journalSelector.isVisible({ timeout: 2000 }).catch(() => false);
+    const signOutLink = page.locator('#signout-link');
+    const isSignedIn = await signOutLink.isVisible({ timeout: 2000 }).catch(() => false);
     
     if (!isSignedIn) {
       console.log('Not signed in, performing authentication...');
-      await signedOutPage.waitForSignedOutPage(page);
-      await signedOutPage.clickSignIn(page);
-      await authSignInPage.waitForAuthSignInPage(page);
-      await authSignInPage.signIn(page, TEST_USER_EMAIL, TEST_USER_PASSWORD);
-      await authApprovalPage.waitForAuthApprovalPage(page);
-      await authApprovalPage.approveApplication(page, true);
-      await page.waitForURL(/http:\/\/localhost:8083/, { timeout: 10000 });
+      await authenticate(page, TEST_USER_EMAIL, TEST_USER_PASSWORD);
       console.log('Authentication complete');
     }
     
@@ -1580,18 +1508,12 @@ test.describe('Verify Reports After Macro Transactions', () => {
     
     // Navigate and authenticate
     await page.goto('/');
-    const journalSelector = page.locator('#journal-select');
-    const isSignedIn = await journalSelector.isVisible({ timeout: 2000 }).catch(() => false);
+    const signOutLink = page.locator('#signout-link');
+    const isSignedIn = await signOutLink.isVisible({ timeout: 2000 }).catch(() => false);
     
     if (!isSignedIn) {
       console.log('Not signed in, performing authentication...');
-      await signedOutPage.waitForSignedOutPage(page);
-      await signedOutPage.clickSignIn(page);
-      await authSignInPage.waitForAuthSignInPage(page);
-      await authSignInPage.signIn(page, TEST_USER_EMAIL, TEST_USER_PASSWORD);
-      await authApprovalPage.waitForAuthApprovalPage(page);
-      await authApprovalPage.approveApplication(page, true);
-      await page.waitForURL(/http:\/\/localhost:8083/, { timeout: 10000 });
+      await authenticate(page, TEST_USER_EMAIL, TEST_USER_PASSWORD);
       console.log('Authentication complete');
     }
     
@@ -1654,18 +1576,12 @@ test.describe('Verify Reports After Macro Transactions', () => {
     
     // Navigate and authenticate
     await page.goto('/');
-    const journalSelector = page.locator('#journal-select');
-    const isSignedIn = await journalSelector.isVisible({ timeout: 2000 }).catch(() => false);
+    const signOutLink = page.locator('#signout-link');
+    const isSignedIn = await signOutLink.isVisible({ timeout: 2000 }).catch(() => false);
     
     if (!isSignedIn) {
       console.log('Not signed in, performing authentication...');
-      await signedOutPage.waitForSignedOutPage(page);
-      await signedOutPage.clickSignIn(page);
-      await authSignInPage.waitForAuthSignInPage(page);
-      await authSignInPage.signIn(page, TEST_USER_EMAIL, TEST_USER_PASSWORD);
-      await authApprovalPage.waitForAuthApprovalPage(page);
-      await authApprovalPage.approveApplication(page, true);
-      await page.waitForURL(/http:\/\/localhost:8083/, { timeout: 10000 });
+      await authenticate(page, TEST_USER_EMAIL, TEST_USER_PASSWORD);
       console.log('Authentication complete');
     }
     
@@ -1730,18 +1646,12 @@ test.describe('Verify Reports After Macro Transactions', () => {
 
     // Navigate and authenticate
     await page.goto('/');
-    const journalSelector = page.locator('#journal-select');
-    const isSignedIn = await journalSelector.isVisible({ timeout: 2000 }).catch(() => false);
+    const signOutLink = page.locator('#signout-link');
+    const isSignedIn = await signOutLink.isVisible({ timeout: 2000 }).catch(() => false);
 
     if (!isSignedIn) {
       console.log('Not signed in, performing authentication...');
-      await signedOutPage.waitForSignedOutPage(page);
-      await signedOutPage.clickSignIn(page);
-      await authSignInPage.waitForAuthSignInPage(page);
-      await authSignInPage.signIn(page, TEST_USER_EMAIL, TEST_USER_PASSWORD);
-      await authApprovalPage.waitForAuthApprovalPage(page);
-      await authApprovalPage.approveApplication(page, true);
-      await page.waitForURL(/http:\/\/localhost:8083/, { timeout: 10000 });
+      await authenticate(page, TEST_USER_EMAIL, TEST_USER_PASSWORD);
       console.log('Authentication complete');
     }
 

@@ -17,6 +17,9 @@ That file should contain:
     export ABSTRATIUM_CLIENT_SECRET="... (taken from the abstrauth application)"
     export CSRF_TOKEN_SIGNATURE_KEY="... (generated with `openssl rand -base64 64 | tr -d '\n'`)"
     export COOKIE_ENCRYPTION_SECRET="... (generated with `openssl rand -base64 32`)"
+    export ABSTRATIUM_TOGGLES_CONTEXT="... (e.g. abstratium-public-abstraccount)"
+
+The following env vars have sensible defaults for dev and do not need to be set explicitly: `DEFAULT_ORG_UUID` (defaults to `00000000-0000-0000-0000-000000000000`), `STAGE` (defaults to `dev`), `DEPLOYMENT_ENV` (defaults to `dev`), `ABSTRATIUM_TOGGLES_API_URL` (defaults to `https://toggles-t.abstratium.dev`), and `PARTNER_DATA_DIR` (defaults to `.ant/partners`). See [USER_GUIDE.md](../USER_GUIDE.md) for the full list of environment variables.
 
 The application uses Quarkus. Run it with either `./mvnw quarkus:dev` or `quarkus dev` if you have installed the Quarkus CLI.
 

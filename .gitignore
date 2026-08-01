@@ -57,6 +57,7 @@ e2e-tests/playwright/.auth/
 **/node_modules/
 
 **/*.journal
+.ant/partners/*.csv
 .ant/partners.csv
 .ant/*.py
 .playwright-cli

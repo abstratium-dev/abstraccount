@@ -344,6 +344,25 @@ h2 {
   border-top: 1px solid var(--color-border-primary);
 }
 
+.partners-actions {
+  margin-bottom: 1.5rem;
+}
+
+.add-partner-form {
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-primary);
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  max-width: 500px;
+
+  .form-actions {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: none;
+  }
+}
+
 .checkbox-group {
   display: flex;
   align-items: center;

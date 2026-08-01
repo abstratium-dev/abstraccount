@@ -18,12 +18,15 @@ describe('MacrosComponent', () => {
 
   beforeEach(async () => {
     mockController = jasmine.createSpyObj('Controller', [
-      'listMacros', 'executeMacro', 'exportMacros', 'importMacros', 'deleteMacro'
+      'listMacros', 'executeMacro', 'exportMacros', 'importMacros', 'deleteMacro', 'getAccountTree'
     ]);
-    mockModelService = jasmine.createSpyObj('ModelService', [], {
+    mockModelService = jasmine.createSpyObj('ModelService', ['getAccounts', 'getSelectedJournalId'], {
       macros$: signal([]),
       selectedJournalId$: signal('test-journal-id')
     });
+    mockModelService.getAccounts.and.returnValue([]);
+    mockModelService.getSelectedJournalId.and.returnValue('test-journal-id');
+    mockController.getAccountTree.and.returnValue(Promise.resolve([]));
     mockRouter = jasmine.createSpyObj('Router', ['navigate']);
     mockConfirmDialog = jasmine.createSpyObj('ConfirmDialogService', ['confirm']);
     mockToast = jasmine.createSpyObj('ToastService', ['success', 'error', 'info', 'show']);

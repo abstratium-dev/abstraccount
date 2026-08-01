@@ -2,6 +2,7 @@ package dev.abstratium.abstraccount.boundary;
 
 import dev.abstratium.abstraccount.Roles;
 import dev.abstratium.abstraccount.adapters.PartnerDataAdapter;
+import dev.abstratium.abstraccount.model.CreatePartnerResult;
 import dev.abstratium.abstraccount.model.PartnerData;
 import dev.abstratium.abstraccount.service.TagService;
 import dev.abstratium.core.service.CurrentOrgContext;
@@ -74,7 +75,7 @@ public class PartnerResource {
     
     /**
      * Get a specific partner by number.
-     * 
+     *
      * @param partnerNumber the partner number
      * @return the partner data
      */
@@ -88,6 +89,35 @@ public class PartnerResource {
             .filter(PartnerData::active)
             .map(p -> new PartnerDTO(p.partnerNumber(), p.name()))
             .orElseThrow(() -> new NotFoundException("Partner not found: " + partnerNumber));
+    }
+
+    /**
+     * Create a new partner.
+     *
+     * <p>The partner number is assigned by the backend as the next available
+     * number (gap-filling). If a partner with the same name already exists,
+     * the duplicate is skipped and a warning is returned in the response.</p>
+     *
+     * @param request the create request containing the partner name
+     * @return response with the created partner number, name, and any warnings
+     */
+    @POST
+    @Path("/partners")
+    public CreatePartnerResponseDTO createPartner(CreatePartnerRequestDTO request) {
+        String orgId = currentOrgContext.getOrgId();
+        LOG.debugf("Creating partner for org: %s, name: %s", orgId, request.name());
+
+        if (request.name() == null || request.name().isBlank()) {
+            throw new BadRequestException("Partner name is required");
+        }
+
+        CreatePartnerResult result = partnerDataAdapter.addPartner(orgId, request.name());
+
+        return new CreatePartnerResponseDTO(
+            result.partner().partnerNumber(),
+            result.partner().name(),
+            result.warnings()
+        );
     }
     
     /**

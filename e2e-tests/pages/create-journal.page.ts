@@ -37,24 +37,24 @@ function getLogoInput(page: Page) {
 }
 
 /**
- * Gets the "Create Journal" button
+ * Gets the "Create Journal and Starter Accounts" submit button
  */
 function getCreateButton(page: Page) {
-  return page.getByRole('button', { name: /^Create Journal$/i });
+  return page.getByRole('button', { name: /Create Journal and Starter Accounts/i });
 }
 
 /**
- * Gets the heading "Create New Journal"
+ * Gets the heading "Start Your Books"
  */
 function getHeading(page: Page) {
-  return page.getByRole('heading', { name: /Create New Journal/i });
+  return page.getByRole('heading', { name: /Start Your Books/i });
 }
 
 /**
- * Gets the success message
+ * Gets the success message heading "Your Books Are Ready!"
  */
 function getSuccessMessage(page: Page) {
-  return page.getByRole('heading', { name: /Journal Created Successfully/i });
+  return page.getByRole('heading', { name: /Your Books Are Ready!/i });
 }
 
 /**

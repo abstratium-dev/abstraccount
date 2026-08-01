@@ -1,10 +1,8 @@
 import { test, expect } from '@playwright/test';
-import * as signedOutPage from '../pages/signed-out.page';
-import * as authSignInPage from '../pages/auth-signin.page';
-import * as authApprovalPage from '../pages/auth-approval.page';
 import * as headerPage from '../pages/header.page';
 import * as createJournalPage from '../pages/create-journal.page';
 import * as accountsPage from '../pages/accounts.page';
+import { authenticate } from './auth-helper';
 import { TEST_JOURNAL_NAME, TEST_JOURNAL_CURRENCY, TEST_JOURNAL_SUBTITLE, TEST_USER_EMAIL, TEST_USER_PASSWORD } from './test-constants';
 
 /**
@@ -25,21 +23,12 @@ test.describe('Journal and Account Management', () => {
     await page.goto('/');
     
     // Check if we need to sign in
-    const journalSelector = page.locator('#journal-select');
-    const isSignedIn = await journalSelector.isVisible({ timeout: 2000 }).catch(() => false);
+    const signOutLink = page.locator('#signout-link');
+    const isSignedIn = await signOutLink.isVisible({ timeout: 2000 }).catch(() => false);
     
     if (!isSignedIn) {
       console.log('Not signed in, performing authentication...');
-      
-      // Perform sign-in flow
-      await signedOutPage.waitForSignedOutPage(page);
-      await signedOutPage.clickSignIn(page);
-      await authSignInPage.waitForAuthSignInPage(page);
-      await authSignInPage.signIn(page, TEST_USER_EMAIL, TEST_USER_PASSWORD);
-      await authApprovalPage.waitForAuthApprovalPage(page);
-      await authApprovalPage.approveApplication(page, true);
-      await page.waitForURL(/http:\/\/localhost:8083/, { timeout: 10000 });
-      
+      await authenticate(page, TEST_USER_EMAIL, TEST_USER_PASSWORD);
       console.log('Authentication complete');
     } else {
       console.log('Already signed in');
@@ -100,70 +89,70 @@ test.describe('Journal and Account Management', () => {
     // Create child: 10 Current Assets
     await accountsPage.createChildAccount(
       page,
-      'Assets',
+      '1 Assets',
       '10 Current Assets',
       'ASSET'
     );
     await accountsPage.verifyAccountExists(page, '10');
-    
+
     // Create child: 100 Cash and cash equivalents
     await accountsPage.createChildAccount(
       page,
-      'Current Assets',
+      '10 Current Assets',
       '100 Cash and cash equivalents',
       'ASSET'
     );
     await accountsPage.verifyAccountExists(page, '100');
-    
+
     // Create child: 1000 Cash
     await accountsPage.createChildAccount(
       page,
-      'Cash and cash equivalents',
+      '100 Cash and cash equivalents',
       '1000 Cash',
       'CASH'
     );
     await accountsPage.verifyAccountExists(page, '1000');
-    
+
     // Create child: 1020 Bank Account
     await accountsPage.createChildAccount(
       page,
-      'Cash and cash equivalents',
+      '100 Cash and cash equivalents',
       '1020 Bank Account',
       'CASH'
     );
     await accountsPage.verifyAccountExists(page, '1020');
-    
+
     // Create child: 110 Accounts Receivable
     await accountsPage.createChildAccount(
       page,
-      'Current Assets',
+      '10 Current Assets',
       '110 Accounts Receivable',
       'ASSET'
     );
     await accountsPage.verifyAccountExists(page, '110');
-    
+
     // Create child: 1100 Accounts receivable (Debtors)
     await accountsPage.createChildAccount(
       page,
-      'Accounts Receivable',
+      '110 Accounts Receivable',
       '1100 Accounts receivable (Debtors)',
       'ASSET'
     );
     await accountsPage.verifyAccountExists(page, '1100');
-    
+
     // Create child: 120 Inventories and non-invoiced services
     await accountsPage.createChildAccount(
       page,
-      'Current Assets',
+      '10 Current Assets',
       '120 Inventories and non-invoiced services',
       'ASSET'
     );
     await accountsPage.verifyAccountExists(page, '120');
-    
+
     // Create child: 1230 Goods held for resale
     await accountsPage.createChildAccount(
       page,
-      'Inventories and non-invoiced services',
+      '120 Inventories and non-invoiced services',
       '1230 Goods held for resale',
       'ASSET'
     );
@@ -187,61 +176,61 @@ test.describe('Journal and Account Management', () => {
     // Create child: 20 Current liabilities
     await accountsPage.createChildAccount(
       page,
-      'Liabilities',
+      '2 Liabilities',
       '20 Current liabilities',
       'LIABILITY'
     );
     await accountsPage.verifyAccountExists(page, '20');
-    
+
     // Create child: 200 Accounts payable (A/P)
     await accountsPage.createChildAccount(
       page,
-      'Current liabilities',
+      '20 Current liabilities',
       '200 Accounts payable (A/P)',
       'LIABILITY'
     );
     await accountsPage.verifyAccountExists(page, '200');
-    
+
     // Create child: 2000 Accounts payable (suppliers & creditors)
     await accountsPage.createChildAccount(
       page,
-      'Accounts payable (A/P)',
+      '200 Accounts payable (A/P)',
       '2000 Accounts payable (suppliers & creditors)',
       'LIABILITY'
     );
     await accountsPage.verifyAccountExists(page, '2000');
-    
+
     // Create child: 220 Other short-term liabilities
     await accountsPage.createChildAccount(
       page,
-      'Current liabilities',
+      '20 Current liabilities',
       '220 Other short-term liabilities',
       'LIABILITY'
     );
     await accountsPage.verifyAccountExists(page, '220');
-    
+
     // Create child: 2200 VAT payable
     await accountsPage.createChildAccount(
       page,
-      'Other short-term liabilities',
+      '220 Other short-term liabilities',
       '2200 VAT payable',
       'LIABILITY'
     );
     await accountsPage.verifyAccountExists(page, '2200');
-    
+
     // Create child: 2201 VAT settlement
     await accountsPage.createChildAccount(
       page,
-      'Other short-term liabilities',
+      '220 Other short-term liabilities',
       '2201 VAT settlement',
       'LIABILITY'
     );
     await accountsPage.verifyAccountExists(page, '2201');
-    
+
     // Create child: 2206 Withholding tax payable
     await accountsPage.createChildAccount(
       page,
-      'Other short-term liabilities',
+      '220 Other short-term liabilities',
       '2206 Withholding tax payable',
       'LIABILITY'
     );
@@ -250,7 +239,7 @@ test.describe('Journal and Account Management', () => {
     // Create child: 2210 Other short-term liabilities
     await accountsPage.createChildAccount(
       page,
-      'Other short-term liabilities',
+      '220 Other short-term liabilities',
       '2210 Other short-term liabilities',
       'LIABILITY'
     );
@@ -283,61 +272,61 @@ test.describe('Journal and Account Management', () => {
     // Create child: 28 Shareholders Equity
     await accountsPage.createChildAccount(
       page,
-      'Liabilities',
+      '2 Liabilities',
       '28 Shareholders Equity (legal entities)',
       'EQUITY'
     );
     await accountsPage.verifyAccountExists(page, '28');
-    
+
     // Create child: 280 Basic, shareholder or foundation capital
     await accountsPage.createChildAccount(
       page,
-      'Shareholders Equity (legal entities)',
+      '28 Shareholders Equity (legal entities)',
       '280 Basic, shareholder or foundation capital',
       'EQUITY'
     );
     await accountsPage.verifyAccountExists(page, '280');
-    
+
     // Create child: 2800 Basic, shareholder or foundation capital (detail)
     await accountsPage.createChildAccount(
       page,
-      'Basic, shareholder or foundation capital',
+      '280 Basic, shareholder or foundation capital',
       '2800 Basic, shareholder or foundation capital',
       'EQUITY'
     );
     await accountsPage.verifyAccountExists(page, '2800');
-    
+
     // Create child: 290 Reserves and retained earnings
     await accountsPage.createChildAccount(
       page,
-      'Liabilities',
+      '2 Liabilities',
       '290 Reserves and retained earnings',
       'EQUITY'
     );
     await accountsPage.verifyAccountExists(page, '290');
-    
+
     // Create child: 2950 Legal reserves from profit
     await accountsPage.createChildAccount(
       page,
-      'Reserves and retained earnings',
+      '290 Reserves and retained earnings',
       '2950 Legal reserves from profit',
       'EQUITY'
     );
     await accountsPage.verifyAccountExists(page, '2950');
-    
+
     // Create child: 2970 Profit carried forward or loss carried forward
     await accountsPage.createChildAccount(
       page,
-      'Reserves and retained earnings',
+      '290 Reserves and retained earnings',
       '2970 Profit carried forward or loss carried forward',
       'EQUITY'
     );
     await accountsPage.verifyAccountExists(page, '2970');
-    
+
     // Create child: 2979 Annual profit or loss
     await accountsPage.createChildAccount(
       page,
-      'Reserves and retained earnings',
+      '290 Reserves and retained earnings',
       '2979 Annual profit or loss',
       'EQUITY'
     );
@@ -361,34 +350,34 @@ test.describe('Journal and Account Management', () => {
     // Create child: 6570 IT and computing expenses
     await accountsPage.createChildAccount(
       page,
-      'Other Operating Expenses, Depreciations and Value Adjustments, Financial result',
+      '6 Other Operating Expenses, Depreciations and Value Adjustments, Financial result',
       '6570 IT and computing expenses, including leasing',
       'EXPENSE'
     );
     await accountsPage.verifyAccountExists(page, '6570');
-    
+
     // Create child: 6570.001 Microsoft
     await accountsPage.createChildAccount(
       page,
-      'IT and computing expenses, including leasing',
+      '6570 IT and computing expenses, including leasing',
       '6570.001 Microsoft',
       'EXPENSE'
     );
     await accountsPage.verifyAccountExists(page, '6570.001');
-    
+
     // Create child: 6570.002 Anthropic
     await accountsPage.createChildAccount(
       page,
-      'IT and computing expenses, including leasing',
+      '6570 IT and computing expenses, including leasing',
       '6570.002 Anthropic',
       'EXPENSE'
     );
     await accountsPage.verifyAccountExists(page, '6570.002');
-    
+
     // Create child: 6900 Financial expense
     await accountsPage.createChildAccount(
       page,
-      'Other Operating Expenses, Depreciations and Value Adjustments, Financial result',
+      '6 Other Operating Expenses, Depreciations and Value Adjustments, Financial result',
       '6900 Financial expense',
       'EXPENSE'
     );
@@ -412,16 +401,16 @@ test.describe('Journal and Account Management', () => {
     // Create child: 8900 Direct taxes
     await accountsPage.createChildAccount(
       page,
-      'Non-Operational, Extraordinary, Non-Recurring or Prior-Period Expenses and Income',
+      '8 Non-Operational, Extraordinary, Non-Recurring or Prior-Period Expenses and Income',
       '8900 Direct taxes (legal entities)',
       'EXPENSE'
     );
     await accountsPage.verifyAccountExists(page, '8900');
-    
+
     // Create child: 8910 Taxes from prior periods
     await accountsPage.createChildAccount(
       page,
-      'Non-Operational, Extraordinary, Non-Recurring or Prior-Period Expenses and Income',
+      '8 Non-Operational, Extraordinary, Non-Recurring or Prior-Period Expenses and Income',
       '8910 Taxes from prior periods',
       'EXPENSE'
     );
@@ -445,7 +434,7 @@ test.describe('Journal and Account Management', () => {
     // Create child: 3400 Revenue from services
     await accountsPage.createChildAccount(
       page,
-      'Net proceeds from sales of goods and services',
+      '3 Net proceeds from sales of goods and services',
       '3400 Revenue from services',
       'REVENUE'
     );

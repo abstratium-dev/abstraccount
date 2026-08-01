@@ -1,9 +1,7 @@
 import { test, expect } from '@playwright/test';
-import * as signedOutPage from '../pages/signed-out.page';
-import * as authSignInPage from '../pages/auth-signin.page';
-import * as authApprovalPage from '../pages/auth-approval.page';
 import * as headerPage from '../pages/header.page';
 import * as transactionsPage from '../pages/transactions.page';
+import { authenticate } from './auth-helper';
 import { TEST_JOURNAL_NAME, TEST_USER_EMAIL, TEST_USER_PASSWORD } from './test-constants';
 
 /**
@@ -27,21 +25,12 @@ test.describe('Opening Balances Transaction', () => {
     await page.goto('/');
     
     // Check if we need to sign in
-    const journalSelector = page.locator('#journal-select');
-    const isSignedIn = await journalSelector.isVisible({ timeout: 2000 }).catch(() => false);
+    const signOutLink = page.locator('#signout-link');
+    const isSignedIn = await signOutLink.isVisible({ timeout: 2000 }).catch(() => false);
     
     if (!isSignedIn) {
       console.log('Not signed in, performing authentication...');
-      
-      // Perform sign-in flow
-      await signedOutPage.waitForSignedOutPage(page);
-      await signedOutPage.clickSignIn(page);
-      await authSignInPage.waitForAuthSignInPage(page);
-      await authSignInPage.signIn(page, TEST_USER_EMAIL, TEST_USER_PASSWORD);
-      await authApprovalPage.waitForAuthApprovalPage(page);
-      await authApprovalPage.approveApplication(page, true);
-      await page.waitForURL(/http:\/\/localhost:8083/, { timeout: 10000 });
-      
+      await authenticate(page, TEST_USER_EMAIL, TEST_USER_PASSWORD);
       console.log('Authentication complete');
     } else {
       console.log('Already signed in');

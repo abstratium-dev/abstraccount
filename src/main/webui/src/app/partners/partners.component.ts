@@ -1,7 +1,9 @@
 import { Component, inject, OnInit, Signal, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { ModelService } from '../model.service';
 import { Controller, PartnerDTO } from '../controller';
+import { ToastService } from '../core/toast/toast.service';
 
 interface PartnerInfo {
   partnerId: string;
@@ -13,13 +15,14 @@ interface PartnerInfo {
 @Component({
   selector: 'partners',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule],
   templateUrl: './partners.component.html',
   styleUrl: './partners.component.scss'
 })
 export class PartnersComponent implements OnInit {
   private modelService = inject(ModelService);
   private controller = inject(Controller);
+  private toastService = inject(ToastService);
 
   selectedJournalId: Signal<string | null> = this.modelService.selectedJournalId$;
   partners: PartnerInfo[] = [];
@@ -27,6 +30,11 @@ export class PartnersComponent implements OnInit {
   sortDirection: 'asc' | 'desc' = 'asc';
   loading = false;
   error: string | null = null;
+
+  // Add partner form state
+  showAddForm = false;
+  newPartnerName = '';
+  addingPartner = false;
 
   readonly globalFilter: string = (() => {
     try { return localStorage.getItem('abstraccount:globalEql') ?? ''; } catch { return ''; }
@@ -38,7 +46,7 @@ export class PartnersComponent implements OnInit {
       const journalId = this.selectedJournalId();
       // Also track transactions to reload when they change
       const transactions = this.modelService.transactions$();
-      
+
       if (journalId) {
         this.loadPartners();
       } else {
@@ -58,11 +66,11 @@ export class PartnersComponent implements OnInit {
     try {
       // Load all partners from backend
       const allPartners = await this.controller.searchPartners('');
-      
+
       // Get transaction counts from loaded transactions
       const transactions = this.modelService.transactions$();
       const transactionCountMap = new Map<string, number>();
-      
+
       for (const transaction of transactions) {
         if (transaction.partnerId) {
           transactionCountMap.set(
@@ -71,7 +79,7 @@ export class PartnersComponent implements OnInit {
           );
         }
       }
-      
+
       // Combine partner data with transaction counts
       this.partners = allPartners.map(partner => ({
         partnerId: partner.partnerNumber,
@@ -79,7 +87,7 @@ export class PartnersComponent implements OnInit {
         transactionCount: transactionCountMap.get(partner.partnerNumber) || 0,
         hasTransactions: transactionCountMap.has(partner.partnerNumber)
       }));
-      
+
       this.sortPartners();
     } catch (err) {
       console.error('Failed to load partners:', err);
@@ -87,6 +95,46 @@ export class PartnersComponent implements OnInit {
       this.partners = [];
     } finally {
       this.loading = false;
+    }
+  }
+
+  toggleAddForm() {
+    this.showAddForm = !this.showAddForm;
+    if (!this.showAddForm) {
+      this.newPartnerName = '';
+    }
+  }
+
+  async onAddPartner() {
+    const name = this.newPartnerName.trim();
+    if (!name) {
+      return;
+    }
+
+    this.addingPartner = true;
+    try {
+      const result = await this.controller.createPartner(name);
+
+      // Show warnings (e.g. duplicate name) as orange toast
+      for (const warning of result.warnings) {
+        this.toastService.warning(warning);
+      }
+
+      if (result.warnings.length === 0) {
+        this.toastService.success(`Partner ${result.partnerNumber} created: ${result.name}`);
+      }
+
+      // Reset form
+      this.showAddForm = false;
+      this.newPartnerName = '';
+
+      // Reload partners list
+      await this.loadPartners();
+    } catch (err) {
+      console.error('Failed to create partner:', err);
+      this.toastService.error('Failed to create partner');
+    } finally {
+      this.addingPartner = false;
     }
   }
 

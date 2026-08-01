@@ -1,7 +1,8 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { PartnersComponent } from './partners.component';
 import { ModelService } from '../model.service';
-import { Controller, PartnerDTO, TransactionDTO } from '../controller';
+import { Controller, PartnerDTO, TransactionDTO, CreatePartnerResponseDTO } from '../controller';
+import { ToastService } from '../core/toast/toast.service';
 import { signal } from '@angular/core';
 
 describe('PartnersComponent', () => {
@@ -9,6 +10,7 @@ describe('PartnersComponent', () => {
   let fixture: ComponentFixture<PartnersComponent>;
   let modelService: jasmine.SpyObj<ModelService>;
   let controller: jasmine.SpyObj<Controller>;
+  let toastService: jasmine.SpyObj<ToastService>;
 
   const mockTransactions: TransactionDTO[] = [
     {
@@ -50,22 +52,25 @@ describe('PartnersComponent', () => {
   ];
 
   beforeEach(async () => {
-    const controllerSpy = jasmine.createSpyObj('Controller', ['searchPartners']);
+    const controllerSpy = jasmine.createSpyObj('Controller', ['searchPartners', 'createPartner']);
     const modelServiceSpy = jasmine.createSpyObj('ModelService', [], {
       transactions$: signal(mockTransactions),
       selectedJournalId$: signal('journal1')
     });
+    const toastServiceSpy = jasmine.createSpyObj('ToastService', ['success', 'error', 'info', 'warning', 'show', 'remove', 'clear']);
 
     await TestBed.configureTestingModule({
       imports: [PartnersComponent],
       providers: [
         { provide: ModelService, useValue: modelServiceSpy },
-        { provide: Controller, useValue: controllerSpy }
+        { provide: Controller, useValue: controllerSpy },
+        { provide: ToastService, useValue: toastServiceSpy }
       ]
     }).compileComponents();
 
     modelService = TestBed.inject(ModelService) as jasmine.SpyObj<ModelService>;
     controller = TestBed.inject(Controller) as jasmine.SpyObj<Controller>;
+    toastService = TestBed.inject(ToastService) as jasmine.SpyObj<ToastService>;
     fixture = TestBed.createComponent(PartnersComponent);
     component = fixture.componentInstance;
   });
@@ -190,5 +195,136 @@ describe('PartnersComponent', () => {
     // Note: In a real scenario, the effect would trigger when modelService.transactions$() changes
     // The effect watches both selectedJournalId$ and transactions$, so when transactions are
     // updated via controller.getTransactions(), the effect will re-run loadPartners()
+  });
+
+  // ========================================================================
+  // Add Partner form tests
+  // ========================================================================
+
+  it('should show add partner form when Add Partner button is clicked', () => {
+    expect(component.showAddForm).toBe(false);
+    component.toggleAddForm();
+    expect(component.showAddForm).toBe(true);
+  });
+
+  it('should hide add partner form when Cancel is clicked', () => {
+    component.showAddForm = true;
+    component.newPartnerName = 'Some Name';
+    component.toggleAddForm();
+    expect(component.showAddForm).toBe(false);
+    expect(component.newPartnerName).toBe('');
+  });
+
+  it('should create partner successfully and show success toast', async () => {
+    controller.searchPartners.and.returnValue(Promise.resolve(mockPartners));
+    const createResponse: CreatePartnerResponseDTO = {
+      partnerNumber: 'P00000004',
+      name: 'New Partner',
+      warnings: []
+    };
+    controller.createPartner.and.returnValue(Promise.resolve(createResponse));
+
+    component.newPartnerName = 'New Partner';
+    await component.onAddPartner();
+
+    expect(controller.createPartner).toHaveBeenCalledWith('New Partner');
+    expect(toastService.success).toHaveBeenCalledWith('Partner P00000004 created: New Partner');
+    expect(toastService.warning).not.toHaveBeenCalled();
+    expect(component.showAddForm).toBe(false);
+    expect(component.newPartnerName).toBe('');
+  });
+
+  it('should show warning toast when duplicate name is detected', async () => {
+    controller.searchPartners.and.returnValue(Promise.resolve(mockPartners));
+    const createResponse: CreatePartnerResponseDTO = {
+      partnerNumber: 'P00000001',
+      name: 'Partner One',
+      warnings: ['A partner with the name "Partner One" already exists (P00000001). No new partner was created.']
+    };
+    controller.createPartner.and.returnValue(Promise.resolve(createResponse));
+
+    component.newPartnerName = 'Partner One';
+    await component.onAddPartner();
+
+    expect(controller.createPartner).toHaveBeenCalledWith('Partner One');
+    expect(toastService.warning).toHaveBeenCalledWith(
+      'A partner with the name "Partner One" already exists (P00000001). No new partner was created.'
+    );
+    expect(toastService.success).not.toHaveBeenCalled();
+    expect(component.showAddForm).toBe(false);
+  });
+
+  it('should show error toast when partner creation fails', async () => {
+    controller.searchPartners.and.returnValue(Promise.resolve(mockPartners));
+    controller.createPartner.and.returnValue(Promise.reject(new Error('Network error')));
+
+    component.newPartnerName = 'Test Partner';
+    await component.onAddPartner();
+
+    expect(toastService.error).toHaveBeenCalledWith('Failed to create partner');
+    expect(component.addingPartner).toBe(false);
+  });
+
+  it('should not call createPartner when name is blank', async () => {
+    component.newPartnerName = '   ';
+    await component.onAddPartner();
+
+    expect(controller.createPartner).not.toHaveBeenCalled();
+  });
+
+  it('should trim partner name before creating', async () => {
+    controller.searchPartners.and.returnValue(Promise.resolve(mockPartners));
+    const createResponse: CreatePartnerResponseDTO = {
+      partnerNumber: 'P00000004',
+      name: 'Trimmed Partner',
+      warnings: []
+    };
+    controller.createPartner.and.returnValue(Promise.resolve(createResponse));
+
+    component.newPartnerName = '  Trimmed Partner  ';
+    await component.onAddPartner();
+
+    expect(controller.createPartner).toHaveBeenCalledWith('Trimmed Partner');
+  });
+
+  it('should reload partners after creating a new one', async () => {
+    controller.searchPartners.and.returnValue(Promise.resolve(mockPartners));
+    const createResponse: CreatePartnerResponseDTO = {
+      partnerNumber: 'P00000004',
+      name: 'New Partner',
+      warnings: []
+    };
+    controller.createPartner.and.returnValue(Promise.resolve(createResponse));
+
+    // Trigger the effect to load partners initially
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const initialCallCount = controller.searchPartners.calls.count();
+
+    component.newPartnerName = 'New Partner';
+    await component.onAddPartner();
+
+    // searchPartners should have been called again after creation
+    expect(controller.searchPartners.calls.count()).toBeGreaterThan(initialCallCount);
+  });
+
+  it('should set addingPartner to true during creation and false after', async () => {
+    controller.searchPartners.and.returnValue(Promise.resolve(mockPartners));
+    let resolveCreate: (value: CreatePartnerResponseDTO) => void;
+    const createPromise = new Promise<CreatePartnerResponseDTO>((resolve) => {
+      resolveCreate = resolve;
+    });
+    controller.createPartner.and.returnValue(createPromise);
+
+    component.newPartnerName = 'Test';
+    const addPromise = component.onAddPartner();
+
+    expect(component.addingPartner).toBe(true);
+
+    resolveCreate!({ partnerNumber: 'P00000004', name: 'Test', warnings: [] });
+    await addPromise;
+
+    expect(component.addingPartner).toBe(false);
   });
 });

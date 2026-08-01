@@ -224,4 +224,156 @@ class PartnerResourceTest {
         .then()
             .statusCode(anyOf(equalTo(400), equalTo(401)));
     }
+
+    // ========================================================================
+    // POST /api/partners - create partner tests
+    // ========================================================================
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {Roles.USER})
+    @OidcSecurity(claims = @Claim(key = "orgId", value = TEST_ORG_ID))
+    void testCreatePartner_success() {
+        given()
+            .contentType(ContentType.JSON)
+            .body("{\"name\":\"New Test Partner\"}")
+        .when()
+            .post("/api/partners")
+        .then()
+            .statusCode(200)
+            .body("partnerNumber", notNullValue())
+            .body("name", equalTo("New Test Partner"))
+            .body("warnings", empty());
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {Roles.USER})
+    @OidcSecurity(claims = @Claim(key = "orgId", value = TEST_ORG_ID))
+    void testCreatePartner_assignsNextNumber() {
+        // Existing partners: P00000001, P00000002, P00000003 (active), P00000099 (inactive)
+        given()
+            .contentType(ContentType.JSON)
+            .body("{\"name\":\"Another Partner\"}")
+        .when()
+            .post("/api/partners")
+        .then()
+            .statusCode(200)
+            .body("partnerNumber", equalTo("P00000004"));
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {Roles.USER})
+    @OidcSecurity(claims = @Claim(key = "orgId", value = TEST_ORG_ID))
+    void testCreatePartner_duplicateName_returnsWarning() {
+        given()
+            .contentType(ContentType.JSON)
+            .body("{\"name\":\"John Smith\"}")
+        .when()
+            .post("/api/partners")
+        .then()
+            .statusCode(200)
+            .body("partnerNumber", equalTo("P00000003"))
+            .body("name", equalTo("John Smith"))
+            .body("warnings", not(empty()))
+            .body("warnings[0]", containsString("John Smith"));
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {Roles.USER})
+    @OidcSecurity(claims = @Claim(key = "orgId", value = TEST_ORG_ID))
+    void testCreatePartner_duplicateNameCaseInsensitive_returnsWarning() {
+        given()
+            .contentType(ContentType.JSON)
+            .body("{\"name\":\"JOHN SMITH\"}")
+        .when()
+            .post("/api/partners")
+        .then()
+            .statusCode(200)
+            .body("warnings", not(empty()));
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {Roles.USER})
+    @OidcSecurity(claims = @Claim(key = "orgId", value = TEST_ORG_ID))
+    void testCreatePartner_blankName_returns400() {
+        given()
+            .contentType(ContentType.JSON)
+            .body("{\"name\":\"\"}")
+        .when()
+            .post("/api/partners")
+        .then()
+            .statusCode(400);
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {Roles.USER})
+    @OidcSecurity(claims = @Claim(key = "orgId", value = TEST_ORG_ID))
+    void testCreatePartner_nullName_returns400() {
+        given()
+            .contentType(ContentType.JSON)
+            .body("{}")
+        .when()
+            .post("/api/partners")
+        .then()
+            .statusCode(400);
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {Roles.USER})
+    @OidcSecurity(claims = @Claim(key = "orgId", value = TEST_ORG_ID))
+    void testCreatePartner_persistsToFile() {
+        // Create a partner
+        given()
+            .contentType(ContentType.JSON)
+            .body("{\"name\":\"Persisted Partner\"}")
+        .when()
+            .post("/api/partners")
+        .then()
+            .statusCode(200);
+
+        // Verify it appears in search results
+        given()
+            .contentType(ContentType.JSON)
+            .queryParam("q", "Persisted Partner")
+        .when()
+            .get("/api/partners/search")
+        .then()
+            .statusCode(200)
+            .body("[0].name", equalTo("Persisted Partner"));
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {Roles.USER})
+    @OidcSecurity(claims = @Claim(key = "orgId", value = TEST_ORG_ID))
+    void testCreatePartner_multipleCreates_incrementSequentially() {
+        // Create first partner
+        given()
+            .contentType(ContentType.JSON)
+            .body("{\"name\":\"First New\"}")
+        .when()
+            .post("/api/partners")
+        .then()
+            .statusCode(200)
+            .body("partnerNumber", equalTo("P00000004"));
+
+        // Create second partner
+        given()
+            .contentType(ContentType.JSON)
+            .body("{\"name\":\"Second New\"}")
+        .when()
+            .post("/api/partners")
+        .then()
+            .statusCode(200)
+            .body("partnerNumber", equalTo("P00000005"));
+    }
+
+    @Test
+    void testCreatePartner_unauthenticated_returns401() {
+        given()
+            .contentType(ContentType.JSON)
+            .body("{\"name\":\"Test\"}")
+        .when()
+            .post("/api/partners")
+        .then()
+            .statusCode(anyOf(equalTo(400), equalTo(401)));
+    }
 }

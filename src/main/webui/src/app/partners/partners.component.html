@@ -1,6 +1,37 @@
 <div class="container">
   <h2>Partners</h2>
 
+  <div class="partners-actions">
+    <button
+      id="add-partner-button"
+      class="btn-primary"
+      (click)="toggleAddForm()"
+      [disabled]="addingPartner">
+      {{ showAddForm ? 'Cancel' : 'Add Partner' }}
+    </button>
+  </div>
+
+  <form *ngIf="showAddForm" id="add-partner-form" (ngSubmit)="onAddPartner()" class="add-partner-form">
+    <div class="form-group">
+      <label for="new-partner-name">Partner Name</label>
+      <input
+        type="text"
+        id="new-partner-name"
+        name="newPartnerName"
+        [(ngModel)]="newPartnerName"
+        placeholder="Enter partner name"
+        class="form-input"
+        [disabled]="addingPartner"
+        required
+        autocomplete="off" />
+    </div>
+    <div class="form-actions">
+      <button type="submit" class="btn-primary" [disabled]="addingPartner || !newPartnerName.trim()">
+        {{ addingPartner ? 'Adding...' : 'Create Partner' }}
+      </button>
+    </div>
+  </form>
+
   <div *ngIf="globalFilter" class="filter-section">
     <h3>Filters</h3>
     <div class="print-filter-display" style="display: block;">
@@ -24,18 +55,18 @@
   <table *ngIf="!loading && !error && partners.length > 0" class="standard-table">
     <thead>
       <tr>
-        <th 
-          class="sortable" 
+        <th
+          class="sortable"
           (click)="onColumnSort('partnerId')">
           Partner Number{{ getSortIndicator('partnerId') }}
         </th>
-        <th 
-          class="sortable" 
+        <th
+          class="sortable"
           (click)="onColumnSort('partnerName')">
           Partner Name{{ getSortIndicator('partnerName') }}
         </th>
-        <th 
-          class="sortable" 
+        <th
+          class="sortable"
           (click)="onColumnSort('transactionCount')"
           style="text-align: right;">
           Transaction Count{{ getSortIndicator('transactionCount') }}

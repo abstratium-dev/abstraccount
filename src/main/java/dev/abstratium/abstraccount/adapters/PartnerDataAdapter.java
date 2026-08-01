@@ -1,5 +1,6 @@
 package dev.abstratium.abstraccount.adapters;
 
+import dev.abstratium.abstraccount.model.CreatePartnerResult;
 import dev.abstratium.abstraccount.model.PartnerData;
 import io.quarkus.runtime.Startup;
 import jakarta.annotation.PostConstruct;
@@ -9,10 +10,13 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.jboss.logging.Logger;
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.IOException;
 import java.nio.file.*;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Adapter for loading and watching per-organisation partner data from CSV files.
@@ -90,6 +94,126 @@ public class PartnerDataAdapter {
 
         Map<String, PartnerData> orgCache = getOrgCache(orgId);
         return new ArrayList<>(orgCache.values());
+    }
+
+    private static final Pattern PARTNER_NUMBER_PATTERN = Pattern.compile("^P(\\d{8})$");
+    private static final String PARTNER_NUMBER_FORMAT = "P%08d";
+
+    /**
+     * Add a new partner to the organisation's CSV file.
+     *
+     * <p>The partner number is assigned by the backend as the next available
+     * number, filling gaps in the existing sequence. If a partner with the same
+     * name (case-insensitive) already exists, the duplicate is skipped (not
+     * created) and a warning is returned so the UI can inform the user.</p>
+     *
+     * @param orgId the organisation identifier (from the certificate)
+     * @param name  the partner name
+     * @return result containing the created partner and any warnings
+     */
+    public synchronized CreatePartnerResult addPartner(String orgId, String name) {
+        if (orgId == null || orgId.isBlank()) {
+            throw new IllegalArgumentException("orgId cannot be null or blank");
+        }
+        if (name == null || name.isBlank()) {
+            throw new IllegalArgumentException("name cannot be null or blank");
+        }
+
+        String trimmedName = name.trim();
+        Map<String, PartnerData> orgCache = getOrgCache(orgId);
+        List<String> warnings = new ArrayList<>();
+
+        // Check for duplicate name (case-insensitive) among active partners
+        for (PartnerData existing : orgCache.values()) {
+            if (existing.active() && existing.name().equalsIgnoreCase(trimmedName)) {
+                warnings.add("A partner with the name \"" + trimmedName + "\" already exists ("
+                    + existing.partnerNumber() + "). No new partner was created.");
+                // Return the existing partner as the "created" one so the UI can
+                // show it, but the warning makes clear it was a duplicate.
+                return new CreatePartnerResult(existing, warnings);
+            }
+        }
+
+        // Compute next available partner number (gap-filling)
+        String nextNumber = computeNextPartnerNumber(orgCache);
+        PartnerData newPartner = new PartnerData(nextNumber, trimmedName, true);
+
+        // Append to the CSV file
+        appendPartnerToFile(orgId, newPartner);
+
+        // Update the in-memory cache
+        orgCache.put(nextNumber, newPartner);
+
+        LOG.infof("Created partner %s for org %s", nextNumber, orgId);
+        return new CreatePartnerResult(newPartner, warnings);
+    }
+
+    /**
+     * Compute the next available partner number, filling gaps in the sequence.
+     * Partner numbers follow the format P followed by 8 digits (P00000001, etc.).
+     * If P00000001 and P00000003 exist, the next number is P00000002 (gap filled).
+     * If no gaps exist, the next number is max+1.
+     */
+    String computeNextPartnerNumber(Map<String, PartnerData> orgCache) {
+        // Collect all numeric suffixes from existing partner numbers
+        TreeSet<Integer> usedNumbers = new TreeSet<>();
+        for (String number : orgCache.keySet()) {
+            Matcher m = PARTNER_NUMBER_PATTERN.matcher(number);
+            if (m.matches()) {
+                usedNumbers.add(Integer.parseInt(m.group(1)));
+            }
+        }
+
+        // Find the first gap starting from 1
+        int expected = 1;
+        for (int used : usedNumbers) {
+            if (used > expected) {
+                // Gap found at 'expected'
+                return String.format(PARTNER_NUMBER_FORMAT, expected);
+            }
+            expected = used + 1;
+        }
+
+        // No gaps, use the next number after the maximum (or 1 if empty)
+        return String.format(PARTNER_NUMBER_FORMAT, expected);
+    }
+
+    /**
+     * Append a partner line to the organisation's CSV file.
+     * Creates the file with a header if it does not exist.
+     */
+    private void appendPartnerToFile(String orgId, PartnerData partner) {
+        Path filePath = getOrgFilePath(orgId);
+        try {
+            Files.createDirectories(filePath.getParent());
+
+            boolean fileExists = Files.exists(filePath);
+            String csvLine = formatCsvLine(partner);
+
+            try (BufferedWriter writer = Files.newBufferedWriter(filePath,
+                    StandardOpenOption.CREATE, StandardOpenOption.APPEND)) {
+                if (!fileExists) {
+                    writer.write("\"Partner Number\",\"Name\",\"Active\"");
+                    writer.newLine();
+                }
+                writer.write(csvLine);
+                writer.newLine();
+            }
+
+            LOG.debugf("Appended partner %s to file %s", partner.partnerNumber(), filePath);
+        } catch (IOException e) {
+            LOG.errorf(e, "Failed to write partner %s to file %s", partner.partnerNumber(), filePath);
+            throw new RuntimeException("Failed to create partner: could not write to data file", e);
+        }
+    }
+
+    /**
+     * Format a PartnerData as a CSV line.
+     */
+    String formatCsvLine(PartnerData partner) {
+        // Quote fields and escape internal quotes by doubling them
+        String quotedName = partner.name().replace("\"", "\"\"");
+        return "\"" + partner.partnerNumber() + "\",\"" + quotedName + "\",\"" + partner.active() + "\"";
     }
 
     /**
@@ -176,6 +300,8 @@ public class PartnerDataAdapter {
 
     /**
      * Parse CSV fields from a line, handling quoted fields.
+     * Supports the standard CSV convention of doubling quotes inside quoted
+     * fields to represent a literal quote character (e.g. {@code ""} → {@code "}).
      */
     List<String> parseCsvFields(String line) {
         List<String> fields = new ArrayList<>();
@@ -185,7 +311,11 @@ public class PartnerDataAdapter {
         for (int i = 0; i < line.length(); i++) {
             char c = line.charAt(i);
 
-            if (c == '"') {
+            if (c == '"' && inQuotes && i + 1 < line.length() && line.charAt(i + 1) == '"') {
+                // Doubled quote inside a quoted field → literal quote
+                currentField.append('"');
+                i++; // skip the next quote
+            } else if (c == '"') {
                 inQuotes = !inQuotes;
             } else if (c == ',' && !inQuotes) {
                 fields.add(currentField.toString());

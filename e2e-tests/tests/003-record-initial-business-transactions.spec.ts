@@ -1,11 +1,10 @@
 import { test, expect } from '@playwright/test';
-import * as signedOutPage from '../pages/signed-out.page';
-import * as authSignInPage from '../pages/auth-signin.page';
-import * as authApprovalPage from '../pages/auth-approval.page';
 import * as headerPage from '../pages/header.page';
 import * as transactionsPage from '../pages/transactions.page';
 import * as reportsPage from '../pages/reports.page';
-import { TEST_JOURNAL_NAME, TEST_USER_EMAIL, TEST_USER_PASSWORD } from './test-constants';
+import * as partnersPage from '../pages/partners.page';
+import { authenticate } from './auth-helper';
+import { TEST_JOURNAL_NAME, TEST_USER_EMAIL, TEST_USER_PASSWORD, TEST_PARTNERS } from './test-constants';
 
 /**
  * Test 3: Record Initial Business Transactions
@@ -29,21 +28,12 @@ test.describe('Initial Business Transactions', () => {
     await page.goto('/');
     
     // Check if we need to sign in
-    const journalSelector = page.locator('#journal-select');
-    const isSignedIn = await journalSelector.isVisible({ timeout: 2000 }).catch(() => false);
+    const signOutLink = page.locator('#signout-link');
+    const isSignedIn = await signOutLink.isVisible({ timeout: 2000 }).catch(() => false);
     
     if (!isSignedIn) {
       console.log('Not signed in, performing authentication...');
-      
-      // Perform sign-in flow
-      await signedOutPage.waitForSignedOutPage(page);
-      await signedOutPage.clickSignIn(page);
-      await authSignInPage.waitForAuthSignInPage(page);
-      await authSignInPage.signIn(page, TEST_USER_EMAIL, TEST_USER_PASSWORD);
-      await authApprovalPage.waitForAuthApprovalPage(page);
-      await authApprovalPage.approveApplication(page, true);
-      await page.waitForURL(/http:\/\/localhost:8083/, { timeout: 10000 });
-      
+      await authenticate(page, TEST_USER_EMAIL, TEST_USER_PASSWORD);
       console.log('Authentication complete');
     } else {
       console.log('Already signed in');
@@ -60,8 +50,18 @@ test.describe('Initial Business Transactions', () => {
     await headerPage.selectJournal(page, TEST_JOURNAL_NAME);
     await headerPage.clickJournalLink(page);
     await transactionsPage.waitForJournalPage(page);
-    
+
     console.log('Journal page loaded');
+
+    // ========================================================================
+    // Ensure required partners exist before recording transactions
+    // ========================================================================
+    console.log('--- Ensuring required partners exist ---');
+    await partnersPage.ensurePartnersExist(page, TEST_PARTNERS);
+
+    // Navigate back to the journal page after partner creation
+    await headerPage.clickJournalLink(page);
+    await transactionsPage.waitForJournalPage(page);
     
     // ========================================================================
     // Transaction 1: Short-term Loan from Founder
@@ -291,18 +291,12 @@ test.describe('Initial Business Transactions', () => {
     await page.goto('/');
     
     // Check if we need to sign in
-    const journalSelector = page.locator('#journal-select');
-    const isSignedIn = await journalSelector.isVisible({ timeout: 2000 }).catch(() => false);
+    const signOutLink = page.locator('#signout-link');
+    const isSignedIn = await signOutLink.isVisible({ timeout: 2000 }).catch(() => false);
     
     if (!isSignedIn) {
       console.log('Not signed in, performing authentication...');
-      await signedOutPage.waitForSignedOutPage(page);
-      await signedOutPage.clickSignIn(page);
-      await authSignInPage.waitForAuthSignInPage(page);
-      await authSignInPage.signIn(page, TEST_USER_EMAIL, TEST_USER_PASSWORD);
-      await authApprovalPage.waitForAuthApprovalPage(page);
-      await authApprovalPage.approveApplication(page, true);
-      await page.waitForURL(/http:\/\/localhost:8083/, { timeout: 10000 });
+      await authenticate(page, TEST_USER_EMAIL, TEST_USER_PASSWORD);
       console.log('Authentication complete');
     }
     
@@ -361,18 +355,12 @@ test.describe('Initial Business Transactions', () => {
     
     // Navigate and authenticate
     await page.goto('/');
-    const journalSelector = page.locator('#journal-select');
-    const isSignedIn = await journalSelector.isVisible({ timeout: 2000 }).catch(() => false);
+    const signOutLink = page.locator('#signout-link');
+    const isSignedIn = await signOutLink.isVisible({ timeout: 2000 }).catch(() => false);
     
     if (!isSignedIn) {
       console.log('Not signed in, performing authentication...');
-      await signedOutPage.waitForSignedOutPage(page);
-      await signedOutPage.clickSignIn(page);
-      await authSignInPage.waitForAuthSignInPage(page);
-      await authSignInPage.signIn(page, TEST_USER_EMAIL, TEST_USER_PASSWORD);
-      await authApprovalPage.waitForAuthApprovalPage(page);
-      await authApprovalPage.approveApplication(page, true);
-      await page.waitForURL(/http:\/\/localhost:8083/, { timeout: 10000 });
+      await authenticate(page, TEST_USER_EMAIL, TEST_USER_PASSWORD);
       console.log('Authentication complete');
     }
     
@@ -425,18 +413,12 @@ test.describe('Initial Business Transactions', () => {
     
     // Navigate and authenticate
     await page.goto('/');
-    const journalSelector = page.locator('#journal-select');
-    const isSignedIn = await journalSelector.isVisible({ timeout: 2000 }).catch(() => false);
+    const signOutLink = page.locator('#signout-link');
+    const isSignedIn = await signOutLink.isVisible({ timeout: 2000 }).catch(() => false);
     
     if (!isSignedIn) {
       console.log('Not signed in, performing authentication...');
-      await signedOutPage.waitForSignedOutPage(page);
-      await signedOutPage.clickSignIn(page);
-      await authSignInPage.waitForAuthSignInPage(page);
-      await authSignInPage.signIn(page, TEST_USER_EMAIL, TEST_USER_PASSWORD);
-      await authApprovalPage.waitForAuthApprovalPage(page);
-      await authApprovalPage.approveApplication(page, true);
-      await page.waitForURL(/http:\/\/localhost:8083/, { timeout: 10000 });
+      await authenticate(page, TEST_USER_EMAIL, TEST_USER_PASSWORD);
       console.log('Authentication complete');
     }
     
@@ -473,18 +455,12 @@ test.describe('Initial Business Transactions', () => {
     
     // Navigate and authenticate
     await page.goto('/');
-    const journalSelector = page.locator('#journal-select');
-    const isSignedIn = await journalSelector.isVisible({ timeout: 2000 }).catch(() => false);
+    const signOutLink = page.locator('#signout-link');
+    const isSignedIn = await signOutLink.isVisible({ timeout: 2000 }).catch(() => false);
     
     if (!isSignedIn) {
       console.log('Not signed in, performing authentication...');
-      await signedOutPage.waitForSignedOutPage(page);
-      await signedOutPage.clickSignIn(page);
-      await authSignInPage.waitForAuthSignInPage(page);
-      await authSignInPage.signIn(page, TEST_USER_EMAIL, TEST_USER_PASSWORD);
-      await authApprovalPage.waitForAuthApprovalPage(page);
-      await authApprovalPage.approveApplication(page, true);
-      await page.waitForURL(/http:\/\/localhost:8083/, { timeout: 10000 });
+      await authenticate(page, TEST_USER_EMAIL, TEST_USER_PASSWORD);
       console.log('Authentication complete');
     }
     
@@ -533,18 +509,12 @@ test.describe('Initial Business Transactions', () => {
     
     // Navigate and authenticate
     await page.goto('/');
-    const journalSelector = page.locator('#journal-select');
-    const isSignedIn = await journalSelector.isVisible({ timeout: 2000 }).catch(() => false);
+    const signOutLink = page.locator('#signout-link');
+    const isSignedIn = await signOutLink.isVisible({ timeout: 2000 }).catch(() => false);
     
     if (!isSignedIn) {
       console.log('Not signed in, performing authentication...');
-      await signedOutPage.waitForSignedOutPage(page);
-      await signedOutPage.clickSignIn(page);
-      await authSignInPage.waitForAuthSignInPage(page);
-      await authSignInPage.signIn(page, TEST_USER_EMAIL, TEST_USER_PASSWORD);
-      await authApprovalPage.waitForAuthApprovalPage(page);
-      await authApprovalPage.approveApplication(page, true);
-      await page.waitForURL(/http:\/\/localhost:8083/, { timeout: 10000 });
+      await authenticate(page, TEST_USER_EMAIL, TEST_USER_PASSWORD);
       console.log('Authentication complete');
     }
     
@@ -603,18 +573,12 @@ test.describe('Initial Business Transactions', () => {
     
     // Navigate and authenticate
     await page.goto('/');
-    const journalSelector = page.locator('#journal-select');
-    const isSignedIn = await journalSelector.isVisible({ timeout: 2000 }).catch(() => false);
+    const signOutLink = page.locator('#signout-link');
+    const isSignedIn = await signOutLink.isVisible({ timeout: 2000 }).catch(() => false);
     
     if (!isSignedIn) {
       console.log('Not signed in, performing authentication...');
-      await signedOutPage.waitForSignedOutPage(page);
-      await signedOutPage.clickSignIn(page);
-      await authSignInPage.waitForAuthSignInPage(page);
-      await authSignInPage.signIn(page, TEST_USER_EMAIL, TEST_USER_PASSWORD);
-      await authApprovalPage.waitForAuthApprovalPage(page);
-      await authApprovalPage.approveApplication(page, true);
-      await page.waitForURL(/http:\/\/localhost:8083/, { timeout: 10000 });
+      await authenticate(page, TEST_USER_EMAIL, TEST_USER_PASSWORD);
       console.log('Authentication complete');
     }
     
@@ -671,18 +635,12 @@ test.describe('Initial Business Transactions', () => {
     
     // Navigate and authenticate
     await page.goto('/');
-    const journalSelector = page.locator('#journal-select');
-    const isSignedIn = await journalSelector.isVisible({ timeout: 2000 }).catch(() => false);
+    const signOutLink = page.locator('#signout-link');
+    const isSignedIn = await signOutLink.isVisible({ timeout: 2000 }).catch(() => false);
     
     if (!isSignedIn) {
       console.log('Not signed in, performing authentication...');
-      await signedOutPage.waitForSignedOutPage(page);
-      await signedOutPage.clickSignIn(page);
-      await authSignInPage.waitForAuthSignInPage(page);
-      await authSignInPage.signIn(page, TEST_USER_EMAIL, TEST_USER_PASSWORD);
-      await authApprovalPage.waitForAuthApprovalPage(page);
-      await authApprovalPage.approveApplication(page, true);
-      await page.waitForURL(/http:\/\/localhost:8083/, { timeout: 10000 });
+      await authenticate(page, TEST_USER_EMAIL, TEST_USER_PASSWORD);
       console.log('Authentication complete');
     }
     

@@ -83,6 +83,12 @@ export interface PartnerDTO {
   name: string;
 }
 
+export interface CreatePartnerResponseDTO {
+  partnerNumber: string;
+  name: string;
+  warnings: string[];
+}
+
 export interface AccountEntryDTO {
   entryId: string;
   transactionId: string;
@@ -808,12 +814,28 @@ export class Controller {
       if (searchTerm) {
         params = params.set('q', searchTerm);
       }
-      
+
       return await firstValueFrom(
         this.http.get<PartnerDTO[]>('/api/partners/search', { params })
       );
     } catch (error) {
       console.error('Error searching partners:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Create a new partner.
+   * The backend assigns the partner number (next available, gap-filling).
+   * Returns the created partner and any warnings (e.g. duplicate name).
+   */
+  async createPartner(name: string): Promise<CreatePartnerResponseDTO> {
+    try {
+      return await firstValueFrom(
+        this.http.post<CreatePartnerResponseDTO>('/api/partners', { name })
+      );
+    } catch (error) {
+      console.error('Error creating partner:', error);
       throw error;
     }
   }

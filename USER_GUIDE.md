@@ -1,14 +1,45 @@
 # User Manual
 
-## Using abstracore
-
-TODO write detailed instructions on how your application works
+## Using Abstraccount™
 
 
 ### Overview
+
+Abstraccount™ is a double-entry bookkeeping application designed for Swiss SME bookkeeping. It manages journals, a hierarchical chart of accounts, transactions, partners, macros, and reports, with support for per-journal currencies, fiscal-year closing, and an AI assistant (coming soon).
+
+> **Looking for step-by-step instructions?** The complete, illustrated walkthrough is available in the in-app **Online Help** at `/user-guide` (sign in and open **User Guide** from the navigation). The sections below are a concise summary only.
+
 #### Key Features
+
+- **Double-entry bookkeeping** — record transactions with balanced debits and credits, split lines, and tags. Transaction attachments are coming soon.
+- **Swiss chart of accounts** — hierarchical accounts compatible with the Swiss KMU-Kontenplan, organised into assets, liabilities, equity, revenue, and expenses with rolled-up balances.
+- **Macros & automation** — reusable templates for recurring entries such as invoices, payments, depreciation, and salaries.
+- **Financial reports** — trial balance, profit and loss, and balance sheet over any date range. A cash flow report is coming soon.
+- **Partner management** — track customers, vendors, and employees with per-partner ledgers and history.
+- **VAT & compliance** — tax codes and VAT reports are coming soon. Audit trails and year-end closing are already available.
+- **Multi-currency** — configure a currency per journal and record transactions in your chosen currency, with manual conversion to your main currency noted in each transaction.
+- **Fiscal years** — define year boundaries, lock closed periods (coming soon), and roll opening balances into a new year.
+- **Journal history** — a complete audit trail and a chain of linked journals across financial years.
+- **AI assistant** (coming soon) — guided chart-of-accounts setup and help with day-to-day bookkeeping.
+
 #### Core concepts
+
+- **Journal** — the container for a single financial year's books: its title, currency, chart of accounts, and transactions. Journals are chained across years.
+- **Account** — a node in the hierarchical chart of accounts. Each has a numeric code, a name, a type (asset, cash, liability, equity, revenue, expense), and an optional parent. Parent balances roll up their descendants.
+- **Transaction** — a dated, balanced set of entries (debit/credit lines) with a description, status (`CLEARED`, `PENDING`, `RECONCILED`), optional partner, and tags.
+- **Partner** — a customer, vendor, or employee that can be linked to transactions for tracking and per-partner reporting.
+- **Macro** — a parameterised template that generates a complete transaction from a few inputs.
+- **Closing the books** — at year end, revenue and expense accounts are zeroed and the net result is transferred to an equity account.
+- **New year** — creates the next journal in the chain, copying the chart of accounts and carrying forward non-zero opening balances.
+
 #### Typical workflow
+
+1. **Create a journal** — give it a title, currency, and optional logo.
+2. **Build the chart of accounts** — add top-level and child accounts following Swiss KMU-Kontenplan conventions (or your own scheme).
+3. **Record transactions** — enter balanced debits and credits, optionally with partners and tags, or use a macro for recurring entries.
+4. **Run reports** — generate trial balances, profit and loss, and other statements over the desired date range.
+5. **Close the books at year end** — transfer revenue and expense balances to an equity account.
+6. **Open a new year** — create the next journal with carried-forward opening balances and continue recording.
 
 ---
 
@@ -64,13 +95,22 @@ New versions will update the database as needed.
 
 ### Generate Environment Variables
 
-TODO any env vars that need generating are to be described here.
+Several environment variables hold secrets that must be generated before deployment. Generate them as follows:
 
-1. **Generate TODO** (32+ characters recommended):
+1. **`COOKIE_ENCRYPTION_SECRET`** (min 32 characters — used to encrypt OIDC session cookies):
    ```bash
    openssl rand -base64 32
    ```
-   Use this output for `TODO_ENV_VAR_NAME`.
+
+2. **`CSRF_TOKEN_SIGNATURE_KEY`** (min 32 characters — HMAC key used to sign CSRF tokens):
+   ```bash
+   openssl rand -base64 64 | tr -d '\n'
+   ```
+
+3. **`DEFAULT_ORG_UUID`** (UUID v4 — identifies the default organisation that existing data is migrated into):
+   ```bash
+   uuidgen
+   ```
 
 ### Pull and Run the Docker Container
 
@@ -90,8 +130,16 @@ TODO any env vars that need generating are to be described here.
      -e QUARKUS_DATASOURCE_JDBC_URL="jdbc:mysql://abstratium-mysql:3306/abstraccount" \
      -e QUARKUS_DATASOURCE_USERNAME="abstraccount" \
      -e QUARKUS_DATASOURCE_PASSWORD="TODO_YOUR_SECURE_PASSWORD" \
+     -e ABSTRATIUM_CLIENT_ID="abstratium-abstraccount" \
+     -e ABSTRATIUM_CLIENT_SECRET="TODO_YOUR_OIDC_CLIENT_SECRET" \
+     -e QUARKUS_OIDC_AUTH_SERVER_URL="https://auth.abstratium.dev" \
      -e COOKIE_ENCRYPTION_SECRET="TODO_YOUR_COOKIE_ENCRYPTION_SECRET" \
+     -e CSRF_TOKEN_SIGNATURE_KEY="TODO_YOUR_CSRF_TOKEN_SIGNATURE_KEY" \
      -e DEFAULT_ORG_UUID="TODO_YOUR_GENERATED_DEFAULT_ORG_UUID" \
+     -e ABSTRATIUM_TOGGLES_API_URL="https://toggles.abstratium.dev" \
+     -e ABSTRATIUM_TOGGLES_CONTEXT="abstratium-public-abstraccount" \
+     -e STAGE="prod" \
+     -e DEPLOYMENT_ENV="prod" \
      ghcr.io/abstratium-dev/abstraccount:latest
    ```
 
@@ -99,21 +147,28 @@ TODO any env vars that need generating are to be described here.
    - `QUARKUS_DATASOURCE_JDBC_URL`: Database connection URL (format: `jdbc:mysql://<host>:<port>/<database>`)
    - `QUARKUS_DATASOURCE_USERNAME`: Database username
    - `QUARKUS_DATASOURCE_PASSWORD`: Database password (use strong, unique password)
-   - `COOKIE_ENCRYPTION_SECRET`: Cookie encryption secret (min 32 chars, generate with `openssl rand -base64 32`)
-   - `CSRF_TOKEN_SIGNATURE_KEY`: CSRF token signature key (min 32 chars, generate with `openssl rand -base64 64 | tr -d '\n'`)
-   - `ABSTRATIUM_TOGGLES_API_URL`: URL of the Abstoggle public API (e.g., `https://toggles.abstratium.dev`, required in production only)
-   - `ABSTRATIUM_TOGGLES_CONTEXT`: Context for the Abstoggle public API (e.g., `abstratium-public-...`)
-   - `STAGE`: Deployment stage identifier exposed to the frontend (e.g., "dev", "test", "prod", defaults to "dev")
+   - `ABSTRATIUM_CLIENT_SECRET`: OIDC client secret issued by the abstrauth authentication server. The default `dev-secret-CHANGE-IN-PROD` must never be used in production.
+   - `COOKIE_ENCRYPTION_SECRET`: Secret used to encrypt OIDC session cookies (min 32 chars, generate with `openssl rand -base64 32`)
+   - `CSRF_TOKEN_SIGNATURE_KEY`: HMAC key used to sign CSRF tokens (min 32 chars, generate with `openssl rand -base64 64 | tr -d '\n'`)
    - `DEFAULT_ORG_UUID`: UUID for the default organisation that existing data is migrated into (generate with `uuidgen`)
+   - `ABSTRATIUM_TOGGLES_API_URL`: URL of the Abstoggle public API (e.g., `https://toggles.abstratium.dev`, required in production only — dev/test use a hardcoded default)
+   - `ABSTRATIUM_TOGGLES_CONTEXT`: Context string for the Abstoggle public API (e.g., `abstratium-public-abstraccount`). Has no default and must always be set.
 
    **Optional Environment Variables:**
+   - `ABSTRATIUM_CLIENT_ID`: OIDC client ID registered with the abstrauth server. Defaults to `abstratium-abstraccount`. Override this for non-abstratium deployments.
+   - `QUARKUS_OIDC_AUTH_SERVER_URL`: Base URL of the OIDC authentication server. Defaults to `https://auth-t.abstratium.dev` (dev/test) or `https://auth.abstratium.dev` (prod). Override this for non-abstratium deployments.
+   - `QUARKUS_OIDC_AUTHENTICATION_FORCE_REDIRECT_HTTPS_SCHEME`: Forces the `https://` scheme in the OAuth `redirect_uri` when behind an SSL-terminating reverse proxy. Defaults to `true` in production and `false` in dev/test/e2e. Set to `false` when testing locally over HTTP.
+   - `QUARKUS_MANAGEMENT_HOST`: Bind address for the management interface (health/info endpoints). Defaults to `localhost`. Set to `0.0.0.0` to expose it on all interfaces.
+   - `STAGE`: Deployment stage identifier exposed to the frontend (e.g., "dev", "test", "prod"). Defaults to `dev`.
+   - `DEPLOYMENT_ENV`: Deployment environment name attached to OpenTelemetry resource attributes (`deployment.environment`). Defaults to `dev`.
+   - `OTEL_EXPORTER_OTLP_ENDPOINT`: OTLP collector endpoint for exporting traces and logs (gRPC). Defaults to `http://localhost:4317`. Only used in the `prod` profile.
+   - `PARTNER_DATA_DIR`: Directory containing per-organisation partner CSV files (one file per org: `<orgId>.csv`). Defaults to `data/partners`.
    - `ABSTRA_WARNING_MESSAGE`: Warning banner message displayed at the top of the UI (e.g., "You are in the TEST environment!"). Set to "-" or omit to hide the banner.
    - `ABSTRA_WARNING_BG_COLOR`: Warning banner background colour (CSS colour value, e.g., `#ff4444` for red). Defaults to `#fff3cd` (amber yellow). Useful for differentiating environments at a glance.
    - `ABSTRA_BRAND_LOGO_URL`: URL of the logo image shown in the header. Defaults to `https://abstratium.dev/abstratium-logo-small.png`.
    - `ABSTRA_BRAND_LOGO_ALT`: Alt text for the header logo image. Defaults to `Abstratium Logo`.
    - `ABSTRA_BRAND_NAME`: Brand name text shown next to the logo in the header. Defaults to `ABSTRATIUM`.
    - `ABSTRA_LEGAL_CONTENT_FILE`: **Required for non-abstratium deployments.** Absolute path inside the container to an HTML file containing your organisation's legal page content. When set, this file's contents are served to the frontend and displayed instead of the built-in abstratium legal text — with no misconfiguration warnings. If this variable is not set and the deployment is not on `abstratium.dev`, the legal page will display a prominent error warning to users, and the home page will display a disclaimer stating that abstratium is not responsible for this deployment. Example: `-e ABSTRA_LEGAL_CONTENT_FILE=/config/legal.html -v /host/legal.html:/config/legal.html`.
-   - `TODO_ENV_VAR_NAME`: TODO
 
 
 ----

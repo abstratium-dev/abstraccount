@@ -1,5 +1,6 @@
 package dev.abstratium.abstraccount.adapters;
 
+import dev.abstratium.abstraccount.model.CreatePartnerResult;
 import dev.abstratium.abstraccount.model.PartnerData;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.QuarkusTestProfile;
@@ -394,5 +395,281 @@ class PartnerDataAdapterTest {
         // Invalid boolean should default to false
         PartnerData partner5 = adapter.parseCsvLine("\"P00000005\",\"Name\",\"invalid\"");
         assertFalse(partner5.active());
+    }
+
+    // ========================================================================
+    // addPartner tests
+    // ========================================================================
+
+    @Test
+    void testAddPartner_emptyOrg_assignsP00000001() {
+        CreatePartnerResult result = adapter.addPartner("org-add", "New Partner");
+
+        assertEquals("P00000001", result.partner().partnerNumber());
+        assertEquals("New Partner", result.partner().name());
+        assertTrue(result.partner().active());
+        assertTrue(result.warnings().isEmpty());
+    }
+
+    @Test
+    void testAddPartner_existingPartners_assignsNextSequential() throws IOException {
+        writeOrgFile("org-add", """
+            "Partner Number","Name","Active"
+            "P00000001","First","true"
+            "P00000002","Second","true"
+            """);
+        adapter.getAllPartners("org-add"); // load cache
+
+        CreatePartnerResult result = adapter.addPartner("org-add", "Third");
+
+        assertEquals("P00000003", result.partner().partnerNumber());
+        assertEquals("Third", result.partner().name());
+        assertTrue(result.warnings().isEmpty());
+    }
+
+    @Test
+    void testAddPartner_gapInSequence_fillsGap() throws IOException {
+        writeOrgFile("org-add", """
+            "Partner Number","Name","Active"
+            "P00000001","First","true"
+            "P00000003","Third","true"
+            """);
+        adapter.getAllPartners("org-add"); // load cache
+
+        CreatePartnerResult result = adapter.addPartner("org-add", "Gap Filler");
+
+        assertEquals("P00000002", result.partner().partnerNumber());
+        assertTrue(result.warnings().isEmpty());
+    }
+
+    @Test
+    void testAddPartner_multipleGaps_fillsFirstGap() throws IOException {
+        writeOrgFile("org-add", """
+            "Partner Number","Name","Active"
+            "P00000001","First","true"
+            "P00000004","Fourth","true"
+            """);
+        adapter.getAllPartners("org-add"); // load cache
+
+        CreatePartnerResult result = adapter.addPartner("org-add", "Gap Filler");
+
+        assertEquals("P00000002", result.partner().partnerNumber());
+    }
+
+    @Test
+    void testAddPartner_duplicateName_returnsWarning() throws IOException {
+        writeOrgFile("org-add", """
+            "Partner Number","Name","Active"
+            "P00000001","Existing Partner","true"
+            """);
+        adapter.getAllPartners("org-add"); // load cache
+
+        CreatePartnerResult result = adapter.addPartner("org-add", "Existing Partner");
+
+        assertEquals("P00000001", result.partner().partnerNumber());
+        assertFalse(result.warnings().isEmpty());
+        assertTrue(result.warnings().get(0).contains("Existing Partner"));
+        assertTrue(result.warnings().get(0).contains("P00000001"));
+    }
+
+    @Test
+    void testAddPartner_duplicateNameCaseInsensitive_returnsWarning() throws IOException {
+        writeOrgFile("org-add", """
+            "Partner Number","Name","Active"
+            "P00000001","John Smith","true"
+            """);
+        adapter.getAllPartners("org-add"); // load cache
+
+        CreatePartnerResult result = adapter.addPartner("org-add", "JOHN SMITH");
+
+        assertEquals("P00000001", result.partner().partnerNumber());
+        assertFalse(result.warnings().isEmpty());
+    }
+
+    @Test
+    void testAddPartner_duplicateNameDoesNotCreateNewPartner() throws IOException {
+        writeOrgFile("org-add", """
+            "Partner Number","Name","Active"
+            "P00000001","Existing","true"
+            """);
+        adapter.getAllPartners("org-add"); // load cache
+
+        adapter.addPartner("org-add", "Existing");
+
+        // Only one partner should exist
+        assertEquals(1, adapter.getAllPartners("org-add").size());
+    }
+
+    @Test
+    void testAddPartner_duplicateInactiveName_createsNewPartner() throws IOException {
+        writeOrgFile("org-add", """
+            "Partner Number","Name","Active"
+            "P00000001","Inactive Partner","false"
+            """);
+        adapter.getAllPartners("org-add"); // load cache
+
+        CreatePartnerResult result = adapter.addPartner("org-add", "Inactive Partner");
+
+        // Inactive partners don't count as duplicates, so a new one is created
+        assertEquals("P00000002", result.partner().partnerNumber());
+        assertTrue(result.warnings().isEmpty());
+    }
+
+    @Test
+    void testAddPartner_persistsToFile() throws IOException {
+        adapter.addPartner("org-add", "Persisted Partner");
+
+        // Reload from file to verify it was written
+        adapter.reloadPartnerDataForOrg("org-add");
+        Optional<PartnerData> partner = adapter.getPartner("org-add", "P00000001");
+        assertTrue(partner.isPresent());
+        assertEquals("Persisted Partner", partner.get().name());
+        assertTrue(partner.get().active());
+    }
+
+    @Test
+    void testAddPartner_createsFileWithHeaderIfNotExists() throws IOException {
+        Path filePath = testDir.resolve("new-org.csv");
+        assertFalse(Files.exists(filePath));
+
+        adapter.addPartner("new-org", "First Partner");
+
+        assertTrue(Files.exists(filePath));
+        String content = Files.readString(filePath);
+        assertTrue(content.contains("\"Partner Number\",\"Name\",\"Active\""));
+        assertTrue(content.contains("\"P00000001\",\"First Partner\",\"true\""));
+    }
+
+    @Test
+    void testAddPartner_appendsToExistingFile() throws IOException { //NOPMD
+        writeOrgFile("org-add", """
+            "Partner Number","Name","Active"
+            "P00000001","First","true"
+            """);
+        adapter.getAllPartners("org-add"); // load cache
+
+        adapter.addPartner("org-add", "Second");
+
+        String content = Files.readString(orgFile("org-add"));
+        assertTrue(content.contains("\"P00000001\",\"First\",\"true\""));
+        assertTrue(content.contains("\"P00000002\",\"Second\",\"true\""));
+    }
+
+    @Test
+    void testAddPartner_updatesInMemoryCache() {
+        adapter.addPartner("org-add", "Cached Partner");
+
+        // Should be immediately visible in the cache without reload
+        Optional<PartnerData> partner = adapter.getPartner("org-add", "P00000001");
+        assertTrue(partner.isPresent());
+        assertEquals("Cached Partner", partner.get().name());
+    }
+
+    @Test
+    void testAddPartner_blankName_throws() {
+        assertThrows(IllegalArgumentException.class, () -> adapter.addPartner("org-add", ""));
+        assertThrows(IllegalArgumentException.class, () -> adapter.addPartner("org-add", "  "));
+    }
+
+    @Test
+    void testAddPartner_nullName_throws() {
+        assertThrows(IllegalArgumentException.class, () -> adapter.addPartner("org-add", null));
+    }
+
+    @Test
+    void testAddPartner_blankOrgId_throws() {
+        assertThrows(IllegalArgumentException.class, () -> adapter.addPartner("", "Name"));
+        assertThrows(IllegalArgumentException.class, () -> adapter.addPartner("  ", "Name"));
+    }
+
+    @Test
+    void testAddPartner_nullOrgId_throws() {
+        assertThrows(IllegalArgumentException.class, () -> adapter.addPartner(null, "Name"));
+    }
+
+    @Test
+    void testAddPartner_nameWithComma_persistsCorrectly() throws IOException {
+        adapter.addPartner("org-add", "Smith, John");
+
+        adapter.reloadPartnerDataForOrg("org-add");
+        Optional<PartnerData> partner = adapter.getPartner("org-add", "P00000001");
+        assertTrue(partner.isPresent());
+        assertEquals("Smith, John", partner.get().name());
+    }
+
+    @Test
+    void testAddPartner_nameWithQuotes_persistsCorrectly() throws IOException {
+        adapter.addPartner("org-add", "Partner \"The Best\" Co");
+
+        adapter.reloadPartnerDataForOrg("org-add");
+        Optional<PartnerData> partner = adapter.getPartner("org-add", "P00000001");
+        assertTrue(partner.isPresent());
+        assertEquals("Partner \"The Best\" Co", partner.get().name());
+    }
+
+    @Test
+    void testAddPartner_multipleCreates_incrementSequentially() {
+        adapter.addPartner("org-add", "First");
+        adapter.addPartner("org-add", "Second");
+        adapter.addPartner("org-add", "Third");
+
+        assertEquals(3, adapter.getAllPartners("org-add").size());
+        assertTrue(adapter.getPartner("org-add", "P00000001").isPresent());
+        assertTrue(adapter.getPartner("org-add", "P00000002").isPresent());
+        assertTrue(adapter.getPartner("org-add", "P00000003").isPresent());
+    }
+
+    @Test
+    void testComputeNextPartnerNumber_emptyCache() {
+        assertEquals("P00000001", adapter.computeNextPartnerNumber(Map.of()));
+    }
+
+    @Test
+    void testComputeNextPartnerNumber_noGaps() {
+        Map<String, PartnerData> cache = Map.of(
+            "P00000001", new PartnerData("P00000001", "A", true),
+            "P00000002", new PartnerData("P00000002", "B", true),
+            "P00000003", new PartnerData("P00000003", "C", true)
+        );
+        assertEquals("P00000004", adapter.computeNextPartnerNumber(cache));
+    }
+
+    @Test
+    void testComputeNextPartnerNumber_withGap() {
+        Map<String, PartnerData> cache = Map.of(
+            "P00000001", new PartnerData("P00000001", "A", true),
+            "P00000003", new PartnerData("P00000003", "C", true)
+        );
+        assertEquals("P00000002", adapter.computeNextPartnerNumber(cache));
+    }
+
+    @Test
+    void testComputeNextPartnerNumber_ignoresNonStandardNumbers() {
+        Map<String, PartnerData> cache = Map.of(
+            "P00000001", new PartnerData("P00000001", "A", true),
+            "LEGACY001", new PartnerData("LEGACY001", "Legacy", true)
+        );
+        assertEquals("P00000002", adapter.computeNextPartnerNumber(cache));
+    }
+
+    @Test
+    void testFormatCsvLine() {
+        PartnerData partner = new PartnerData("P00000001", "Test Partner", true);
+        String line = adapter.formatCsvLine(partner);
+        assertEquals("\"P00000001\",\"Test Partner\",\"true\"", line);
+    }
+
+    @Test
+    void testFormatCsvLine_withCommaInName() {
+        PartnerData partner = new PartnerData("P00000001", "Smith, John", true);
+        String line = adapter.formatCsvLine(partner);
+        assertEquals("\"P00000001\",\"Smith, John\",\"true\"", line);
+    }
+
+    @Test
+    void testFormatCsvLine_withQuotesInName() {
+        PartnerData partner = new PartnerData("P00000001", "Partner \"Co\"", true);
+        String line = adapter.formatCsvLine(partner);
+        assertEquals("\"P00000001\",\"Partner \"\"Co\"\"\",\"true\"", line);
     }
 }

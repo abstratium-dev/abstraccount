@@ -1,4 +1,18 @@
 
+.coming-soon-tag {
+  display: inline-block;
+  margin-left: 0.4rem;
+  padding: 0.1rem 0.5rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--color-text-inverse, #fff);
+  background: var(--color-accent, #6c757d);
+  border-radius: 999px;
+  vertical-align: middle;
+}
+
 .landing-hero {
   .welcome-back {
     font-size: 1.1rem;

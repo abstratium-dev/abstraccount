@@ -1,6 +1,20 @@
-# abstraccount
+# Abstraccount™
 
-**abstraccount** is a double-entry accounting service. Built on the Quarkus subatomic Java stack, Quinoa for seamless integration, and Angular for the frontend, it serves as the upstream source for all specific project forks.
+**Abstraccount™** is modern double-entry bookkeeping for professionals — fast, lightweight, and ready for use in Switzerland, the EU, the UK, EFTA, and anywhere else that uses double-entry accounting. Record transactions, manage a hierarchical chart of accounts, automate recurring entries with macros, and generate trial balances, income statements, and balance sheets in seconds. It ships with built-in report templates aligned to the Swiss KMU-Kontenplan, which you can use as-is or adapt to your local chart of accounts.
+
+## ✨ Key Features
+
+- **Double-entry bookkeeping** — record transactions with balanced debits and credits, split lines, and tags
+- **Hierarchical chart of accounts** — organise assets, liabilities, equity, revenue, and expenses into a tree with rolled-up balances
+- **Macros & automation** — reusable templates for recurring entries such as invoices, payments, depreciation, and salaries
+- **Financial reports** — trial balance, income statement, and balance sheet over any date range (cash flow report coming soon)
+- **Partner management** — track customers, vendors, and employees with per-partner ledgers and history
+- **Multi-currency** — configure a currency per journal and record transactions in your chosen currency
+- **Fiscal years** — define year boundaries, close the books at year end, and roll opening balances into a new year
+- **Journal history** — a complete audit trail and a chain of linked journals across financial years
+- **Swiss report templates** — built-in balance sheet, income statement, and tax declaration layouts aligned to the Swiss KMU-Kontenplan (adaptable to other jurisdictions)
+- **AI assistant** (coming soon) — guided chart-of-accounts setup and help with day-to-day bookkeeping
+- **VAT & compliance** (coming soon) — tax codes, VAT reports, and period locking
 
 ## 📦 Tech Stack
 

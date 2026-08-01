@@ -23,7 +23,17 @@ These TODOs are to be resolved by the developer, NOT THE LLM.
 - bug: does adding new year copy the account descriptions?
   - llm says no bug but why is 2026 empty?
 
-- is this statement too bold? "Built on Swiss GAAP FER standards."
+- add an AI assistant
+  - provide it with markdown that describes swiss accounting, based on the docs on the internet.
+
+- add a cashflow report to the built-in ones.
+
+- add a "locked" flag to journals so that closed periods can be protected from further changes.
+  - the flag should be checked on execution of macros and on any transaction or account modification (create/update/delete).
+  - any other mutating operation against a locked journal should also be rejected with a clear error.
+  - expose a way for an administrator to (un)lock a journal from the journal management UI.
+
+- add ability to create new partners, which should write the data to the relevant partner file
 
 - add a user guide.
 

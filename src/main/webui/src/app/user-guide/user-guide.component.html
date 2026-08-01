@@ -14,6 +14,7 @@
       <li><a [routerLink]="['/user-guide']" fragment="reports">View reports</a></li>
       <li><a [routerLink]="['/user-guide']" fragment="close-books">Close the books at year end</a></li>
       <li><a [routerLink]="['/user-guide']" fragment="new-year">Open a new year</a></li>
+      <li><a [routerLink]="['/user-guide']" fragment="multi-currency">Work with multiple currencies</a></li>
       <li><a [routerLink]="['/user-guide']" fragment="filters">Use filters</a></li>
       <li><a [routerLink]="['/user-guide']" fragment="printing">Print the journal and accounts</a></li>
     </ul>
@@ -138,6 +139,19 @@
     </p>
     <p>
       You can see the chain of linked journals on the <strong>Journal History</strong> page. This makes it easy to move backwards and forwards through previous financial years.
+    </p>
+  </section>
+
+  <section id="multi-currency" class="guide-section">
+    <h2>Work with multiple currencies</h2>
+    <p>
+      Each journal has a single <strong>main currency</strong> that you choose when you create it (for example <code>CHF</code>). All account balances and reports are expressed in that currency.
+    </p>
+    <p>
+      Abstraccount™ does not perform automatic currency conversion. If you need to record a transaction in a foreign currency, convert the amount to your journal's main currency yourself and enter the converted amount on each entry line. Then note the original amount and the exchange rate you used in the transaction <strong>description</strong>, so that the underlying detail is preserved and auditable.
+    </p>
+    <p>
+      For example, if your journal is in CHF and you pay a USD 100 invoice at an exchange rate of 1 USD = 0.88 CHF, record the entry as <code>88.00</code> CHF and add a note such as <code>USD 100.00 @ 0.88</code> to the description or as a tag like <code>fx:USD100@0.88</code>.
     </p>
   </section>
 
