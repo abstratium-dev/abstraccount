@@ -3,6 +3,7 @@ package dev.abstratium.abstraccount.boundary;
 import dev.abstratium.abstraccount.Roles;
 import dev.abstratium.abstraccount.adapters.PartnerDataAdapter;
 import dev.abstratium.abstraccount.model.CreatePartnerResult;
+import dev.abstratium.abstraccount.model.ImportPartnersResult;
 import dev.abstratium.abstraccount.model.PartnerData;
 import dev.abstratium.abstraccount.service.TagService;
 import dev.abstratium.core.service.CurrentOrgContext;
@@ -10,6 +11,7 @@ import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
 import org.jboss.logging.Logger;
 
 import java.util.List;
@@ -118,6 +120,39 @@ public class PartnerResource {
             result.partner().name(),
             result.warnings()
         );
+    }
+
+    /**
+     * Replace all partners for the current organisation from an imported CSV file.
+     *
+     * <p>The request body is the raw CSV content (text/csv). The backend fully
+     * validates the content before overwriting the organisation's partner file.
+     * If validation fails the response is HTTP 400 with the list of errors and
+     * the existing file is left unchanged.</p>
+     *
+     * <p><b>Warning:</b> this replaces all existing partners. Transactions only
+     * store the partner number, so after a replace they may refer to different
+     * partners than before.</p>
+     *
+     * @param csvContent the raw CSV content, including the header line
+     * @return response with the imported count and any validation errors
+     */
+    @POST
+    @Path("/partners/import")
+    @Consumes({MediaType.TEXT_PLAIN, "text/csv"})
+    public Response importPartners(String csvContent) {
+        String orgId = currentOrgContext.getOrgId();
+        LOG.infof("Importing partners from CSV for org: %s (%d bytes)", orgId,
+            csvContent == null ? 0 : csvContent.length());
+
+        ImportPartnersResult result = partnerDataAdapter.replacePartners(orgId, csvContent);
+
+        ImportPartnersResponseDTO body = new ImportPartnersResponseDTO(result.importedCount(), result.errors());
+        if (!result.isValid()) {
+            return Response.status(Response.Status.BAD_REQUEST).entity(body).build();
+        }
+
+        return Response.ok(body).build();
     }
     
     /**

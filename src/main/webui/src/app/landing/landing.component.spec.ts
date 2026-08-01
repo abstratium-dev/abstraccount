@@ -22,7 +22,7 @@ describe('LandingComponent', () => {
 
   it('should render the main heading', () => {
     const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelector('h1')?.textContent).toContain('ABSTRACCOUNT');
+    expect(compiled.querySelector('h1')?.textContent).toContain('Abstraccount');
   });
 
   it('should render the sign-up note', () => {

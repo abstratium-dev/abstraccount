@@ -376,4 +376,175 @@ class PartnerResourceTest {
         .then()
             .statusCode(anyOf(equalTo(400), equalTo(401)));
     }
+
+    // ========================================================================
+    // POST /api/partners/import - replace partners from CSV
+    // ========================================================================
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {Roles.USER})
+    @OidcSecurity(claims = @Claim(key = "orgId", value = TEST_ORG_ID))
+    void testImportPartners_validCsv_replacesPartners() {
+        String csv = """
+            "Partner Number","Name","Active"
+            "P00000001","Imported Partner A","true"
+            "P00000002","Imported Partner B","true"
+            """;
+
+        given()
+            .contentType("text/csv")
+            .body(csv)
+        .when()
+            .post("/api/partners/import")
+        .then()
+            .statusCode(200)
+            .body("importedCount", equalTo(2))
+            .body("errors", empty());
+
+        // Verify the new partners are returned by search
+        given()
+            .contentType(ContentType.JSON)
+            .queryParam("q", "Imported Partner A")
+        .when()
+            .get("/api/partners/search")
+        .then()
+            .statusCode(200)
+            .body("[0].name", equalTo("Imported Partner A"));
+
+        // Old partner from setup data is gone
+        given()
+            .contentType(ContentType.JSON)
+            .queryParam("q", "Kutschera")
+        .when()
+            .get("/api/partners/search")
+        .then()
+            .statusCode(200)
+            .body("$", empty());
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {Roles.USER})
+    @OidcSecurity(claims = @Claim(key = "orgId", value = TEST_ORG_ID))
+    void testImportPartners_invalidHeader_returns400() {
+        String csv = """
+            "WrongHeader","Name","Active"
+            "P00000001","Imported Partner","true"
+            """;
+
+        given()
+            .contentType("text/csv")
+            .body(csv)
+        .when()
+            .post("/api/partners/import")
+        .then()
+            .statusCode(400)
+            .body("importedCount", equalTo(0))
+            .body("errors", not(empty()))
+            .body("errors[0]", containsString("invalid header"));
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {Roles.USER})
+    @OidcSecurity(claims = @Claim(key = "orgId", value = TEST_ORG_ID))
+    void testImportPartners_badPartnerNumber_returns400() {
+        String csv = """
+            "Partner Number","Name","Active"
+            "BADNUMBER","Imported Partner","true"
+            """;
+
+        given()
+            .contentType("text/csv")
+            .body(csv)
+        .when()
+            .post("/api/partners/import")
+        .then()
+            .statusCode(400)
+            .body("importedCount", equalTo(0))
+            .body("errors[0]", containsString("BADNUMBER"));
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {Roles.USER})
+    @OidcSecurity(claims = @Claim(key = "orgId", value = TEST_ORG_ID))
+    void testImportPartners_duplicateNumbers_returns400() {
+        String csv = """
+            "Partner Number","Name","Active"
+            "P00000001","First","true"
+            "P00000001","Second","true"
+            """;
+
+        given()
+            .contentType("text/csv")
+            .body(csv)
+        .when()
+            .post("/api/partners/import")
+        .then()
+            .statusCode(400)
+            .body("importedCount", equalTo(0))
+            .body("errors[0]", containsString("duplicate"));
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {Roles.USER})
+    @OidcSecurity(claims = @Claim(key = "orgId", value = TEST_ORG_ID))
+    void testImportPartners_emptyBody_returns400() {
+        given()
+            .contentType("text/csv")
+            .body("")
+        .when()
+            .post("/api/partners/import")
+        .then()
+            .statusCode(400)
+            .body("importedCount", equalTo(0))
+            .body("errors[0]", containsString("empty"));
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {Roles.USER})
+    @OidcSecurity(claims = @Claim(key = "orgId", value = TEST_ORG_ID))
+    void testImportPartners_invalidData_leavesExistingFileUnchanged() {
+        // Confirm existing partner is present
+        given()
+            .contentType(ContentType.JSON)
+            .queryParam("q", "Kutschera")
+        .when()
+            .get("/api/partners/search")
+        .then()
+            .statusCode(200)
+            .body("[0].name", equalTo("Kutschera Anton"));
+
+        // Attempt an invalid import
+        String badCsv = """
+            "Partner Number","Name","Active"
+            "BAD","Partner","true"
+            """;
+        given()
+            .contentType("text/csv")
+            .body(badCsv)
+        .when()
+            .post("/api/partners/import")
+        .then()
+            .statusCode(400);
+
+        // Existing partner is still there
+        given()
+            .contentType(ContentType.JSON)
+            .queryParam("q", "Kutschera")
+        .when()
+            .get("/api/partners/search")
+        .then()
+            .statusCode(200)
+            .body("[0].name", equalTo("Kutschera Anton"));
+    }
+
+    @Test
+    void testImportPartners_unauthenticated_returns401() {
+        given()
+            .contentType("text/csv")
+            .body("\"Partner Number\",\"Name\",\"Active\"")
+        .when()
+            .post("/api/partners/import")
+        .then()
+            .statusCode(anyOf(equalTo(400), equalTo(401)));
+    }
 }

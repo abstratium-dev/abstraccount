@@ -538,7 +538,7 @@ test.describe('Test Macros', () => {
     await macrosPage.fillParameter(page, 'date', '2026-08-04');
     
     console.log('Filling partner field...');
-    await macrosPage.fillParameterAutocomplete(page, 'Partner (customer)', 'P00000014');
+    await macrosPage.fillParameterAutocomplete(page, 'Partner (customer)', 'P00000005');
     
     console.log('Filling invoice number field with placeholder...');
     // Use placeholder - this tests that macro parameter replacement works
@@ -625,7 +625,7 @@ test.describe('Test Macros', () => {
     
     await transactionsPage.verifyTransactionDetails(page, 'Test macros 004.3 sales invoice', {
       date: '2026-08-04',
-      partner: 'P00000014',
+      partner: 'P00000005',
       value: '7.00'
     });
     
@@ -637,7 +637,7 @@ test.describe('Test Macros', () => {
     console.log('✓ Transaction created successfully via macro system');
     console.log('✓ All InvoiceForServicesOrSaas macro scenarios validated:');
     console.log('  - Macro selection and parameter form display');
-    console.log('  - Partner selection (P00000014)');
+    console.log('  - Partner selection (P00000005)');
     console.log('  - Invoice number placeholder ({next_invoice_SI}) resolved to SI00000002');
     console.log('  - Amount: CHF 7.00');
     console.log('  - Description: Test macros 004.3 sales invoice');
@@ -709,8 +709,8 @@ test.describe('Test Macros', () => {
     console.log('Filling date field (2026-08-07 - a few days after first invoice)...');
     await macrosPage.fillParameter(page, 'date', '2026-08-07');
     
-    console.log('Filling partner field (same partner P00000014)...');
-    await macrosPage.fillParameterAutocomplete(page, 'Partner (customer)', 'P00000014');
+    console.log('Filling partner field (same partner P00000005)...');
+    await macrosPage.fillParameterAutocomplete(page, 'Partner (customer)', 'P00000005');
     
     console.log('Filling invoice number field with placeholder...');
     const invoiceField = page.locator('.parameter-field').filter({
@@ -788,14 +788,14 @@ test.describe('Test Macros', () => {
     
     await transactionsPage.verifyTransactionDetails(page, 'Test macros 004.4 second invoice', {
       date: '2026-08-07',
-      partner: 'P00000014',
+      partner: 'P00000005',
       value: '111'
     });
     
     console.log('✓ Transaction created successfully via macro system');
     console.log('✓ Second invoice created (unpaid):');
     console.log('  - Date: 2026-08-07');
-    console.log('  - Partner: P00000014 (Microsoft)');
+    console.log('  - Partner: P00000005 (Microsoft)');
     console.log('  - Invoice: SI00000002 (auto-generated)');
     console.log('  - Amount: CHF 111');
     console.log('  - Status: Unpaid (will be used in test 004.5)');
@@ -866,8 +866,8 @@ test.describe('Test Macros', () => {
     console.log('Filling date field (2026-08-31)...');
     await macrosPage.fillParameter(page, 'date', '2026-08-31');
     
-    console.log('Filling partner field (P00000014)...');
-    await macrosPage.fillParameterAutocomplete(page, 'Partner (customer)', 'P00000014');
+    console.log('Filling partner field (P00000005)...');
+    await macrosPage.fillParameterAutocomplete(page, 'Partner (customer)', 'P00000005');
     
     console.log('Filling invoice number field using regex search (.*01$)...');
     // Find the invoice number autocomplete field
@@ -960,14 +960,14 @@ test.describe('Test Macros', () => {
     
     await transactionsPage.verifyTransactionDetails(page, 'Test macros 004.5 Customer pays invoice SI00000001', {
       date: '2026-08-31',
-      partner: 'P00000014',
+      partner: 'P00000005',
       value: '7.00'
     });
     
     console.log('✓ Transaction created successfully via macro system');
     console.log('✓ CustomerPaysInvoice macro scenarios validated:');
     console.log('  - Macro selection and parameter form display');
-    console.log('  - Partner selection (P00000014)');
+    console.log('  - Partner selection (P00000005)');
     console.log('  - Invoice regex search (.*01$) successfully found SI00000001');
     console.log('  - Date: 2026-08-31');
     console.log('  - Amount: CHF 7.00');
@@ -1043,8 +1043,8 @@ test.describe('Test Macros', () => {
     console.log('Filling date field (2026-09-09)...');
     await macrosPage.fillParameter(page, 'date', '2026-09-09');
     
-    console.log('Filling partner field (P00000014)...');
-    await macrosPage.fillParameterAutocomplete(page, 'Partner (supplier)', 'P00000014');
+    console.log('Filling partner field (P00000005)...');
+    await macrosPage.fillParameterAutocomplete(page, 'Partner (supplier)', 'P00000005');
     
     console.log('Filling invoice number field with placeholder...');
     const invoiceInput = page.locator('input[id="param-invoice_number"]');
@@ -1133,14 +1133,14 @@ test.describe('Test Macros', () => {
     
     await transactionsPage.verifyTransactionDetails(page, 'Test macros 004.6 payment by staff', {
       date: '2026-09-09',
-      partner: 'P00000014',
+      partner: 'P00000005',
       value: '17.00'
     });
     
     console.log('✓ Transaction created successfully via macro system');
     console.log('✓ PaymentByStaff macro scenarios validated:');
     console.log('  - Macro selection and parameter form display');
-    console.log('  - Partner selection (P00000014 - supplier)');
+    console.log('  - Partner selection (P00000005 - supplier)');
     console.log('  - Invoice number placeholder ({next_invoice_PI}) resolved');
     console.log('  - Date: 2026-09-09');
     console.log('  - Amount: CHF 17.00');

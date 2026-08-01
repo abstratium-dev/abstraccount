@@ -1,6 +1,7 @@
 package dev.abstratium.abstraccount.adapters;
 
 import dev.abstratium.abstraccount.model.CreatePartnerResult;
+import dev.abstratium.abstraccount.model.ImportPartnersResult;
 import dev.abstratium.abstraccount.model.PartnerData;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.QuarkusTestProfile;
@@ -671,5 +672,275 @@ class PartnerDataAdapterTest {
         PartnerData partner = new PartnerData("P00000001", "Partner \"Co\"", true);
         String line = adapter.formatCsvLine(partner);
         assertEquals("\"P00000001\",\"Partner \"\"Co\"\"\",\"true\"", line);
+    }
+
+    // ========================================================================
+    // replacePartners tests
+    // ========================================================================
+
+    @Test
+    void testReplacePartners_validCsv_replacesFileAndReloadsCache() throws IOException {
+        // Given - existing data
+        writeOrgFile("org-replace", """
+            "Partner Number","Name","Active"
+            "P00000001","Old Partner","true"
+            """);
+        adapter.getAllPartners("org-replace"); // load cache
+        assertEquals(1, adapter.getAllPartners("org-replace").size());
+
+        String newCsv = """
+            "Partner Number","Name","Active"
+            "P00000001","New Partner A","true"
+            "P00000002","New Partner B","false"
+            """;
+
+        // When
+        ImportPartnersResult result = adapter.replacePartners("org-replace", newCsv);
+
+        // Then
+        assertTrue(result.isValid());
+        assertEquals(2, result.importedCount());
+        assertTrue(result.errors().isEmpty());
+
+        List<PartnerData> partners = adapter.getAllPartners("org-replace");
+        assertEquals(2, partners.size());
+        assertEquals("New Partner A", adapter.getPartner("org-replace", "P00000001").orElseThrow().name());
+        assertEquals("New Partner B", adapter.getPartner("org-replace", "P00000002").orElseThrow().name());
+        assertFalse(adapter.getPartner("org-replace", "P00000002").orElseThrow().active());
+
+        // Old partner name is gone
+        assertFalse(adapter.getAllPartners("org-replace").stream()
+            .anyMatch(p -> p.name().equals("Old Partner")));
+
+        // File on disk has the new content
+        String fileContent = Files.readString(orgFile("org-replace"));
+        assertTrue(fileContent.contains("New Partner A"));
+        assertTrue(fileContent.contains("New Partner B"));
+        assertFalse(fileContent.contains("Old Partner"));
+    }
+
+    @Test
+    void testReplacePartners_invalidHeader_returnsErrorAndLeavesFileUnchanged() throws IOException {
+        String originalCsv = """
+            "Partner Number","Name","Active"
+            "P00000001","Old Partner","true"
+            """;
+        writeOrgFile("org-replace", originalCsv);
+        adapter.getAllPartners("org-replace");
+
+        String badHeader = """
+            "WrongHeader","Name","Active"
+            "P00000001","New Partner","true"
+            """;
+
+        ImportPartnersResult result = adapter.replacePartners("org-replace", badHeader);
+
+        assertFalse(result.isValid());
+        assertEquals(0, result.importedCount());
+        assertFalse(result.errors().isEmpty());
+        assertTrue(result.errors().get(0).contains("invalid header"));
+
+        // File unchanged
+        assertEquals("Old Partner", adapter.getPartner("org-replace", "P00000001").orElseThrow().name());
+        String fileContent = Files.readString(orgFile("org-replace"));
+        assertTrue(fileContent.contains("Old Partner"));
+    }
+
+    @Test
+    void testReplacePartners_badPartnerNumberFormat_returnsError() {
+        String csv = """
+            "Partner Number","Name","Active"
+            "BADNUMBER","New Partner","true"
+            """;
+
+        ImportPartnersResult result = adapter.replacePartners("org-replace", csv);
+
+        assertFalse(result.isValid());
+        assertEquals(0, result.importedCount());
+        assertTrue(result.errors().stream().anyMatch(e -> e.contains("BADNUMBER")));
+    }
+
+    @Test
+    void testReplacePartners_duplicatePartnerNumbers_returnsError() {
+        String csv = """
+            "Partner Number","Name","Active"
+            "P00000001","First","true"
+            "P00000001","Second","true"
+            """;
+
+        ImportPartnersResult result = adapter.replacePartners("org-replace", csv);
+
+        assertFalse(result.isValid());
+        assertEquals(0, result.importedCount());
+        assertTrue(result.errors().stream().anyMatch(e -> e.contains("duplicate")));
+    }
+
+    @Test
+    void testReplacePartners_wrongFieldCount_returnsError() {
+        String csv = """
+            "Partner Number","Name","Active"
+            "P00000001","Only Two Fields"
+            """;
+
+        ImportPartnersResult result = adapter.replacePartners("org-replace", csv);
+
+        assertFalse(result.isValid());
+        assertEquals(0, result.importedCount());
+        assertTrue(result.errors().stream().anyMatch(e -> e.contains("Line 2")));
+    }
+
+    @Test
+    void testReplacePartners_emptyContent_returnsError() {
+        ImportPartnersResult result = adapter.replacePartners("org-replace", "");
+
+        assertFalse(result.isValid());
+        assertEquals(0, result.importedCount());
+        assertTrue(result.errors().stream().anyMatch(e -> e.contains("empty")));
+    }
+
+    @Test
+    void testReplacePartners_headerOnly_returnsError() {
+        String csv = """
+            "Partner Number","Name","Active"
+            """;
+
+        ImportPartnersResult result = adapter.replacePartners("org-replace", csv);
+
+        assertFalse(result.isValid());
+        assertEquals(0, result.importedCount());
+        assertTrue(result.errors().stream().anyMatch(e -> e.contains("no partner data")));
+    }
+
+    @Test
+    void testReplacePartners_skipsBlankLines() {
+        String csv = """
+            "Partner Number","Name","Active"
+
+            "P00000001","First","true"
+
+            "P00000002","Second","true"
+            """;
+
+        ImportPartnersResult result = adapter.replacePartners("org-replace", csv);
+
+        assertTrue(result.isValid());
+        assertEquals(2, result.importedCount());
+    }
+
+    @Test
+    void testReplacePartners_blankName_returnsError() {
+        // PartnerData record rejects blank names, so parseCsvLine throws
+        String csv = """
+            "Partner Number","Name","Active"
+            "P00000001","","true"
+            """;
+
+        ImportPartnersResult result = adapter.replacePartners("org-replace", csv);
+
+        assertFalse(result.isValid());
+        assertEquals(0, result.importedCount());
+        assertTrue(result.errors().stream().anyMatch(e -> e.contains("Line 2")));
+    }
+
+    @Test
+    void testReplacePartners_nullOrgId_throws() {
+        assertThrows(IllegalArgumentException.class,
+            () -> adapter.replacePartners(null, "anything"));
+    }
+
+    @Test
+    void testReplacePartners_blankOrgId_throws() {
+        assertThrows(IllegalArgumentException.class,
+            () -> adapter.replacePartners("  ", "anything"));
+    }
+
+    @Test
+    void testReplacePartners_createsFileIfNotExists() {
+        // No file exists for "new-org"
+        String csv = """
+            "Partner Number","Name","Active"
+            "P00000001","Brand New","true"
+            """;
+
+        ImportPartnersResult result = adapter.replacePartners("new-org", csv);
+
+        assertTrue(result.isValid());
+        assertEquals(1, result.importedCount());
+        assertTrue(Files.exists(orgFile("new-org")));
+        assertEquals("Brand New", adapter.getPartner("new-org", "P00000001").orElseThrow().name());
+    }
+
+    @Test
+    void testReplacePartners_isolatedPerOrg() throws IOException {
+        writeOrgFile("org-a", """
+            "Partner Number","Name","Active"
+            "P00000001","OrgA Partner","true"
+            """);
+        writeOrgFile("org-b", """
+            "Partner Number","Name","Active"
+            "P00000001","OrgB Partner","true"
+            """);
+        adapter.getAllPartners("org-a");
+        adapter.getAllPartners("org-b");
+
+        String newCsv = """
+            "Partner Number","Name","Active"
+            "P00000001","Replaced A","true"
+            """;
+
+        ImportPartnersResult result = adapter.replacePartners("org-a", newCsv);
+
+        assertTrue(result.isValid());
+        // org-a was replaced
+        assertEquals("Replaced A", adapter.getPartner("org-a", "P00000001").orElseThrow().name());
+        // org-b is untouched
+        assertEquals("OrgB Partner", adapter.getPartner("org-b", "P00000001").orElseThrow().name());
+    }
+
+    @Test
+    void testReplacePartners_fileWatcherStillDetectsExternalChangesAfterReplace() throws IOException, InterruptedException {
+        // Given - initial data loaded
+        writeOrgFile("org-watch", """
+            "Partner Number","Name","Active"
+            "P00000001","Initial Partner","true"
+            """);
+        adapter.getAllPartners("org-watch");
+        assertEquals(1, adapter.getAllPartners("org-watch").size());
+
+        // When - replace partners via the adapter (writes to the file with TRUNCATE_EXISTING)
+        String importCsv = """
+            "Partner Number","Name","Active"
+            "P00000001","Imported Partner","true"
+            "P00000002","Second Imported","true"
+            """;
+        ImportPartnersResult result = adapter.replacePartners("org-watch", importCsv);
+        assertTrue(result.isValid());
+        assertEquals(2, adapter.getAllPartners("org-watch").size());
+
+        // Then - externally modify the file and verify the watcher still detects it
+        writeOrgFile("org-watch", """
+            "Partner Number","Name","Active"
+            "P00000001","External Change","true"
+            "P00000002","Second External","true"
+            "P00000003","Third External","true"
+            """);
+
+        // Poll for the file watcher to detect the external change and reload.
+        // Use polling instead of a fixed sleep because the watcher may be
+        // busy processing events from other tests' file writes.
+        boolean detected = false;
+        for (int i = 0; i < 20; i++) {
+            Thread.sleep(200);
+            List<PartnerData> partners = adapter.getAllPartners("org-watch");
+            if (partners.size() == 3
+                    && adapter.getPartner("org-watch", "P00000003").isPresent()) {
+                detected = true;
+                break;
+            }
+        }
+
+        assertTrue(detected, "File watcher should still detect external changes after replacePartners");
+        assertEquals("External Change", adapter.getPartner("org-watch", "P00000001").orElseThrow().name());
+        assertEquals("Third External", adapter.getPartner("org-watch", "P00000003").orElseThrow().name());
     }
 }

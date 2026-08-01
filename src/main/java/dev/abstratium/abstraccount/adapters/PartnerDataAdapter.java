@@ -1,6 +1,7 @@
 package dev.abstratium.abstraccount.adapters;
 
 import dev.abstratium.abstraccount.model.CreatePartnerResult;
+import dev.abstratium.abstraccount.model.ImportPartnersResult;
 import dev.abstratium.abstraccount.model.PartnerData;
 import io.quarkus.runtime.Startup;
 import jakarta.annotation.PostConstruct;
@@ -146,6 +147,114 @@ public class PartnerDataAdapter {
 
         LOG.infof("Created partner %s for org %s", nextNumber, orgId);
         return new CreatePartnerResult(newPartner, warnings);
+    }
+
+    private static final String CSV_HEADER = "\"Partner Number\",\"Name\",\"Active\"";
+
+    /**
+     * Replace all partners for an organisation from the supplied CSV content.
+     *
+     * <p>The content is fully validated <em>before</em> the existing file is
+     * touched. If any validation error is found the existing file is left
+     * unchanged and the errors are returned. When validation succeeds the
+     * file is overwritten with a normalised version (re-serialised from the
+     * parsed data) and the in-memory cache for the organisation is reloaded.</p>
+     *
+     * @param orgId      the organisation identifier (from the certificate)
+     * @param csvContent the full CSV file content, including the header line
+     * @return result with the imported count and any validation errors
+     */
+    public synchronized ImportPartnersResult replacePartners(String orgId, String csvContent) {
+        if (orgId == null || orgId.isBlank()) {
+            throw new IllegalArgumentException("orgId cannot be null or blank");
+        }
+        if (csvContent == null || csvContent.isBlank()) {
+            return new ImportPartnersResult(0, List.of("CSV content is empty"));
+        }
+
+        List<PartnerData> partners = new ArrayList<>();
+        List<String> errors = new ArrayList<>();
+        Set<String> seenNumbers = new HashSet<>();
+
+        String[] lines = csvContent.split("\\R", -1);
+        int dataLineCount = 0;
+
+        for (int i = 0; i < lines.length; i++) {
+            String rawLine = lines[i];
+            String line = rawLine.trim();
+
+            if (i == 0) {
+                if (!line.equals(CSV_HEADER)) {
+                    errors.add("Line 1: invalid header. Expected " + CSV_HEADER + " but got: " + rawLine);
+                }
+                continue;
+            }
+
+            if (line.isEmpty()) {
+                continue;
+            }
+
+            dataLineCount++;
+            int lineNumber = i + 1;
+
+            try {
+                PartnerData partner = parseCsvLine(rawLine);
+                String number = partner.partnerNumber();
+
+                if (!PARTNER_NUMBER_PATTERN.matcher(number).matches()) {
+                    errors.add("Line " + lineNumber + ": partner number \"" + number
+                        + "\" does not match the required format P followed by 8 digits (e.g. P00000001)");
+                } else if (seenNumbers.contains(number)) {
+                    errors.add("Line " + lineNumber + ": duplicate partner number \"" + number + "\"");
+                } else {
+                    seenNumbers.add(number);
+                    partners.add(partner);
+                }
+            } catch (IllegalArgumentException e) {
+                errors.add("Line " + lineNumber + ": " + e.getMessage());
+            }
+        }
+
+        if (dataLineCount == 0 && errors.isEmpty()) {
+            errors.add("CSV file contains no partner data rows");
+        }
+
+        if (!errors.isEmpty()) {
+            LOG.warnf("Rejecting partner import for org %s: %d error(s)", orgId, errors.size());
+            return new ImportPartnersResult(0, errors);
+        }
+
+        writePartnersToFile(orgId, partners);
+        reloadPartnerDataForOrg(orgId);
+
+        LOG.infof("Replaced partners for org %s with %d partner(s)", orgId, partners.size());
+        return new ImportPartnersResult(partners.size(), List.of());
+    }
+
+    /**
+     * Overwrite the organisation's CSV file with the supplied partners.
+     * The file is written with a header line followed by one line per partner.
+     */
+    private void writePartnersToFile(String orgId, List<PartnerData> partners) {
+        Path filePath = getOrgFilePath(orgId);
+        try {
+            Files.createDirectories(filePath.getParent());
+
+            try (BufferedWriter writer = Files.newBufferedWriter(filePath,
+                    StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE)) {
+                writer.write(CSV_HEADER);
+                writer.newLine();
+                for (PartnerData partner : partners) {
+                    writer.write(formatCsvLine(partner));
+                    writer.newLine();
+                }
+            }
+
+            LOG.debugf("Wrote %d partners to file %s", partners.size(), filePath);
+        } catch (IOException e) {
+            LOG.errorf(e, "Failed to write partners to file %s", filePath);
+            throw new RuntimeException("Failed to import partners: could not write to data file", e);
+        }
     }
 
     /**

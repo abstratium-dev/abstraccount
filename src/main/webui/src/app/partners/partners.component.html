@@ -9,6 +9,20 @@
       [disabled]="addingPartner">
       {{ showAddForm ? 'Cancel' : 'Add Partner' }}
     </button>
+    <button
+      id="import-partners-button"
+      class="btn-secondary"
+      (click)="onImportClick()"
+      [disabled]="importingPartners">
+      {{ importingPartners ? 'Importing...' : 'Import CSV' }}
+    </button>
+    <input
+      type="file"
+      id="partner-file-input"
+      #partnerFileInput
+      accept=".csv,text/csv,text/plain"
+      style="display: none;"
+      (change)="onFileSelected($event)" />
   </div>
 
   <form *ngIf="showAddForm" id="add-partner-form" (ngSubmit)="onAddPartner()" class="add-partner-form">

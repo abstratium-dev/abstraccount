@@ -1,7 +1,8 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { PartnersComponent } from './partners.component';
 import { ModelService } from '../model.service';
-import { Controller, PartnerDTO, TransactionDTO, CreatePartnerResponseDTO } from '../controller';
+import { Controller, PartnerDTO, TransactionDTO, CreatePartnerResponseDTO, ImportPartnersResponseDTO } from '../controller';
+import { ConfirmDialogService } from '../core/confirm-dialog/confirm-dialog.service';
 import { ToastService } from '../core/toast/toast.service';
 import { signal } from '@angular/core';
 
@@ -10,6 +11,7 @@ describe('PartnersComponent', () => {
   let fixture: ComponentFixture<PartnersComponent>;
   let modelService: jasmine.SpyObj<ModelService>;
   let controller: jasmine.SpyObj<Controller>;
+  let confirmDialog: jasmine.SpyObj<ConfirmDialogService>;
   let toastService: jasmine.SpyObj<ToastService>;
 
   const mockTransactions: TransactionDTO[] = [
@@ -52,11 +54,13 @@ describe('PartnersComponent', () => {
   ];
 
   beforeEach(async () => {
-    const controllerSpy = jasmine.createSpyObj('Controller', ['searchPartners', 'createPartner']);
+    const controllerSpy = jasmine.createSpyObj('Controller', ['searchPartners', 'createPartner', 'importPartners']);
     const modelServiceSpy = jasmine.createSpyObj('ModelService', [], {
       transactions$: signal(mockTransactions),
       selectedJournalId$: signal('journal1')
     });
+    const confirmDialogSpy = jasmine.createSpyObj('ConfirmDialogService', ['confirm']);
+    confirmDialogSpy.confirm.and.returnValue(Promise.resolve(false));
     const toastServiceSpy = jasmine.createSpyObj('ToastService', ['success', 'error', 'info', 'warning', 'show', 'remove', 'clear']);
 
     await TestBed.configureTestingModule({
@@ -64,12 +68,14 @@ describe('PartnersComponent', () => {
       providers: [
         { provide: ModelService, useValue: modelServiceSpy },
         { provide: Controller, useValue: controllerSpy },
+        { provide: ConfirmDialogService, useValue: confirmDialogSpy },
         { provide: ToastService, useValue: toastServiceSpy }
       ]
     }).compileComponents();
 
     modelService = TestBed.inject(ModelService) as jasmine.SpyObj<ModelService>;
     controller = TestBed.inject(Controller) as jasmine.SpyObj<Controller>;
+    confirmDialog = TestBed.inject(ConfirmDialogService) as jasmine.SpyObj<ConfirmDialogService>;
     toastService = TestBed.inject(ToastService) as jasmine.SpyObj<ToastService>;
     fixture = TestBed.createComponent(PartnersComponent);
     component = fixture.componentInstance;
@@ -326,5 +332,141 @@ describe('PartnersComponent', () => {
     await addPromise;
 
     expect(component.addingPartner).toBe(false);
+  });
+
+  // ========================================================================
+  // Import CSV tests
+  // ========================================================================
+
+  it('should set importingPartners to true during import and false after', async () => {
+    controller.searchPartners.and.returnValue(Promise.resolve(mockPartners));
+    let resolveImport: (value: ImportPartnersResponseDTO) => void;
+    const importPromise = new Promise<ImportPartnersResponseDTO>((resolve) => {
+      resolveImport = resolve;
+    });
+    controller.importPartners.and.returnValue(importPromise);
+
+    // Bypass confirm dialog
+    confirmDialog.confirm.and.returnValue(Promise.resolve(true));
+
+    const file = new File(['"Partner Number","Name","Active"\n"P00000001","Test","true"\n'], 'partners.csv', { type: 'text/csv' });
+    const event = { target: { files: [file], value: 'partners.csv' } } as unknown as Event;
+
+    const selectedPromise = component.onFileSelected(event);
+
+    // Wait for the confirm dialog promise to resolve before checking state
+    await fixture.whenStable();
+
+    expect(component.importingPartners).toBe(true);
+
+    resolveImport!({ importedCount: 1, errors: [] });
+    await selectedPromise;
+
+    expect(component.importingPartners).toBe(false);
+  });
+
+  it('should not import when user cancels confirmation', async () => {
+    confirmDialog.confirm.and.returnValue(Promise.resolve(false));
+
+    const file = new File(['csv content'], 'partners.csv', { type: 'text/csv' });
+    const event = { target: { files: [file], value: 'partners.csv' } } as unknown as Event;
+
+    await component.onFileSelected(event);
+
+    expect(controller.importPartners).not.toHaveBeenCalled();
+    expect(component.importingPartners).toBe(false);
+  });
+
+  it('should not import when no file is selected', async () => {
+    const event = { target: { files: [], value: '' } } as unknown as Event;
+
+    await component.onFileSelected(event);
+
+    expect(controller.importPartners).not.toHaveBeenCalled();
+  });
+
+  it('should show success toast and reload partners on successful import', async () => {
+    controller.searchPartners.and.returnValue(Promise.resolve(mockPartners));
+    controller.importPartners.and.returnValue(Promise.resolve({ importedCount: 5, errors: [] }));
+
+    confirmDialog.confirm.and.returnValue(Promise.resolve(true));
+
+    // Trigger the effect to load partners initially
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const initialCallCount = controller.searchPartners.calls.count();
+
+    const file = new File(['"Partner Number","Name","Active"\n"P00000001","Test","true"\n'], 'partners.csv', { type: 'text/csv' });
+    const event = { target: { files: [file], value: 'partners.csv' } } as unknown as Event;
+
+    await component.onFileSelected(event);
+
+    expect(controller.importPartners).toHaveBeenCalledWith('"Partner Number","Name","Active"\n"P00000001","Test","true"\n');
+    expect(toastService.success).toHaveBeenCalledWith('Imported 5 partner(s).');
+    // searchPartners called again to reload after import
+    expect(controller.searchPartners.calls.count()).toBeGreaterThan(initialCallCount);
+  });
+
+  it('should show error toast with validation errors when import fails validation', async () => {
+    controller.searchPartners.and.returnValue(Promise.resolve(mockPartners));
+    const errorResponse: ImportPartnersResponseDTO = {
+      importedCount: 0,
+      errors: ['Line 1: invalid header', 'Line 2: bad number']
+    };
+    controller.importPartners.and.returnValue(Promise.resolve(errorResponse));
+
+    confirmDialog.confirm.and.returnValue(Promise.resolve(true));
+
+    const file = new File(['bad csv'], 'partners.csv', { type: 'text/csv' });
+    const event = { target: { files: [file], value: 'partners.csv' } } as unknown as Event;
+
+    await component.onFileSelected(event);
+
+    expect(controller.importPartners).toHaveBeenCalledWith('bad csv');
+    expect(toastService.error).toHaveBeenCalled();
+    const errorArg = toastService.error.calls.mostRecent().args[0] as string;
+    expect(errorArg).toContain('invalid header');
+    expect(errorArg).toContain('bad number');
+  });
+
+  it('should show error toast when import throws an exception', async () => {
+    controller.searchPartners.and.returnValue(Promise.resolve(mockPartners));
+    controller.importPartners.and.returnValue(Promise.reject(new Error('Network error')));
+
+    confirmDialog.confirm.and.returnValue(Promise.resolve(true));
+
+    const file = new File(['csv'], 'partners.csv', { type: 'text/csv' });
+    const event = { target: { files: [file], value: 'partners.csv' } } as unknown as Event;
+
+    await component.onFileSelected(event);
+
+    expect(toastService.error).toHaveBeenCalledWith('Failed to import partners');
+    expect(component.importingPartners).toBe(false);
+  });
+
+  it('should reset file input value after import so same file can be reselected', async () => {
+    controller.importPartners.and.returnValue(Promise.resolve({ importedCount: 1, errors: [] }));
+    confirmDialog.confirm.and.returnValue(Promise.resolve(true));
+
+    const file = new File(['csv'], 'partners.csv', { type: 'text/csv' });
+    const inputElement = { files: [file], value: 'partners.csv' } as unknown as HTMLInputElement;
+    const event = { target: inputElement } as unknown as Event;
+
+    await component.onFileSelected(event);
+
+    expect(inputElement.value).toBe('');
+  });
+
+  it('should reset file input value when user cancels confirmation', async () => {
+    confirmDialog.confirm.and.returnValue(Promise.resolve(false));
+
+    const file = new File(['csv'], 'partners.csv', { type: 'text/csv' });
+    const inputElement = { files: [file], value: 'partners.csv' } as unknown as HTMLInputElement;
+    const event = { target: inputElement } as unknown as Event;
+
+    await component.onFileSelected(event);
+
+    expect(inputElement.value).toBe('');
   });
 });

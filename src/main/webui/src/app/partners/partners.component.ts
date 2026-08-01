@@ -1,8 +1,9 @@
-import { Component, inject, OnInit, Signal, effect } from '@angular/core';
+import { Component, inject, OnInit, Signal, effect, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ModelService } from '../model.service';
 import { Controller, PartnerDTO } from '../controller';
+import { ConfirmDialogService } from '../core/confirm-dialog/confirm-dialog.service';
 import { ToastService } from '../core/toast/toast.service';
 
 interface PartnerInfo {
@@ -22,6 +23,7 @@ interface PartnerInfo {
 export class PartnersComponent implements OnInit {
   private modelService = inject(ModelService);
   private controller = inject(Controller);
+  private confirmDialog = inject(ConfirmDialogService);
   private toastService = inject(ToastService);
 
   selectedJournalId: Signal<string | null> = this.modelService.selectedJournalId$;
@@ -35,6 +37,10 @@ export class PartnersComponent implements OnInit {
   showAddForm = false;
   newPartnerName = '';
   addingPartner = false;
+
+  // Import partners state
+  importingPartners = false;
+  @ViewChild('partnerFileInput') partnerFileInput?: ElementRef<HTMLInputElement>;
 
   readonly globalFilter: string = (() => {
     try { return localStorage.getItem('abstraccount:globalEql') ?? ''; } catch { return ''; }
@@ -146,6 +152,71 @@ export class PartnersComponent implements OnInit {
       this.sortDirection = 'asc';
     }
     this.sortPartners();
+  }
+
+  /**
+   * Triggered when the user clicks the "Import CSV" button.
+   * Opens the hidden file input dialog.
+   */
+  onImportClick() {
+    this.partnerFileInput?.nativeElement.click();
+  }
+
+  /**
+   * Triggered when the user selects a file in the import file input.
+   * Asks for confirmation, warning about the consequences, then reads
+   * the file and uploads its content to the backend.
+   */
+  async onFileSelected(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) {
+      return;
+    }
+
+    const confirmed = await this.confirmDialog.confirm({
+      title: 'Replace All Partners?',
+      message:
+        'Are you sure you want to replace ALL existing partners with the contents of this file?\n\n' +
+        'WARNING: This will overwrite every partner in your organisation. ' +
+        'Transactions only store the partner number, not a reference to the partner. ' +
+        'After replacing the partners, existing transactions may suddenly refer to ' +
+        'different partner names than they did before if you have changed their names ' +
+        'or number assignment, because the transactions only know ' +
+        'the partner number.\n\n' +
+        'This action cannot be undone.',
+      confirmText: 'Replace All Partners',
+      cancelText: 'Cancel',
+      confirmClass: 'btn-danger',
+    });
+
+    if (!confirmed) {
+      // Reset the input so the same file can be selected again later
+      input.value = '';
+      return;
+    }
+
+    this.importingPartners = true;
+    try {
+      const csvContent = await file.text();
+
+      const result = await this.controller.importPartners(csvContent);
+
+      if (result.errors && result.errors.length > 0) {
+        const errorList = result.errors.join('\n');
+        this.toastService.error(`Import failed with ${result.errors.length} error(s):\n${errorList}`);
+      } else {
+        this.toastService.success(`Imported ${result.importedCount} partner(s).`);
+        await this.loadPartners();
+      }
+    } catch (err) {
+      console.error('Failed to import partners:', err);
+      this.toastService.error('Failed to import partners');
+    } finally {
+      this.importingPartners = false;
+      // Reset the input so the same file can be selected again later
+      input.value = '';
+    }
   }
 
   private sortPartners() {

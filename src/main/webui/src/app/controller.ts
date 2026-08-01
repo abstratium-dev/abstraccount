@@ -89,6 +89,11 @@ export interface CreatePartnerResponseDTO {
   warnings: string[];
 }
 
+export interface ImportPartnersResponseDTO {
+  importedCount: number;
+  errors: string[];
+}
+
 export interface AccountEntryDTO {
   entryId: string;
   transactionId: string;
@@ -836,6 +841,29 @@ export class Controller {
       );
     } catch (error) {
       console.error('Error creating partner:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Replace all partners from an imported CSV file.
+   * The backend validates the CSV before overwriting the partner file.
+   * On validation failure (HTTP 400) the error body is returned as a
+   * resolved promise with the list of errors, so the UI can display them.
+   */
+  async importPartners(csvContent: string): Promise<ImportPartnersResponseDTO> {
+    try {
+      return await firstValueFrom(
+        this.http.post<ImportPartnersResponseDTO>('/api/partners/import', csvContent, {
+          headers: { 'Content-Type': 'text/csv' },
+          responseType: 'json'
+        })
+      );
+    } catch (error: any) {
+      if (error.status === 400) {
+        return error.error as ImportPartnersResponseDTO;
+      }
+      console.error('Error importing partners:', error);
       throw error;
     }
   }

@@ -33,16 +33,18 @@ These TODOs are to be resolved by the developer, NOT THE LLM.
   - any other mutating operation against a locked journal should also be rejected with a clear error.
   - expose a way for an administrator to (un)lock a journal from the journal management UI.
 
-- add ability to create new partners, which should write the data to the relevant partner file
-
-- add a user guide.
+- add a pricing page and work out how to actually sell this
 
 - finish e2e tests
   - add testing of filters
   - add testing of entries (pivot)
   - multitenancy tests
-- write user guide
+  - what is the status of testing closing and year end?
+  - does this test that all the entries are properly created?
+  - make it use the built-in macros and reports by importing them before it does anything with them
+
 - link the EQL docs to the user guide
+
 - deploy to test and prod
 
 ## Tomorrow
