@@ -42,24 +42,20 @@ describe('JournalComponent', () => {
     expect(component).toBeTruthy();
   });
 
-  it('redirects to first-run setup when no journals exist', async () => {
-    controller.listJournals.and.returnValue(Promise.resolve([]));
-
-    await component.ngOnInit();
-
-    expect(router.navigate).toHaveBeenCalledWith(['/create-journal']);
-  });
-
-  it('should load journals on init', async () => {
-    const mockJournals = [
-      { id: '1', title: 'Journal 1', subtitle: null, currency: 'CHF', commodities: {}, logo: null, previousJournalId: null }
-    ];
-    controller.listJournals.and.returnValue(Promise.resolve(mockJournals));
-
+  it('should not load journals or redirect on init when no journal is selected', async () => {
     await component.ngOnInit();
     await fixture.whenStable();
 
-    expect(controller.listJournals).toHaveBeenCalled();
+    expect(controller.listJournals).not.toHaveBeenCalled();
+    expect(router.navigate).not.toHaveBeenCalled();
+    expect(controller.getAccountTree).not.toHaveBeenCalled();
+  });
+
+  it('should not trigger a journal list load on init (loaded by auth guard)', async () => {
+    await component.ngOnInit();
+    await fixture.whenStable();
+
+    expect(controller.listJournals).not.toHaveBeenCalled();
   });
 
   it('should load tags and transactions when journal is selected', async () => {

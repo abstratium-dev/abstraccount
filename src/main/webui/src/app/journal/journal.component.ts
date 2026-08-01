@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { ChangeDetectorRef, Component, OnInit, ViewChild, effect, inject } from '@angular/core';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { AccountService } from '../account.service';
 import { Controller, JournalMetadataDTO, TransactionDTO, TagDTO } from '../controller';
 import { ModelService } from '../model.service';
@@ -43,7 +43,6 @@ export class JournalComponent implements OnInit {
 
   modelService = inject(ModelService); // Public for template
   accountService = inject(AccountService); // Public for template
-  router = inject(Router);
   route = inject(ActivatedRoute);
   controller = inject(Controller);
   cdr = inject(ChangeDetectorRef);
@@ -71,14 +70,9 @@ export class JournalComponent implements OnInit {
   }
 
   async ngOnInit(): Promise<void> {
-    // Load journals if not already loaded
-    if (this.modelService.journals$().length === 0) {
-      let journals = await this.controller.listJournals();
-      if (journals.length === 0) {
-        this.router.navigate(['/create-journal']);
-      } else {
-        await this.controller.getAccountTree(this.modelService.selectedJournalId$()!);
-      }
+    const journalId = this.modelService.getSelectedJournalId();
+    if (journalId) {
+      await this.controller.getAccountTree(journalId);
     }
     // If FilterInputComponent had nothing in localStorage it will not emit filterChange,
     // so we must trigger the initial load ourselves.
