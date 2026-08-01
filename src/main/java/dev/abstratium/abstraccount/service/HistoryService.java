@@ -11,6 +11,8 @@ import dev.abstratium.abstraccount.entity.ReportTemplateEntity;
 import dev.abstratium.abstraccount.entity.RevisionInfo;
 import dev.abstratium.abstraccount.entity.TagEntity;
 import dev.abstratium.abstraccount.entity.TransactionEntity;
+import io.quarkus.hibernate.orm.PersistenceUnitExtension;
+import io.quarkus.hibernate.orm.runtime.tenant.TenantResolver;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;
@@ -28,6 +30,10 @@ public class HistoryService {
     @Inject
     EntityManager entityManager;
 
+    @Inject
+    @PersistenceUnitExtension
+    TenantResolver tenantResolver;
+
     /**
      * Returns the revision history for a single entity instance.
      * The revision list is sorted from oldest to newest.
@@ -41,11 +47,16 @@ public class HistoryService {
     public List<EntityRevisionDto> getEntityHistory(String entityType, String entityId) {
         Class<?> entityClass = resolveEntityClass(entityType);
 
+        String tenantId = tenantResolver.resolveTenantId();
+
         @SuppressWarnings("unchecked")
         List<Object[]> revisions = AuditReaderFactory.get(entityManager)
             .createQuery()
             .forRevisionsOfEntity(entityClass, false, true)
             .add(AuditEntity.id().eq(entityId))
+            .add(AuditEntity.disjunction()
+                .add(AuditEntity.property("orgId").eq(tenantId))
+                .add(AuditEntity.property("orgId").isNull()))
             .getResultList();
 
         return revisions.stream()

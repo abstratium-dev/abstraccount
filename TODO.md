@@ -15,8 +15,6 @@ These TODOs are to be resolved by the developer, NOT THE LLM.
 
 - use SecurityProblemLogger in all places where a security issue is detected
 
-- [ ] **Replace the legal page** (`src/main/webui/src/app/core/legal/legal.component.html`) with one specific to your organisation — it MUST name the correct data controller, contact details, and applicable law. See the ⚠ LEGAL NOTICE at the top of this README.
-
 - check duty of care 754.   Personal liability for directors — While shareholders are protected, directors/gérants of an Sàrl can face personal liability if they breach their duty of care (CO Art. 754) toward the company. But that's unrelated to your TOS; it's about how you run the company internally.
   - check gemini response
 
@@ -26,6 +24,8 @@ These TODOs are to be resolved by the developer, NOT THE LLM.
   - llm says no bug but why is 2026 empty?
 
 - is this statement too bold? "Built on Swiss GAAP FER standards."
+
+- add a user guide.
 
 - finish e2e tests
   - add testing of filters
