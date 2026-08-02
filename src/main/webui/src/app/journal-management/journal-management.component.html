@@ -54,6 +54,69 @@
 
     <hr />
 
+    <div class="management-section lock-section">
+      <h2>Lock / Unlock</h2>
+      <p *ngIf="!selectedJournal.locked">
+        Locking a journal protects a closed period from further changes.
+        Any attempt to create, update or delete transactions, accounts, or to
+        execute macros against a locked journal will be rejected.
+      </p>
+      <p *ngIf="selectedJournal.locked" class="locked-warning">
+        This journal is currently <strong>locked</strong>. Mutating operations
+        (transactions, accounts, macros, close-books) are blocked.
+      </p>
+
+      <button
+        *ngIf="!selectedJournal.locked"
+        id="lock-journal"
+        class="btn-secondary"
+        (click)="lockJournal()"
+        [disabled]="locking">
+        {{ locking ? 'Locking...' : 'Lock Journal' }}
+      </button>
+
+      <ng-container *ngIf="selectedJournal.locked">
+        <button
+          id="unlock-journal"
+          class="btn-secondary"
+          (click)="showUnlockConfirm = true"
+          [disabled]="locking">
+          Unlock Journal
+        </button>
+
+        <div *ngIf="showUnlockConfirm" class="unlock-confirm">
+          <p class="warning-text">
+            ⚠️ <strong>Warning:</strong> Unlocking a journal that has follow-on
+            years can really mess up your accounts, because the system will not
+            carry over changes you make here into those follow-on years'
+            opening balances. Only unlock if you know what you are doing.
+          </p>
+          <div class="button-group">
+            <button
+              id="confirm-unlock"
+              class="btn-danger"
+              (click)="unlockJournal()"
+              [disabled]="locking">
+              {{ locking ? 'Unlocking...' : 'Yes, unlock anyway' }}
+            </button>
+            <button
+              id="cancel-unlock"
+              class="btn-secondary"
+              (click)="cancelUnlock()"
+              [disabled]="locking">
+              Cancel
+            </button>
+          </div>
+        </div>
+      </ng-container>
+
+      <div *ngIf="lockError" class="error-message">
+        <p>{{ lockError }}</p>
+      </div>
+    </div>
+
+    <hr />
+
     <div class="danger-zone">
       <h2>⚠️ Danger Zone</h2>
       <div class="danger-content">

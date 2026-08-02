@@ -12,5 +12,6 @@ public record JournalDTO(
     String subtitle,
     String currency,
     Map<String, String> commodities,
-    String previousJournalId
+    String previousJournalId,
+    boolean locked
 ) {}

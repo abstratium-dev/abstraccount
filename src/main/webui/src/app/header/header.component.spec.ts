@@ -36,7 +36,7 @@ describe('HeaderComponent', () => {
     component.selectedJournalId = 'journal-id';
     component.journals = [{
       id: 'journal-id', title: 'Current Journal', subtitle: null, currency: 'CHF',
-      commodities: { CHF: '1000.00' }, logo: null, previousJournalId: null
+      commodities: { CHF: '1000.00' }, logo: null, previousJournalId: null, locked: false
     }];
     component.menuOpen = true;
 

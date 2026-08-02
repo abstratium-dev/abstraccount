@@ -122,11 +122,11 @@
           <li><code>number</code> — a plain number.</li>
           <li><code>account</code> — an account selector with autocomplete, constrained by the <code>filter</code> regex.</li>
           <li><code>partner</code> — a business partner, chosen from a dropdown.</li>
-          <li><code>invoice</code> — an invoice number, with automatic sequential defaults (see <code>{next_invoice_SI}</code> below).</li>
+          <li><code>invoice</code> — an invoice number, with automatic sequential defaults (see <code>&#123;next_invoice_SI&#125;</code> below).</li>
           <li><code>status</code> — the transaction status marker: <code>*</code> for cleared, <code>!</code> for pending, or empty.</li>
         </ul>
       </li>
-      <li><strong>Template</strong>: the body of the transaction, written in the same ledger-style text format used by the journal import. The first line is the date, an optional status marker (<code>*</code> or <code>!</code>), the partner, and a description separated by <code>|</code>. Lines starting with <code>;</code> are comments and become tags on the transaction (for example <code>; invoice:SI20260100001</code> creates an <code>invoice:SI20260100001</code> tag). Each subsequent indented line is an entry posting: an account, a commodity, and an amount (negative for credits). Placeholders in curly braces (for example <code>{date}</code>, <code>{amount}</code>, <code>{bank_account}</code>) are replaced with the parameter values when the macro runs.</li>
+      <li><strong>Template</strong>: the body of the transaction, written in the same ledger-style text format used by the journal import. The first line is the date, an optional status marker (<code>*</code> or <code>!</code>), the partner, and a description separated by <code>|</code>. Lines starting with <code>;</code> are comments and become tags on the transaction (for example <code>; invoice:SI20260100001</code> creates an <code>invoice:SI20260100001</code> tag). Each subsequent indented line is an entry posting: an account, a commodity, and an amount (negative for credits). Placeholders in curly braces (for example <code>&#123;date&#125;</code>, <code>&#123;amount&#125;</code>, <code>&#123;bank_account&#125;</code>) are replaced with the parameter values when the macro runs.</li>
       <li><strong>Validation</strong>: rules checked before the transaction is saved, such as <code>balanceCheck</code> (debits must equal credits) and <code>minPostings</code> (minimum number of entry lines).</li>
       <li><strong>Notes</strong>: a free-text explanation shown on the macro card to help you remember when to use it.</li>
     </ul>
@@ -134,20 +134,20 @@
       The following built-in placeholders are always available, even without a matching parameter:
     </p>
     <ul>
-      <li><code>{today}</code> — the current date, for example <code>2026-08-02</code>.</li>
-      <li><code>{year}</code>, <code>{month}</code>, <code>{day}</code> — the current year, month (zero-padded), and day (zero-padded).</li>
-      <li><code>{next_invoice_SI}</code>, <code>{next_invoice_PI}</code>, and so on — the next sequential invoice number for the given prefix, looked up in the current journal.</li>
+      <li><code>&#123;today&#125;</code> — the current date, for example <code>2026-08-02</code>.</li>
+      <li><code>&#123;year&#125;</code>, <code>&#123;month&#125;</code>, <code>&#123;day&#125;</code> — the current year, month (zero-padded), and day (zero-padded).</li>
+      <li><code>&#123;next_invoice_SI&#125;</code>, <code>&#123;next_invoice_PI&#125;</code>, and so on — the next sequential invoice number for the given prefix, looked up in the current journal.</li>
     </ul>
     <p>
-      Templates also support arithmetic expressions inside <code>{braces}</code> using parameter names and numeric literals. The operators <code>+ - * /</code> are supported, with standard precedence (<code>*</code> and <code>/</code> before <code>+</code> and <code>-</code>). Expressions are evaluated before simple placeholder substitution, so parameter names must match exactly. If an expression cannot be evaluated it is left unchanged. For example, the built-in <strong>TaxPayment</strong> macro uses <code>{actual_amount - provision_amount}</code> to record the difference between the actual tax bill and the amount provisioned at year end:
+      Templates also support arithmetic expressions inside <code>&#123;braces&#125;</code> using parameter names and numeric literals. The operators <code>+ - * /</code> are supported, with standard precedence (<code>*</code> and <code>/</code> before <code>+</code> and <code>-</code>). Expressions are evaluated before simple placeholder substitution, so parameter names must match exactly. If an expression cannot be evaluated it is left unchanged. For example, the built-in <strong>TaxPayment</strong> macro uses <code>&#123;actual_amount - provision_amount&#125;</code> to record the difference between the actual tax bill and the amount provisioned at year end:
     </p>
-<pre><code>{date} * {partner} | {description}
+<pre><code>&#123;date&#125; * &#123;partner&#125; | &#123;description&#125;
     ; TaxPayment:
-    2:20:220:2208    CHF {provision_amount}
-    8:8900           CHF {actual_amount - provision_amount}
-    {bank_account}   CHF -{actual_amount}</code></pre>
+    2:20:220:2208    CHF &#123;provision_amount&#125;
+    8:8900           CHF &#123;actual_amount - provision_amount&#125;
+    &#123;bank_account&#125;   CHF -&#123;actual_amount&#125;</code></pre>
     <p>
-      With <code>provision_amount = 350</code> and <code>actual_amount = 380</code>, the expression resolves to <code>30</code>. Other examples: <code>{amount * 1.077}</code> applies a multiplier, and <code>{a + b * 2}</code> evaluates <code>b * 2</code> first.
+      With <code>provision_amount = 350</code> and <code>actual_amount = 380</code>, the expression resolves to <code>30</code>. Other examples: <code>&#123;amount * 1.077&#125;</code> applies a multiplier, and <code>&#123;a + b * 2&#125;</code> evaluates <code>b * 2</code> first.
     </p>
     <p>
       To run a macro, choose it from the list, fill in the parameters, and click <strong>Execute Macro</strong>. The application creates the corresponding transaction and returns you to the journal.
@@ -165,7 +165,7 @@
       A complete example is the built-in <strong>CustomerPaysInvoice</strong> macro. It records a customer payment that clears a previously sent invoice:
     </p>
 <pre><code>parameters:
-  - date          (date, default {today})
+  - date          (date, default &#123;today&#125;)
   - partner       (partner — the customer)
   - invoice_number (invoice — 8 digits)
   - amount        (amount, e.g. 100.50)
@@ -174,12 +174,12 @@
   - receivable_account (account, filter "^1.*:10.*:110.*:1100.*$")
 
 template:
-  {date} * {partner} | {description}
-      ; invoice:{invoice_number}
-      {ingoing_account}      CHF {amount}
-      {receivable_account}   CHF -{amount}
+  &#123;date&#125; * &#123;partner&#125; | &#123;description&#125;
+      ; invoice:&#123;invoice_number&#125;
+      &#123;ingoing_account&#125;      CHF &#123;amount&#125;
+      &#123;receivable_account&#125;   CHF -&#123;amount&#125;
 
-validation: { "balanceCheck": true, "minPostings": 2 }</code></pre>
+validation: &#123; "balanceCheck": true, "minPostings": 2 &#125;</code></pre>
     <p>
       When executed with a date of <code>2026-01-15</code>, partner <code>Acme Corp</code>, invoice <code>SI20260100001</code>, amount <code>2000.00</code>, and the bank account <code>1:10:100:1020 Bank Account</code> selected for <code>ingoing_account</code> and <code>1:10:110:1100 Debtors</code> for <code>receivable_account</code>, the macro produces:
     </p>
@@ -233,59 +233,59 @@ validation: { "balanceCheck": true, "minPostings": 2 }</code></pre>
     <p>
       The simplest report is the built-in <strong>Income Statement</strong>. It selects revenue and expense accounts by type and then prints the calculated net income:
     </p>
-<pre><code>{
+<pre><code>&#123;
   "sections": [
-    { "title": "Revenue",  "accountTypes": ["REVENUE"],  "showSubtotals": true, "invertSign": true },
-    { "title": "Expenses", "accountTypes": ["EXPENSE"],  "showSubtotals": true },
-    { "title": "Net Income", "calculated": "netIncome" }
+    &#123; "title": "Revenue",  "accountTypes": ["REVENUE"],  "showSubtotals": true, "invertSign": true &#125;,
+    &#123; "title": "Expenses", "accountTypes": ["EXPENSE"],  "showSubtotals": true &#125;,
+    &#123; "title": "Net Income", "calculated": "netIncome" &#125;
   ]
-}</code></pre>
+&#125;</code></pre>
     <p>
       The <strong>Swiss Income Statement</strong> shows how <code>accountRegex</code> selects accounts by number. It groups expense accounts by their leading digit, which corresponds to the Swiss KMU chart of accounts (<code>4</code> = cost of goods, <code>5</code> = personnel, <code>6</code> = other operating expenses):
     </p>
-<pre><code>{
+<pre><code>&#123;
   "sections": [
-    { "title": "Cost of Materials and Goods",      "accountRegex": "^4 ", "showSubtotals": true },
-    { "title": "Personnel Expenses",               "accountRegex": "^5 ", "showSubtotals": true },
-    { "title": "Other Operating Expenses",         "accountRegex": "^6 ", "showSubtotals": true },
-    { "title": "Total Expenses", "accountTypes": ["EXPENSE"], "showAccounts": false },
-    { "title": "Net Income", "calculated": "netIncome" }
+    &#123; "title": "Cost of Materials and Goods",      "accountRegex": "^4 ", "showSubtotals": true &#125;,
+    &#123; "title": "Personnel Expenses",               "accountRegex": "^5 ", "showSubtotals": true &#125;,
+    &#123; "title": "Other Operating Expenses",         "accountRegex": "^6 ", "showSubtotals": true &#125;,
+    &#123; "title": "Total Expenses", "accountTypes": ["EXPENSE"], "showAccounts": false &#125;,
+    &#123; "title": "Net Income", "calculated": "netIncome" &#125;
   ]
-}</code></pre>
+&#125;</code></pre>
     <p>
       The <strong>Swiss Tax Declaration</strong> goes further and matches the full hierarchical code path. Each line of the form pulls a specific branch of the balance sheet, for example all receivables (<code>^1:10:110</code>), all loans to shareholders (<code>^1:10:13</code>), or share capital (<code>^2:28:280</code>):
     </p>
-<pre><code>{
+<pre><code>&#123;
   "sections": [
-    { "title": "A.1 Total receivables from sales of goods and services",
-      "accountRegex": "^1:10:110", "showSubtotals": false },
-    { "title": "A.2 Total receivables/loans to shareholders and related parties",
-      "accountRegex": "^1:10:13",  "showSubtotals": false },
-    { "title": "A.8 Total loans from shareholders and related parties",
-      "accountRegex": "^2:20:220:2210", "invertSign": true, "showSubtotals": false },
-    { "title": "C.1 Share capital",
-      "accountRegex": "^2:28:280", "invertSign": true, "showAccounts": false }
+    &#123; "title": "A.1 Total receivables from sales of goods and services",
+      "accountRegex": "^1:10:110", "showSubtotals": false &#125;,
+    &#123; "title": "A.2 Total receivables/loans to shareholders and related parties",
+      "accountRegex": "^1:10:13",  "showSubtotals": false &#125;,
+    &#123; "title": "A.8 Total loans from shareholders and related parties",
+      "accountRegex": "^2:20:220:2210", "invertSign": true, "showSubtotals": false &#125;,
+    &#123; "title": "C.1 Share capital",
+      "accountRegex": "^2:28:280", "invertSign": true, "showAccounts": false &#125;
   ]
-}</code></pre>
+&#125;</code></pre>
     <p>
       A <strong>balance sheet</strong> uses <code>includeNetIncome</code> to fold the current-period profit into equity so that total assets equal total liabilities plus equity. The built-in <strong>Balance Sheet</strong> separates cash from other assets and inverts the sign on liabilities and equity (which normally carry credit balances):
     </p>
-<pre><code>{
+<pre><code>&#123;
   "sections": [
-    { "title": "Cash and Cash Equivalents", "accountTypes": ["CASH"],    "showSubtotals": true },
-    { "title": "Other Assets",              "accountTypes": ["ASSET"],   "showSubtotals": true },
-    { "title": "Total Assets",              "accountTypes": ["CASH","ASSET"], "showAccounts": false },
-    { "title": "Liabilities",               "accountTypes": ["LIABILITY"], "showSubtotals": true, "invertSign": true },
-    { "title": "Equity",                    "accountTypes": ["EQUITY"],    "showSubtotals": true, "invertSign": true, "includeNetIncome": true },
-    { "title": "Total Liabilities and Equity", "accountTypes": ["LIABILITY","EQUITY"], "showAccounts": false, "includeNetIncome": true, "invertSign": true }
+    &#123; "title": "Cash and Cash Equivalents", "accountTypes": ["CASH"],    "showSubtotals": true &#125;,
+    &#123; "title": "Other Assets",              "accountTypes": ["ASSET"],   "showSubtotals": true &#125;,
+    &#123; "title": "Total Assets",              "accountTypes": ["CASH","ASSET"], "showAccounts": false &#125;,
+    &#123; "title": "Liabilities",               "accountTypes": ["LIABILITY"], "showSubtotals": true, "invertSign": true &#125;,
+    &#123; "title": "Equity",                    "accountTypes": ["EQUITY"],    "showSubtotals": true, "invertSign": true, "includeNetIncome": true &#125;,
+    &#123; "title": "Total Liabilities and Equity", "accountTypes": ["LIABILITY","EQUITY"], "showAccounts": false, "includeNetIncome": true, "invertSign": true &#125;
   ]
-}</code></pre>
+&#125;</code></pre>
     <p>
       A <strong>tag-grouped report</strong> is useful for tracking unpaid invoices. The built-in <strong>Unpaid Sales Invoices</strong> report groups transactions by their <code>invoice:SI...</code> tag, calculates the net balance on the receivables account <code>1100</code> for each group, and loads data across the whole journal chain so that invoices issued in a previous year are still picked up:
     </p>
-<pre><code>{
+<pre><code>&#123;
   "sections": [
-    {
+    &#123;
       "title": "Unpaid Sales Invoices",
       "calculated": "tagGrouped",
       "tagKey": "invoice",
@@ -295,9 +295,9 @@ validation: { "balanceCheck": true, "minPostings": 2 }</code></pre>
       "sortable": true,
       "defaultSortColumn": "net",
       "defaultSortDirection": "desc"
-    }
+    &#125;
   ]
-}</code></pre>
+&#125;</code></pre>
     <p>
       Each group shows the invoice number, partner, first date, and net amount on the receivables account. A positive net means the invoice is underpaid (shown in red); a negative net means it is overpaid. Groups that net to zero are hidden unless you uncheck <strong>Hide zero balances</strong>. Because <code>balanceAccountNameRegex</code> is matched against the full hierarchical account name (e.g. <code>1:10:110:1100 Debtors</code>), the same unique account numbers that make macros easy to write also make tag-grouped reports easy to target.
     </p>
@@ -421,7 +421,7 @@ validation: { "balanceCheck": true, "minPostings": 2 }</code></pre>
     <p>Transactions tagged as invoice or opening-balances that do not involve an equity account.</p>
 <pre><code>description:*hoststar* AND amount:lt:0</code></pre>
     <p>Hoststar transactions with at least one negative entry.</p>
-<pre><code>tag:invoice:/PI\d{5}/ AND NOT partner:/test/i</code></pre>
+<pre><code>tag:invoice:/PI\d&#123;5&#125;/ AND NOT partner:/test/i</code></pre>
     <p>Transactions with an invoice tag whose value looks like <code>PI12345</code>, excluding test partners.</p>
     <p>
       The <code>accountname</code> predicate matches against the full hierarchical path built from the account numbers described in <a [routerLink]="['/user-guide']" fragment="accounts">Create your accounts</a>, so unique account numbers make account-based filters precise too.

@@ -25,6 +25,9 @@ export class JournalManagementComponent implements OnInit {
   confirmationName = '';
   deleting = false;
   deleteError: string | null = null;
+  locking = false;
+  lockError: string | null = null;
+  showUnlockConfirm = false;
 
   constructor() {
     effect(() => {
@@ -100,5 +103,37 @@ export class JournalManagementComponent implements OnInit {
   cancelDelete(): void {
     this.confirmationName = '';
     this.deleteError = null;
+  }
+
+  async lockJournal(): Promise<void> {
+    if (!this.selectedJournal) return;
+    this.locking = true;
+    this.lockError = null;
+    try {
+      await this.controller.lockJournal(this.selectedJournal.id);
+    } catch (err: any) {
+      this.lockError = 'Failed to lock journal: ' + (err?.error?.detail ?? err?.message ?? 'Unknown error');
+    } finally {
+      this.locking = false;
+    }
+  }
+
+  async unlockJournal(): Promise<void> {
+    if (!this.selectedJournal) return;
+    this.locking = true;
+    this.lockError = null;
+    this.showUnlockConfirm = false;
+    try {
+      await this.controller.unlockJournal(this.selectedJournal.id);
+    } catch (err: any) {
+      this.lockError = 'Failed to unlock journal: ' + (err?.error?.detail ?? err?.message ?? 'Unknown error');
+    } finally {
+      this.locking = false;
+    }
+  }
+
+  cancelUnlock(): void {
+    this.showUnlockConfirm = false;
+    this.lockError = null;
   }
 }

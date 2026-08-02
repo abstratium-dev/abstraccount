@@ -40,6 +40,7 @@ export interface JournalMetadataDTO {
   currency: string;
   commodities: { [key: string]: string };
   previousJournalId: string | null;
+  locked: boolean;
 }
 
 export interface JournalKpiDTO {
@@ -460,6 +461,32 @@ export class Controller {
         throw new JournalConflictError(error.error as JournalConflictInfo);
       }
       console.error('Error uploading journal:', error);
+      throw error;
+    }
+  }
+
+  async lockJournal(journalId: string): Promise<JournalMetadataDTO> {
+    try {
+      const result = await firstValueFrom(
+        this.http.post<JournalMetadataDTO>(`/api/journal/${journalId}/lock`, {})
+      );
+      await this.listJournals();
+      return result;
+    } catch (error) {
+      console.error('Error locking journal:', error);
+      throw error;
+    }
+  }
+
+  async unlockJournal(journalId: string): Promise<JournalMetadataDTO> {
+    try {
+      const result = await firstValueFrom(
+        this.http.post<JournalMetadataDTO>(`/api/journal/${journalId}/unlock`, {})
+      );
+      await this.listJournals();
+      return result;
+    } catch (error) {
+      console.error('Error unlocking journal:', error);
       throw error;
     }
   }

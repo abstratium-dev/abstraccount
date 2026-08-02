@@ -7,6 +7,7 @@ import dev.abstratium.abstraccount.entity.EntryEntity;
 import dev.abstratium.abstraccount.entity.TransactionEntity;
 import dev.abstratium.abstraccount.model.AccountType;
 import dev.abstratium.abstraccount.service.AccountService;
+import dev.abstratium.abstraccount.service.JournalLockedException;
 import dev.abstratium.core.service.CurrentOrgContext;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
@@ -256,7 +257,10 @@ public class AccountResource {
                     .entity("Journal not found - ensure a journal exists first")
                     .build();
             }
-            
+
+            // Reject mutation if the journal is locked
+            persistenceService.requireNotLocked(request.journalId());
+
             // Validate parent account if specified
             if (request.parentAccountId() != null && !request.parentAccountId().isEmpty()) {
                 AccountEntity parent = em.find(AccountEntity.class, request.parentAccountId());
@@ -294,6 +298,8 @@ public class AccountResource {
             return Response.status(Response.Status.BAD_REQUEST)
                 .entity(e.getMessage())
                 .build();
+        } catch (JournalLockedException e) {
+            return Response.status(423).entity(e.getMessage()).build();
         } catch (Exception e) {
             LOG.error("Error creating account", e);
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
@@ -301,7 +307,7 @@ public class AccountResource {
                 .build();
         }
     }
-    
+
     /**
      * Updates an existing account.
      * 
@@ -325,7 +331,10 @@ public class AccountResource {
                     .entity("Account not found")
                     .build();
             }
-            
+
+            // Reject mutation if the owning journal is locked
+            persistenceService.requireNotLocked(existing.getJournalId());
+
             // Validate parent account if specified
             if (request.parentAccountId() != null && !request.parentAccountId().isEmpty()) {
                 // Prevent setting self as parent
@@ -376,6 +385,8 @@ public class AccountResource {
             return Response.status(Response.Status.BAD_REQUEST)
                 .entity(e.getMessage())
                 .build();
+        } catch (JournalLockedException e) {
+            return Response.status(423).entity(e.getMessage()).build();
         } catch (Exception e) {
             LOG.error("Error updating account", e);
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
@@ -399,6 +410,9 @@ public class AccountResource {
         LOG.debugf("Deleting account: %s from journal: %s", accountId, journalId);
         
         try {
+            // Reject mutation if the journal is locked
+            persistenceService.requireNotLocked(journalId);
+
             accountService.deleteAccount(accountId, journalId);
             return Response.noContent().build();
         } catch (IllegalArgumentException e) {
@@ -406,6 +420,8 @@ public class AccountResource {
             return Response.status(Response.Status.BAD_REQUEST)
                 .entity(e.getMessage())
                 .build();
+        } catch (JournalLockedException e) {
+            return Response.status(423).entity(e.getMessage()).build();
         } catch (Exception e) {
             LOG.error("Error deleting account", e);
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR)

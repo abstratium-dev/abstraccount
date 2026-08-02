@@ -144,7 +144,46 @@ public class JournalPersistenceService {
         existing.setCurrency(journal.getCurrency());
         existing.setPreviousJournalId(journal.getPreviousJournalId());
         existing.setCommodities(new HashMap<>(journal.getCommodities()));
+        // The locked flag is managed explicitly via setJournalLocked and must
+        // NOT be overwritten by callers that only update metadata (their
+        // detached entity would default to false and silently unlock the journal).
         return existing;
+    }
+
+    /**
+     * Sets the locked flag on a journal and persists the change.
+     *
+     * @param journalId the journal ID
+     * @param locked    the new locked state
+     * @return the updated journal entity, or empty if the journal was not found
+     */
+    @Transactional
+    public Optional<JournalEntity> setJournalLocked(String journalId, boolean locked) {
+        JournalEntity existing = entityManager.find(JournalEntity.class, journalId);
+        if (existing == null) {
+            return Optional.empty();
+        }
+        existing.setLocked(locked);
+        return Optional.of(existing);
+    }
+
+    /**
+     * Throws a {@link JournalLockedException} if the journal with the given id
+     * is locked. Does nothing if the journal does not exist (callers are
+     * expected to have validated existence beforehand) or is not locked.
+     *
+     * @param journalId the journal id to check
+     * @throws JournalLockedException if the journal is locked
+     */
+    @Transactional
+    public void requireNotLocked(String journalId) {
+        if (journalId == null) {
+            return;
+        }
+        JournalEntity journal = entityManager.find(JournalEntity.class, journalId);
+        if (journal != null && journal.isLocked()) {
+            throw new JournalLockedException(journalId, journal.getTitle());
+        }
     }
     
     /**

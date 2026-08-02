@@ -14,15 +14,15 @@ describe('JournalHistoryComponent', () => {
 
   const mockJournal1: JournalMetadataDTO = {
     id: 'j1', logo: null, title: 'Journal 2024', subtitle: null,
-    currency: 'CHF', commodities: {}, previousJournalId: null
+    currency: 'CHF', commodities: {}, previousJournalId: null, locked: false
   };
   const mockJournal2: JournalMetadataDTO = {
     id: 'j2', logo: null, title: 'Journal 2025', subtitle: null,
-    currency: 'CHF', commodities: {}, previousJournalId: 'j1'
+    currency: 'CHF', commodities: {}, previousJournalId: 'j1', locked: false
   };
   const mockJournal3: JournalMetadataDTO = {
     id: 'j3', logo: null, title: 'Journal 2026', subtitle: null,
-    currency: 'CHF', commodities: {}, previousJournalId: 'j2'
+    currency: 'CHF', commodities: {}, previousJournalId: 'j2', locked: false
   };
 
   const mockKpi: JournalKpiDTO = {

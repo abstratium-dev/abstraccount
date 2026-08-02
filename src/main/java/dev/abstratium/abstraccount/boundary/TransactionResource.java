@@ -14,6 +14,7 @@ import dev.abstratium.abstraccount.entity.EntryEntity;
 import dev.abstratium.abstraccount.entity.TagEntity;
 import dev.abstratium.abstraccount.entity.TransactionEntity;
 import dev.abstratium.abstraccount.model.TransactionStatus;
+import dev.abstratium.abstraccount.service.JournalLockedException;
 import dev.abstratium.abstraccount.service.JournalPersistenceService;
 import dev.abstratium.core.service.CurrentOrgContext;
 import jakarta.annotation.security.RolesAllowed;
@@ -69,7 +70,10 @@ public class TransactionResource {
             // Validate journal exists
             journalPersistenceService.findJournalById(request.journalId())
                 .orElseThrow(() -> new WebApplicationException("Journal not found: " + request.journalId(), 404));
-            
+
+            // Reject mutation if the journal is locked
+            journalPersistenceService.requireNotLocked(request.journalId());
+
             // Create transaction entity
             TransactionEntity transaction = new TransactionEntity();
             transaction.setJournalId(request.journalId());
@@ -109,12 +113,15 @@ public class TransactionResource {
             
             // Convert to DTO and return
             return toDTO(saved);
-            
+
         } catch (WebApplicationException e) {
+            throw e;
+        } catch (JournalLockedException e) {
+            // Propagate so the JournalLockedExceptionMapper can build a 423 response
             throw e;
         } catch (Exception e) {
             LOG.error("Failed to create transaction", e);
-            throw new WebApplicationException("Failed to create transaction: " + e.getMessage(), 
+            throw new WebApplicationException("Failed to create transaction: " + e.getMessage(),
                 Response.Status.BAD_REQUEST);
         }
     }
@@ -159,7 +166,10 @@ public class TransactionResource {
             // Ensure the transaction exists; journalId and order are preserved by the service.
             TransactionEntity existing = journalPersistenceService.findTransactionById(transactionId)
                 .orElseThrow(() -> new WebApplicationException("Transaction not found: " + transactionId, 404));
-            
+
+            // Reject mutation if the owning journal is locked
+            journalPersistenceService.requireNotLocked(existing.getJournalId());
+
             // Build a detached transaction model from the request for the service to merge.
             TransactionEntity transaction = new TransactionEntity();
             transaction.setId(transactionId);
@@ -197,12 +207,15 @@ public class TransactionResource {
             LOG.infof("Successfully updated transaction: %s", transactionId);
             
             return toDTO(saved);
-            
+
         } catch (WebApplicationException e) {
+            throw e;
+        } catch (JournalLockedException e) {
+            // Propagate so the JournalLockedExceptionMapper can build a 423 response
             throw e;
         } catch (Exception e) {
             LOG.error("Failed to update transaction", e);
-            throw new WebApplicationException("Failed to update transaction: " + e.getMessage(), 
+            throw new WebApplicationException("Failed to update transaction: " + e.getMessage(),
                 Response.Status.BAD_REQUEST);
         }
     }
@@ -222,7 +235,10 @@ public class TransactionResource {
         try {
             TransactionEntity transaction = journalPersistenceService.findTransactionById(transactionId)
                 .orElseThrow(() -> new WebApplicationException("Transaction not found: " + transactionId, 404));
-            
+
+            // Reject mutation if the owning journal is locked
+            journalPersistenceService.requireNotLocked(transaction.getJournalId());
+
             String description = transaction.getDescription();
             journalPersistenceService.deleteTransaction(transactionId);
             
@@ -234,12 +250,15 @@ public class TransactionResource {
             
             LOG.infof("Successfully deleted transaction: %s", transactionId);
             return response;
-            
+
         } catch (WebApplicationException e) {
+            throw e;
+        } catch (JournalLockedException e) {
+            // Propagate so the JournalLockedExceptionMapper can build a 423 response
             throw e;
         } catch (Exception e) {
             LOG.error("Failed to delete transaction", e);
-            throw new WebApplicationException("Failed to delete transaction: " + e.getMessage(), 
+            throw new WebApplicationException("Failed to delete transaction: " + e.getMessage(),
                 Response.Status.INTERNAL_SERVER_ERROR);
         }
     }

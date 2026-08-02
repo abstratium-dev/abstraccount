@@ -62,7 +62,7 @@ describe('JournalComponent', () => {
     controller.getTags.and.returnValue(Promise.resolve(mockTags));
     controller.getTransactions.and.returnValue(Promise.resolve(mockTransactions));
 
-    component.selectedJournal = { id: '1', title: 'Journal 1', subtitle: null, currency: 'CHF', commodities: {}, logo: null, previousJournalId: null };
+    component.selectedJournal = { id: '1', title: 'Journal 1', subtitle: null, currency: 'CHF', commodities: {}, logo: null, previousJournalId: null, locked: false };
     await component.loadTags();
     await component.loadEntries();
     await fixture.whenStable();
@@ -87,7 +87,7 @@ describe('JournalComponent', () => {
     ];
     controller.getTransactions.and.returnValue(Promise.resolve(mockTransactions));
 
-    component.selectedJournal = { id: '1', title: 'Journal 1', subtitle: null, currency: 'CHF', commodities: {}, logo: null, previousJournalId: null };
+    component.selectedJournal = { id: '1', title: 'Journal 1', subtitle: null, currency: 'CHF', commodities: {}, logo: null, previousJournalId: null, locked: false };
     await component.loadEntries();
     await fixture.whenStable();
 
@@ -99,7 +99,7 @@ describe('JournalComponent', () => {
     const mockTransactions: any[] = [];
     controller.getTransactions.and.returnValue(Promise.resolve(mockTransactions));
 
-    component.selectedJournal = { id: '1', title: 'Journal 1', subtitle: null, currency: 'CHF', commodities: {}, logo: null, previousJournalId: null };
+    component.selectedJournal = { id: '1', title: 'Journal 1', subtitle: null, currency: 'CHF', commodities: {}, logo: null, previousJournalId: null, locked: false };
     const filterString = 'begin:20240101 end:20241231 invoice';
 
     component.onFilterChange(filterString);
@@ -114,7 +114,7 @@ describe('JournalComponent', () => {
     const mockTransactions: any[] = [];
     controller.getTransactions.and.returnValue(Promise.resolve(mockTransactions));
 
-    component.selectedJournal = { id: '1', title: 'Journal 1', subtitle: null, currency: 'CHF', commodities: {}, logo: null, previousJournalId: null };
+    component.selectedJournal = { id: '1', title: 'Journal 1', subtitle: null, currency: 'CHF', commodities: {}, logo: null, previousJournalId: null, locked: false };
     component.onFilterChange('');
     await new Promise(resolve => setTimeout(resolve, 10)); // Wait for setTimeout in onFilterChange
     await fixture.whenStable();
@@ -126,7 +126,7 @@ describe('JournalComponent', () => {
   it('should handle errors when loading tags', async () => {
     controller.getTags.and.returnValue(Promise.reject(new Error('Network error')));
 
-    component.selectedJournal = { id: '1', title: 'Journal 1', subtitle: null, currency: 'CHF', commodities: {}, logo: null, previousJournalId: null };
+    component.selectedJournal = { id: '1', title: 'Journal 1', subtitle: null, currency: 'CHF', commodities: {}, logo: null, previousJournalId: null, locked: false };
     await component.loadTags();
     await fixture.whenStable();
 
@@ -136,7 +136,7 @@ describe('JournalComponent', () => {
   it('should handle errors when loading transactions', async () => {
     controller.getTransactions.and.returnValue(Promise.reject(new Error('Network error')));
 
-    component.selectedJournal = { id: '1', title: 'Journal 1', subtitle: null, currency: 'CHF', commodities: {}, logo: null, previousJournalId: null };
+    component.selectedJournal = { id: '1', title: 'Journal 1', subtitle: null, currency: 'CHF', commodities: {}, logo: null, previousJournalId: null, locked: false };
     await component.loadEntries();
     await fixture.whenStable();
 
@@ -151,7 +151,7 @@ describe('JournalComponent', () => {
     controller.getTransactions.and.returnValue(Promise.resolve(mockTransactions));
 
     // Simulate journal change by setting selectedJournal
-    component.selectedJournal = { id: '1', title: 'Journal 1', subtitle: null, currency: 'CHF', commodities: {}, logo: null, previousJournalId: null };
+    component.selectedJournal = { id: '1', title: 'Journal 1', subtitle: null, currency: 'CHF', commodities: {}, logo: null, previousJournalId: null, locked: false };
     
     await component.loadTags();
     await component.loadEntries();
@@ -164,7 +164,7 @@ describe('JournalComponent', () => {
   });
 
   it('does not render export controls', () => {
-    component.selectedJournal = { id: '1', title: 'Test Journal', subtitle: null, currency: 'EUR', commodities: {}, logo: null, previousJournalId: null };
+    component.selectedJournal = { id: '1', title: 'Test Journal', subtitle: null, currency: 'EUR', commodities: {}, logo: null, previousJournalId: null, locked: false };
 
     fixture.detectChanges();
 

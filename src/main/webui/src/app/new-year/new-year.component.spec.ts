@@ -68,7 +68,7 @@ describe('NewYearComponent', () => {
 
   const mockJournalMetadata: JournalMetadataDTO = {
     id: 'journal-1', logo: null, title: 'Source Journal', subtitle: null,
-    currency: 'CHF', commodities: { CHF: '1000.00' }, previousJournalId: null
+    currency: 'CHF', commodities: { CHF: '1000.00' }, previousJournalId: null, locked: false
   };
 
   beforeEach(async () => {
@@ -79,7 +79,7 @@ describe('NewYearComponent', () => {
     mockModelService = jasmine.createSpyObj('ModelService', ['getAccounts'], {
       selectedJournalId$: journalIdSignal,
       journals$: signal([
-        { id: 'journal-1', title: 'Source Journal', logo: null, subtitle: null, currency: 'CHF', commodities: {}, previousJournalId: null }
+        { id: 'journal-1', title: 'Source Journal', logo: null, subtitle: null, currency: 'CHF', commodities: {}, previousJournalId: null, locked: false }
       ])
     });
     mockModelService.getAccounts.and.returnValue(mockAccounts);

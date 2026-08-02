@@ -12,7 +12,7 @@ describe('JournalManagementComponent', () => {
   let router: Router;
 
   beforeEach(async () => {
-    controller = jasmine.createSpyObj<Controller>('Controller', ['listJournals', 'selectJournal', 'exportJournal', 'deleteJournal']);
+    controller = jasmine.createSpyObj<Controller>('Controller', ['listJournals', 'selectJournal', 'exportJournal', 'deleteJournal', 'lockJournal', 'unlockJournal']);
 
     await TestBed.configureTestingModule({
       imports: [JournalManagementComponent],
@@ -32,7 +32,7 @@ describe('JournalManagementComponent', () => {
   it('renders export controls for the selected journal', () => {
     modelService.setJournals([{
       id: 'journal-id', title: 'Current Journal', subtitle: 'Current subtitle', currency: 'CHF',
-      commodities: { CHF: '1000.00' }, logo: null, previousJournalId: null
+      commodities: { CHF: '1000.00' }, logo: null, previousJournalId: null, locked: false
     }]);
 
     fixture.detectChanges();
@@ -44,7 +44,7 @@ describe('JournalManagementComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('Export');
     expect(fixture.nativeElement.querySelector('#import-journal').classList).toContain('btn-secondary');
     expect(fixture.nativeElement.querySelector('#create-journal').classList).toContain('btn-primary');
-    expect(fixture.nativeElement.querySelectorAll('hr').length).toBe(5);
+    expect(fixture.nativeElement.querySelectorAll('hr').length).toBe(6);
   });
 
   it('navigates to import and journal creation from the shared buttons', () => {
@@ -59,8 +59,8 @@ describe('JournalManagementComponent', () => {
 
   it('lists journals and selects the requested journal', async () => {
     modelService.setJournals([
-      { id: 'journal-id', title: 'Current Journal', subtitle: null, currency: 'CHF', commodities: { CHF: '1000.00' }, logo: null, previousJournalId: null },
-      { id: 'other-journal-id', title: 'Other Journal', subtitle: null, currency: 'EUR', commodities: { EUR: '1000.00' }, logo: null, previousJournalId: null }
+      { id: 'journal-id', title: 'Current Journal', subtitle: null, currency: 'CHF', commodities: { CHF: '1000.00' }, logo: null, previousJournalId: null, locked: false },
+      { id: 'other-journal-id', title: 'Other Journal', subtitle: null, currency: 'EUR', commodities: { EUR: '1000.00' }, logo: null, previousJournalId: null, locked: false }
     ]);
     fixture.detectChanges();
 
@@ -75,7 +75,7 @@ describe('JournalManagementComponent', () => {
   it('exports the selected journal with transactions by default', async () => {
     component.selectedJournal = {
       id: 'journal-id', title: 'Current Journal', subtitle: null, currency: 'CHF',
-      commodities: { CHF: '1000.00' }, logo: null, previousJournalId: null
+      commodities: { CHF: '1000.00' }, logo: null, previousJournalId: null, locked: false
     };
     controller.exportJournal.and.resolveTo('; title: Current Journal');
     spyOn(HTMLAnchorElement.prototype, 'click');
@@ -92,7 +92,7 @@ describe('JournalManagementComponent', () => {
   it('exports without transactions when requested', async () => {
     component.selectedJournal = {
       id: 'journal-id', title: 'Current Journal', subtitle: null, currency: 'CHF',
-      commodities: { CHF: '1000.00' }, logo: null, previousJournalId: null
+      commodities: { CHF: '1000.00' }, logo: null, previousJournalId: null, locked: false
     };
     component.includeTransactions = false;
     controller.exportJournal.and.resolveTo('; title: Current Journal');
@@ -108,7 +108,7 @@ describe('JournalManagementComponent', () => {
   it('shows an export failure', async () => {
     component.selectedJournal = {
       id: 'journal-id', title: 'Current Journal', subtitle: null, currency: 'CHF',
-      commodities: { CHF: '1000.00' }, logo: null, previousJournalId: null
+      commodities: { CHF: '1000.00' }, logo: null, previousJournalId: null, locked: false
     };
     controller.exportJournal.and.rejectWith(new Error('Export failed'));
 
@@ -120,7 +120,7 @@ describe('JournalManagementComponent', () => {
   it('renders the danger zone with delete journal controls for the selected journal', () => {
     modelService.setJournals([{
       id: 'journal-id', title: 'Current Journal', subtitle: null, currency: 'CHF',
-      commodities: { CHF: '1000.00' }, logo: null, previousJournalId: null
+      commodities: { CHF: '1000.00' }, logo: null, previousJournalId: null, locked: false
     }]);
     fixture.detectChanges();
 
@@ -134,7 +134,7 @@ describe('JournalManagementComponent', () => {
   it('disables the delete button until the confirmation name matches', () => {
     component.selectedJournal = {
       id: 'journal-id', title: 'Current Journal', subtitle: null, currency: 'CHF',
-      commodities: { CHF: '1000.00' }, logo: null, previousJournalId: null
+      commodities: { CHF: '1000.00' }, logo: null, previousJournalId: null, locked: false
     };
     expect(component.isConfirmationValid).toBeFalse();
 
@@ -145,7 +145,7 @@ describe('JournalManagementComponent', () => {
   it('deletes the journal and navigates home on success', async () => {
     component.selectedJournal = {
       id: 'journal-id', title: 'Current Journal', subtitle: null, currency: 'CHF',
-      commodities: { CHF: '1000.00' }, logo: null, previousJournalId: null
+      commodities: { CHF: '1000.00' }, logo: null, previousJournalId: null, locked: false
     };
     component.confirmationName = 'Current Journal';
     controller.deleteJournal.and.resolveTo();
@@ -160,7 +160,7 @@ describe('JournalManagementComponent', () => {
   it('shows an error when deletion fails', async () => {
     component.selectedJournal = {
       id: 'journal-id', title: 'Current Journal', subtitle: null, currency: 'CHF',
-      commodities: { CHF: '1000.00' }, logo: null, previousJournalId: null
+      commodities: { CHF: '1000.00' }, logo: null, previousJournalId: null, locked: false
     };
     component.confirmationName = 'Current Journal';
     controller.deleteJournal.and.rejectWith(new Error('Delete failed'));
@@ -174,7 +174,7 @@ describe('JournalManagementComponent', () => {
   it('does not call deleteJournal when confirmation is invalid', async () => {
     component.selectedJournal = {
       id: 'journal-id', title: 'Current Journal', subtitle: null, currency: 'CHF',
-      commodities: { CHF: '1000.00' }, logo: null, previousJournalId: null
+      commodities: { CHF: '1000.00' }, logo: null, previousJournalId: null, locked: false
     };
     component.confirmationName = 'wrong name';
 
@@ -191,5 +191,86 @@ describe('JournalManagementComponent', () => {
 
     expect(component.confirmationName).toBe('');
     expect(component.deleteError).toBeNull();
+  });
+
+  it('renders lock controls for an unlocked journal', () => {
+    modelService.setJournals([{
+      id: 'journal-id', title: 'Current Journal', subtitle: null, currency: 'CHF',
+      commodities: { CHF: '1000.00' }, logo: null, previousJournalId: null, locked: false
+    }]);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('#lock-journal')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('#unlock-journal')).toBeFalsy();
+  });
+
+  it('renders unlock controls for a locked journal', () => {
+    modelService.setJournals([{
+      id: 'journal-id', title: 'Current Journal', subtitle: null, currency: 'CHF',
+      commodities: { CHF: '1000.00' }, logo: null, previousJournalId: null, locked: true
+    }]);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('#lock-journal')).toBeFalsy();
+    expect(fixture.nativeElement.querySelector('#unlock-journal')).toBeTruthy();
+  });
+
+  it('locks the journal via the controller', async () => {
+    component.selectedJournal = {
+      id: 'journal-id', title: 'Current Journal', subtitle: null, currency: 'CHF',
+      commodities: { CHF: '1000.00' }, logo: null, previousJournalId: null, locked: false
+    };
+    controller.lockJournal.and.resolveTo({
+      id: 'journal-id', title: 'Current Journal', subtitle: null, currency: 'CHF',
+      commodities: { CHF: '1000.00' }, logo: null, previousJournalId: null, locked: true
+    });
+
+    await component.lockJournal();
+
+    expect(controller.lockJournal).toHaveBeenCalledWith('journal-id');
+    expect(component.locking).toBeFalse();
+    expect(component.lockError).toBeNull();
+  });
+
+  it('unlocks the journal via the controller after confirmation', async () => {
+    component.selectedJournal = {
+      id: 'journal-id', title: 'Current Journal', subtitle: null, currency: 'CHF',
+      commodities: { CHF: '1000.00' }, logo: null, previousJournalId: null, locked: true
+    };
+    controller.unlockJournal.and.resolveTo({
+      id: 'journal-id', title: 'Current Journal', subtitle: null, currency: 'CHF',
+      commodities: { CHF: '1000.00' }, logo: null, previousJournalId: null, locked: false
+    });
+
+    component.showUnlockConfirm = true;
+    await component.unlockJournal();
+
+    expect(controller.unlockJournal).toHaveBeenCalledWith('journal-id');
+    expect(component.locking).toBeFalse();
+    expect(component.showUnlockConfirm).toBeFalse();
+    expect(component.lockError).toBeNull();
+  });
+
+  it('shows an error when locking fails', async () => {
+    component.selectedJournal = {
+      id: 'journal-id', title: 'Current Journal', subtitle: null, currency: 'CHF',
+      commodities: { CHF: '1000.00' }, logo: null, previousJournalId: null, locked: false
+    };
+    controller.lockJournal.and.rejectWith(new Error('Lock failed'));
+
+    await component.lockJournal();
+
+    expect(component.lockError).toContain('Failed to lock journal');
+    expect(component.locking).toBeFalse();
+  });
+
+  it('clears unlock confirmation on cancel', () => {
+    component.showUnlockConfirm = true;
+    component.lockError = 'some error';
+
+    component.cancelUnlock();
+
+    expect(component.showUnlockConfirm).toBeFalse();
+    expect(component.lockError).toBeNull();
   });
 });

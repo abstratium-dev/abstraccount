@@ -39,6 +39,16 @@ public class JournalEntity {
     @Column(name = "previous_journal_id", length = 36)
     private String previousJournalId;
 
+    /**
+     * When {@code true}, the journal is locked and any mutating operation
+     * (create/update/delete of accounts, transactions, macros execution, etc.)
+     * against it must be rejected with a clear error.
+     * Defaults to {@code false} so existing journals remain editable until
+     * explicitly locked.
+     */
+    @Column(name = "locked", nullable = false)
+    private boolean locked = false;
+
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "T_journal_commodity", joinColumns = {
         @JoinColumn(name = "journal_id", referencedColumnName = "id"),
@@ -104,8 +114,16 @@ public class JournalEntity {
     public Map<String, String> getCommodities() {
         return commodities;
     }
-    
+
     public void setCommodities(Map<String, String> commodities) {
         this.commodities = commodities;
+    }
+
+    public boolean isLocked() {
+        return locked;
+    }
+
+    public void setLocked(boolean locked) {
+        this.locked = locked;
     }
 }

@@ -15,6 +15,7 @@ import dev.abstratium.abstraccount.entity.JournalEntity;
 import dev.abstratium.abstraccount.model.Journal;
 import dev.abstratium.abstraccount.service.EntryQueryParser;
 import dev.abstratium.abstraccount.service.JournalCreationService;
+import dev.abstratium.abstraccount.service.JournalLockedException;
 import dev.abstratium.abstraccount.service.JournalParser;
 import dev.abstratium.abstraccount.service.JournalPersistenceService;
 import dev.abstratium.abstraccount.service.JournalSerializer;
@@ -225,7 +226,8 @@ public class JournalResource {
                 j.getSubtitle(),
                 j.getCurrency(),
                 j.getCommodities(),
-                j.getPreviousJournalId()
+                j.getPreviousJournalId(),
+                j.isLocked()
             ))
             .collect(Collectors.toList());
     }
@@ -251,7 +253,8 @@ public class JournalResource {
             journal.getSubtitle(),
             journal.getCurrency(),
             journal.getCommodities(),
-            journal.getPreviousJournalId()
+            journal.getPreviousJournalId(),
+            journal.isLocked()
         );
     }
     
@@ -296,6 +299,9 @@ public class JournalResource {
             JournalEntity journal = journalPersistenceService.findJournalById(journalId)
                 .orElseThrow(() -> new WebApplicationException("Journal not found: " + journalId, 404));
 
+            // Refuse to delete a locked journal - the user must unlock it first
+            journalPersistenceService.requireNotLocked(journalId);
+
             // Delete the owned graph through managed JPA entities.
             journalPersistenceService.deleteJournal(journalId);
             
@@ -309,6 +315,8 @@ public class JournalResource {
             return response;
             
         } catch (WebApplicationException e) {
+            throw e;
+        } catch (JournalLockedException e) {
             throw e;
         } catch (Exception e) {
             LOG.error("Failed to delete journal", e);
@@ -347,7 +355,8 @@ public class JournalResource {
                 savedJournal.getSubtitle(),
                 savedJournal.getCurrency(),
                 savedJournal.getCommodities(),
-                savedJournal.getPreviousJournalId()
+                savedJournal.getPreviousJournalId(),
+                savedJournal.isLocked()
             );
             
         } catch (Exception e) {
@@ -362,7 +371,63 @@ public class JournalResource {
             );
         }
     }
-    
+
+    /**
+     * Locks a journal so that closed periods can be protected from further changes.
+     * Any mutating operation (create/update/delete of accounts, transactions, macro
+     * execution, close-books, upload with replace) against a locked journal will be
+     * rejected with HTTP 423 Locked.
+     *
+     * @param journalId the journal ID to lock
+     * @return the updated journal metadata
+     */
+    @POST
+    @Path("/{journalId}/lock")
+    public JournalDTO lockJournal(@PathParam("journalId") String journalId) {
+        LOG.infof("Locking journal: %s", journalId);
+        JournalEntity journal = journalPersistenceService.setJournalLocked(journalId, true)
+            .orElseThrow(() -> new WebApplicationException("Journal not found: " + journalId, 404));
+        return new JournalDTO(
+            journal.getId(),
+            journal.getLogo(),
+            journal.getTitle(),
+            journal.getSubtitle(),
+            journal.getCurrency(),
+            journal.getCommodities(),
+            journal.getPreviousJournalId(),
+            journal.isLocked()
+        );
+    }
+
+    /**
+     * Unlocks a journal, allowing further mutations.
+     * <p>
+     * <strong>Warning:</strong> unlocking a journal that has follow-on years can
+     * desynchronise the opening balances of those years, because the system does
+     * not carry over changes made to a locked journal into the next year's
+     * opening balances.
+     *
+     * @param journalId the journal ID to unlock
+     * @return the updated journal metadata
+     */
+    @POST
+    @Path("/{journalId}/unlock")
+    public JournalDTO unlockJournal(@PathParam("journalId") String journalId) {
+        LOG.infof("Unlocking journal: %s", journalId);
+        JournalEntity journal = journalPersistenceService.setJournalLocked(journalId, false)
+            .orElseThrow(() -> new WebApplicationException("Journal not found: " + journalId, 404));
+        return new JournalDTO(
+            journal.getId(),
+            journal.getLogo(),
+            journal.getTitle(),
+            journal.getSubtitle(),
+            journal.getCurrency(),
+            journal.getCommodities(),
+            journal.getPreviousJournalId(),
+            journal.isLocked()
+        );
+    }
+
     /**
      * Uploads and persists a journal file.
      * Parses the journal content and stores all data (journal metadata, accounts, transactions) in the database.
@@ -410,6 +475,10 @@ public class JournalResource {
             
             // Delete existing journals with the same title if replaceExisting is true
             if (replaceExisting && !existingJournals.isEmpty()) {
+                // Refuse to overwrite locked journals - the user must unlock them first
+                for (JournalEntity existing : existingJournals) {
+                    journalPersistenceService.requireNotLocked(existing.getId());
+                }
                 LOG.infof("Deleting %d existing journal(s) with title: %s", existingJournals.size(), journal.title());
                 for (JournalEntity existing : existingJournals) {
                     journalPersistenceService.deleteJournal(existing.getId());
@@ -436,6 +505,8 @@ public class JournalResource {
             return summary;
             
         } catch (WebApplicationException e) {
+            throw e;
+        } catch (JournalLockedException e) {
             throw e;
         } catch (Exception e) {
             LOG.error("Failed to upload journal", e);

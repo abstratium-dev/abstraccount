@@ -39,7 +39,7 @@ describe('CreateJournalComponent', () => {
     component.currency = 'CHF';
     controller.createJournal.and.resolveTo({
       id: 'journal-id', logo: null, title: 'My journal', subtitle: null, currency: 'CHF',
-      commodities: { CHF: '1000.00' }, previousJournalId: null
+      commodities: { CHF: '1000.00' }, previousJournalId: null, locked: false
     });
 
     await component.onSubmit();
@@ -56,7 +56,7 @@ describe('CreateJournalComponent', () => {
   it('selects the created journal and opens the accounts screen', () => {
     component.createResult = {
       id: 'journal-id', logo: null, title: 'My journal', subtitle: null, currency: 'CHF',
-      commodities: { CHF: '1000.00' }, previousJournalId: null
+      commodities: { CHF: '1000.00' }, previousJournalId: null, locked: false
     };
 
     component.viewAccounts();

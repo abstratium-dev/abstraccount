@@ -91,7 +91,7 @@ describe('ReportsComponent', () => {
     ], {
       reportTemplates$: signal(mockTemplates),
       selectedJournalId$: signal('journal1'),
-      journals$: signal([{ id: 'journal1', title: 'Test Journal', subtitle: null, currency: 'CHF', commodities: {}, logo: null, previousJournalId: null }]),
+      journals$: signal([{ id: 'journal1', title: 'Test Journal', subtitle: null, currency: 'CHF', commodities: {}, logo: null, previousJournalId: null, locked: false }]),
       accounts$: signal(mockAccounts)
     });
     const toastSpy = jasmine.createSpyObj('ToastService', ['success', 'error', 'info', 'show']);

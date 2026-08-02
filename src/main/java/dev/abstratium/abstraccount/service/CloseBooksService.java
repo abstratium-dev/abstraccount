@@ -83,6 +83,9 @@ public class CloseBooksService {
     public List<String> execute(String journalId, LocalDate closingDate, String equityCodePath) {
         LOG.debugf("Executing close-books for journal %s, date %s, equity %s", journalId, closingDate, equityCodePath);
 
+        // Reject mutation if the journal is locked
+        journalPersistenceService.requireNotLocked(journalId);
+
         AccountEntity equityAccount = accountService.findAccountByCodePath(journalId, equityCodePath, null);
 
         List<CloseAccountPreviewDTO> previews = buildAccountPreviews(journalId, closingDate);

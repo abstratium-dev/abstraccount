@@ -28,12 +28,6 @@ These TODOs are to be resolved by the developer, NOT THE LLM.
 
 - add a cashflow report to the built-in ones.
 
-- add a "locked" flag to journals so that closed periods can be protected from further changes.
-  - the flag should be checked on execution of macros and on any transaction or account modification (create/update/delete).
-  - any other mutating operation against a locked journal should also be rejected with a clear error.
-  - expose a way for the user to (un)lock a journal from the journal management UI, but warn them that this could really mess up their accounts as the system will not carry over changes they make into follow-on years!
-  - auto-lock when creating a new year using that function in the header context menu
-
 - add a pricing page and work out how to actually sell this
 
 - the user guide and closing page should describe that before hand, the user should do the tax provision (and tax payment?) and legal reserve allocation

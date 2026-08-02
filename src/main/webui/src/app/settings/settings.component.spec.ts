@@ -17,7 +17,7 @@ describe('SettingsComponent', () => {
 
   const mockJournal: JournalMetadataDTO = {
     id: 'journal-1', logo: null, title: 'My Journal', subtitle: null,
-    currency: 'CHF', commodities: { CHF: '1000.00' }, previousJournalId: null
+    currency: 'CHF', commodities: { CHF: '1000.00' }, previousJournalId: null, locked: false
   };
 
   beforeEach(async () => {

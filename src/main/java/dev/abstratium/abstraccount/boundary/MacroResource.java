@@ -13,6 +13,7 @@ import dev.abstratium.abstraccount.model.Journal;
 import dev.abstratium.abstraccount.model.Tag;
 import dev.abstratium.abstraccount.model.Transaction;
 import dev.abstratium.abstraccount.service.AccountService;
+import dev.abstratium.abstraccount.service.JournalLockedException;
 import dev.abstratium.abstraccount.service.JournalParser;
 import dev.abstratium.abstraccount.service.JournalPersistenceService;
 import dev.abstratium.abstraccount.service.MacroImportExportService;
@@ -163,7 +164,10 @@ public class MacroResource {
         if (macro == null) {
             throw new NotFoundException("Macro not found");
         }
-        
+
+        // Reject execution against a locked journal
+        journalPersistenceService.requireNotLocked(request.journalId());
+
         // Execute macro to generate transaction text
         String transactionText = macroService.executeMacro(macro, request.parameters(), request.journalId());
         LOG.debugf("Generated transaction text:\n%s", transactionText);
