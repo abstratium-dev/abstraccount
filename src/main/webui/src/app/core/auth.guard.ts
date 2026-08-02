@@ -35,7 +35,16 @@ export const authGuard: CanActivateFn = async (route, state) => {
     return false;
   }
 
-  if (modelService.journals$().length === 0) {
+  // Skip the journal-existence check when the user is already heading to the
+  // create-journal or upload page. Otherwise a brand new user with no journals
+  // would be caught in an infinite redirect loop: the guard redirects to
+  // /create-journal, which re-triggers the guard, which redirects again. We
+  // still want the authentication check above to apply to these routes, so the
+  // guard stays on them. The upload route is also exempt because importing a
+  // journal is a valid first action for a new user with no journals yet.
+  const isCreateJournalRoute = state.url === '/create-journal' || state.url.startsWith('/create-journal');
+  const isUploadRoute = state.url === '/upload' || state.url.startsWith('/upload');
+  if (!isCreateJournalRoute && !isUploadRoute && modelService.journals$().length === 0) {
     try {
       const journals = await controller.listJournals();
       if (journals.length === 0) {

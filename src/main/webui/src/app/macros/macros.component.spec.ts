@@ -1,9 +1,10 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
 import { MacrosComponent } from './macros.component';
-import { Controller, ImportResult } from '../controller';
+import { Controller, ImportResult, JournalMetadataDTO } from '../controller';
 import { ModelService } from '../model.service';
 import { ConfirmDialogService } from '../core/confirm-dialog/confirm-dialog.service';
+import { InfoDialogService } from '../core/info-dialog/info-dialog.service';
 import { ToastService } from '../core/toast/toast.service';
 import { signal } from '@angular/core';
 
@@ -14,7 +15,17 @@ describe('MacrosComponent', () => {
   let mockModelService: jasmine.SpyObj<ModelService>;
   let mockRouter: jasmine.SpyObj<Router>;
   let mockConfirmDialog: jasmine.SpyObj<ConfirmDialogService>;
+  let mockInfoDialog: jasmine.SpyObj<InfoDialogService>;
   let mockToast: jasmine.SpyObj<ToastService>;
+
+  const unlockedJournal: JournalMetadataDTO = {
+    id: 'test-journal-id', title: 'Open Journal', subtitle: null, currency: 'CHF',
+    commodities: {}, logo: null, previousJournalId: null, locked: false
+  };
+  const lockedJournal: JournalMetadataDTO = {
+    id: 'test-journal-id', title: 'Locked Journal', subtitle: null, currency: 'CHF',
+    commodities: {}, logo: null, previousJournalId: null, locked: true
+  };
 
   beforeEach(async () => {
     mockController = jasmine.createSpyObj('Controller', [
@@ -22,12 +33,14 @@ describe('MacrosComponent', () => {
     ]);
     mockModelService = jasmine.createSpyObj('ModelService', ['getAccounts', 'getSelectedJournalId'], {
       macros$: signal([]),
-      selectedJournalId$: signal('test-journal-id')
+      selectedJournalId$: signal('test-journal-id'),
+      journals$: signal([unlockedJournal])
     });
     mockModelService.getAccounts.and.returnValue([]);
     mockModelService.getSelectedJournalId.and.returnValue('test-journal-id');
     mockRouter = jasmine.createSpyObj('Router', ['navigate']);
     mockConfirmDialog = jasmine.createSpyObj('ConfirmDialogService', ['confirm']);
+    mockInfoDialog = jasmine.createSpyObj('InfoDialogService', ['show']);
     mockToast = jasmine.createSpyObj('ToastService', ['success', 'error', 'info', 'show']);
 
     await TestBed.configureTestingModule({
@@ -37,6 +50,7 @@ describe('MacrosComponent', () => {
         { provide: ModelService, useValue: mockModelService },
         { provide: Router, useValue: mockRouter },
         { provide: ConfirmDialogService, useValue: mockConfirmDialog },
+        { provide: InfoDialogService, useValue: mockInfoDialog },
         { provide: ToastService, useValue: mockToast }
       ]
     }).compileComponents();
@@ -412,5 +426,79 @@ describe('MacrosComponent', () => {
     component.menuOpen = true;
     component.closeMenu();
     expect(component.menuOpen).toBeFalse();
+  });
+
+  describe('locked journal guard', () => {
+    const testMacro = {
+      id: 'test-macro',
+      name: 'Test Macro',
+      description: 'Test',
+      parameters: [
+        { name: 'amount', type: 'amount', prompt: 'Amount', required: true, defaultValue: null, filter: null }
+      ],
+      template: 'test template',
+      validation: null,
+      notes: null,
+      createdDate: '2024-01-01',
+      modifiedDate: '2024-01-01'
+    };
+
+    it('blocks opening the execute dialog when the journal is locked', () => {
+      (mockModelService.journals$ as any).set([lockedJournal]);
+
+      component.selectMacro(testMacro);
+
+      expect(component.showExecuteDialog).toBe(false);
+      expect(component.selectedMacro).toBeNull();
+      expect(mockInfoDialog.show).toHaveBeenCalled();
+      expect(mockInfoDialog.show.calls.mostRecent().args[0].title).toBe('Journal Locked');
+    });
+
+    it('allows opening the execute dialog when the journal is unlocked', () => {
+      (mockModelService.journals$ as any).set([unlockedJournal]);
+
+      component.selectMacro(testMacro);
+
+      expect(component.showExecuteDialog).toBe(true);
+      expect(component.selectedMacro).toEqual(testMacro);
+      expect(mockInfoDialog.show).not.toHaveBeenCalled();
+    });
+
+    it('blocks generating a transaction when the journal is locked', async () => {
+      (mockModelService.journals$ as any).set([lockedJournal]);
+      component.selectedMacro = testMacro;
+      component.setParameterValue('amount', '100.00');
+
+      await component.generateTransaction();
+
+      expect(mockController.executeMacro).not.toHaveBeenCalled();
+      expect(mockInfoDialog.show).toHaveBeenCalled();
+    });
+
+    it('allows generating a transaction when the journal is unlocked', async () => {
+      (mockModelService.journals$ as any).set([unlockedJournal]);
+      component.selectedMacro = testMacro;
+      component.setParameterValue('amount', '100.00');
+      mockController.executeMacro.and.returnValue(Promise.resolve('transaction-id'));
+      mockRouter.navigate.and.returnValue(Promise.resolve(true));
+
+      await component.generateTransaction();
+
+      expect(mockController.executeMacro).toHaveBeenCalledWith(
+        'test-macro',
+        'test-journal-id',
+        { amount: '100.00' }
+      );
+      expect(mockInfoDialog.show).not.toHaveBeenCalled();
+    });
+
+    it('does not show the lock dialog when no journal is selected', () => {
+      (mockModelService.journals$ as any).set([]);
+
+      component.selectMacro(testMacro);
+
+      // No journal -> no lock dialog, the modal opens (the backend will reject if no journal)
+      expect(mockInfoDialog.show).not.toHaveBeenCalled();
+    });
   });
 });

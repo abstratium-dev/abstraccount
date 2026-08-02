@@ -3,6 +3,7 @@ import { provideRouter, Router } from '@angular/router';
 import { Controller } from '../controller';
 import { ModelService } from '../model.service';
 import { JournalManagementComponent } from './journal-management.component';
+import { ConfirmDialogService } from '../core/confirm-dialog/confirm-dialog.service';
 
 describe('JournalManagementComponent', () => {
   let component: JournalManagementComponent;
@@ -10,14 +11,17 @@ describe('JournalManagementComponent', () => {
   let controller: jasmine.SpyObj<Controller>;
   let modelService: ModelService;
   let router: Router;
+  let confirmDialog: jasmine.SpyObj<ConfirmDialogService>;
 
   beforeEach(async () => {
     controller = jasmine.createSpyObj<Controller>('Controller', ['listJournals', 'selectJournal', 'exportJournal', 'deleteJournal', 'lockJournal', 'unlockJournal']);
+    confirmDialog = jasmine.createSpyObj<ConfirmDialogService>('ConfirmDialogService', ['confirm']);
 
     await TestBed.configureTestingModule({
       imports: [JournalManagementComponent],
       providers: [
         { provide: Controller, useValue: controller },
+        { provide: ConfirmDialogService, useValue: confirmDialog },
         provideRouter([])
       ]
     }).compileComponents();
@@ -232,7 +236,7 @@ describe('JournalManagementComponent', () => {
     expect(component.lockError).toBeNull();
   });
 
-  it('unlocks the journal via the controller after confirmation', async () => {
+  it('asks for confirmation via the confirm dialog before unlocking the journal', async () => {
     component.selectedJournal = {
       id: 'journal-id', title: 'Current Journal', subtitle: null, currency: 'CHF',
       commodities: { CHF: '1000.00' }, logo: null, previousJournalId: null, locked: true
@@ -241,14 +245,53 @@ describe('JournalManagementComponent', () => {
       id: 'journal-id', title: 'Current Journal', subtitle: null, currency: 'CHF',
       commodities: { CHF: '1000.00' }, logo: null, previousJournalId: null, locked: false
     });
+    confirmDialog.confirm.and.resolveTo(true);
 
-    component.showUnlockConfirm = true;
     await component.unlockJournal();
 
+    expect(confirmDialog.confirm).toHaveBeenCalled();
+    expect(confirmDialog.confirm.calls.mostRecent().args[0].title).toBe('Unlock Journal');
+    expect(confirmDialog.confirm.calls.mostRecent().args[0].confirmText).toBe('Yes, unlock anyway');
     expect(controller.unlockJournal).toHaveBeenCalledWith('journal-id');
     expect(component.locking).toBeFalse();
-    expect(component.showUnlockConfirm).toBeFalse();
     expect(component.lockError).toBeNull();
+  });
+
+  it('does not call unlockJournal on the controller when the user cancels the confirmation', async () => {
+    component.selectedJournal = {
+      id: 'journal-id', title: 'Current Journal', subtitle: null, currency: 'CHF',
+      commodities: { CHF: '1000.00' }, logo: null, previousJournalId: null, locked: true
+    };
+    confirmDialog.confirm.and.resolveTo(false);
+
+    await component.unlockJournal();
+
+    expect(confirmDialog.confirm).toHaveBeenCalled();
+    expect(controller.unlockJournal).not.toHaveBeenCalled();
+    expect(component.locking).toBeFalse();
+  });
+
+  it('does nothing when no journal is selected', async () => {
+    component.selectedJournal = null;
+
+    await component.unlockJournal();
+
+    expect(confirmDialog.confirm).not.toHaveBeenCalled();
+    expect(controller.unlockJournal).not.toHaveBeenCalled();
+  });
+
+  it('shows an error when unlocking fails', async () => {
+    component.selectedJournal = {
+      id: 'journal-id', title: 'Current Journal', subtitle: null, currency: 'CHF',
+      commodities: { CHF: '1000.00' }, logo: null, previousJournalId: null, locked: true
+    };
+    confirmDialog.confirm.and.resolveTo(true);
+    controller.unlockJournal.and.rejectWith(new Error('Unlock failed'));
+
+    await component.unlockJournal();
+
+    expect(component.lockError).toContain('Failed to unlock journal');
+    expect(component.locking).toBeFalse();
   });
 
   it('shows an error when locking fails', async () => {
@@ -262,15 +305,5 @@ describe('JournalManagementComponent', () => {
 
     expect(component.lockError).toContain('Failed to lock journal');
     expect(component.locking).toBeFalse();
-  });
-
-  it('clears unlock confirmation on cancel', () => {
-    component.showUnlockConfirm = true;
-    component.lockError = 'some error';
-
-    component.cancelUnlock();
-
-    expect(component.showUnlockConfirm).toBeFalse();
-    expect(component.lockError).toBeNull();
   });
 });

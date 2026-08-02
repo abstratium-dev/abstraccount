@@ -142,6 +142,36 @@ describe('authGuard', () => {
     expect(router.navigate).toHaveBeenCalledWith(['/create-journal']);
   });
 
+  it('should allow access to /create-journal even when no journals exist (no infinite loop)', async () => {
+    authService.isAuthenticated.and.returnValue(true);
+    controller.listJournals.and.returnValue(Promise.resolve([]));
+
+    const result = await TestBed.runInInjectionContext(() =>
+      authGuard({} as any, { url: '/create-journal' } as any)
+    );
+
+    expect(result).toBe(true);
+    expect(router.navigate).not.toHaveBeenCalled();
+    // The journal-existence check should be skipped, so listJournals must not
+    // even be called when navigating to /create-journal.
+    expect(controller.listJournals).not.toHaveBeenCalled();
+  });
+
+  it('should allow access to /upload even when no journals exist (import is a valid first action)', async () => {
+    authService.isAuthenticated.and.returnValue(true);
+    controller.listJournals.and.returnValue(Promise.resolve([]));
+
+    const result = await TestBed.runInInjectionContext(() =>
+      authGuard({} as any, { url: '/upload' } as any)
+    );
+
+    expect(result).toBe(true);
+    expect(router.navigate).not.toHaveBeenCalled();
+    // The journal-existence check should be skipped, so listJournals must not
+    // even be called when navigating to /upload.
+    expect(controller.listJournals).not.toHaveBeenCalled();
+  });
+
   it('should handle multiple calls with different authentication states', async () => {
     // First call - authenticated, journals not loaded
     authService.isAuthenticated.and.returnValue(true);

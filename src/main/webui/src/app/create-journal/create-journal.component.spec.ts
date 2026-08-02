@@ -72,4 +72,9 @@ describe('CreateJournalComponent', () => {
 
     expect(component.createError).toBe('You do not have the required USER role to create a journal.');
   });
+
+  it('navigates to the upload page when goToUpload is called', () => {
+    component.goToUpload();
+    expect(router.navigate).toHaveBeenCalledWith(['/upload']);
+  });
 });

@@ -27,7 +27,7 @@ export interface ReportSection {
   showAccounts?: boolean; // Whether to show individual accounts (default true)
   invertSign?: boolean;
   includeNetIncome?: boolean;
-  calculated?: 'netIncome' | 'totalAssets' | 'tagGrouped' | string; // Special calculated values
+  calculated?: 'netIncome' | 'totalAssets' | 'tagGrouped' | 'cashFlow' | string; // Special calculated values
   groupByPartner?: boolean; // Group entries by partner instead of account
   sortable?: boolean; // Whether columns can be sorted by clicking headers
   defaultSortColumn?: string; // Default column to sort by (e.g., 'net', 'income', 'partnerName')
@@ -55,6 +55,8 @@ export interface ReportingContext {
   totalRevenue: number;
   totalExpenses: number;
   netIncome: number;
+  openingCash?: number;
+  closingCash?: number;
   
   // Helper methods for filtering and aggregating
   getEntriesByAccountType(accountType: string): AccountEntryDTO[];
@@ -63,6 +65,7 @@ export interface ReportingContext {
   getBalanceByAccountType(accountType: string): number;
   getBalanceByAccountTypes(accountTypes: string[]): number;
   getBalanceByAccount(accountId: string): number;
+  getBalanceByAccountRegex(pattern: string): number;
 }
 
 /**
@@ -90,6 +93,16 @@ export interface PartnerSummary {
 }
 
 /**
+ * A single line in a cash-flow statement result.
+ */
+export interface CashFlowRow {
+  title: string;
+  amount: number;
+  level: number; // 1 = section header, 2 = line item, 3 = subtotal, 4 = grand total
+  isSubtotal: boolean;
+}
+
+/**
  * Report section result after processing
  */
 export interface ReportSectionResult {
@@ -98,6 +111,7 @@ export interface ReportSectionResult {
   accounts: AccountSummary[];
   partners?: PartnerSummary[]; // For partner-based reports
   tagGroups?: TagGroup[]; // For tagGrouped reports
+  cashFlowRows?: CashFlowRow[]; // For cashFlow reports
   subtotal: number;
   commodity: string;
   showDebitsCredits: boolean;

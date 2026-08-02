@@ -135,6 +135,11 @@ items:
     \ \"title\":\"Revenue\",\"accountTypes\":[\"REVENUE\"],\"showDebitsCredits\":true,\"\
     invertSign\":true},{ \"title\":\"Expenses\",\"accountTypes\":[\"EXPENSE\"],\"\
     showDebitsCredits\":true}]}"
+- name: "Swiss Cash Flow Statement"
+  description: "Swiss SME standard cash flow statement using the indirect method. Computes\
+    \ cash flows from operating, investing and financing activities and reconciles\
+    \ them to opening and closing cash. Operates across all journals in the chain."
+  template_content: "{\"sections\":[{\"title\":\"Swiss Cash Flow Statement\",\"calculated\":\"cashFlow\",\"useJournalChain\":true}]}"
 - name: "Unpaid Sales Invoices"
   description: "List of unpaid sales invoices with outstanding balances. Groups transactions\
     \ by invoice tag value (invoice:SI*) and shows net balance per invoice. The balance\

@@ -53,7 +53,12 @@
         </a>
         @if(isSignedIn) {
             &nbsp;|&nbsp;
-            <a id="current-journal-name" class="journal-name" routerLink="/journal-management" routerLinkActive="inactive-link">{{ currentJournalName }}</a>
+            <a id="current-journal-name" class="journal-name" routerLink="/journal-management" routerLinkActive="inactive-link">
+                {{ currentJournalName }}
+                @if(currentJournalLocked) {
+                    <span class="journal-lock-icon" title="This journal is locked and cannot be modified" aria-label="Journal locked">&#128274;</span>
+                }
+            </a>
             &nbsp;|&nbsp;
             <a id="journal" routerLink="/journal" routerLinkActive="inactive-link">journal</a>
             &nbsp;|&nbsp;

@@ -79,35 +79,10 @@
         <button
           id="unlock-journal"
           class="btn-secondary"
-          (click)="showUnlockConfirm = true"
+          (click)="unlockJournal()"
           [disabled]="locking">
-          Unlock Journal
+          {{ locking ? 'Unlocking...' : 'Unlock Journal' }}
         </button>
-
-        <div *ngIf="showUnlockConfirm" class="unlock-confirm">
-          <p class="warning-text">
-            ⚠️ <strong>Warning:</strong> Unlocking a journal that has follow-on
-            years can really mess up your accounts, because the system will not
-            carry over changes you make here into those follow-on years'
-            opening balances. Only unlock if you know what you are doing.
-          </p>
-          <div class="button-group">
-            <button
-              id="confirm-unlock"
-              class="btn-danger"
-              (click)="unlockJournal()"
-              [disabled]="locking">
-              {{ locking ? 'Unlocking...' : 'Yes, unlock anyway' }}
-            </button>
-            <button
-              id="cancel-unlock"
-              class="btn-secondary"
-              (click)="cancelUnlock()"
-              [disabled]="locking">
-              Cancel
-            </button>
-          </div>
-        </div>
       </ng-container>
 
       <div *ngIf="lockError" class="error-message">

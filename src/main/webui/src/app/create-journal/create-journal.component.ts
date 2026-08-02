@@ -62,6 +62,10 @@ export class CreateJournalComponent {
     }
   }
 
+  goToUpload() {
+    this.router.navigate(['/upload']);
+  }
+
   resetForm() {
     this.logo = '';
     this.title = '';

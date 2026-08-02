@@ -57,6 +57,10 @@ export class HeaderComponent {
         return this.journals.find(journal => journal.id === this.selectedJournalId)?.title || 'No journal selected';
     }
 
+    get currentJournalLocked(): boolean {
+        return this.journals.find(journal => journal.id === this.selectedJournalId)?.locked ?? false;
+    }
+
     get sessionClockDashoffset(): number {
         const circumference = 2 * Math.PI * 7;
         return circumference * (1 - this.sessionFraction);

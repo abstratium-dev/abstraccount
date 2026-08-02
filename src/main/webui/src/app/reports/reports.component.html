@@ -321,9 +321,21 @@
       </div>
 
       <!-- Calculated value (e.g., net income) -->
-      <div *ngIf="section.showAccounts && section.accounts.length === 0 && section.subtotal !== 0" [ngClass]="{'total-line': true, 'level-1': section.level === 1, 'level-2': section.level === 2, 'level-3': section.level === 3}">
+      <div *ngIf="section.showAccounts && section.accounts.length === 0 && !section.cashFlowRows && section.subtotal !== 0" [ngClass]="{'total-line': true, 'level-1': section.level === 1, 'level-2': section.level === 2, 'level-3': section.level === 3}">
         <span class="total-label"><strong>{{ section.title.toLowerCase().includes(netIncomeLabel.toLowerCase()) ? getNetIncomeLabel(section.subtotal) : section.title }}</strong></span>
         <span class="total-amount"><strong>{{ section.title.toLowerCase().includes(netIncomeLabel.toLowerCase()) ? formatNetResultWithCommodity(section.subtotal, section.commodity) : formatCurrencyWithCommodity(applyDisplaySign(section.subtotal, section.invertSign), section.commodity) }}</strong></span>
+      </div>
+
+      <!-- Cash flow statement rows -->
+      <div *ngIf="section.cashFlowRows && section.cashFlowRows.length > 0" class="cash-flow-container">
+        <table class="report-table cash-flow-table">
+          <tbody>
+            <tr *ngFor="let row of section.cashFlowRows" [class.subtotal-row]="row.isSubtotal" [class.section-header-row]="row.level === 1" [class.grand-total-row]="row.level === 4">
+              <td [class.level-1]="row.level === 1" [class.level-2]="row.level === 2" [class.level-3]="row.level === 3" [class.level-4]="row.level === 4">{{ row.title }}</td>
+              <td class="amount-column">{{ formatCurrencyWithCommodity(row.amount, section.commodity) }}</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
   </div>

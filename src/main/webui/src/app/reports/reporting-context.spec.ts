@@ -1,4 +1,4 @@
-import { createReportingContext, groupEntriesByAccount } from './reporting-context';
+import { createReportingContext, groupEntriesByAccount, createCashFlowStatement } from './reporting-context';
 import { AccountEntryDTO, AccountTreeNode } from '../controller';
 
 describe('ReportingContext', () => {
@@ -424,6 +424,378 @@ describe('ReportingContext', () => {
       const arEntries = context.getEntriesByAccountRegex('^1:10:110');
       expect(arEntries.length).toBe(1);
       expect(arEntries[0].accountId).toBe('ar');
+    });
+  });
+
+  describe('createCashFlowStatement', () => {
+    const cashFlowAccounts: AccountTreeNode[] = [
+      {
+        id: 'assets',
+        name: '1 Assets',
+        type: 'ASSET',
+        note: null,
+        parentId: null,
+        accountCode: 1,
+        children: [
+          {
+            id: 'current-assets',
+            name: '10 Current Assets',
+            type: 'ASSET',
+            note: null,
+            parentId: 'assets',
+            accountCode: 10,
+            children: [
+              {
+                id: 'cash',
+                name: '100 Cash and cash equivalents',
+                type: 'ASSET',
+                note: null,
+                parentId: 'current-assets',
+                accountCode: 100,
+                children: [
+                  {
+                    id: 'bank',
+                    name: '1000 Bank Account',
+                    type: 'CASH',
+                    note: null,
+                    parentId: 'cash',
+                    accountCode: 1000,
+                    children: []
+                  }
+                ]
+              },
+              {
+                id: 'receivables',
+                name: '110 Accounts Receivable',
+                type: 'ASSET',
+                note: null,
+                parentId: 'current-assets',
+                accountCode: 110,
+                children: [
+                  {
+                    id: 'trade-receivables',
+                    name: '1100 Trade Receivables',
+                    type: 'ASSET',
+                    note: null,
+                    parentId: 'receivables',
+                    accountCode: 1100,
+                    children: []
+                  }
+                ]
+              },
+              {
+                id: 'inventory',
+                name: '120 Inventories',
+                type: 'ASSET',
+                note: null,
+                parentId: 'current-assets',
+                accountCode: 120,
+                children: [
+                  {
+                    id: 'finished-goods',
+                    name: '1200 Finished Goods',
+                    type: 'ASSET',
+                    note: null,
+                    parentId: 'inventory',
+                    accountCode: 1200,
+                    children: []
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            id: 'non-current-assets',
+            name: '14 Non-current Assets',
+            type: 'ASSET',
+            note: null,
+            parentId: 'assets',
+            accountCode: 14,
+            children: [
+              {
+                id: 'fixed-assets',
+                name: '150 Fixed Assets',
+                type: 'ASSET',
+                note: null,
+                parentId: 'non-current-assets',
+                accountCode: 150,
+                children: [
+                  {
+                    id: 'machinery',
+                    name: '1500 Machinery',
+                    type: 'ASSET',
+                    note: null,
+                    parentId: 'fixed-assets',
+                    accountCode: 1500,
+                    children: []
+                  },
+                  {
+                    id: 'accumulated-depreciation',
+                    name: '1509 Accumulated Depreciation',
+                    type: 'ASSET',
+                    note: null,
+                    parentId: 'fixed-assets',
+                    accountCode: 1509,
+                    children: []
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'liabilities',
+        name: '2 Liabilities',
+        type: 'LIABILITY',
+        note: null,
+        parentId: null,
+        accountCode: 2,
+        children: [
+          {
+            id: 'current-liabilities',
+            name: '20 Current Liabilities',
+            type: 'LIABILITY',
+            note: null,
+            parentId: 'liabilities',
+            accountCode: 20,
+            children: [
+              {
+                id: 'accounts-payable',
+                name: '200 Accounts Payable',
+                type: 'LIABILITY',
+                note: null,
+                parentId: 'current-liabilities',
+                accountCode: 200,
+                children: [
+                  {
+                    id: 'trade-payables',
+                    name: '2000 Trade Payables',
+                    type: 'LIABILITY',
+                    note: null,
+                    parentId: 'accounts-payable',
+                    accountCode: 2000,
+                    children: []
+                  }
+                ]
+              },
+              {
+                id: 'interest-bearing',
+                name: '210 Interest-bearing Short-term Liabilities',
+                type: 'LIABILITY',
+                note: null,
+                parentId: 'current-liabilities',
+                accountCode: 210,
+                children: [
+                  {
+                    id: 'bank-loan',
+                    name: '2100 Bank Loan',
+                    type: 'LIABILITY',
+                    note: null,
+                    parentId: 'interest-bearing',
+                    accountCode: 2100,
+                    children: []
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'equity',
+        name: '2 Equity',
+        type: 'EQUITY',
+        note: null,
+        parentId: null,
+        accountCode: 2,
+        children: [
+          {
+            id: 'share-capital-group',
+            name: '28 Share Capital',
+            type: 'EQUITY',
+            note: null,
+            parentId: 'equity',
+            accountCode: 28,
+            children: [
+              {
+                id: 'share-capital',
+                name: '2800 Share Capital',
+                type: 'EQUITY',
+                note: null,
+                parentId: 'share-capital-group',
+                accountCode: 2800,
+                children: []
+              }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'revenue',
+        name: '3 Revenue',
+        type: 'REVENUE',
+        note: null,
+        parentId: null,
+        accountCode: 3,
+        children: [
+          {
+            id: 'sales-revenue',
+            name: '3200 Sales Revenue',
+            type: 'REVENUE',
+            note: null,
+            parentId: 'revenue',
+            accountCode: 3200,
+            children: []
+          }
+        ]
+      },
+      {
+        id: 'expenses',
+        name: '6 Other Operating Expenses',
+        type: 'EXPENSE',
+        note: null,
+        parentId: null,
+        accountCode: 6,
+        children: [
+          {
+            id: 'depreciation-expense',
+            name: '6800 Depreciation',
+            type: 'EXPENSE',
+            note: null,
+            parentId: 'expenses',
+            accountCode: 6800,
+            children: []
+          },
+          {
+            id: 'other-expense',
+            name: '6700 Other Operating Expenses',
+            type: 'EXPENSE',
+            note: null,
+            parentId: 'expenses',
+            accountCode: 6700,
+            children: []
+          }
+        ]
+      }
+    ];
+
+    function makeEntry(
+      entryId: string,
+      transactionId: string,
+      date: string,
+      accountId: string,
+      amount: number,
+      tags: { key: string; value: string }[] = []
+    ): AccountEntryDTO {
+      return {
+        entryId,
+        transactionId,
+        transactionDate: date,
+        description: 'test',
+        commodity: 'CHF',
+        amount,
+        runningBalance: 0,
+        note: null,
+        accountId,
+        partnerId: null,
+        partnerName: null,
+        status: 'CLEARED',
+        tags
+      };
+    }
+
+    it('should compute an indirect-method cash-flow statement', () => {
+      // Opening cash balance on 2024-01-01 (beginning of period), tagged so it
+      // is treated as opening cash even though it sits on the period start date.
+      const openingEntries = [
+        makeEntry('e1', 't1', '2024-01-01', 'bank', 10000, [{ key: 'OpeningBalances', value: '' }]),
+        makeEntry('e2', 't1', '2024-01-01', 'share-capital', -10000, [{ key: 'OpeningBalances', value: '' }])
+      ];
+
+      // Sales on credit during period: AR +2'000, Revenue -2'000
+      const periodEntries = [
+        makeEntry('e3', 't2', '2024-06-01', 'trade-receivables', 2000),
+        makeEntry('e4', 't2', '2024-06-01', 'sales-revenue', -2000),
+        // Cash sale
+        makeEntry('e5', 't3', '2024-06-15', 'bank', 3000),
+        makeEntry('e6', 't3', '2024-06-15', 'sales-revenue', -3000),
+        // Other cash expenses
+        makeEntry('e7', 't4', '2024-06-20', 'other-expense', 1000),
+        makeEntry('e8', 't4', '2024-06-20', 'bank', -1000),
+        // Depreciation (non-cash)
+        makeEntry('e9', 't5', '2024-06-30', 'depreciation-expense', 1000),
+        makeEntry('e10', 't5', '2024-06-30', 'accumulated-depreciation', -1000),
+        // Inventory purchase
+        makeEntry('e11', 't6', '2024-07-01', 'finished-goods', 500),
+        makeEntry('e12', 't6', '2024-07-01', 'trade-payables', -500),
+        // Fixed asset purchase (cash outflow)
+        makeEntry('e13', 't7', '2024-07-15', 'machinery', 4000),
+        makeEntry('e14', 't7', '2024-07-15', 'bank', -4000),
+        // New bank loan (cash inflow)
+        makeEntry('e15', 't8', '2024-08-01', 'bank', 3000),
+        makeEntry('e16', 't8', '2024-08-01', 'bank-loan', -3000)
+      ];
+
+      const allEntries = [...openingEntries, ...periodEntries];
+      const context = createReportingContext(
+        periodEntries,
+        cashFlowAccounts,
+        '2024-01-01',
+        '2024-12-31',
+        allEntries
+      );
+
+      const rows = createCashFlowStatement(context, cashFlowAccounts);
+
+      // Net income = revenue (-5000) + expenses (2000) = -3000 (profit 3000)
+      expect(context.netIncome).toBe(-3000);
+
+      const titles = rows.map(r => r.title);
+      expect(titles).toContain('Operating activities');
+      expect(titles).toContain('Investing activities');
+      expect(titles).toContain('Financing activities');
+      expect(titles).toContain('Reconciliation to cash');
+
+      const operating = rows.find(r => r.title === 'Cash flow from operating activities');
+      expect(operating).toBeDefined();
+      // operating = profit(3000) + depreciation(1000) - AR(2000) - inventory(500) + AP(500) = 2000
+      expect(operating!.amount).toBe(2000);
+
+      const investing = rows.find(r => r.title === 'Cash flow from investing activities');
+      expect(investing).toBeDefined();
+      // investing = -machineryChange(4000) = -4000; accumulated depreciation is excluded
+      expect(investing!.amount).toBe(-4000);
+
+      const financing = rows.find(r => r.title === 'Cash flow from financing activities');
+      expect(financing).toBeDefined();
+      // financing = -loanChange(-3000) = 3000
+      expect(financing!.amount).toBe(3000);
+
+      const totalChange = rows.find(r => r.title === 'Increase / decrease in cash' && r.level === 4);
+      expect(totalChange).toBeDefined();
+      expect(totalChange!.amount).toBe(1000);
+
+      const openingCash = rows.find(r => r.title === 'Opening cash and cash equivalents');
+      expect(openingCash).toBeDefined();
+      expect(openingCash!.amount).toBe(10000);
+
+      const closingCash = rows.find(r => r.title === 'Closing cash and cash equivalents');
+      expect(closingCash).toBeDefined();
+      expect(closingCash!.amount).toBe(11000);
+    });
+
+    it('should hide zero-balance cash-flow lines', () => {
+      const entries = [
+        makeEntry('e1', 't1', '2024-06-01', 'trade-receivables', 2000),
+        makeEntry('e2', 't1', '2024-06-01', 'sales-revenue', -2000)
+      ];
+      const context = createReportingContext(entries, cashFlowAccounts, '2024-01-01', '2024-12-31', entries);
+      const rows = createCashFlowStatement(context, cashFlowAccounts);
+
+      expect(rows.some(r => r.title === 'Depreciation and value adjustments')).toBe(false);
+      expect(rows.some(r => r.title === 'Investments / disinvestments in tangible fixed assets')).toBe(false);
+      expect(rows.some(r => r.title === 'Issue / reduction of share capital')).toBe(false);
     });
   });
 });

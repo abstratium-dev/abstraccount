@@ -6,6 +6,8 @@ import { Controller, JournalMetadataDTO, TransactionDTO, TagDTO } from '../contr
 import { ModelService } from '../model.service';
 import { FilterInputComponent } from './filter-input/filter-input.component';
 import { TransactionEditModalComponent } from '../transaction-edit-modal/transaction-edit-modal.component';
+import { InfoDialogService } from '../core/info-dialog/info-dialog.service';
+import { ConfirmDialogService } from '../core/confirm-dialog/confirm-dialog.service';
 
 @Component({
   selector: 'journal',
@@ -46,6 +48,8 @@ export class JournalComponent implements OnInit {
   route = inject(ActivatedRoute);
   controller = inject(Controller);
   cdr = inject(ChangeDetectorRef);
+  private infoDialog = inject(InfoDialogService);
+  private confirmDialog = inject(ConfirmDialogService);
 
   constructor() {
     // Watch for selected journal changes
@@ -182,11 +186,13 @@ export class JournalComponent implements OnInit {
 
   // Transaction modal methods
   openAddTransactionModal(): void {
+    if (this.isJournalLocked()) return;
     this.editingTransactionId = null;
     this.showTransactionModal = true;
   }
 
   openEditTransactionModal(transactionId: string): void {
+    if (this.isJournalLocked()) return;
     this.editingTransactionId = transactionId;
     this.showTransactionModal = true;
     this.contextMenuTransactionId = null;
@@ -199,6 +205,23 @@ export class JournalComponent implements OnInit {
 
   onTransactionSaved(): void {
     this.loadEntries();
+  }
+
+  /**
+   * Returns true and shows an informational dialog if the currently selected
+   * journal is locked. Mutating actions (add/edit/delete transaction) must
+   * call this before performing their action so the user gets a clear UI
+   * message instead of a raw HTTP 423 error.
+   */
+  private isJournalLocked(): boolean {
+    if (this.selectedJournal?.locked) {
+      this.infoDialog.show({
+        title: 'Journal Locked',
+        message: `The journal "${this.selectedJournal.title}" is locked and cannot be modified. Please unlock it on the journal management page before adding, editing or deleting transactions.`,
+      });
+      return true;
+    }
+    return false;
   }
 
   // Context menu methods
@@ -215,8 +238,16 @@ export class JournalComponent implements OnInit {
 
   async deleteTransaction(transactionId: string): Promise<void> {
     if (!this.selectedJournal) return;
-    
-    if (!confirm('Are you sure you want to delete this transaction?')) {
+    if (this.isJournalLocked()) return;
+
+    const confirmed = await this.confirmDialog.confirm({
+      title: 'Delete Transaction',
+      message: 'Are you sure you want to delete this transaction? This action cannot be undone.',
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      confirmClass: 'btn-danger',
+    });
+    if (!confirmed) {
       return;
     }
 

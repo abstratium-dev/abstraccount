@@ -23,18 +23,13 @@ These TODOs are to be resolved by the developer, NOT THE LLM.
 - bug: does adding new year copy the account descriptions?
   - llm says no bug but why is 2026 empty?
 
-- add an AI assistant
-  - provide it with markdown that describes swiss accounting, based on the docs on the internet.
-
-- add a cashflow report to the built-in ones.
+- X add a cashflow report to the built-in ones.
 
 - add a pricing page and work out how to actually sell this
 
 - the user guide and closing page should describe that before hand, the user should do the tax provision (and tax payment?) and legal reserve allocation
 
 - finish e2e tests
-  - add testing of entries (pivot)
-  - add tests that assert that when child accounts are hidden, the parent of them shows the correct balance which is the sum of the children, and it shows 0 otherwise. in fact, instead of showing 0, if it is a parent it should show no number! hmm but what if they actually have an entry that directly references them? remember that account kids can be added at any time, so it isn't possible to limit entries to only kids
   - multitenancy tests
   - tax provision and tax payment and legal reserve allocation will be done in a later test
   - test closing the books and year end, checking accounts have the correct balances at the end.
@@ -47,6 +42,9 @@ These TODOs are to be resolved by the developer, NOT THE LLM.
 - improve entries screen
 - fix bug on entries scren where it sometimes hangs
 - add more e2e tests for entries screen
+
+- add an AI assistant
+  - provide it with markdown that describes swiss accounting, based on the docs on the internet.
 
 - year end taxes - use this for the macro and test it
   - 2024-12-31 * taxes based on equity tax (about 38 chf) and 15% of profit (0)

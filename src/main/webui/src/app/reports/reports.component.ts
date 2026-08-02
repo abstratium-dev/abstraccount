@@ -6,7 +6,7 @@ import { Controller, ReportTemplate, AccountEntryDTO, AccountTreeNode, TagDTO, T
 import { ModelService } from '../model.service';
 import { AccountService } from '../account.service';
 import { ReportConfig, ReportSection, ReportSectionResult, AccountSummary, PartnerSummary, TagGroup } from './reporting-types';
-import { createReportingContext, groupEntriesByAccount, groupTransactionsByTag } from './reporting-context';
+import { createReportingContext, groupEntriesByAccount, groupTransactionsByTag, createCashFlowStatement } from './reporting-context';
 import { FilterInputComponent } from '../journal/filter-input/filter-input.component';
 import { ToastService } from '../core/toast/toast.service';
 import { ConfirmDialogService } from '../core/confirm-dialog/confirm-dialog.service';
@@ -38,6 +38,7 @@ export class ReportsComponent implements OnInit {
   // Report data
   entries: AccountEntryDTO[] = [];
   transactions: TransactionDTO[] = [];
+  allTransactions: TransactionDTO[] = []; // Unfiltered historical transactions for cash-flow reconciliation
   reportSections: ReportSectionResult[] = [];
   tags: TagDTO[] = [];
   
@@ -234,6 +235,8 @@ export class ReportsComponent implements OnInit {
       
       // Check if any section requires loading from the entire journal chain
       const useJournalChain = config.sections.some(s => s.useJournalChain);
+      // Cash flow statements need historical entries to compute opening/closing cash
+      const needsCashFlowHistory = config.sections.some(s => s.calculated === 'cashFlow');
       
       let accounts: AccountTreeNode[];
       
@@ -257,6 +260,14 @@ export class ReportsComponent implements OnInit {
 
         // Load transactions from entire journal chain
         this.transactions = await this.loadTransactionsFromChain(chainIds, allJournals);
+
+        // Cash flow reports need the full history up to the end date to reconcile
+        // opening and closing cash. Load all transactions in the chain without a
+        // start-date filter; we still honour the end-date filter because entries
+        // after the report period are irrelevant.
+        if (needsCashFlowHistory) {
+          this.allTransactions = await this.loadTransactionsFromChain(chainIds, allJournals, true);
+        }
       } else {
         // Standard: load only from current journal
         console.log('Report loading for current journal only:', journalId);
@@ -276,17 +287,36 @@ export class ReportsComponent implements OnInit {
           this.filterText || undefined
         );
         console.log('Loaded transactions from current journal:', this.transactions.length);
+
+        if (needsCashFlowHistory) {
+          this.allTransactions = await this.controller.getTransactions(
+            journalId,
+            undefined,
+            this.endDate || undefined,
+            undefined,
+            undefined,
+            this.filterText || undefined
+          );
+          // Tag with current journal info so the cash-flow reconciles to the
+          // same journal the user is reporting on.
+          for (const tx of this.allTransactions) {
+            tx.journalId = journalId;
+          }
+        }
       }
       
       // For entries, flatten from all transactions
       this.entries = this.flattenEntriesFromTransactions(this.transactions);
 
-      // Create reporting context
+      // Create reporting context. Pass the unfiltered historical entries when a
+      // cash-flow statement is being generated so opening/closing cash can be
+      // reconciled.
       const context = createReportingContext(
         this.entries,
         accounts,
         this.startDate || null,
-        this.endDate || null
+        this.endDate || null,
+        needsCashFlowHistory ? this.flattenEntriesFromTransactions(this.allTransactions) : undefined
       );
 
       // Process each section
@@ -305,8 +335,10 @@ export class ReportsComponent implements OnInit {
 
   /**
    * Loads transactions from all journals in the chain.
+   * When `loadFullHistory` is true, the start-date filter is dropped so that
+   * opening cash balances can be computed for cash-flow statements.
    */
-  private async loadTransactionsFromChain(chainIds: string[], journals: any[]): Promise<TransactionDTO[]> {
+  private async loadTransactionsFromChain(chainIds: string[], journals: any[], loadFullHistory: boolean = false): Promise<TransactionDTO[]> {
     // Build a map of journal IDs to titles (journal has 'title' field, not 'name')
     const journalMap = new Map(journals.map(j => [j.id, j.title || j.id]));
     
@@ -317,7 +349,7 @@ export class ReportsComponent implements OnInit {
         console.log(`Loading transactions for journal ${id}...`);
         const txs = await this.controller.getTransactions(
           id,
-          this.startDate || undefined,
+          loadFullHistory ? undefined : (this.startDate || undefined),
           this.endDate || undefined,
           undefined,
           undefined,
@@ -602,6 +634,49 @@ export class ReportsComponent implements OnInit {
       }
       
       subtotal = partnerSummaries.reduce((sum, p) => sum + p.net, 0);
+    } else if (section.calculated === 'cashFlow') {
+      // Special case for indirect-method cash-flow statement.
+      // The cash-flow rows carry their own subtotals; the section subtotal is
+      // the total change in cash so the report footer can display it.
+      const cashFlowRows = createCashFlowStatement(context, accounts);
+      if (this.hideZeroBalances) {
+        // Keep section headers and subtotals, hide zero detail rows.
+        const filteredRows = cashFlowRows.filter(r => r.isSubtotal || r.level === 1 || r.amount !== 0);
+        return {
+          title: section.title,
+          level: section.level || 1,
+          accounts: [],
+          partners: undefined,
+          tagGroups: undefined,
+          cashFlowRows: filteredRows,
+          subtotal: filteredRows.filter(r => r.level === 4).reduce((sum, r) => sum + r.amount, 0),
+          commodity,
+          showDebitsCredits: false,
+          showAccounts: false,
+          groupByPartner: false,
+          invertSign: section.invertSign || false,
+          sortable: false,
+          sortColumn: null,
+          sortDirection: 'asc'
+        };
+      }
+      return {
+        title: section.title,
+        level: section.level || 1,
+        accounts: [],
+        partners: undefined,
+        tagGroups: undefined,
+        cashFlowRows,
+        subtotal: cashFlowRows.filter(r => r.level === 4).reduce((sum, r) => sum + r.amount, 0),
+        commodity,
+        showDebitsCredits: false,
+        showAccounts: false,
+        groupByPartner: false,
+        invertSign: section.invertSign || false,
+        sortable: false,
+        sortColumn: null,
+        sortDirection: 'asc'
+      };
     } else if (section.calculated === 'netIncome') {
       // Special case for net income
       subtotal = context.netIncome;

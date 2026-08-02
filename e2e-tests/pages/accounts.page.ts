@@ -414,3 +414,184 @@ export async function verifyAccountsPage(page: Page) {
   await expect(getCreateAccountButton(page)).toBeVisible();
   console.log('Accounts page verified');
 }
+
+// ============================================================================
+// Collapse / expand and balance helpers
+//
+// These helpers use evaluate() to find elements within the same <tr> as the
+// account-name-link. This avoids Playwright locator chain issues with
+// page.locator('tr', { has: ... }) when the inner locator has filters.
+// ============================================================================
+
+/**
+ * Find the account-name-link element for the given code/name, then run an
+ * evaluate() callback on it to extract information from the same row.
+ * Returns whatever the callback returns, or null if the link wasn't found.
+ */
+async function evaluateInAccountRow<T>(
+  page: Page,
+  code: string,
+  accountName: string | undefined,
+  fn: (el: HTMLElement) => T | null
+): Promise<T | null> {
+  const link = getAccountByCode(page, code, accountName);
+  await expect(link.first()).toBeVisible({ timeout: 10000 });
+  return link.first().evaluate(fn);
+}
+
+/**
+ * Toggle the collapse state of an account by clicking its collapse toggle.
+ */
+export async function toggleCollapse(page: Page, code: string, accountName?: string): Promise<void> {
+  console.log(`Toggling collapse for account: ${code} ${accountName ?? ''}`);
+  const link = getAccountByCode(page, code, accountName);
+  await expect(link.first()).toBeVisible({ timeout: 10000 });
+  // Click the collapse-toggle in the same row
+  await link.first().evaluate((el) => {
+    const tr = el.closest('tr');
+    tr?.querySelector('.collapse-toggle')?.click();
+  });
+  await page.waitForTimeout(300);
+  console.log(`Collapse toggled for: ${code}`);
+}
+
+/**
+ * Collapse an account (toggle if currently expanded).
+ */
+export async function collapseAccount(page: Page, code: string, accountName?: string): Promise<void> {
+  if (!(await isAccountCollapsed(page, code, accountName))) {
+    await toggleCollapse(page, code, accountName);
+  }
+}
+
+/**
+ * Expand an account (toggle if currently collapsed).
+ */
+export async function expandAccount(page: Page, code: string, accountName?: string): Promise<void> {
+  if (await isAccountCollapsed(page, code, accountName)) {
+    await toggleCollapse(page, code, accountName);
+  }
+}
+
+/**
+ * Check if an account is currently collapsed.
+ * A collapsed account shows the ▶ icon; an expanded one shows ▼.
+ * Leaf accounts (no toggle) are never collapsed.
+ */
+export async function isAccountCollapsed(page: Page, code: string, accountName?: string): Promise<boolean> {
+  const result = await evaluateInAccountRow(page, code, accountName, (el) => {
+    const tr = el.closest('tr');
+    if (!tr) return null;
+    const toggle = tr.querySelector('.collapse-toggle');
+    if (!toggle) return false; // leaf account
+    return toggle.textContent?.includes('▶') ?? false;
+  });
+  return result ?? false;
+}
+
+/**
+ * Get the displayed balance text for an account (e.g., "CHF 1,680.50" or "CHF 0.00").
+ */
+export async function getAccountBalanceText(page: Page, code: string, accountName?: string): Promise<string> {
+  const text = await evaluateInAccountRow(page, code, accountName, (el) => {
+    const tr = el.closest('tr');
+    if (!tr) return null;
+    const balance = tr.querySelector('.account-balance');
+    return balance?.textContent?.trim() ?? null;
+  });
+  if (text === null) {
+    throw new Error(`Could not find balance for account ${code} ${accountName ?? ''}`);
+  }
+  return text;
+}
+
+/**
+ * Check if the account's balance is displayed in bold (displaced-balance class),
+ * which indicates the account is collapsed and showing the subtree sum.
+ */
+export async function isBalanceBold(page: Page, code: string, accountName?: string): Promise<boolean> {
+  const result = await evaluateInAccountRow(page, code, accountName, (el) => {
+    const tr = el.closest('tr');
+    if (!tr) return false;
+    return tr.querySelector('.account-balance.displaced-balance') !== null;
+  });
+  return result ?? false;
+}
+
+/**
+ * Check if an account row is visible in the table.
+ */
+export async function isAccountRowVisible(page: Page, code: string, accountName?: string): Promise<boolean> {
+  const link = getAccountByCode(page, code, accountName);
+  return (await link.count()) > 0 && await link.first().isVisible({ timeout: 2000 }).catch(() => false);
+}
+
+/**
+ * Assert that an account row is visible in the table.
+ */
+export async function assertAccountVisible(page: Page, code: string, accountName?: string): Promise<void> {
+  console.log(`Asserting account visible: ${code} ${accountName ?? ''}`);
+  const link = getAccountByCode(page, code, accountName);
+  await expect(link.first()).toBeVisible({ timeout: 5000 });
+  console.log(`✓ Visible: ${code}`);
+}
+
+/**
+ * Assert that an account row is NOT visible in the table (hidden by collapsed ancestor).
+ */
+export async function assertAccountNotVisible(page: Page, code: string, accountName?: string): Promise<void> {
+  console.log(`Asserting account NOT visible: ${code} ${accountName ?? ''}`);
+  const link = getAccountByCode(page, code, accountName);
+  const count = await link.count();
+  // Either the element doesn't exist at all, or it's not visible
+  if (count > 0) {
+    const visible = await link.first().isVisible().catch(() => false);
+    expect(visible, `Expected account ${code} to NOT be visible but it is`).toBe(false);
+  }
+  console.log(`✓ Not visible: ${code}`);
+}
+
+/**
+ * Assert that an account has a collapse toggle (i.e., it has children).
+ */
+export async function assertHasCollapseToggle(page: Page, code: string, accountName?: string): Promise<void> {
+  const result = await evaluateInAccountRow(page, code, accountName, (el) => {
+    const tr = el.closest('tr');
+    if (!tr) return false;
+    return tr.querySelector('.collapse-toggle') !== null;
+  });
+  expect(result, `Expected collapse toggle for ${code} but none found`).toBe(true);
+}
+
+/**
+ * Assert that an account does NOT have a collapse toggle (i.e., it's a leaf).
+ */
+export async function assertNoCollapseToggle(page: Page, code: string, accountName?: string): Promise<void> {
+  const result = await evaluateInAccountRow(page, code, accountName, (el) => {
+    const tr = el.closest('tr');
+    if (!tr) return false;
+    return tr.querySelector('.collapse-toggle') !== null;
+  });
+  expect(result, `Expected no collapse toggle for ${code} but one was found`).toBe(false);
+}
+
+/**
+ * Expand all accounts by clearing the collapsed state from localStorage.
+ * This is faster than toggling each one individually.
+ */
+export async function expandAllAccounts(page: Page): Promise<void> {
+  console.log('Expanding all accounts (clearing localStorage)...');
+  const journalId = await page.evaluate(() => localStorage.getItem('journalId'));
+  if (journalId) {
+    await page.evaluate((jid) => {
+      localStorage.removeItem(`collapsed-accounts-table:${jid}`);
+    }, journalId);
+  }
+  await page.reload();
+  await waitForAccountsPage(page);
+  // Wait for account rows to load (the table loads data async after page render)
+  await page.waitForSelector('tr .account-name-link', { timeout: 15000 }).catch(() => {
+    console.log('Warning: no account-name-link elements found after reload');
+  });
+  console.log('All accounts expanded');
+}

@@ -1,5 +1,5 @@
 import { AccountEntryDTO, AccountTreeNode, TransactionDTO, TagDTO } from '../controller';
-import { ReportingContext, AccountSummary, TagGroup } from './reporting-types';
+import { ReportingContext, AccountSummary, TagGroup, CashFlowRow } from './reporting-types';
 import { buildHierarchicalAccountName } from '../account-utils';
 
 // Cache for hierarchical account names to avoid recomputing
@@ -13,7 +13,8 @@ export function createReportingContext(
   entries: AccountEntryDTO[],
   accounts: AccountTreeNode[],
   startDate: string | null,
-  endDate: string | null
+  endDate: string | null,
+  allEntries?: AccountEntryDTO[]
 ): ReportingContext {
 
   // Build account lookup map
@@ -75,6 +76,14 @@ export function createReportingContext(
       .filter(e => e.accountId === accountId)
       .reduce((sum, entry) => sum + entry.amount, 0);
   }
+
+  // Calculate balance for accounts matching a hierarchical account-name regex
+  function getBalanceByAccountRegex(pattern: string): number {
+    const regex = new RegExp(pattern);
+    return entries
+      .filter(e => regex.test(getHierarchicalAccountName(e)))
+      .reduce((sum, entry) => sum + entry.amount, 0);
+  }
   
   // Calculate standard financial metrics
   const totalAssets = getBalanceByAccountType('ASSET');
@@ -89,6 +98,40 @@ export function createReportingContext(
   // Net income = Revenue + Expenses (both in raw form)
   // Since revenue is negative and expenses are positive, this gives us the correct net income
   const netIncome = totalRevenue + totalExpenses;
+
+  // Opening/closing cash balances for cash-flow reporting.
+  // allEntries contains every entry up to the report end date; entries is the
+  // subset inside the selected date range. When no date range is selected we
+  // still keep openingCash at 0 because the period starts at the journal origin.
+  let openingCash = 0;
+  let closingCash = 0;
+  function isOpeningBalance(entry: AccountEntryDTO): boolean {
+    return entry.tags?.some(tag => tag.key === 'OpeningBalances') ?? false;
+  }
+  if (allEntries && allEntries.length > 0) {
+    for (const entry of allEntries) {
+      if (isCashAccount(entry)) {
+        closingCash += entry.amount;
+        if (startDate && (entry.transactionDate < startDate || isOpeningBalance(entry))) {
+          openingCash += entry.amount;
+        }
+      }
+    }
+  } else {
+    // Without historical entries we fall back to the entries in the period;
+    // this still gives a correct *change* in cash even if absolute balances
+    // cannot be reconciled.
+    for (const entry of entries) {
+      if (isCashAccount(entry)) {
+        closingCash += entry.amount;
+      }
+    }
+  }
+
+  function isCashAccount(entry: AccountEntryDTO): boolean {
+    const account = accountMap.get(entry.accountId);
+    return account?.type === 'CASH';
+  }
   
   return {
     entries,
@@ -100,12 +143,15 @@ export function createReportingContext(
     totalRevenue,
     totalExpenses,
     netIncome,
+    openingCash,
+    closingCash,
     getEntriesByAccountType,
     getEntriesByAccountTypes,
     getEntriesByAccountRegex,
     getBalanceByAccountType,
     getBalanceByAccountTypes,
-    getBalanceByAccount
+    getBalanceByAccount,
+    getBalanceByAccountRegex
   };
 }
 
@@ -342,4 +388,128 @@ export function groupTransactionsByTag(
   });
 
   return groups;
+}
+
+/**
+ * Builds an indirect-method cash-flow statement from a reporting context.
+ *
+ * The returned rows use the Swiss SME format: operating activities start from
+ * net income and add back non-cash items and working-capital timing differences,
+ * then investing and financing activities are listed, then the movement is
+ * reconciled against opening and closing cash.
+ *
+ * Positive amounts are cash inflows, negative amounts are cash outflows.
+ *
+ * The account regexes used here match the default chart of accounts created by
+ * JournalCreationService. If an account is not present in a journal the
+ * corresponding line simply shows zero.
+ */
+export function createCashFlowStatement(
+  context: ReportingContext,
+  accounts: AccountTreeNode[]
+): CashFlowRow[] {
+  const rows: CashFlowRow[] = [];
+
+  function addLine(title: string, amount: number, level: number = 2): void {
+    if (amount !== 0) {
+      rows.push({ title, amount, level, isSubtotal: false });
+    }
+  }
+
+  function addSubtotal(title: string, amount: number, level: number = 3): void {
+    rows.push({ title, amount, level, isSubtotal: true });
+  }
+
+  // Sum entries whose hierarchical account name matches `includePattern` but
+  // does not match the optional `excludePattern`. This lets us separate gross
+  // fixed-asset movements from accumulated depreciation.
+  function netChangeByRegex(includePattern: string, excludePattern?: string): number {
+    const includeRegex = new RegExp(includePattern);
+    const excludeRegex = excludePattern ? new RegExp(excludePattern) : null;
+    return context.entries
+      .filter(e => {
+        const name = buildHierarchicalAccountName(e.accountId, accounts);
+        return includeRegex.test(name) && (!excludeRegex || !excludeRegex.test(name));
+      })
+      .reduce((sum, e) => sum + e.amount, 0);
+  }
+
+  // --- Operating activities ---
+  rows.push({ title: 'Operating activities', amount: 0, level: 1, isSubtotal: false });
+
+  // Net income is stored with reversed accounting signs in this application
+  // (revenue is negative, expenses are positive), so a profit is a negative
+  // number. For the cash-flow statement we display it as a positive inflow.
+  addLine('Net income / loss for the period', -context.netIncome);
+
+  // Non-cash charges that reduced profit without moving cash.
+  const depreciation = context.getBalanceByAccountRegex('^6:6800');
+  addLine('Depreciation and value adjustments', depreciation);
+
+  // Changes in working capital. The cash effect is the opposite of the
+  // accounting change (an increase in an asset ties up cash; an increase in a
+  // liability frees cash).
+  const receivablesChange = context.getBalanceByAccountRegex('^1:10:110');
+  const inventoryChange = context.getBalanceByAccountRegex('^1:10:120');
+  const otherReceivablesChange = context.getBalanceByAccountRegex('^1:10:130');
+  const payablesChange = context.getBalanceByAccountRegex('^2:20:200');
+  const otherPayablesChange = context.getBalanceByAccountRegex('^2:20:220');
+  const transitoryLiabilitiesChange = context.getBalanceByAccountRegex('^2:20:23');
+  const provisionsChange = context.getBalanceByAccountRegex('^2:20:24');
+
+  addLine('Increase / decrease in trade receivables', -receivablesChange);
+  addLine('Increase / decrease in inventories', -inventoryChange);
+  addLine('Increase / decrease in other short-term receivables', -otherReceivablesChange);
+  addLine('Increase / decrease in trade payables', -payablesChange);
+  addLine('Increase / decrease in other short-term liabilities', -otherPayablesChange);
+  addLine('Increase / decrease in transitory liabilities (passive accruals)', -transitoryLiabilitiesChange);
+  addLine('Increase / decrease in provisions', -provisionsChange);
+
+  const operatingCashFlow = -context.netIncome
+    + depreciation
+    - receivablesChange - inventoryChange - otherReceivablesChange
+    - payablesChange - otherPayablesChange - transitoryLiabilitiesChange - provisionsChange;
+  addSubtotal('Cash flow from operating activities', operatingCashFlow);
+
+  // --- Investing activities ---
+  rows.push({ title: 'Investing activities', amount: 0, level: 1, isSubtotal: false });
+
+  // The net change in fixed-asset accounts during the period equals purchases
+  // minus disposals (depreciation is booked against separate expense/accumulated
+  // depreciation accounts and therefore does not appear here).
+  const participationsChange = netChangeByRegex('^1:14:140', '^1:14:140:1409');
+  const fixedAssetsChange = netChangeByRegex('^1:14:150', '^1:14:150:1509');
+
+  addLine('Investments / disinvestments in participations', -participationsChange);
+  addLine('Investments / disinvestments in tangible fixed assets', -fixedAssetsChange);
+
+  const investingCashFlow = -participationsChange - fixedAssetsChange;
+  addSubtotal('Cash flow from investing activities', investingCashFlow);
+
+  // --- Financing activities ---
+  rows.push({ title: 'Financing activities', amount: 0, level: 1, isSubtotal: false });
+
+  // Debt principal movements and share-capital injections/reductions.
+  // Dividends and own-share transactions are not separately identified here
+  // because they require specific accounts/tags in the chart of accounts.
+  const debtChange = context.getBalanceByAccountRegex('^2:20:210');
+  const shareCapitalChange = context.getBalanceByAccountRegex('^2:28:280');
+
+  addLine('Increase / repayment of financial debts', -debtChange);
+  addLine('Issue / reduction of share capital', -shareCapitalChange);
+
+  const financingCashFlow = -debtChange - shareCapitalChange;
+  addSubtotal('Cash flow from financing activities', financingCashFlow);
+
+  // --- Total change in cash ---
+  const totalChange = operatingCashFlow + investingCashFlow + financingCashFlow;
+  addSubtotal('Increase / decrease in cash', totalChange, 4);
+
+  // --- Reconciliation to cash balances ---
+  rows.push({ title: 'Reconciliation to cash', amount: 0, level: 1, isSubtotal: false });
+  addLine('Opening cash and cash equivalents', context.openingCash ?? 0);
+  addLine('Closing cash and cash equivalents', context.closingCash ?? 0);
+  addSubtotal('Increase / decrease in cash', (context.closingCash ?? 0) - (context.openingCash ?? 0), 4);
+
+  return rows;
 }

@@ -6,6 +6,7 @@ import { ModelService } from '../model.service';
 import { AccountService } from '../account.service';
 import { AccountEditModalComponent } from '../account-edit-modal/account-edit-modal.component';
 import { FilterInputComponent } from '../journal/filter-input/filter-input.component';
+import { InfoDialogService } from '../core/info-dialog/info-dialog.service';
 
 interface FlattenedAccount {
   id: string;
@@ -28,6 +29,7 @@ export class AccountsTableComponent implements OnInit {
   private controller = inject(Controller);
   private modelService = inject(ModelService);
   accountService = inject(AccountService);
+  private infoDialog = inject(InfoDialogService);
 
   accounts = this.modelService.accounts$;
   loading = false;
@@ -416,6 +418,7 @@ export class AccountsTableComponent implements OnInit {
   }
 
   openCreateModal(): void {
+    if (this.isJournalLocked()) return;
     this.modalAccountId = null;
     this.modalParentAccountId = null;
     this.showModal = true;
@@ -423,6 +426,7 @@ export class AccountsTableComponent implements OnInit {
   }
 
   openEditModal(accountId: string): void {
+    if (this.isJournalLocked()) return;
     this.modalAccountId = accountId;
     this.modalParentAccountId = null;
     this.showModal = true;
@@ -431,6 +435,7 @@ export class AccountsTableComponent implements OnInit {
   }
 
   openAddChildModal(parentAccountId: string): void {
+    if (this.isJournalLocked()) return;
     this.modalAccountId = null;
     this.modalParentAccountId = parentAccountId;
     this.showModal = true;
@@ -439,6 +444,7 @@ export class AccountsTableComponent implements OnInit {
   }
 
   async deleteAccount(accountId: string): Promise<void> {
+    if (this.isJournalLocked()) return;
     this.closeMenu();
 
     const journalId = this.modelService.getSelectedJournalId();
@@ -473,6 +479,27 @@ export class AccountsTableComponent implements OnInit {
     this.showModal = false;
     this.modalAccountId = null;
     this.modalParentAccountId = null;
+  }
+
+  /**
+   * Returns true and shows an informational dialog if the currently selected
+   * journal is locked. Mutating actions (create/edit/add-child/delete account)
+   * must call this before performing their action so the user gets a clear UI
+   * message instead of a raw HTTP 423 error.
+   */
+  private isJournalLocked(): boolean {
+    const journalId = this.modelService.getSelectedJournalId();
+    const journal = this.journalMetadata ??
+      this.modelService.journals$().find(j => j.id === journalId) ??
+      null;
+    if (journal?.locked) {
+      this.infoDialog.show({
+        title: 'Journal Locked',
+        message: `The journal "${journal.title}" is locked and cannot be modified. Please unlock it on the journal management page before adding, editing or deleting accounts.`,
+      });
+      return true;
+    }
+    return false;
   }
 
   async onModalSaved(): Promise<void> {

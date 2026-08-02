@@ -62,6 +62,14 @@
       </div>
     </form>
 
+    <!-- Import alternative -->
+    <div class="import-alternative" *ngIf="!creating && !createResult">
+      <p>Already have a journal file?</p>
+      <button type="button" class="btn-secondary" (click)="goToUpload()">
+        Import a Journal
+      </button>
+    </div>
+
     <!-- Creating state -->
     <div class="creating" *ngIf="creating">
       <div class="spinner"></div>

@@ -6,6 +6,7 @@ import { Controller, MacroDTO, MacroParameterDTO, ImportResult, ImportConflict }
 import { ModelService } from '../model.service';
 import { AutocompleteComponent, AutocompleteOption } from '../core/autocomplete/autocomplete.component';
 import { ConfirmDialogService } from '../core/confirm-dialog/confirm-dialog.service';
+import { InfoDialogService } from '../core/info-dialog/info-dialog.service';
 import { ToastService } from '../core/toast/toast.service';
 
 @Component({
@@ -19,6 +20,7 @@ export class MacrosComponent implements OnInit {
   private modelService = inject(ModelService);
   private router = inject(Router);
   private confirmDialog = inject(ConfirmDialogService);
+  private infoDialog = inject(InfoDialogService);
   private toast = inject(ToastService);
 
   macros: Signal<MacroDTO[]> = this.modelService.macros$;
@@ -53,6 +55,7 @@ export class MacrosComponent implements OnInit {
   }
 
   selectMacro(macro: MacroDTO): void {
+    if (this.isJournalLocked()) return;
     this.selectedMacro = macro;
     this.showExecuteDialog = true;
     this.errorMessage = '';
@@ -83,6 +86,26 @@ export class MacrosComponent implements OnInit {
     this.selectedMacro = null;
     this.parameterValues.clear();
     this.errorMessage = '';
+  }
+
+  /**
+   * Returns true and shows an informational dialog if the currently selected
+   * journal is locked. Macro execution is a mutating operation (it creates
+   * transactions), so it must be blocked against a locked journal. The guard
+   * is applied both when opening the execute dialog and when submitting it,
+   * so the user gets a clear UI message instead of a raw HTTP 423 error.
+   */
+  private isJournalLocked(): boolean {
+    const journalId = this.modelService.selectedJournalId$();
+    const journal = this.modelService.journals$().find(j => j.id === journalId) ?? null;
+    if (journal?.locked) {
+      this.infoDialog.show({
+        title: 'Journal Locked',
+        message: `The journal "${journal.title}" is locked and cannot be modified. Please unlock it on the journal management page before executing macros.`,
+      });
+      return true;
+    }
+    return false;
   }
 
   async deleteMacro(macro: MacroDTO, event: Event): Promise<void> {
@@ -119,6 +142,7 @@ export class MacrosComponent implements OnInit {
 
   async generateTransaction(): Promise<void> {
     if (!this.selectedMacro) return;
+    if (this.isJournalLocked()) return;
 
     this.errorMessage = '';
     

@@ -213,6 +213,41 @@ Shows revenue and expenses with net income calculation. The Net Income section u
 }
 ```
 
+### Cash Flow Statement
+
+The cash flow statement uses a dedicated `calculated: "cashFlow"` section type
+and the indirect method. It is designed to follow the Swiss SME cash-flow
+structure.
+
+```json
+{
+  "sections": [
+    {
+      "title": "Swiss Cash Flow Statement",
+      "calculated": "cashFlow",
+      "useJournalChain": true
+    }
+  ]
+}
+```
+
+The statement is produced entirely from the existing journal data:
+
+- **Operating activities** start from the period's net income/loss and add back
+  non-cash items (depreciation) and adjust for changes in working capital
+  (receivables, inventories, payables, provisions, etc.).
+- **Investing activities** reflect purchases and sales of fixed assets and
+  participations. Accumulated-depreciation sub-accounts (e.g. `1509`) are
+  excluded so depreciation does not leak into investing cash flow.
+- **Financing activities** capture debt principal movements and share-capital
+  changes.
+- **Reconciliation to cash** compares opening and closing cash and cash
+  equivalents. Opening cash is taken from entries dated before the report start
+  date, or from entries tagged with `OpeningBalances`.
+
+The template is available as a built-in import in
+`report-templates-export.yaml`.
+
 ### Tag Grouped Report (e.g., Unpaid Sales Invoices)
 
 Groups transactions by tag value and shows net balance per group. Useful for tracking invoices, bills, or any tagged transaction sets:
@@ -307,9 +342,9 @@ The tag grouped report (`calculated: "tagGrouped"`) is implemented entirely in t
 
 - **Backend**: `ReportResourceTest` - 5 tests for REST endpoints
 - **Frontend**: 
-  - `reports.component.spec.ts` - 18 tests for component logic
-  - `reporting-context.spec.ts` - 15 tests for calculations
-- **Coverage**: 56% statements, 36% branches
+  - `reports.component.spec.ts` - 19 tests for component logic (including cash flow rendering)
+  - `reporting-context.spec.ts` - 17 tests for calculations (including cash flow statement construction)
+- **Coverage**: run `npm run test -- --watch=false` and inspect `coverage/` for current values
 
 ## Future Enhancements
 
@@ -317,4 +352,5 @@ The tag grouped report (`calculated: "tagGrouped"`) is implemented entirely in t
 2. **Custom Templates**: UI for creating/editing report templates
 3. **Export**: PDF/Excel export functionality
 4. **Comparative Reports**: Year-over-year comparisons
-5. **Cash Flow Statement**: Swiss format cash flow report
+5. **Enhanced Cash Flow Details**: Dividend payments, own-share transactions,
+   and more granular financing splits once dedicated accounts/tags are used

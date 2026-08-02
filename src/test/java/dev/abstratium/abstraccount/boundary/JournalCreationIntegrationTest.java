@@ -64,25 +64,25 @@ class JournalCreationIntegrationTest {
                 .get("/api/account/{journalId}/tree", journalId)
             .then()
                 .statusCode(200)
-                .body("$", hasSize(7))
+                .body("$", hasSize(8))
                 .body("name", containsInAnyOrder(
-                        "Assets",
-                        "Liabilities",
-                        "Equity",
-                        "Revenue",
-                        "Cost of materials and goods",
-                        "Personnel expenses",
-                        "Other operating expenses"))
-                .body("find { it.name == 'Assets' }.type", equalTo("ASSET"))
-                .body("find { it.name == 'Assets' }.children.name", containsInAnyOrder("Bank account", "Accounts receivable"))
-                .body("find { it.name == 'Assets' }.children.find { it.name == 'Bank account' }.type", equalTo("CASH"))
-                .body("find { it.name == 'Liabilities' }.children.name", containsInAnyOrder("Accounts payable", "VAT payable"))
-                .body("find { it.name == 'Equity' }.children.name", containsInAnyOrder(
-                        "Shareholder equity", "Retained earnings", "Current-year profit/loss"))
-                .body("find { it.name == 'Revenue' }.children.name", containsInAnyOrder("Sales revenue"))
-                .body("find { it.name == 'Personnel expenses' }.children.name", containsInAnyOrder("Salaries"))
-                .body("find { it.name == 'Other operating expenses' }.children.name", containsInAnyOrder(
-                        "Rent and utilities", "IT and communication"));
+                        "1 Assets",
+                        "2 Liabilities",
+                        "2 Equity",
+                        "3 Revenue",
+                        "4 Cost of materials and goods",
+                        "5 Personnel expenses",
+                        "6 Other operating expenses",
+                        "8 Non-operating expenses"))
+                .body("find { it.name == '1 Assets' }.type", equalTo("ASSET"))
+                .body("find { it.name == '1 Assets' }.children.name", containsInAnyOrder("10 Current Assets", "14 Non-current assets"))
+                .body("find { it.name == '2 Liabilities' }.children.name", containsInAnyOrder("20 Current liabilities"))
+                .body("find { it.name == '2 Equity' }.children.name", containsInAnyOrder("28 Shareholders Equity", "290 Reserves and retained earnings"))
+                .body("find { it.name == '3 Revenue' }.children.name", containsInAnyOrder("3400 Services revenue", "3600 Other operating income"))
+                .body("find { it.name == '5 Personnel expenses' }.children.name", containsInAnyOrder("5000 Salaries"))
+                .body("find { it.name == '6 Other operating expenses' }.children.name", containsInAnyOrder(
+                        "6300 Insurance expense", "6500 Administrative expenses", "6570 IT and computing expenses",
+                        "6700 Other operating expenses", "6800 Depreciation", "6900 Financial expense"));
 
         given()
             .when()
@@ -91,9 +91,9 @@ class JournalCreationIntegrationTest {
                 .statusCode(200)
                 .body("$", hasSize(2))
                 .body("name", containsInAnyOrder("Starter balance sheet", "Starter income statement"))
-                .body("find { it.name == 'Starter balance sheet' }.templateContent", containsString("^Shareholder equity$"))
-                .body("find { it.name == 'Starter balance sheet' }.templateContent", containsString("\"title\":\"Current-year profit/loss\",\"level\":2,\"accountRegex\":\"^Current-year profit/loss$\",\"includeNetIncome\":true"))
-                .body("find { it.name == 'Starter income statement' }.templateContent", containsString("^Cost of materials and goods"))
+                .body("find { it.name == 'Starter balance sheet' }.templateContent", containsString("^2:28:280"))
+                .body("find { it.name == 'Starter balance sheet' }.templateContent", containsString("\"title\":\"Current-year profit/loss\",\"level\":2,\"accountRegex\":\"^2:290:2979\",\"includeNetIncome\":true"))
+                .body("find { it.name == 'Starter income statement' }.templateContent", containsString("^4 "))
                 .body("find { it.name == 'Starter income statement' }.templateContent", containsString("\"title\":\"Net Income\""));
 
         given()

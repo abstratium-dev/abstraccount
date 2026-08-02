@@ -4,12 +4,16 @@ import { JournalComponent } from './journal.component';
 import { Controller } from '../controller';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
+import { InfoDialogService } from '../core/info-dialog/info-dialog.service';
+import { ConfirmDialogService } from '../core/confirm-dialog/confirm-dialog.service';
 
 describe('JournalComponent', () => {
   let component: JournalComponent;
   let fixture: ComponentFixture<JournalComponent>;
   let controller: jasmine.SpyObj<Controller>;
   let router: Router;
+  let infoDialog: jasmine.SpyObj<InfoDialogService>;
+  let confirmDialog: jasmine.SpyObj<ConfirmDialogService>;
 
   beforeEach(async () => {
     const controllerSpy = jasmine.createSpyObj('Controller', [
@@ -17,13 +21,18 @@ describe('JournalComponent', () => {
       'getJournalMetadata',
       'getTransactions',
       'getTags',
-      'setSelectedJournalId'
+      'setSelectedJournalId',
+      'deleteTransaction'
     ]);
+    const infoDialogSpy = jasmine.createSpyObj('InfoDialogService', ['show']);
+    const confirmDialogSpy = jasmine.createSpyObj('ConfirmDialogService', ['confirm']);
 
     await TestBed.configureTestingModule({
       imports: [JournalComponent],
       providers: [
         { provide: Controller, useValue: controllerSpy },
+        { provide: InfoDialogService, useValue: infoDialogSpy },
+        { provide: ConfirmDialogService, useValue: confirmDialogSpy },
         provideHttpClient(),
         provideHttpClientTesting(),
         provideRouter([])
@@ -34,6 +43,8 @@ describe('JournalComponent', () => {
     component = fixture.componentInstance;
     controller = TestBed.inject(Controller) as jasmine.SpyObj<Controller>;
     router = TestBed.inject(Router);
+    infoDialog = TestBed.inject(InfoDialogService) as jasmine.SpyObj<InfoDialogService>;
+    confirmDialog = TestBed.inject(ConfirmDialogService) as jasmine.SpyObj<ConfirmDialogService>;
     spyOn(router, 'navigate');
   });
 
@@ -170,5 +181,87 @@ describe('JournalComponent', () => {
 
     expect(fixture.nativeElement.textContent).not.toContain('Include transactions');
     expect(fixture.nativeElement.textContent).not.toContain('Export');
+  });
+
+  describe('locked journal guard', () => {
+    const lockedJournal = { id: '1', title: 'Locked Journal', subtitle: null, currency: 'CHF', commodities: {}, logo: null, previousJournalId: null, locked: true };
+    const unlockedJournal = { id: '1', title: 'Open Journal', subtitle: null, currency: 'CHF', commodities: {}, logo: null, previousJournalId: null, locked: false };
+
+    it('blocks opening the add transaction modal when the journal is locked', () => {
+      component.selectedJournal = lockedJournal;
+
+      component.openAddTransactionModal();
+
+      expect(component.showTransactionModal).toBe(false);
+      expect(infoDialog.show).toHaveBeenCalled();
+      expect(infoDialog.show.calls.mostRecent().args[0].title).toBe('Journal Locked');
+    });
+
+    it('allows opening the add transaction modal when the journal is unlocked', () => {
+      component.selectedJournal = unlockedJournal;
+
+      component.openAddTransactionModal();
+
+      expect(component.showTransactionModal).toBe(true);
+      expect(infoDialog.show).not.toHaveBeenCalled();
+    });
+
+    it('blocks opening the edit transaction modal when the journal is locked', () => {
+      component.selectedJournal = lockedJournal;
+      component.contextMenuTransactionId = 'tx-1';
+
+      component.openEditTransactionModal('tx-1');
+
+      expect(component.showTransactionModal).toBe(false);
+      expect(component.editingTransactionId).toBeNull();
+      expect(infoDialog.show).toHaveBeenCalled();
+    });
+
+    it('allows opening the edit transaction modal when the journal is unlocked', () => {
+      component.selectedJournal = unlockedJournal;
+      component.contextMenuTransactionId = 'tx-1';
+
+      component.openEditTransactionModal('tx-1');
+
+      expect(component.showTransactionModal).toBe(true);
+      expect(component.editingTransactionId).toBe('tx-1');
+      expect(infoDialog.show).not.toHaveBeenCalled();
+    });
+
+    it('blocks deleting a transaction when the journal is locked', async () => {
+      component.selectedJournal = lockedJournal;
+      confirmDialog.confirm.and.resolveTo(true);
+
+      await component.deleteTransaction('tx-1');
+
+      expect(confirmDialog.confirm).not.toHaveBeenCalled();
+      expect(controller.deleteTransaction).not.toHaveBeenCalled();
+      expect(infoDialog.show).toHaveBeenCalled();
+    });
+
+    it('allows deleting a transaction when the journal is unlocked (after confirm)', async () => {
+      component.selectedJournal = unlockedJournal;
+      confirmDialog.confirm.and.resolveTo(true);
+      controller.deleteTransaction.and.returnValue(Promise.resolve());
+      controller.getTransactions.and.returnValue(Promise.resolve([]));
+
+      await component.deleteTransaction('tx-1');
+      await fixture.whenStable();
+
+      expect(confirmDialog.confirm).toHaveBeenCalled();
+      expect(confirmDialog.confirm.calls.mostRecent().args[0].title).toBe('Delete Transaction');
+      expect(confirmDialog.confirm.calls.mostRecent().args[0].confirmText).toBe('Delete');
+      expect(controller.deleteTransaction).toHaveBeenCalledWith('tx-1', '1');
+    });
+
+    it('does not delete the transaction when the user cancels the confirmation', async () => {
+      component.selectedJournal = unlockedJournal;
+      confirmDialog.confirm.and.resolveTo(false);
+
+      await component.deleteTransaction('tx-1');
+
+      expect(confirmDialog.confirm).toHaveBeenCalled();
+      expect(controller.deleteTransaction).not.toHaveBeenCalled();
+    });
   });
 });

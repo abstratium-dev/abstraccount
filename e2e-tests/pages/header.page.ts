@@ -124,9 +124,23 @@ export async function selectJournal(page: Page, journalTitle: string) {
  * Selects the "Create New Journal" action.
  * Navigates to the Journal Management page and clicks the "Create New
  * Journal" button, which routes to /create-journal.
+ *
+ * When the database is empty, the auth guard redirects to /create-journal
+ * directly (there are no journals, so the journal-management page is not
+ * accessible). In that case we are already on the create-journal page and
+ * can return immediately.
  */
 export async function selectCreateNewJournal(page: Page) {
   console.log('Selecting "Create New Journal" action...');
+
+  // If the auth guard already redirected us to /create-journal (empty db),
+  // there is no journal-management page to visit.
+  const currentUrl = page.url();
+  if (currentUrl.includes('/create-journal')) {
+    console.log('Already on /create-journal (empty database), skipping journal management');
+    return;
+  }
+
   await goToJournalManagementPage(page);
   const createButton = page.locator('#create-journal');
   await expect(createButton).toBeVisible({ timeout: 10000 });

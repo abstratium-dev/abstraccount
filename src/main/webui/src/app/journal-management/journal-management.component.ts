@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { Controller, JournalMetadataDTO } from '../controller';
 import { ModelService } from '../model.service';
+import { ConfirmDialogService } from '../core/confirm-dialog/confirm-dialog.service';
 
 @Component({
   selector: 'journal-management',
@@ -15,6 +16,7 @@ export class JournalManagementComponent implements OnInit {
   private controller = inject(Controller);
   private modelService = inject(ModelService);
   private router = inject(Router);
+  private confirmDialog = inject(ConfirmDialogService);
 
   journals: JournalMetadataDTO[] = [];
   selectedJournalId: string | null = null;
@@ -27,7 +29,6 @@ export class JournalManagementComponent implements OnInit {
   deleteError: string | null = null;
   locking = false;
   lockError: string | null = null;
-  showUnlockConfirm = false;
 
   constructor() {
     effect(() => {
@@ -120,9 +121,20 @@ export class JournalManagementComponent implements OnInit {
 
   async unlockJournal(): Promise<void> {
     if (!this.selectedJournal) return;
+
+    const confirmed = await this.confirmDialog.confirm({
+      title: 'Unlock Journal',
+      message: `⚠️ Warning: Unlocking a journal that has follow-on years can really mess up your accounts, because the system will not carry over changes you make here into those follow-on years' opening balances. Only unlock if you know what you are doing.\n\nUnlock "${this.selectedJournal.title}" anyway?`,
+      confirmText: 'Yes, unlock anyway',
+      cancelText: 'Cancel',
+      confirmClass: 'btn-danger',
+    });
+    if (!confirmed) {
+      return;
+    }
+
     this.locking = true;
     this.lockError = null;
-    this.showUnlockConfirm = false;
     try {
       await this.controller.unlockJournal(this.selectedJournal.id);
     } catch (err: any) {
@@ -130,10 +142,5 @@ export class JournalManagementComponent implements OnInit {
     } finally {
       this.locking = false;
     }
-  }
-
-  cancelUnlock(): void {
-    this.showUnlockConfirm = false;
-    this.lockError = null;
   }
 }

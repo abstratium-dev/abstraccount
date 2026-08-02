@@ -60,6 +60,16 @@ test.describe('Setup: Authentication and Environment', () => {
 
     await headerPage.waitForHeader(page);
 
+    // When the database is empty, the auth guard redirects to /create-journal
+    // instead of allowing access to /journal-management. If we end up there,
+    // there are no journals to clean up and the test can pass immediately.
+    const currentUrl = page.url();
+    if (currentUrl.includes('/create-journal') || currentUrl.includes('/upload')) {
+      console.log('Redirected to create-journal/upload page — no journals exist, nothing to clean up');
+      console.log('=== Cleanup complete: Environment ready for testing ===');
+      return;
+    }
+
     // The journal selector dropdown now lives on the Journal Management page,
     // so navigate there once before the cleanup loop.
     await headerPage.goToJournalManagementPage(page);
@@ -90,9 +100,18 @@ test.describe('Setup: Authentication and Environment', () => {
         console.log(`Test journal deleted (${deletedCount} total deleted)`);
 
         // After deletion the app navigates to '/'; go back to the Journal
-        // Management page to check for more test journals.
-        await headerPage.goToJournalManagementPage(page);
-        await journalManagementPage.waitForJournalManagementPage(page);
+        // Management page to check for more test journals. If we get redirected
+        // to /create-journal instead, there are no journals left to delete.
+        await page.goto('/');
+        await page.waitForTimeout(500);
+        const postDeleteUrl = page.url();
+        if (postDeleteUrl.includes('/create-journal') || postDeleteUrl.includes('/upload')) {
+          console.log('No journals remaining after deletion, exiting cleanup loop');
+          hasMoreJournals = false;
+        } else {
+          await headerPage.goToJournalManagementPage(page);
+          await journalManagementPage.waitForJournalManagementPage(page);
+        }
       } else {
         // No more test journals found
         hasMoreJournals = false;

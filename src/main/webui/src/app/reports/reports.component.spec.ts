@@ -167,6 +167,38 @@ describe('ReportsComponent', () => {
     expect(component.reportSections.length).toBeGreaterThan(0);
   });
 
+  it('should generate cash flow report with calculated rows', async () => {
+    const cashFlowTemplate: ReportTemplate = {
+      id: 'cash-flow-001',
+      name: 'Cash Flow Statement',
+      description: 'Indirect-method cash flow statement',
+      templateContent: '{"sections":[{"title":"Cash Flow Statement","calculated":"cashFlow"}]}'
+    };
+    component.selectedTemplate = cashFlowTemplate;
+
+    const mockTransactions = [
+      {
+        id: 't1', date: '2024-06-01', description: 'Cash sale', status: 'CLEARED', partnerId: null, partnerName: null, tags: [], entries: [
+          { id: 'e1', entryOrder: 1, entryId: 'e1', accountId: 'acc1', accountName: 'Cash', accountType: 'ASSET', amount: 500, commodity: 'CHF', note: null, tags: [] },
+          { id: 'e2', entryOrder: 2, entryId: 'e2', accountId: 'acc2', accountName: 'Revenue', accountType: 'REVENUE', amount: -500, commodity: 'CHF', note: null, tags: [] }
+        ]
+      }
+    ];
+    controller.getTransactions.and.returnValue(Promise.resolve(mockTransactions));
+    controller.getAccountTree.and.returnValue(Promise.resolve(mockAccounts));
+    controller.getTags.and.returnValue(Promise.resolve([]));
+    modelService.getSelectedJournalId.and.returnValue('journal1');
+
+    await component.generateReport();
+    await fixture.whenStable();
+
+    expect(component.reportSections.length).toBe(1);
+    expect(component.reportSections[0].cashFlowRows).toBeDefined();
+    expect(component.reportSections[0].cashFlowRows!.length).toBeGreaterThan(0);
+    expect(component.reportSections[0].cashFlowRows!.some(r => r.title === 'Operating activities')).toBe(true);
+    expect(component.reportSections[0].cashFlowRows!.some(r => r.title === 'Cash flow from operating activities')).toBe(true);
+  });
+
   it('should handle error when no journal is selected', async () => {
     component.selectedTemplate = mockTemplates[0];
     modelService.getSelectedJournalId.and.returnValue(null);
