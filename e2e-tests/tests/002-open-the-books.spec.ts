@@ -65,8 +65,8 @@ test.describe('Opening Balances Transaction', () => {
     // ========================================================================
     console.log('--- Step 3: Filling Transaction Details ---');
     
-    // Set transaction date to 2026-01-01
-    await transactionsPage.fillTransactionDate(page, '2026-01-01');
+    // Set transaction date to 2024-01-01
+    await transactionsPage.fillTransactionDate(page, '2024-01-01');
     
     // Set description
     await transactionsPage.fillTransactionDescription(page, 'Opening Balances');
@@ -184,7 +184,7 @@ test.describe('Opening Balances Transaction', () => {
     await transactionsPage.verifyTransactionExists(page, 'Opening Balances');
     
     // Verify the transaction date is displayed
-    await page.waitForSelector('td:has-text("2026-01-01")', { timeout: 5000 });
+    await page.waitForSelector('td:has-text("2024-01-01")', { timeout: 5000 });
     console.log('✓ Transaction date verified');
     
     // Try to verify the tag is displayed (it may be in a sub-row)

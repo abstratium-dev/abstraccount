@@ -78,9 +78,9 @@ test.describe('Test Macros', () => {
       'Test macros 004.5 Customer pays invoice SI00000001',
       'Test macros 004.6 payment by staff',
       'Test macros 004.6 repay staff',
-      'Test macros 004.8 tax provision for 2026',
-      'Test macros 004.9 tax payment for 2026',
-      'Test macros 004.10 legal reserve allocation for 2026',
+      'Test macros 004.8 tax provision for 2024',
+      'Test macros 004.9 tax payment for 2024',
+      'Test macros 004.10 legal reserve allocation for 2024',
     ];
     for (const desc of ALL_004_DESCRIPTIONS) {
       await deleteTransactionByDescription(page, desc);
@@ -125,7 +125,7 @@ test.describe('Test Macros', () => {
     
     // Fill fields one by one
     console.log('Filling date field...');
-    await macrosPage.fillParameter(page, 'date', '2026-08-01');
+    await macrosPage.fillParameter(page, 'date', '2024-08-01');
     
     console.log('Filling description field...');
     await macrosPage.fillParameter(page, 'description', 'Test macros 004.1 banking expense');
@@ -240,9 +240,9 @@ test.describe('Test Macros', () => {
     console.log('✓ Transaction row is visible in the table');
     
     // Verify the date appears in the row
-    const hasDate = await transactionRow.filter({ hasText: '2026-08-01' }).isVisible().catch(() => false);
+    const hasDate = await transactionRow.filter({ hasText: '2024-08-01' }).isVisible().catch(() => false);
     if (hasDate) {
-      console.log('✓ Date 2026-08-01 appears in transaction row');
+      console.log('✓ Date 2024-08-01 appears in transaction row');
     }
     
     // Verify partner P00000004 appears
@@ -341,7 +341,7 @@ test.describe('Test Macros', () => {
     
     // Fill fields one by one
     console.log('Filling payment date field...');
-    await macrosPage.fillParameter(page, 'date', '2026-08-02');
+    await macrosPage.fillParameter(page, 'date', '2024-08-02');
     
     console.log('Filling description field...');
     await macrosPage.fillParameter(page, 'description', 'Test macros 004.2 repay staff (for initial loan)');
@@ -468,7 +468,7 @@ test.describe('Test Macros', () => {
     console.log('--- Step 9: Verifying Transaction Details ---');
     
     await transactionsPage.verifyTransactionDetails(page, 'Test macros 004.2 repay staff (for initial loan)', {
-      date: '2026-08-02',
+      date: '2024-08-02',
       partner: 'P00000001',
       value: '38.50'
     });
@@ -552,10 +552,10 @@ test.describe('Test Macros', () => {
     console.log('--- Step 4: Filling in Macro Parameters ---');
     
     console.log('Filling date field...');
-    await macrosPage.fillParameter(page, 'date', '2026-08-04');
+    await macrosPage.fillParameter(page, 'date', '2024-08-04');
     
     console.log('Filling partner field...');
-    await macrosPage.fillParameterAutocomplete(page, 'Partner (customer)', 'P00000005');
+    await macrosPage.fillParameterAutocomplete(page, 'Partner (customer)', 'P00000014');
     
     console.log('Filling invoice number field with placeholder...');
     // Use placeholder - this tests that macro parameter replacement works
@@ -641,8 +641,8 @@ test.describe('Test Macros', () => {
     console.log('--- Step 7: Verifying Transaction Details ---');
     
     await transactionsPage.verifyTransactionDetails(page, 'Test macros 004.3 sales invoice', {
-      date: '2026-08-04',
-      partner: 'P00000005',
+      date: '2024-08-04',
+      partner: 'P00000014',
       value: '7.00'
     });
     
@@ -654,7 +654,7 @@ test.describe('Test Macros', () => {
     console.log('✓ Transaction created successfully via macro system');
     console.log('✓ All InvoiceForServicesOrSaas macro scenarios validated:');
     console.log('  - Macro selection and parameter form display');
-    console.log('  - Partner selection (P00000005)');
+    console.log('  - Partner selection (P00000014)');
     console.log('  - Invoice number placeholder ({next_invoice_SI}) resolved to SI00000002');
     console.log('  - Amount: CHF 7.00');
     console.log('  - Description: Test macros 004.3 sales invoice');
@@ -723,11 +723,11 @@ test.describe('Test Macros', () => {
     // ========================================================================
     console.log('--- Step 4: Filling in Macro Parameters ---');
     
-    console.log('Filling date field (2026-08-07 - a few days after first invoice)...');
-    await macrosPage.fillParameter(page, 'date', '2026-08-07');
+    console.log('Filling date field (2024-08-07 - a few days after first invoice)...');
+    await macrosPage.fillParameter(page, 'date', '2024-08-07');
     
-    console.log('Filling partner field (same partner P00000005)...');
-    await macrosPage.fillParameterAutocomplete(page, 'Partner (customer)', 'P00000005');
+    console.log('Filling partner field (same partner P00000014)...');
+    await macrosPage.fillParameterAutocomplete(page, 'Partner (customer)', 'P00000014');
     
     console.log('Filling invoice number field with placeholder...');
     const invoiceField = page.locator('.parameter-field').filter({
@@ -804,15 +804,15 @@ test.describe('Test Macros', () => {
     console.log('--- Step 7: Verifying Transaction Details ---');
     
     await transactionsPage.verifyTransactionDetails(page, 'Test macros 004.4 second invoice', {
-      date: '2026-08-07',
-      partner: 'P00000005',
+      date: '2024-08-07',
+      partner: 'P00000014',
       value: '111'
     });
     
     console.log('✓ Transaction created successfully via macro system');
     console.log('✓ Second invoice created (unpaid):');
-    console.log('  - Date: 2026-08-07');
-    console.log('  - Partner: P00000005 (Microsoft)');
+    console.log('  - Date: 2024-08-07');
+    console.log('  - Partner: P00000014');
     console.log('  - Invoice: SI00000002 (auto-generated)');
     console.log('  - Amount: CHF 111');
     console.log('  - Status: Unpaid (will be used in test 004.5)');
@@ -880,11 +880,11 @@ test.describe('Test Macros', () => {
     // ========================================================================
     console.log('--- Step 4: Filling in Macro Parameters ---');
     
-    console.log('Filling date field (2026-08-31)...');
-    await macrosPage.fillParameter(page, 'date', '2026-08-31');
+    console.log('Filling date field (2024-08-31)...');
+    await macrosPage.fillParameter(page, 'date', '2024-08-31');
     
-    console.log('Filling partner field (P00000005)...');
-    await macrosPage.fillParameterAutocomplete(page, 'Partner (customer)', 'P00000005');
+    console.log('Filling partner field (P00000014)...');
+    await macrosPage.fillParameterAutocomplete(page, 'Partner (customer)', 'P00000014');
     
     console.log('Filling invoice number field using regex search (.*01$)...');
     // Find the invoice number autocomplete field
@@ -976,17 +976,17 @@ test.describe('Test Macros', () => {
     console.log('--- Step 7: Verifying Transaction Details ---');
     
     await transactionsPage.verifyTransactionDetails(page, 'Test macros 004.5 Customer pays invoice SI00000001', {
-      date: '2026-08-31',
-      partner: 'P00000005',
+      date: '2024-08-31',
+      partner: 'P00000014',
       value: '7.00'
     });
     
     console.log('✓ Transaction created successfully via macro system');
     console.log('✓ CustomerPaysInvoice macro scenarios validated:');
     console.log('  - Macro selection and parameter form display');
-    console.log('  - Partner selection (P00000005)');
+    console.log('  - Partner selection (P00000014)');
     console.log('  - Invoice regex search (.*01$) successfully found SI00000001');
-    console.log('  - Date: 2026-08-31');
+    console.log('  - Date: 2024-08-31');
     console.log('  - Amount: CHF 7.00');
     console.log('  - Description: Test macros 004.5 Customer pays invoice SI00000001');
     console.log('  - Ingoing account (Bank): 1:10:100:1020');
@@ -1057,11 +1057,11 @@ test.describe('Test Macros', () => {
     // ========================================================================
     console.log('--- Step 4: Filling in Macro Parameters ---');
     
-    console.log('Filling date field (2026-09-09)...');
-    await macrosPage.fillParameter(page, 'date', '2026-09-09');
+    console.log('Filling date field (2024-09-09)...');
+    await macrosPage.fillParameter(page, 'date', '2024-09-09');
     
-    console.log('Filling partner field (P00000005)...');
-    await macrosPage.fillParameterAutocomplete(page, 'Partner (supplier)', 'P00000005');
+    console.log('Filling partner field (P00000014)...');
+    await macrosPage.fillParameterAutocomplete(page, 'Partner (supplier)', 'P00000014');
     
     console.log('Filling invoice number field with placeholder...');
     const invoiceInput = page.locator('input[id="param-invoice_number"]');
@@ -1149,17 +1149,17 @@ test.describe('Test Macros', () => {
     console.log('--- Step 7: Verifying Transaction Details ---');
     
     await transactionsPage.verifyTransactionDetails(page, 'Test macros 004.6 payment by staff', {
-      date: '2026-09-09',
-      partner: 'P00000005',
+      date: '2024-09-09',
+      partner: 'P00000014',
       value: '17.00'
     });
     
     console.log('✓ Transaction created successfully via macro system');
     console.log('✓ PaymentByStaff macro scenarios validated:');
     console.log('  - Macro selection and parameter form display');
-    console.log('  - Partner selection (P00000005 - supplier)');
+    console.log('  - Partner selection (P00000014 - supplier)');
     console.log('  - Invoice number placeholder ({next_invoice_PI}) resolved');
-    console.log('  - Date: 2026-09-09');
+    console.log('  - Date: 2024-09-09');
     console.log('  - Amount: CHF 17.00');
     console.log('  - Description: Test macros 004.6 payment by staff');
     console.log('  - Expense account: 6570.001');
@@ -1228,8 +1228,8 @@ test.describe('Test Macros', () => {
     // ========================================================================
     console.log('--- Step 4: Filling in Macro Parameters ---');
     
-    console.log('Filling payment date field (2026-09-30)...');
-    await macrosPage.fillParameter(page, 'date', '2026-09-30');
+    console.log('Filling payment date field (2024-09-30)...');
+    await macrosPage.fillParameter(page, 'date', '2024-09-30');
     
     console.log('Filling partner field (P00000001 - staff member)...');
     const partnerInput = page.locator('.parameter-field').filter({ hasText: 'Partner (staff member)' }).locator('abs-autocomplete input.autocomplete-input');
@@ -1328,7 +1328,7 @@ test.describe('Test Macros', () => {
     console.log('--- Step 7: Verifying Transaction Details ---');
     
     await transactionsPage.verifyTransactionDetails(page, 'Test macros 004.6 repay staff', {
-      date: '2026-09-30',
+      date: '2024-09-30',
       partner: 'P00000001',
       value: '17.00'
     });
@@ -1337,7 +1337,7 @@ test.describe('Test Macros', () => {
     console.log('✓ RepayStaff macro scenarios validated:');
     console.log('  - Macro selection and parameter form display (7 parameters)');
     console.log('  - Partner selection (P00000001 - staff member)');
-    console.log('  - Date: 2026-09-30');
+    console.log('  - Date: 2024-09-30');
     console.log('  - Amount: CHF 17.00');
     console.log('  - Description: Test macros 004.6 repay staff');
     console.log('  - Invoice numbers: PI00000007');
@@ -1377,7 +1377,7 @@ test.describe('Test Macros', () => {
 
     // Clean up existing test transaction
     console.log('--- Cleaning up existing test transaction ---');
-    await deleteTransactionByDescription(page, 'Test macros 004.8 tax provision for 2026');
+    await deleteTransactionByDescription(page, 'Test macros 004.8 tax provision for 2024');
 
     // Navigate to macros page
     console.log('--- Navigating to Macros Page ---');
@@ -1394,11 +1394,11 @@ test.describe('Test Macros', () => {
     // Fill in parameters
     console.log('--- Filling in Macro Parameters ---');
 
-    console.log('Filling date field (2026-12-31)...');
-    await macrosPage.fillParameter(page, 'date', '2026-12-31');
+    console.log('Filling date field (2024-12-13)...');
+    await macrosPage.fillParameter(page, 'date', '2024-12-13');
 
     console.log('Filling description field...');
-    await macrosPage.fillParameter(page, 'description', 'Test macros 004.8 tax provision for 2026');
+    await macrosPage.fillParameter(page, 'description', 'Test macros 004.8 tax provision for 2024');
 
     console.log('Filling total tax amount field (50.00)...');
     await macrosPage.fillParameter(page, 'total_tax_amount', '50.00');
@@ -1427,19 +1427,19 @@ test.describe('Test Macros', () => {
 
     // Verify transaction was created
     console.log('--- Verifying Transaction Creation ---');
-    await transactionsPage.verifyTransactionExists(page, 'Test macros 004.8 tax provision for 2026');
-    console.log('✓ Transaction "Test macros 004.8 tax provision for 2026" appears in transaction list');
+    await transactionsPage.verifyTransactionExists(page, 'Test macros 004.8 tax provision for 2024');
+    console.log('✓ Transaction "Test macros 004.8 tax provision for 2024" appears in transaction list');
 
     // Verify transaction details
-    await transactionsPage.verifyTransactionDetails(page, 'Test macros 004.8 tax provision for 2026', {
-      date: '2026-12-31',
+    await transactionsPage.verifyTransactionDetails(page, 'Test macros 004.8 tax provision for 2024', {
+      date: '2024-12-13',
       value: '50.00'
     });
 
     console.log('✓ TaxProvision macro scenarios validated:');
     console.log('  - Macro selection and parameter form display');
-    console.log('  - Date: 2026-12-31');
-    console.log('  - Description: Test macros 004.8 tax provision for 2026');
+    console.log('  - Date: 2024-12-13');
+    console.log('  - Description: Test macros 004.8 tax provision for 2024');
     console.log('  - Total tax amount: CHF 50.00');
     console.log('  - Transaction created with 2 entries (Dr 8900, Cr 2208)');
 
@@ -1474,7 +1474,7 @@ test.describe('Test Macros', () => {
 
     // Clean up existing test transaction
     console.log('--- Cleaning up existing test transaction ---');
-    await deleteTransactionByDescription(page, 'Test macros 004.9 tax payment for 2026');
+    await deleteTransactionByDescription(page, 'Test macros 004.9 tax payment for 2024');
 
     // Navigate to macros page
     console.log('--- Navigating to Macros Page ---');
@@ -1491,14 +1491,14 @@ test.describe('Test Macros', () => {
     // Fill in parameters
     console.log('--- Filling in Macro Parameters ---');
 
-    console.log('Filling date field (2027-01-15)...');
-    await macrosPage.fillParameter(page, 'date', '2027-01-15');
+    console.log('Filling date field (2025-01-15)...');
+    await macrosPage.fillParameter(page, 'date', '2025-01-15');
 
     console.log('Filling partner field (P00000006 - Canton Vaud Tax Authority)...');
     await macrosPage.fillParameterAutocomplete(page, 'Tax authority', 'P00000006');
 
     console.log('Filling description field...');
-    await macrosPage.fillParameter(page, 'description', 'Test macros 004.9 tax payment for 2026');
+    await macrosPage.fillParameter(page, 'description', 'Test macros 004.9 tax payment for 2024');
 
     console.log('Filling provision amount field (50.00)...');
     await macrosPage.fillParameter(page, 'provision_amount', '50.00');
@@ -1547,12 +1547,12 @@ test.describe('Test Macros', () => {
 
     // Verify transaction was created
     console.log('--- Verifying Transaction Creation ---');
-    await transactionsPage.verifyTransactionExists(page, 'Test macros 004.9 tax payment for 2026');
-    console.log('✓ Transaction "Test macros 004.9 tax payment for 2026" appears in transaction list');
+    await transactionsPage.verifyTransactionExists(page, 'Test macros 004.9 tax payment for 2024');
+    console.log('✓ Transaction "Test macros 004.9 tax payment for 2024" appears in transaction list');
 
     // Verify transaction details
-    await transactionsPage.verifyTransactionDetails(page, 'Test macros 004.9 tax payment for 2026', {
-      date: '2027-01-15',
+    await transactionsPage.verifyTransactionDetails(page, 'Test macros 004.9 tax payment for 2024', {
+      date: '2025-01-15',
       partner: 'P00000006',
       value: '55.00'
     });
@@ -1560,7 +1560,7 @@ test.describe('Test Macros', () => {
     console.log('✓ TaxPayment macro scenarios validated:');
     console.log('  - Macro selection and parameter form display');
     console.log('  - Partner: P00000006 (Canton Vaud Tax Authority)');
-    console.log('  - Date: 2027-01-15');
+    console.log('  - Date: 2025-01-15');
     console.log('  - Provision amount: CHF 50.00');
     console.log('  - Actual amount: CHF 55.00');
     console.log('  - Arithmetic expression {actual_amount - provision_amount} = 5.00 evaluated');
@@ -1597,7 +1597,7 @@ test.describe('Test Macros', () => {
 
     // Clean up existing test transaction
     console.log('--- Cleaning up existing test transaction ---');
-    await deleteTransactionByDescription(page, 'Test macros 004.10 legal reserve allocation for 2026');
+    await deleteTransactionByDescription(page, 'Test macros 004.10 legal reserve allocation for 2024');
 
     // Navigate to macros page
     console.log('--- Navigating to Macros Page ---');
@@ -1614,14 +1614,14 @@ test.describe('Test Macros', () => {
     // Fill in parameters
     console.log('--- Filling in Macro Parameters ---');
 
-    console.log('Filling date field (2026-12-31)...');
-    await macrosPage.fillParameter(page, 'date', '2026-12-31');
+    console.log('Filling date field (2024-12-13)...');
+    await macrosPage.fillParameter(page, 'date', '2024-12-13');
 
     console.log('Filling allocation amount field (10.00)...');
     await macrosPage.fillParameter(page, 'allocation_amount', '10.00');
 
     console.log('Filling description field...');
-    await macrosPage.fillParameter(page, 'description', 'Test macros 004.10 legal reserve allocation for 2026');
+    await macrosPage.fillParameter(page, 'description', 'Test macros 004.10 legal reserve allocation for 2024');
 
     console.log('All fields filled');
 
@@ -1647,20 +1647,20 @@ test.describe('Test Macros', () => {
 
     // Verify transaction was created
     console.log('--- Verifying Transaction Creation ---');
-    await transactionsPage.verifyTransactionExists(page, 'Test macros 004.10 legal reserve allocation for 2026');
-    console.log('✓ Transaction "Test macros 004.10 legal reserve allocation for 2026" appears in transaction list');
+    await transactionsPage.verifyTransactionExists(page, 'Test macros 004.10 legal reserve allocation for 2024');
+    console.log('✓ Transaction "Test macros 004.10 legal reserve allocation for 2024" appears in transaction list');
 
     // Verify transaction details
-    await transactionsPage.verifyTransactionDetails(page, 'Test macros 004.10 legal reserve allocation for 2026', {
-      date: '2026-12-31',
+    await transactionsPage.verifyTransactionDetails(page, 'Test macros 004.10 legal reserve allocation for 2024', {
+      date: '2024-12-13',
       value: '10.00'
     });
 
     console.log('✓ LegalReserveAllocation macro scenarios validated:');
     console.log('  - Macro selection and parameter form display');
-    console.log('  - Date: 2026-12-31');
+    console.log('  - Date: 2024-12-13');
     console.log('  - Allocation amount: CHF 10.00');
-    console.log('  - Description: Test macros 004.10 legal reserve allocation for 2026');
+    console.log('  - Description: Test macros 004.10 legal reserve allocation for 2024');
     console.log('  - Transaction created with 2 entries (Dr 2979, Cr 2950)');
 
     console.log('=== Test 4.10: LegalReserveAllocation Macro - PASSED ===');
@@ -1708,23 +1708,23 @@ test.describe('Verify Reports After Macro Transactions', () => {
     
     // Expected values after all macro transactions (run ONCE):
     // Starting state from test 003 (updated with transactions 1-12):
-    //   1020 Bank = 1,785.00, 1100 Receivables = 67.00, 1230 Inventory = 40.00
-    //   2200 VAT payable = 7.00, 2210.001 John Smith = 38.50, 2800 Share Capital = 2,000.00
-    //   3400 Revenue = 60.00, 6570 = 13.50, 6570.002 = 100.00, 6700 = 10.00, 6900 = 15.00, 8900 = 75.00
+    //   1020 Bank = 1,785.00, 1100 Receivables = 68.10, 1230 Inventory = 40.00
+    //   2200 VAT payable = 8.10, 2210.001 John Smith = 38.50, 2800 Share Capital = 2,000.00
+    //   3400 Revenue = 60.00, 6500 = 9.30, 6570.002 = 100.00, 6700 = 4.20, 6900 = 15.00, 8900 = 75.00
     // After macros 004.1-004.10:
-    //   1020 Bank = 1,680.50, 1100 Receivables = 178.00, 1230 Inventory = 40.00
-    //   2200 VAT = 7.00, 2208 Tax liabilities = 0.00, 2210.001 = 0.00
+    //   1020 Bank = 1,680.50, 1100 Receivables = 179.10, 1230 Inventory = 40.00
+    //   2200 VAT = 8.10, 2208 Tax liabilities = 0.00, 2210.001 = 0.00
     //   2800 = 2,000.00, 2950 Legal reserves = 10.00, 2979 Annual P/L = 10.00 (debit)
-    //   3400 Revenue = 178.00, 6570 = 13.50, 6570.001 = 17.00, 6570.002 = 100.00
-    //   6700 = 10.00, 6900 = 16.00, 8900 = 130.00
+    //   3400 Revenue = 178.00, 6500 = 9.30, 6570.001 = 17.00, 6570.002 = 100.00
+    //   6700 = 14.20, 6900 = 16.00, 8900 = 130.00
     //   Net Loss: 108.50 (revenue 178.00 - expenses 286.50)
-    //   Total Assets: 1,898.50 = Total L+E: 7.00 + 2,000.00 - 108.50
+    //   Total Assets: 1,899.60 = Total L+E: 8.10 + 2,000.00 - 108.50
 
     await reportsPage.verifySectionExists(page, 'Cash and Cash Equivalents');
     await reportsPage.verifyAccountBalance(page, '1020', '1,680.50');
 
     await reportsPage.verifySectionExists(page, 'Assets');
-    await reportsPage.verifyAccountBalance(page, '1100', '178.00');
+    await reportsPage.verifyAccountBalance(page, '1100', '179.10');
 
     await reportsPage.verifySectionExists(page, 'Equity');
     await reportsPage.verifyAccountBalance(page, '2800', '2,000.00');
@@ -1732,7 +1732,7 @@ test.describe('Verify Reports After Macro Transactions', () => {
     await reportsPage.verifyReportMatches(page, /Net.*Loss.*108\.50\s*CHF/, 'Net Loss');
 
     // Verify the balance sheet balances
-    await reportsPage.verifyBalanceSheetBalances(page, '1,898.50');
+    await reportsPage.verifyBalanceSheetBalances(page, '1,899.60');
     
     // Verify no negative signs in Liabilities section (sign inversion bug check)
     await reportsPage.verifyNoNegativeValues(page, 'Liabilities');
@@ -1772,17 +1772,17 @@ test.describe('Verify Reports After Macro Transactions', () => {
     console.log('--- Verifying Income Statement ---');
     
     // Expected: Revenue: 3400 (178.00) - test 003 (60.00) + macros (7.00 + 111.00)
-    // Expenses: 6570 (13.50) + 6570.001 (17.00) + 6570.002 (100.00) + 6700 (10.00) + 6900 (16.00) + 8900 (130.00) = 286.50
+    // Expenses: 6500 (9.30) + 6570.001 (17.00) + 6570.002 (100.00) + 6700 (14.20) + 6900 (16.00) + 8900 (130.00) = 286.50
     // Net Loss: 108.50
 
     await reportsPage.verifySectionExists(page, 'Revenue');
     await reportsPage.verifyAccountBalance(page, '3400', '178.00');
 
     await reportsPage.verifySectionExists(page, 'Expenses');
-    await reportsPage.verifyAccountBalance(page, '6570', '13.50');
+    await reportsPage.verifyAccountBalance(page, '6500', '9.30');
     await reportsPage.verifyAccountBalance(page, '6570.001', '17.00');
     await reportsPage.verifyAccountBalance(page, '6570.002', '100.00');
-    await reportsPage.verifyAccountBalance(page, '6700', '10.00');
+    await reportsPage.verifyAccountBalance(page, '6700', '14.20');
     await reportsPage.verifyAccountBalance(page, '6900', '16.00');
     await reportsPage.verifyAccountBalance(page, '8900', '130.00');
 
@@ -1829,7 +1829,7 @@ test.describe('Verify Reports After Macro Transactions', () => {
     
     // Verify all account balances (macros run once)
     await reportsPage.verifyAccountBalance(page, '1020', '1,680.50'); // Bank account
-    await reportsPage.verifyAccountBalance(page, '1100', '178.00'); // Receivables
+    await reportsPage.verifyAccountBalance(page, '1100', '179.10'); // Receivables
     await reportsPage.verifyAccountBalance(page, '2800', '2,000.00'); // Share capital
 
     // Swiss Balance Sheet includes net income in equity, not as separate line
@@ -1840,7 +1840,7 @@ test.describe('Verify Reports After Macro Transactions', () => {
     await reportsPage.verifyNoNegativeValues(page, 'Equity');
 
     // Verify the balance sheet balances (Assets = Liabilities + Equity)
-    await reportsPage.verifyBalanceSheetBalances(page, '1,898.50');
+    await reportsPage.verifyBalanceSheetBalances(page, '1,899.60');
     
     console.log('✓ Swiss Balance Sheet verified successfully!');
     console.log('=== Swiss Balance Sheet Verification Complete ===');
@@ -1956,9 +1956,9 @@ test.describe('Verify Reports After Macro Transactions', () => {
     await reportsPage.verifyReportContains(page, '1020', 'Bank Account');
     await reportsPage.verifyReportContains(page, '1,680.50', 'Bank balance');
 
-    // Account 1100: Receivables - Net Debit 178.00
+    // Account 1100: Receivables - Net Debit 179.10
     await reportsPage.verifyReportContains(page, '1100', 'Receivables');
-    await reportsPage.verifyReportContains(page, '178.00', 'Receivables balance');
+    await reportsPage.verifyReportContains(page, '179.10', 'Receivables balance');
 
     // Account 2800: Share Capital - Credit 2,000.00
     await reportsPage.verifyReportContains(page, '2800', 'Share Capital');
@@ -1968,9 +1968,9 @@ test.describe('Verify Reports After Macro Transactions', () => {
     await reportsPage.verifyReportContains(page, '3400', 'Revenue');
     await reportsPage.verifyReportContains(page, '178.00', 'Revenue balance');
 
-    // Account 6570: IT expenses - Debit 13.50
-    await reportsPage.verifyReportContains(page, '6570', 'IT expenses');
-    await reportsPage.verifyReportContains(page, '13.50', 'IT expenses balance');
+    // Account 6500: Administrative expenses - Debit 9.30
+    await reportsPage.verifyReportContains(page, '6500', 'Administrative expenses');
+    await reportsPage.verifyReportContains(page, '9.30', 'Administrative expenses balance');
 
     // Account 6570.001: IT expense - Debit 17.00
     await reportsPage.verifyReportContains(page, '6570.001', 'IT expense');

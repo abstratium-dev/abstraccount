@@ -37,11 +37,12 @@ This test demonstrates the complete workflow of recording real business transact
 - **P00000004:** PostFinance AG (Bank)
 - **P00000005:** Microsoft (Supplier of IT services)
 - **P00000006:** Canton Vaud Tax Authority (Tax authority)
+- **P00000007:** Anthropic (Supplier of AI API services)
 
 ### Transaction Series
 
 #### Transaction 1: Short-term Loan from Founder
-- **Date:** 2026-05-25
+- **Date:** 2024-05-25
 - **Partner:** P00000001 John Smith
 - **Description:** "Short term loan from John Smith, to start company"
 - **Invoice:** PI00000001
@@ -51,7 +52,7 @@ This test demonstrates the complete workflow of recording real business transact
   2. **Credit:** `2210.001 John Smith` - CHF 38.50
 
 #### Transaction 2a: IFJ Formation Fee (Invoice)
-- **Date:** 2026-05-26
+- **Date:** 2024-05-26
 - **Partner:** P00000002 Startup Help GmbH
 - **Description:** "Fee to create Sàrl paid to Startup Help GmbH"
 - **Invoice:** PI00000002
@@ -61,7 +62,7 @@ This test demonstrates the complete workflow of recording real business transact
   2. **Credit:** `2000 Accounts payable (suppliers&creditors)` - CHF 34.30
 
 #### Transaction 2b: IFJ Formation Fee (Payment)
-- **Date:** 2026-05-26
+- **Date:** 2024-05-26
 - **Partner:** P00000002 Startup Help GmbH
 - **Description:** "Payment of fee to create Sàrl paid to Startup Help GmbH"
 - **Invoice:** PI00000002
@@ -72,7 +73,7 @@ This test demonstrates the complete workflow of recording real business transact
   2. **Credit:** `1000 Cash` - CHF 34.30
 
 #### Transaction 3a: Postal Service Fee (Invoice)
-- **Date:** 2026-06-18
+- **Date:** 2024-06-18
 - **Partner:** P00000003 Post CH Netz AG
 - **Description:** "Receipt for sending founding docs eingeschrieben"
 - **Invoice:** PI00000003
@@ -82,7 +83,7 @@ This test demonstrates the complete workflow of recording real business transact
   2. **Credit:** `2000 Accounts payable (suppliers&creditors)` - CHF 4.20
 
 #### Transaction 3b: Postal Service Fee (Payment)
-- **Date:** 2026-06-18
+- **Date:** 2024-06-18
 - **Partner:** P00000003 Post CH Netz AG
 - **Description:** "Receipt for sending founding docs eingeschrieben"
 - **Invoice:** PI00000003
@@ -93,7 +94,7 @@ This test demonstrates the complete workflow of recording real business transact
   2. **Credit:** `1000 Cash` - CHF 4.20
 
 #### Transaction 4: Capital Contribution
-- **Date:** 2026-06-26
+- **Date:** 2024-06-26
 - **Partner:** P00000001 John Smith
 - **Description:** "Capital payment into abstratium paid into PF"
 - **Invoice:** PI00000004
@@ -103,18 +104,17 @@ This test demonstrates the complete workflow of recording real business transact
   2. **Credit:** `2800 Basic, shareholder or foundation capital` - CHF 2,000.00
 
 #### Transaction 5a: Bank Account Management Fee (Invoice)
-- **Date:** 2026-07-24
+- **Date:** 2024-07-24
 - **Partner:** P00000004 PostFinance AG
 - **Description:** "PRIX POUR LA GESTION DU COMPTE CONSIGNATION DU CAPITAL CRÉATION D'ENTREPRISE"
 - **Invoice:** PI00000005
 - **Status:** Posted (*)
-- **Tags:** `Payment:`
 - **Entries:**
   1. **Debit:** `6900 Financial expense` - CHF 15.00
   2. **Credit:** `2000 Accounts payable (suppliers&creditors)` - CHF 15.00
 
 #### Transaction 5b: Bank Account Management Fee (Payment)
-- **Date:** 2026-07-24
+- **Date:** 2024-07-24
 - **Partner:** P00000004 PostFinance AG
 - **Description:** "PRIX POUR LA GESTION DU COMPTE CONSIGNATION DU CAPITAL CRÉATION D'ENTREPRISE"
 - **Invoice:** PI00000005
@@ -125,7 +125,7 @@ This test demonstrates the complete workflow of recording real business transact
   2. **Credit:** `1020 Bank Account (asset)` - CHF 15.00
 
 #### Transaction 6: Purchase Goods for Resale (Cash Purchase via `PaymentForGoods` macro)
-- **Date:** 2026-08-01
+- **Date:** 2024-08-01
 - **Partner:** P00000002 Startup Help GmbH
 - **Description:** "Test 003.6 Purchase components for resale"
 - **Invoice:** PI00000006
@@ -136,33 +136,33 @@ This test demonstrates the complete workflow of recording real business transact
 - **Purpose:** Tests ASSET (inventory) debit direction and CASH credit direction. Exercises the `PaymentForGoods` macro.
 
 #### Transaction 7: Supplier Invoice with Delayed Payment (via `PayInvoiceFromBank` macro)
-- **Date:** 2026-08-03 (invoice) and 2026-08-10 (payment)
-- **Partner:** P00000005 Microsoft
+- **Date:** 2024-08-03 (invoice) and 2024-08-10 (payment)
+- **Partner:** P00000007 Anthropic
 - **Description:** "Test 003.7 Anthropic API services invoice"
 - **Invoice:** PI00000007
 - **Status:** Posted (*)
-- **Entries (Step 1 - Invoice, 2026-08-03):**
+- **Entries (Step 1 - Invoice, 2024-08-03):**
   1. **Debit:** `6570.002 Anthropic` - CHF 100.00
   2. **Credit:** `2000 Accounts payable (suppliers&creditors)` - CHF 100.00
-- **Entries (Step 2 - Payment, 2026-08-10):**
+- **Entries (Step 2 - Payment, 2024-08-10):**
   1. **Debit:** `2000 Accounts payable (suppliers&creditors)` - CHF 100.00
   2. **Credit:** `1020 Bank Account (asset)` - CHF 100.00
 - **Purpose:** Tests A/P carrying a balance across dates (invoice on 08-03, payment on 08-10). Exercises the `PayInvoiceFromBank` macro which creates both transactions in one step.
 
 #### Transaction 8: Sales Invoice with VAT (3-entry transaction)
-- **Date:** 2026-08-06
+- **Date:** 2024-08-06
 - **Partner:** P00000001 John Smith
 - **Description:** "Test 003.8 Consulting services with VAT"
 - **Invoice:** SV00000001
 - **Status:** Posted (*)
 - **Entries:**
-  1. **Debit:** `1100 Accounts receivable (Debtors)` - CHF 107.00
+  1. **Debit:** `1100 Accounts receivable (Debtors)` - CHF 108.10
   2. **Credit:** `3400 Revenue from services` - CHF 100.00
-  3. **Credit:** `2200 VAT payable` - CHF 7.00
-- **Purpose:** Tests 3-entry transaction, ASSET (receivable) debit, REVENUE credit, and LIABILITY (VAT) credit. This is a fundamental Swiss accounting pattern.
+  3. **Credit:** `2200 VAT payable` - CHF 8.10
+- **Purpose:** Tests 3-entry transaction, ASSET (receivable) debit, REVENUE credit, and LIABILITY (VAT) credit. This is a fundamental Swiss accounting pattern. VAT is charged at the Swiss standard rate of 8.1%.
 
 #### Transaction 9: Credit Note to Customer (Revenue Reversal)
-- **Date:** 2026-08-08
+- **Date:** 2024-08-08
 - **Partner:** P00000001 John Smith
 - **Description:** "Test 003.9 Credit note for partial refund of consulting services"
 - **Invoice:** CN00000001
@@ -173,36 +173,49 @@ This test demonstrates the complete workflow of recording real business transact
 - **Purpose:** Tests REVENUE debit direction (reversal) and ASSET (receivable) credit direction. No previously tested transaction debits revenue.
 
 #### Transaction 10: Expense Refund from Supplier (Expense Reversal)
-- **Date:** 2026-08-12
+- **Date:** 2024-08-12
 - **Partner:** P00000002 Startup Help GmbH
 - **Description:** "Test 003.10 Refund for overcharged administrative expense"
 - **Invoice:** PC00000001
 - **Status:** Posted (*)
 - **Entries:**
   1. **Debit:** `1020 Bank Account (asset)` - CHF 25.00
-  2. **Credit:** `6570 IT and computing expenses` - CHF 25.00
-- **Purpose:** Tests EXPENSE credit direction (reversal) and CASH debit direction. No previously tested transaction credits an expense account.
+  2. **Credit:** `6500 Administrative expenses` - CHF 25.00
+- **Purpose:** Tests EXPENSE credit direction (reversal) and CASH debit direction. No previously tested transaction credits an expense account. The refund is credited to the same administrative expense account that was debited in Transaction 2a.
 
 #### Transaction 11: Inventory Write-Down (via `InventoryAdjustment` macro)
-- **Date:** 2026-08-15
+- **Date:** 2024-12-13
 - **Description:** "Test 003.11 Year-end inventory write-down for obsolete components"
 - **Status:** Posted (*)
 - **Tags:** `YearEnd:InventoryAdjustment`
 - **Entries:**
   1. **Debit:** `6700 Other operating expenses` - CHF 10.00
   2. **Credit:** `1230 Goods held for resale` - CHF 10.00
-- **Purpose:** Tests EXPENSE (6700) debit and ASSET (inventory) credit direction. Exercises the `InventoryAdjustment` macro. This is a year-end closing adjustment.
+- **Purpose:** Tests EXPENSE (6700) debit and ASSET (inventory) credit direction. Exercises the `InventoryAdjustment` macro. This is a year-end closing adjustment dated at the year-end closing date (2024-12-13).
 
-#### Transaction 12: Direct Tax Payment (no prior provision)
-- **Date:** 2026-08-20
+#### Transaction 12a: Direct Tax Bill (Invoice)
+- **Date:** 2024-12-13
 - **Partner:** P00000006 Canton Vaud Tax Authority
-- **Description:** "Test 003.12 Direct tax payment for 2026"
+- **Description:** "Test 003.12 Direct tax bill for 2024"
 - **Invoice:** TX00000001
 - **Status:** Posted (*)
+- **Tags:** `TaxPayment:`
 - **Entries:**
   1. **Debit:** `8900 Direct taxes (legal entities)` - CHF 75.00
+  2. **Credit:** `2000 Accounts payable (suppliers&creditors)` - CHF 75.00
+- **Purpose:** Records the tax charge when the bill arrives, creating an account payable to the tax authority.
+
+#### Transaction 12b: Direct Tax Payment
+- **Date:** 2024-12-13
+- **Partner:** P00000006 Canton Vaud Tax Authority
+- **Description:** "Payment of direct tax bill for 2024"
+- **Invoice:** TX00000001
+- **Status:** Posted (*)
+- **Tags:** `Payment:`, `TaxPayment:`
+- **Entries:**
+  1. **Debit:** `2000 Accounts payable (suppliers&creditors)` - CHF 75.00
   2. **Credit:** `1020 Bank Account (asset)` - CHF 75.00
-- **Purpose:** Tests EXPENSE (8900) debit and CASH credit. Account 8900 was created but never used in prior tests. This is a direct tax payment without a prior tax provision (tax provision and legal reserve allocation are tested in a later test case).
+- **Purpose:** Pays the tax bill from the bank, clearing the account payable. Together with 12a this is a two-step tax payment (bill then pay), matching the pattern in the reference journal. This is a direct tax payment without a prior tax provision (tax provision and legal reserve allocation are tested in a later test case).
 
 ## Test Steps
 
@@ -213,18 +226,18 @@ Feature: Initial Business Transactions
 
   Background:
     Given the user is signed into the application
-    And the journal "Abstratium 2026" exists with a complete account tree
-    And opening balances have been established for 2026-01-01
-    And the user is on the journal detail page for "Abstratium 2026"
+    And the journal "Abstratium 2024" exists with a complete account tree
+    And opening balances have been established for 2024-01-01
+    And the user is on the journal detail page for "Abstratium 2024"
 
   Scenario: Record short-term loan from founder
     When the user navigates to the "Transactions" section
     And the user clicks "Create New Transaction"
     Then the transaction creation form should be displayed
     
-    When the user enters "2025-05-25" as the transaction date
+    When the user enters "2024-05-25" as the transaction date
     And the user enters "P00000001 John Smith" as the partner
-    And the user enters "Short term loan from J. Smith, to start company" as the description
+    And the user enters "Short term loan from John Smith, to start company" as the description
     And the user enters "PI00000001" as the invoice reference
     And the user sets the transaction status to "Posted"
     
@@ -252,7 +265,7 @@ Feature: Initial Business Transactions
 
   Scenario: Record administrative fee invoice and payment
     # Record the invoice
-    When the user creates a new transaction with date "2026-05-26"
+    When the user creates a new transaction with date "2024-05-26"
     And the user enters partner "P00000002 Startup Help GmbH"
     And the user enters description "Fee to create Sàrl paid to Startup Help GmbH"
     And the user enters invoice "PI00000002"
@@ -264,7 +277,7 @@ Feature: Initial Business Transactions
     And the accounts payable should increase by CHF 34.30
     
     # Record the payment
-    When the user creates a new transaction with date "2026-05-26"
+    When the user creates a new transaction with date "2024-05-26"
     And the user enters partner "P00000002 Startup Help GmbH"
     And the user enters description "Payment of fee to create Sàrl paid to Startup Help GmbH"
     And the user enters invoice "PI00000002"
@@ -278,7 +291,7 @@ Feature: Initial Business Transactions
 
   Scenario: Record postal service fee invoice and payment
     # Record the invoice
-    When the user creates a new transaction with date "2026-06-18"
+    When the user creates a new transaction with date "2024-06-18"
     And the user enters partner "P00000003 Post CH Netz AG"
     And the user enters description "Receipt for sending founding docs eingeschrieben"
     And the user enters invoice "PI00000003"
@@ -288,7 +301,7 @@ Feature: Initial Business Transactions
     Then the transaction should be saved successfully
     
     # Record the payment
-    When the user creates a new transaction with date "2026-06-18"
+    When the user creates a new transaction with date "2024-06-18"
     And the user enters partner "P00000003 Post CH Netz AG"
     And the user enters description "Receipt for sending founding docs eingeschrieben"
     And the user enters invoice "PI00000003"
@@ -299,7 +312,7 @@ Feature: Initial Business Transactions
     Then the transaction should be saved successfully
 
   Scenario: Record capital contribution from founder
-    When the user creates a new transaction with date "2026-06-26"
+    When the user creates a new transaction with date "2024-06-26"
     And the user enters partner "P00000001 John Smith"
     And the user enters description "Capital payment into abstratium paid into PF"
     And the user enters invoice "PI00000004"
@@ -311,11 +324,10 @@ Feature: Initial Business Transactions
     And the share capital should be CHF 2,000.00
 
   Scenario: Record bank account management fee
-    When the user creates a new transaction with date "2026-07-24"
+    When the user creates a new transaction with date "2024-07-24"
     And the user enters partner "P00000004 PostFinance AG"
     And the user enters description "PRIX POUR LA GESTION DU COMPTE CONSIGNATION DU CAPITAL CRÉATION D'ENTREPRISE"
     And the user enters invoice "PI00000005"
-    And the user adds tag "Payment:"
     And the user adds a debit entry to "6900 Financial expense" for CHF 15.00
     And the user adds a credit entry to "2000 Accounts payable (suppliers&creditors)" for CHF 15.00
     And the user saves the transaction
@@ -323,7 +335,7 @@ Feature: Initial Business Transactions
     And the financial expenses should increase by CHF 15.00
 
   Scenario: Record bank account management fee payment
-    When the user creates a new transaction with date "2026-07-24"
+    When the user creates a new transaction with date "2024-07-24"
     And the user enters partner "P00000004 PostFinance AG"
     And the user enters description "PRIX POUR LA GESTION DU COMPTE CONSIGNATION DU CAPITAL CRÉATION D'ENTREPRISE"
     And the user enters invoice "PI00000005"
@@ -337,13 +349,13 @@ Feature: Initial Business Transactions
 
   Scenario: Record purchase of goods for resale (PaymentForGoods macro)
     When the user navigates to the macros page and selects "PaymentForGoods"
-    And the user enters date "2026-08-01"
+    And the user enters date "2024-08-01"
     And the user enters partner "P00000002 Startup Help GmbH"
     And the user enters invoice "PI00000006"
     And the user enters amount "50.00"
     And the user enters description "Test 003.6 Purchase components for resale"
     And the user selects inventory account "1230 Goods held for resale"
-    And the user selects liability account "1020 Bank Account (asset)"
+    And the user selects bank account "1020 Bank Account (asset)"
     And the user executes the macro
     Then the transaction should be saved successfully
     And the inventory account balance should be CHF 50.00
@@ -351,9 +363,9 @@ Feature: Initial Business Transactions
 
   Scenario: Record supplier invoice with delayed payment (PayInvoiceFromBank macro)
     When the user navigates to the macros page and selects "PayInvoiceFromBank"
-    And the user enters invoice date "2026-08-03"
-    And the user enters payment date "2026-08-10"
-    And the user enters partner "P00000005 Microsoft"
+    And the user enters invoice date "2024-08-03"
+    And the user enters payment date "2024-08-10"
+    And the user enters partner "P00000007 Anthropic"
     And the user enters invoice "PI00000007"
     And the user enters amount "100.00"
     And the user enters description "Test 003.7 Anthropic API services invoice"
@@ -367,21 +379,21 @@ Feature: Initial Business Transactions
     And the bank account balance should be CHF 1,835.00
 
   Scenario: Record sales invoice with VAT (3-entry transaction)
-    When the user creates a new transaction with date "2026-08-06"
+    When the user creates a new transaction with date "2024-08-06"
     And the user enters partner "P00000001 John Smith"
     And the user enters description "Test 003.8 Consulting services with VAT"
     And the user enters invoice "SV00000001"
-    And the user adds a debit entry to "1100 Accounts receivable (Debtors)" for CHF 107.00
+    And the user adds a debit entry to "1100 Accounts receivable (Debtors)" for CHF 108.10
     And the user adds a credit entry to "3400 Revenue from services" for CHF 100.00
-    And the user adds a credit entry to "2200 VAT payable" for CHF 7.00
+    And the user adds a credit entry to "2200 VAT payable" for CHF 8.10
     And the user saves the transaction
     Then the transaction should be saved successfully
-    And the receivables should be CHF 107.00
+    And the receivables should be CHF 108.10
     And the revenue should be CHF 100.00
-    And the VAT payable should be CHF 7.00
+    And the VAT payable should be CHF 8.10
 
   Scenario: Record credit note to customer (revenue reversal)
-    When the user creates a new transaction with date "2026-08-08"
+    When the user creates a new transaction with date "2024-08-08"
     And the user enters partner "P00000001 John Smith"
     And the user enters description "Test 003.9 Credit note for partial refund of consulting services"
     And the user enters invoice "CN00000001"
@@ -390,23 +402,23 @@ Feature: Initial Business Transactions
     And the user saves the transaction
     Then the transaction should be saved successfully
     And the revenue should be CHF 60.00
-    And the receivables should be CHF 67.00
+    And the receivables should be CHF 68.10
 
   Scenario: Record expense refund from supplier (expense reversal)
-    When the user creates a new transaction with date "2026-08-12"
+    When the user creates a new transaction with date "2024-08-12"
     And the user enters partner "P00000002 Startup Help GmbH"
     And the user enters description "Test 003.10 Refund for overcharged administrative expense"
     And the user enters invoice "PC00000001"
     And the user adds a debit entry to "1020 Bank Account (asset)" for CHF 25.00
-    And the user adds a credit entry to "6570 IT and computing expenses" for CHF 25.00
+    And the user adds a credit entry to "6500 Administrative expenses" for CHF 25.00
     And the user saves the transaction
     Then the transaction should be saved successfully
-    And the IT expenses should be CHF 13.50
+    And the administrative expenses should be CHF 9.30
     And the bank account balance should be CHF 1,860.00
 
   Scenario: Record inventory write-down (InventoryAdjustment macro)
     When the user navigates to the macros page and selects "InventoryAdjustment"
-    And the user enters date "2026-08-15"
+    And the user enters date "2024-12-13"
     And the user enters description "Test 003.11 Year-end inventory write-down for obsolete components"
     And the user enters adjustment amount "10.00"
     And the user selects inventory account "1230 Goods held for resale"
@@ -414,36 +426,53 @@ Feature: Initial Business Transactions
     And the user executes the macro
     Then the transaction should be saved successfully
     And the inventory account balance should be CHF 40.00
-    And the other operating expenses should be CHF 10.00
+    And the other operating expenses should be CHF 14.20
 
-  Scenario: Record direct tax payment
-    When the user creates a new transaction with date "2026-08-20"
+  Scenario: Record direct tax bill and payment
+    # Record the tax bill (invoice)
+    When the user creates a new transaction with date "2024-12-13"
     And the user enters partner "P00000006 Canton Vaud Tax Authority"
-    And the user enters description "Test 003.12 Direct tax payment for 2026"
+    And the user enters description "Test 003.12 Direct tax bill for 2024"
     And the user enters invoice "TX00000001"
+    And the user adds tag "TaxPayment:"
     And the user adds a debit entry to "8900 Direct taxes (legal entities)" for CHF 75.00
+    And the user adds a credit entry to "2000 Accounts payable (suppliers&creditors)" for CHF 75.00
+    And the user saves the transaction
+    Then the transaction should be saved successfully
+    And the direct taxes should be CHF 75.00
+    And the accounts payable should be CHF 75.00
+
+    # Record the payment
+    When the user creates a new transaction with date "2024-12-13"
+    And the user enters partner "P00000006 Canton Vaud Tax Authority"
+    And the user enters description "Payment of direct tax bill for 2024"
+    And the user enters invoice "TX00000001"
+    And the user adds tag "Payment:"
+    And the user adds tag "TaxPayment:"
+    And the user adds a debit entry to "2000 Accounts payable (suppliers&creditors)" for CHF 75.00
     And the user adds a credit entry to "1020 Bank Account (asset)" for CHF 75.00
     And the user saves the transaction
     Then the transaction should be saved successfully
     And the direct taxes should be CHF 75.00
+    And the accounts payable should be CHF 0.00
     And the bank account balance should be CHF 1,785.00
 
   Scenario: Verify cumulative account balances after all transactions
-    When the user views account balances as of "2026-08-20"
+    When the user views account balances as of "2024-12-13"
     Then the following balances should be displayed:
       | Account                                       | Balance       |
       | 1000 Cash                                     | CHF 0.00      |
       | 1020 Bank Account (asset)                     | CHF 1,785.00  |
-      | 1100 Accounts receivable (Debtors)            | CHF 67.00     |
+      | 1100 Accounts receivable (Debtors)            | CHF 68.10     |
       | 1230 Goods held for resale                    | CHF 40.00     |
       | 2000 Accounts payable (suppliers&creditors)   | CHF 0.00      |
-      | 2200 VAT payable                              | CHF 7.00      |
+      | 2200 VAT payable                              | CHF 8.10      |
       | 2210.001 John Smith                           | CHF 38.50     |
       | 2800 Basic, shareholder or foundation capital | CHF 2,000.00  |
       | 3400 Revenue from services                    | CHF 60.00     |
-      | 6570 IT and computing expenses                | CHF 13.50     |
+      | 6500 Administrative expenses                  | CHF 9.30      |
       | 6570.002 Anthropic                            | CHF 100.00    |
-      | 6700 Other operating expenses                 | CHF 10.00     |
+      | 6700 Other operating expenses                 | CHF 14.20     |
       | 6900 Financial expense                        | CHF 15.00     |
       | 8900 Direct taxes (legal entities)            | CHF 75.00     |
     And the balance sheet equation should hold: Assets = Liabilities + Equity
@@ -471,50 +500,52 @@ Feature: Initial Business Transactions
 
    Balances are shown as the raw sum of entry amounts (positive = debit, negative = credit). For credit-normal accounts (LIABILITY, EQUITY, REVENUE), a negative balance represents a credit balance (the normal direction).
 
-   **After Transaction 1 (2026-05-25): Short-term Loan from Founder**
+   **After Transaction 1 (2024-05-25): Short-term Loan from Founder**
 
    | Account    | Balance  |
    |------------|----------|
    | 1000 Cash  | 38.50    |
    | 2210.001   | -38.50   |
 
-   **After Transaction 2a (2026-05-26): Admin Fee Invoice**
+   **After Transaction 2a (2024-05-26): Admin Fee Invoice**
 
    | Account    | Balance  |
    |------------|----------|
    | 1000 Cash  | 38.50    |
    | 2000 A/P   | -34.30   |
-   | 6570 IT    | 34.30    |
+   | 6500 Admin | 34.30    |
    | 2210.001   | -38.50   |
 
-   **After Transaction 2b (2026-05-26): Admin Fee Payment**
+   **After Transaction 2b (2024-05-26): Admin Fee Payment**
 
    | Account    | Balance  |
    |------------|----------|
    | 1000 Cash  | 4.20     |
    | 2000 A/P   | 0.00     |
-   | 6570 IT    | 34.30    |
+   | 6500 Admin | 34.30    |
    | 2210.001   | -38.50   |
 
-   **After Transaction 3a (2026-06-18): Postal Fee Invoice**
+   **After Transaction 3a (2024-06-18): Postal Fee Invoice**
 
    | Account    | Balance  |
    |------------|----------|
    | 1000 Cash  | 4.20     |
    | 2000 A/P   | -4.20    |
-   | 6570 IT    | 38.50    |
+   | 6500 Admin | 34.30    |
+   | 6700 OOE   | 4.20     |
    | 2210.001   | -38.50   |
 
-   **After Transaction 3b (2026-06-18): Postal Fee Payment**
+   **After Transaction 3b (2024-06-18): Postal Fee Payment**
 
    | Account    | Balance  |
    |------------|----------|
    | 1000 Cash  | 0.00     |
    | 2000 A/P   | 0.00     |
-   | 6570 IT    | 38.50    |
+   | 6500 Admin | 34.30    |
+   | 6700 OOE   | 4.20     |
    | 2210.001   | -38.50   |
 
-   **After Transaction 4 (2026-06-26): Capital Contribution**
+   **After Transaction 4 (2024-06-26): Capital Contribution**
 
    | Account    | Balance   |
    |------------|-----------|
@@ -523,9 +554,10 @@ Feature: Initial Business Transactions
    | 2000 A/P   | 0.00      |
    | 2210.001   | -38.50    |
    | 2800       | -2,000.00 |
-   | 6570 IT    | 38.50     |
+   | 6500 Admin | 34.30     |
+   | 6700 OOE   | 4.20      |
 
-   **After Transaction 5a (2026-07-24): Bank Fee Invoice**
+   **After Transaction 5a (2024-07-24): Bank Fee Invoice**
 
    | Account    | Balance   |
    |------------|-----------|
@@ -534,10 +566,11 @@ Feature: Initial Business Transactions
    | 2000 A/P   | -15.00    |
    | 2210.001   | -38.50    |
    | 2800       | -2,000.00 |
-   | 6570 IT    | 38.50     |
+   | 6500 Admin | 34.30     |
+   | 6700 OOE   | 4.20      |
    | 6900 Fin   | 15.00     |
 
-   **After Transaction 5b (2026-07-24): Bank Fee Payment**
+   **After Transaction 5b (2024-07-24): Bank Fee Payment**
 
    | Account    | Balance   |
    |------------|-----------|
@@ -546,10 +579,11 @@ Feature: Initial Business Transactions
    | 2000 A/P   | 0.00      |
    | 2210.001   | -38.50    |
    | 2800       | -2,000.00 |
-   | 6570 IT    | 38.50     |
+   | 6500 Admin | 34.30     |
+   | 6700 OOE   | 4.20      |
    | 6900 Fin   | 15.00     |
 
-   **After Transaction 6 (2026-08-01): Purchase Goods for Resale**
+   **After Transaction 6 (2024-08-01): Purchase Goods for Resale**
 
    | Account    | Balance   |
    |------------|-----------|
@@ -559,10 +593,11 @@ Feature: Initial Business Transactions
    | 2000 A/P   | 0.00      |
    | 2210.001   | -38.50    |
    | 2800       | -2,000.00 |
-   | 6570 IT    | 38.50     |
+   | 6500 Admin | 34.30     |
+   | 6700 OOE   | 4.20      |
    | 6900 Fin   | 15.00     |
 
-   **After Transaction 7a (2026-08-03): Supplier Invoice (PayInvoiceFromBank step 1)**
+   **After Transaction 7a (2024-08-03): Supplier Invoice (PayInvoiceFromBank step 1)**
 
    | Account    | Balance   |
    |------------|-----------|
@@ -572,11 +607,12 @@ Feature: Initial Business Transactions
    | 2000 A/P   | -100.00   |
    | 2210.001   | -38.50    |
    | 2800       | -2,000.00 |
-   | 6570 IT    | 38.50     |
+   | 6500 Admin | 34.30     |
    | 6570.002   | 100.00    |
+   | 6700 OOE   | 4.20      |
    | 6900 Fin   | 15.00     |
 
-   **After Transaction 7b (2026-08-10): Supplier Payment (PayInvoiceFromBank step 2)**
+   **After Transaction 7b (2024-08-10): Supplier Payment (PayInvoiceFromBank step 2)**
 
    | Account    | Balance   |
    |------------|-----------|
@@ -586,105 +622,128 @@ Feature: Initial Business Transactions
    | 2000 A/P   | 0.00      |
    | 2210.001   | -38.50    |
    | 2800       | -2,000.00 |
-   | 6570 IT    | 38.50     |
+   | 6500 Admin | 34.30     |
    | 6570.002   | 100.00    |
+   | 6700 OOE   | 4.20      |
    | 6900 Fin   | 15.00     |
 
-   **After Transaction 8 (2026-08-06): Sales Invoice with VAT**
+   **After Transaction 8 (2024-08-06): Sales Invoice with VAT**
 
    | Account    | Balance   |
    |------------|-----------|
    | 1000 Cash  | 0.00      |
    | 1020 Bank  | 1,835.00  |
-   | 1100 A/R   | 107.00    |
+   | 1100 A/R   | 108.10    |
    | 1230 Inv   | 50.00     |
    | 2000 A/P   | 0.00      |
-   | 2200 VAT   | -7.00     |
+   | 2200 VAT   | -8.10     |
    | 2210.001   | -38.50    |
    | 2800       | -2,000.00 |
    | 3400 Rev   | -100.00   |
-   | 6570 IT    | 38.50     |
+   | 6500 Admin | 34.30     |
    | 6570.002   | 100.00    |
+   | 6700 OOE   | 4.20      |
    | 6900 Fin   | 15.00     |
 
-   **After Transaction 9 (2026-08-08): Credit Note to Customer**
+   **After Transaction 9 (2024-08-08): Credit Note to Customer**
 
    | Account    | Balance   |
    |------------|-----------|
    | 1000 Cash  | 0.00      |
    | 1020 Bank  | 1,835.00  |
-   | 1100 A/R   | 67.00     |
+   | 1100 A/R   | 68.10     |
    | 1230 Inv   | 50.00     |
    | 2000 A/P   | 0.00      |
-   | 2200 VAT   | -7.00     |
+   | 2200 VAT   | -8.10     |
    | 2210.001   | -38.50    |
    | 2800       | -2,000.00 |
    | 3400 Rev   | -60.00    |
-   | 6570 IT    | 38.50     |
+   | 6500 Admin | 34.30     |
    | 6570.002   | 100.00    |
+   | 6700 OOE   | 4.20      |
    | 6900 Fin   | 15.00     |
 
-   **After Transaction 10 (2026-08-12): Expense Refund from Supplier**
+   **After Transaction 10 (2024-08-12): Expense Refund from Supplier**
 
    | Account    | Balance   |
    |------------|-----------|
    | 1000 Cash  | 0.00      |
    | 1020 Bank  | 1,860.00  |
-   | 1100 A/R   | 67.00     |
+   | 1100 A/R   | 68.10     |
    | 1230 Inv   | 50.00     |
    | 2000 A/P   | 0.00      |
-   | 2200 VAT   | -7.00     |
+   | 2200 VAT   | -8.10     |
    | 2210.001   | -38.50    |
    | 2800       | -2,000.00 |
    | 3400 Rev   | -60.00    |
-   | 6570 IT    | 13.50     |
+   | 6500 Admin | 9.30      |
    | 6570.002   | 100.00    |
+   | 6700 OOE   | 4.20      |
    | 6900 Fin   | 15.00     |
 
-   **After Transaction 11 (2026-08-15): Inventory Write-Down**
+   **After Transaction 11 (2024-12-13): Inventory Write-Down**
 
    | Account    | Balance   |
    |------------|-----------|
    | 1000 Cash  | 0.00      |
    | 1020 Bank  | 1,860.00  |
-   | 1100 A/R   | 67.00     |
+   | 1100 A/R   | 68.10     |
    | 1230 Inv   | 40.00     |
    | 2000 A/P   | 0.00      |
-   | 2200 VAT   | -7.00     |
+   | 2200 VAT   | -8.10     |
    | 2210.001   | -38.50    |
    | 2800       | -2,000.00 |
    | 3400 Rev   | -60.00    |
-   | 6570 IT    | 13.50     |
+   | 6500 Admin | 9.30      |
    | 6570.002   | 100.00    |
-   | 6700 OOE   | 10.00     |
+   | 6700 OOE   | 14.20     |
    | 6900 Fin   | 15.00     |
 
-   **After Transaction 12 (2026-08-20): Direct Tax Payment (Final)**
+   **After Transaction 12a (2024-12-13): Direct Tax Bill**
+
+   | Account    | Balance   |
+   |------------|-----------|
+   | 1000 Cash  | 0.00      |
+   | 1020 Bank  | 1,860.00  |
+   | 1100 A/R   | 68.10     |
+   | 1230 Inv   | 40.00     |
+   | 2000 A/P   | -75.00    |
+   | 2200 VAT   | -8.10     |
+   | 2210.001   | -38.50    |
+   | 2800       | -2,000.00 |
+   | 3400 Rev   | -60.00    |
+   | 6500 Admin | 9.30      |
+   | 6570.002   | 100.00    |
+   | 6700 OOE   | 14.20     |
+   | 6900 Fin   | 15.00     |
+   | 8900 Tax   | 75.00     |
+
+   **After Transaction 12b (2024-12-13): Direct Tax Payment (Final)**
 
    | Account    | Balance   |
    |------------|-----------|
    | 1000 Cash  | 0.00      |
    | 1020 Bank  | 1,785.00  |
-   | 1100 A/R   | 67.00     |
+   | 1100 A/R   | 68.10     |
    | 1230 Inv   | 40.00     |
    | 2000 A/P   | 0.00      |
-   | 2200 VAT   | -7.00     |
+   | 2200 VAT   | -8.10     |
    | 2210.001   | -38.50    |
    | 2800       | -2,000.00 |
    | 3400 Rev   | -60.00    |
-   | 6570 IT    | 13.50     |
+   | 6500 Admin | 9.30      |
    | 6570.002   | 100.00    |
-   | 6700 OOE   | 10.00     |
+   | 6700 OOE   | 14.20     |
    | 6900 Fin   | 15.00     |
    | 8900 Tax   | 75.00     |
 
    **Accounting Equation Verification (Final):**
-   - Total Assets: 0.00 + 1,785.00 + 67.00 + 40.00 = 1,892.00
-   - Total Liabilities: 7.00 (VAT) + 38.50 (John Smith) = 45.50
+   - Total Assets: 0.00 + 1,785.00 + 68.10 + 40.00 = 1,893.10
+   - Total Liabilities: 8.10 (VAT) + 38.50 (John Smith) = 46.60
    - Total Equity: 2,000.00 (Share Capital) + Net Income
-   - Net Income: Revenue (60.00) - Expenses (13.50 + 100.00 + 10.00 + 15.00 + 75.00 = 213.50) = -153.50 (net loss)
+   - Net Income: Revenue (60.00) - Expenses (9.30 + 100.00 + 14.20 + 15.00 + 75.00 = 213.50) = -153.50 (net loss)
    - Total Equity: 2,000.00 - 153.50 = 1,846.50
-   - Total L + E: 45.50 + 1,846.50 = 1,892.00 ✓ (matches Total Assets)
+   - Total L + E: 46.60 + 1,846.50 = 1,893.10 ✓ (matches Total Assets)
 
 4. **Data Integrity:**
    - All transactions are persisted to the database
@@ -747,12 +806,13 @@ Liabilities:
 - 2 Liabilities:20 Current liabilities:220 Other short-term liabilities:2210 Other short-term liabilities:2210.001 John Smith
 
 Equity:
-- 2 Liabilities:28 Shareholders Equity (legal entities):280 Basic, shareholder or foundation capital:2800 Basic, shareholder or foundation capital
+- 2 Equity:28 Shareholders Equity (legal entities):280 Basic, shareholder or foundation capital:2800 Basic, shareholder or foundation capital
 
 Revenue:
 - 3 Net proceeds from sales of goods and services:3400 Revenue from services
 
 Expenses:
+- 6 Other Operating Expenses, Depreciations and Value Adjustments, Financial result:6500 Administrative expenses
 - 6 Other Operating Expenses, Depreciations and Value Adjustments, Financial result:6570 IT and computing expenses, including leasing
 - 6 Other Operating Expenses, Depreciations and Value Adjustments, Financial result:6570 IT and computing expenses, including leasing:6570.002 Anthropic
 - 6 Other Operating Expenses, Depreciations and Value Adjustments, Financial result:6700 Other operating expenses

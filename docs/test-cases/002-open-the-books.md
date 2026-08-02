@@ -7,7 +7,7 @@
 
 See [PRECONDITIONS.md](./PRECONDITIONS.md) for general preconditions.
 
-**CRITICAL:** This test case depends on [Test Case 001](./001-create-journal-with-accounts.md) being completed first. The journal "Abstratium 2026" and its complete account tree must exist before executing this test.
+**CRITICAL:** This test case depends on [Test Case 001](./001-create-journal-with-accounts.md) being completed first. The journal "Abstratium 2024" and its complete account tree must exist before executing this test.
 
 ## Test Objective
 
@@ -24,7 +24,9 @@ Verify that a user can "open the books" by creating an opening balances transact
 
 ### Opening Balance Entries
 
-All accounts are initialized with CHF 0.00 to establish the opening position. The transaction must balance (debits = credits = 0.00).
+The following accounts are explicitly initialised with CHF 0.00 to establish the
+opening position. All other accounts in the tree use their default opening
+balance of CHF 0.00. The transaction must balance (debits = credits = 0.00).
 
 #### Equity Accounts (Credit side - establishing the baseline)
 1. **2800 Basic, shareholder or foundation capital**
@@ -82,15 +84,15 @@ Feature: Opening Balances Transaction
 
   Background:
     Given the user is signed into the application
-    And the journal "Abstratium 2026" exists with a complete account tree
-    And the user is on the journal detail page for "Abstratium 2026"
+    And the journal "Abstratium 2024" exists with a complete account tree
+    And the user is on the journal detail page for "Abstratium 2024"
 
   Scenario: Create opening balances transaction to open the books
     When the user navigates to the "Transactions" section
     And the user clicks "Create New Transaction"
     Then the transaction creation form should be displayed
     
-    When the user enters "2026-01-01" as the transaction date
+    When the user enters "2024-01-01" as the transaction date
     And the user enters "Opening Balances" as the transaction description
     And the user sets the transaction status to "Posted" or "Cleared"
     Then the transaction form should accept these values
@@ -176,20 +178,30 @@ Feature: Opening Balances Transaction
     Then the transaction should be saved successfully
     And a success message "Opening balances transaction created successfully" should be displayed
     And the user should see the transaction in the transactions list
-    And the transaction should be dated "2026-01-01"
+    And the transaction should be dated "2024-01-01"
     And the transaction should be marked as "Posted" or "Cleared"
     
     # Verify account balances
     When the user navigates to the "Accounts" section
-    And the user views the account balances as of "2026-01-01"
+    And the user views the account balances as of "2024-01-01"
     Then all accounts included in the opening balances transaction should show a balance of "0.00" CHF
     And the balance sheet should be balanced (Assets = Liabilities + Equity)
 ```
 
+> **Note on the balance-sheet assertion:** Because every opening-balance entry
+> is CHF 0.00, the check `Assets = Liabilities + Equity` resolves to the
+> trivial identity `0 = 0 + 0`. This does not meaningfully exercise the
+> accounting equation; it only confirms that the system accepts a balanced
+> zero-value transaction. The balance-sheet equation is verified substantively
+> (with non-zero balances) in [Test Case 003](./003-record-initial-business-transactions.md)
+> after the initial business transactions have been posted. An alternative would
+> be to seed one or more non-zero opening balances here, but that is out of
+> scope for this test, which deliberately opens the books from a clean slate.
+
 ## Expected Results
 
 1. **Transaction Creation:**
-   - Opening balances transaction is created with date 2026-01-01
+   - Opening balances transaction is created with date 2024-01-01
    - Transaction contains 11 entries (3 equity, 5 asset, 3 liability)
    - Transaction is marked as posted/cleared
    - Transaction ID is stored if provided
@@ -202,8 +214,8 @@ Feature: Opening Balances Transaction
 
 3. **Account Balances:**
    - All accounts in the transaction show opening balance of CHF 0.00
-   - Account balances are queryable as of 2026-01-01
-   - Balance sheet equation holds: Assets = Liabilities + Equity
+   - Account balances are queryable as of 2024-01-01
+   - Balance sheet equation holds: Assets = Liabilities + Equity (trivially 0 = 0 + 0 here; see note above)
 
 4. **Data Integrity:**
    - Transaction is persisted to the database

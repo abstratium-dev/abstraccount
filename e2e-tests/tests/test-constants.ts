@@ -2,7 +2,7 @@
  * Shared constants for e2e tests
  */
 
-export const TEST_JOURNAL_NAME = 'Abstratium 2026';
+export const TEST_JOURNAL_NAME = 'Abstratium 2024';
 export const TEST_JOURNAL_CURRENCY = 'CHF';
 export const TEST_JOURNAL_SUBTITLE = 'Test journal for Swiss accounting';
 
@@ -20,4 +20,6 @@ export const TEST_PARTNERS: { partnerNumber: string; partnerName: string }[] = [
   { partnerNumber: 'P00000004', partnerName: 'PostFinance AG' },
   { partnerNumber: 'P00000005', partnerName: 'Microsoft' },
   { partnerNumber: 'P00000006', partnerName: 'Canton Vaud Tax Authority' },
+  { partnerNumber: 'P00000007', partnerName: 'Anthropic' },
+  { partnerNumber: 'P00000014', partnerName: 'Acme Corp' },
 ];

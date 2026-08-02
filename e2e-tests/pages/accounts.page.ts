@@ -96,14 +96,25 @@ function getModalHeading(page: Page) {
 }
 
 /**
- * Gets an account link by its account code/number
- * The account code is at the start of the account name in the account-name-link element
+ * Gets an account link by its account code/number.
+ * The account code is at the start of the account name in the account-name-link element.
+ *
+ * If accountName is provided, matches on both code and full name (for disambiguation
+ * when multiple accounts share the same code, e.g., "2 Liabilities" and "2 Equity").
+ * If accountName is omitted, matches on code only.
  */
-function getAccountByCode(page: Page, code: string) {
+function getAccountByCode(page: Page, code: string, accountName?: string) {
+  const escapedCode = escapeRegExp(code);
+  if (accountName) {
+    // Match the full account name: "code accountName"
+    const fullName = `${code} ${accountName}`;
+    return page.locator('.account-name-link').filter({ hasText: fullName });
+  }
   // Match code at start of the account name (e.g., "1 Assets" or just "1")
-  // Using has-text with a pattern like "1 " or just the code for exact matches
-  const pattern = `${code} `;
-  return page.locator('.account-name-link').filter({ hasText: pattern }).first();
+  // Allow leading whitespace (Angular templates may render with surrounding whitespace)
+  // The \s|$ boundary ensures "2" doesn't match "2210" or "6570.001"
+  const codeRegex = new RegExp(`^\\s*${escapedCode}(\\s|$)`);
+  return page.locator('.account-name-link').filter({ hasText: codeRegex });
 }
 
 /**
@@ -358,13 +369,40 @@ export async function createChildAccount(
 }
 
 /**
- * Verifies that an account exists by checking for its code
+ * Verifies that an account exists by checking for its code (and optionally its full name).
+ *
+ * When accountName is provided, searches for the exact "code accountName" combination.
+ * This is needed when multiple root accounts share the same code (e.g., "2 Liabilities"
+ * and "2 Equity" in Swiss SME accounting).
+ *
+ * When accountName is omitted, searches by code only and asserts that exactly one
+ * account matches, failing if there are duplicates.
+ *
+ * @param page - Playwright page object
+ * @param accountCode - The account code (e.g., "1020", "2")
+ * @param accountName - Optional full account name for disambiguation (e.g., "Liabilities")
  */
-export async function verifyAccountExists(page: Page, accountCode: string) {
-  console.log(`Verifying account exists: ${accountCode}`);
-  const account = getAccountByCode(page, accountCode);
+export async function verifyAccountExists(page: Page, accountCode: string, accountName?: string) {
+  const label = accountName ? `${accountCode} ${accountName}` : accountCode;
+  console.log(`Verifying account exists: ${label}`);
+  const account = getAccountByCode(page, accountCode, accountName);
+
+  // Use expect() with timeout for auto-retry (the table may still be refreshing)
+  // First wait for at least one match to appear
+  await expect(account, `Account "${label}" not found (0 matches)`).not.toHaveCount(0, { timeout: 5000 });
+
+  // Then assert exactly one match (fails if duplicate codes exist without disambiguation)
+  const count = await account.count();
+  if (count > 1) {
+    const texts: string[] = [];
+    for (let i = 0; i < count; i++) {
+      texts.push(await account.nth(i).textContent() ?? '');
+    }
+    throw new Error(`Account "${label}" matched ${count} accounts (expected 1): ${JSON.stringify(texts)}`);
+  }
+
   await expect(account).toBeVisible({ timeout: 5000 });
-  console.log(`Account ${accountCode} exists`);
+  console.log(`Account ${label} exists (unique)`);
 }
 
 /**

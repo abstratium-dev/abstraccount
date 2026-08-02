@@ -171,7 +171,7 @@ test.describe('Journal and Account Management', () => {
       '2 Liabilities',
       'LIABILITY'
     );
-    await accountsPage.verifyAccountExists(page, '2');
+    await accountsPage.verifyAccountExists(page, '2', 'Liabilities');
     
     // Create child: 20 Current liabilities
     await accountsPage.createChildAccount(
@@ -266,22 +266,22 @@ test.describe('Journal and Account Management', () => {
     console.log('Liabilities hierarchy created');
     
     // ========================================================================
-    // Step 5: Create Equity hierarchy
+    // Step 5: Create Equity hierarchy (separate root: 2 Equity)
     // ========================================================================
     console.log('--- Step 5: Creating Equity Hierarchy ---');
     
-    // Create root account: 2 Equity (note: using same root number as Liabilities per Swiss accounting)
-    // Actually, looking at the test case, Equity should be separate
-    // Let me create it as a separate root account with code 2 for Equity
-    // Wait - the test case shows "2 Equity" and "2 Liabilities" separately
-    // This seems to be a documentation issue. Let me use different codes.
-    // Looking at Swiss accounting, Equity is typically under Passif (2x range)
-    // I'll create Equity accounts under the Liabilities root as children
+    // Create root account: 2 Equity (same code as 2 Liabilities per Swiss SME practice)
+    await accountsPage.createRootAccount(
+      page,
+      '2 Equity',
+      'EQUITY'
+    );
+    await accountsPage.verifyAccountExists(page, '2', 'Equity');
     
     // Create child: 28 Shareholders Equity
     await accountsPage.createChildAccount(
       page,
-      '2 Liabilities',
+      '2 Equity',
       '28 Shareholders Equity (legal entities)',
       'EQUITY'
     );
@@ -308,8 +308,8 @@ test.describe('Journal and Account Management', () => {
     // Create child: 290 Reserves and retained earnings
     await accountsPage.createChildAccount(
       page,
-      '2 Liabilities',
-      '290 Reserves and retained earnings',
+      '2 Equity',
+      '290 Reserves and retained earnings, own capital shares and disposable profit',
       'EQUITY'
     );
     await accountsPage.verifyAccountExists(page, '290');
@@ -356,6 +356,15 @@ test.describe('Journal and Account Management', () => {
     );
     await accountsPage.verifyAccountExists(page, '6');
     
+    // Create child: 6500 Administrative expenses
+    await accountsPage.createChildAccount(
+      page,
+      '6 Other Operating Expenses, Depreciations and Value Adjustments, Financial result',
+      '6500 Administrative expenses',
+      'EXPENSE'
+    );
+    await accountsPage.verifyAccountExists(page, '6500');
+
     // Create child: 6570 IT and computing expenses
     await accountsPage.createChildAccount(
       page,
@@ -477,7 +486,7 @@ test.describe('Journal and Account Management', () => {
     await accountsPage.verifyAccountExists(page, '1230');
     
     // Verify Liabilities
-    await accountsPage.verifyAccountExists(page, '2');
+    await accountsPage.verifyAccountExists(page, '2', 'Liabilities');
     await accountsPage.verifyAccountExists(page, '20');
     await accountsPage.verifyAccountExists(page, '200');
     await accountsPage.verifyAccountExists(page, '2000');
@@ -488,6 +497,7 @@ test.describe('Journal and Account Management', () => {
     await accountsPage.verifyAccountExists(page, '2208');
 
     // Verify Equity
+    await accountsPage.verifyAccountExists(page, '2', 'Equity');
     await accountsPage.verifyAccountExists(page, '28');
     await accountsPage.verifyAccountExists(page, '280');
     await accountsPage.verifyAccountExists(page, '2800');
@@ -502,6 +512,7 @@ test.describe('Journal and Account Management', () => {
 
     // Verify Operating Expenses
     await accountsPage.verifyAccountExists(page, '6');
+    await accountsPage.verifyAccountExists(page, '6500');
     await accountsPage.verifyAccountExists(page, '6570');
     await accountsPage.verifyAccountExists(page, '6570.001');
     await accountsPage.verifyAccountExists(page, '6570.002');
@@ -513,7 +524,7 @@ test.describe('Journal and Account Management', () => {
     await accountsPage.verifyAccountExists(page, '8900');
     await accountsPage.verifyAccountExists(page, '8910');
 
-    console.log('All 36 accounts verified successfully');
+    console.log('All 37 accounts verified successfully');
     
     console.log('=== Test 1 Complete: Journal and Accounts Created Successfully ===');
   });

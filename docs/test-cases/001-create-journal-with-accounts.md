@@ -14,10 +14,10 @@ Verify that a user can create a new journal and establish a complete account tre
 ## Test Data
 
 ### Journal Details
-- **Journal Name:** "Abstratium 2026"
+- **Journal Name:** "Abstratium 2024"
 - **Currency:** CHF (Swiss Franc)
-- **Fiscal Year Start:** 2026-01-01
-- **Fiscal Year End:** 2026-12-31
+- **Fiscal Year Start:** 2024-01-01
+- **Fiscal Year End:** 2024-12-31
 
 ### Account Tree Structure
 
@@ -33,6 +33,9 @@ The following account hierarchy should be created, inspired by the Swiss chart o
 │   ├── 110 Accounts Receivable
 │   │   └── 1100 Accounts receivable (Debtors)
 │   └── 120 Inventories and non-invoiced services
+│       ├── 1200 Inventory of hardware and components
+│       ├── 1210 Finished goods
+│       ├── 1220 Work in progress
 │       └── 1230 Goods held for resale
 ```
 
@@ -52,13 +55,21 @@ The following account hierarchy should be created, inspired by the Swiss chart o
 
 ```
 
+> **Note on the duplicate root code `2`:** Both Liabilities and Equity use root
+> account code `2`. This is intentional and correct per Swiss SME accounting
+> practice (Swiss GAAP FER): both are "Passif" (the credit side of the balance
+> sheet) and share the `2x` numbering range. They are distinguished by account
+> *name* (`2 Liabilities` vs `2 Equity`), not by code. This mirrors the
+> reference journal, where the two roots are `2 Passif / Liabilities` and
+> `2 Passif / Equity`.
+
 #### 2. Equity (Passif - Equity)
 ```
 2 Equity
 ├── 28 Shareholders Equity (legal entities)
 │   └── 280 Basic, shareholder or foundation capital
 │       └── 2800 Basic, shareholder or foundation capital
-└── 290 Reserves and retained earnings
+└── 290 Reserves and retained earnings, own capital shares and disposable profit
     ├── 2950 Legal reserves from profit
     ├── 2970 Profit carried forward or loss carried forward
     └── 2979 Annual profit or loss
@@ -73,9 +84,10 @@ The following account hierarchy should be created, inspired by the Swiss chart o
 #### 6. Operating Expenses
 ```
 6 Other Operating Expenses, Depreciations and Value Adjustments, Financial result
+├── 6500 Administrative expenses
 ├── 6570 IT and computing expenses, including leasing
 │   ├── 6570.001 Microsoft
-│   ├── 6570.002 Anthropic
+│   └── 6570.002 Anthropic
 ├── 6700 Other operating expenses
 └── 6900 Financial expense
 ```
@@ -86,6 +98,26 @@ The following account hierarchy should be created, inspired by the Swiss chart o
 ├── 8900 Direct taxes (legal entities)
 └── 8910 Taxes from prior periods
 ```
+
+> **Note on the tax accounts (2208, 8900, 8910):** These three accounts model
+> the direct-tax lifecycle for a Swiss legal entity:
+> - **8900 Direct taxes (legal entities)** — the *expense* account. Debited when
+>   a tax charge is recognised (either on receipt of the tax bill, or at year-end
+>   via a tax provision).
+> - **2208 Tax liabilities (provisions)** — the *liability* account on the
+>   balance sheet. Credited at year-end when a tax provision is recorded
+>   (Dr 8900 / Cr 2208), and debited when the provision is released against the
+>   actual tax payment. It holds the tax still owed at the end of the year.
+> - **8910 Taxes from prior periods** — the expense account for tax charges
+>   relating to prior fiscal years. It is created for completeness; the example
+>   journal does not currently post any amount to it.
+>
+> The reference journal shows the typical pattern: the tax bill arrives and is
+> booked as an expense against accounts payable (Dr 8900 / Cr 2000), then paid a
+> few days later (Dr 2000 / Cr 1020); separately, a year-end tax provision
+> transaction (Dr 8900 / Cr 2208) records any tax still owed at year-end. A
+> provision-then-release cycle (create provision, later reverse it against the
+> actual payment) is exercised in a later test case.
 
 ## Test Steps
 
@@ -102,12 +134,12 @@ Feature: Journal and Account Management
     When the user clicks on "Create New Journal"
     Then the journal creation form should be displayed
     
-    When the user enters "Abstratium 2026" as the journal name
+    When the user enters "Abstratium 2024" as the journal name
     And the user selects "CHF" as the currency
-    And the user sets the fiscal year start date to "2026-01-01"
-    And the user sets the fiscal year end date to "2026-12-31"
+    And the user sets the fiscal year start date to "2024-01-01"
+    And the user sets the fiscal year end date to "2024-12-31"
     And the user clicks "Create Journal"
-    Then the journal "Abstratium 2026" should be created successfully
+    Then the journal "Abstratium 2024" should be created successfully
     And the user should be redirected to the journal detail page
     And a success message "Journal created successfully" should be displayed
     
@@ -272,6 +304,13 @@ Feature: Journal and Account Management
     
     When the user selects account "220 Other short-term liabilities"
     And the user clicks "Add Child Account"
+    And the user enters account code "2208"
+    And the user enters account name "Tax liabilities (provisions)"
+    And the user clicks "Save Account"
+    Then the account "2208 Tax liabilities (provisions)" should be created
+    
+    When the user selects account "220 Other short-term liabilities"
+    And the user clicks "Add Child Account"
     And the user enters account code "2210"
     And the user enters account name "Other short-term liabilities"
     And the user clicks "Save Account"
@@ -299,7 +338,7 @@ Feature: Journal and Account Management
 ## Expected Results
 
 1. **Journal Creation:**
-   - Journal "Abstratium 2026" is created with CHF currency
+   - Journal "Abstratium 2024" is created with CHF currency
    - Fiscal year dates are correctly set
    - Journal appears in the journals list
 
