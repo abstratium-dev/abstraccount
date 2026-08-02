@@ -400,3 +400,98 @@ export async function createEntry(
   
   console.log(`Entry ${entryIndex + 1} created`);
 }
+
+// ============================================================================
+// Filter helpers (EQL - Entry Query Language)
+// ============================================================================
+
+/**
+ * Apply an EQL filter string in the filter input on the journal/transactions page.
+ * Clears any existing filter, types the new one, and clicks Apply.
+ */
+export async function applyFilter(page: Page, filter: string): Promise<void> {
+  console.log(`Applying filter: "${filter}"`);
+  const input = page.locator('input.filter-input');
+  await input.waitFor({ state: 'visible', timeout: 5000 });
+  // Clear existing text
+  await input.fill('');
+  await input.fill(filter);
+  // Click the Apply button
+  await page.locator('.apply-btn').click();
+  // Wait for the table to refresh
+  await page.waitForTimeout(500);
+  console.log('Filter applied');
+}
+
+/**
+ * Clear the active filter by clicking the ✕ button (or emptying the input).
+ */
+export async function clearFilter(page: Page): Promise<void> {
+  console.log('Clearing filter...');
+  const clearBtn = page.locator('.clear-btn');
+  if (await clearBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
+    await clearBtn.click();
+    await page.waitForTimeout(500);
+    console.log('Filter cleared via ✕ button');
+  } else {
+    // Fallback: empty the input and apply
+    const input = page.locator('input.filter-input');
+    await input.fill('');
+    await page.locator('.apply-btn').click();
+    await page.waitForTimeout(500);
+    console.log('Filter cleared via empty input');
+  }
+}
+
+/**
+ * Count the number of visible transaction rows in the table.
+ */
+export async function getVisibleTransactionCount(page: Page): Promise<number> {
+  // Count rows in the tbody that are actual data rows (not "no transactions" message)
+  const rows = page.locator('table tbody tr:has(td)');
+  const count = await rows.count();
+  console.log(`Visible transaction rows: ${count}`);
+  return count;
+}
+
+/**
+ * Assert that a transaction with the given description is visible in the table.
+ */
+export async function assertTransactionVisible(page: Page, description: string): Promise<void> {
+  console.log(`Asserting visible: "${description}"`);
+  const cell = page.locator(`table tbody tr td`).filter({ hasText: description }).first();
+  await expect(cell).toBeVisible({ timeout: 5000 });
+  console.log(`✓ Visible: "${description}"`);
+}
+
+/**
+ * Assert that a transaction with the given description is NOT visible in the table.
+ */
+export async function assertTransactionNotVisible(page: Page, description: string): Promise<void> {
+  console.log(`Asserting NOT visible: "${description}"`);
+  const cell = page.locator(`table tbody tr td`).filter({ hasText: description });
+  const count = await cell.count();
+  expect(count, `Expected "${description}" to NOT be visible but found ${count} match(es)`).toBe(0);
+  console.log(`✓ Not visible: "${description}"`);
+}
+
+/**
+ * Get all visible transaction descriptions from the table.
+ */
+export async function getVisibleTransactionDescriptions(page: Page): Promise<string[]> {
+  // The description cell is the one containing the description text, typically the 4th column
+  // or has a specific class. We'll grab all row text and extract descriptions.
+  const rows = page.locator('table tbody tr:has(td)');
+  const count = await rows.count();
+  const descriptions: string[] = [];
+  for (let i = 0; i < count; i++) {
+    const text = await rows.nth(i).textContent();
+    if (text) {
+      // Extract the description part - it's after the date and partner columns
+      // We'll just store the full row text for comparison purposes
+      descriptions.push(text.trim().replace(/\s+/g, ' '));
+    }
+  }
+  console.log(`Visible transaction descriptions: ${descriptions.length}`);
+  return descriptions;
+}

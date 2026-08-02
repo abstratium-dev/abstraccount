@@ -33,7 +33,6 @@ These TODOs are to be resolved by the developer, NOT THE LLM.
 - the user guide and closing page should describe that before hand, the user should do the tax provision (and tax payment?) and legal reserve allocation
 
 - finish e2e tests
-  - add testing of filters
   - add testing of entries (pivot)
   - add tests that assert that when child accounts are hidden, the parent of them shows the correct balance which is the sum of the children, and it shows 0 otherwise. in fact, instead of showing 0, if it is a parent it should show no number! hmm but what if they actually have an entry that directly references them? remember that account kids can be added at any time, so it isn't possible to limit entries to only kids
   - multitenancy tests
@@ -41,11 +40,13 @@ These TODOs are to be resolved by the developer, NOT THE LLM.
   - test closing the books and year end, checking accounts have the correct balances at the end.
   - make it use the built-in macros and reports by importing them before it does anything with them
 
-- link the EQL docs to the user guide
-
 - deploy to test and prod
 
 ## Tomorrow
+
+- improve entries screen
+- fix bug on entries scren where it sometimes hangs
+- add more e2e tests for entries screen
 
 - year end taxes - use this for the macro and test it
   - 2024-12-31 * taxes based on equity tax (about 38 chf) and 15% of profit (0)
