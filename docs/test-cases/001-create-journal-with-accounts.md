@@ -46,6 +46,7 @@ The following account hierarchy should be created, inspired by the Swiss chart o
         ├── 2200 VAT payable
         ├── 2201 VAT settlement
         ├── 2206 Withholding tax payable
+        ├── 2208 Tax liabilities (provisions)
         └── 2210 Other short-term liabilities
             └── 2210.001 John Smith
 
@@ -75,6 +76,7 @@ The following account hierarchy should be created, inspired by the Swiss chart o
 ├── 6570 IT and computing expenses, including leasing
 │   ├── 6570.001 Microsoft
 │   ├── 6570.002 Anthropic
+├── 6700 Other operating expenses
 └── 6900 Financial expense
 ```
 

@@ -15,7 +15,7 @@
       <li><a [routerLink]="['/user-guide']" fragment="close-books">Close the books at year end</a></li>
       <li><a [routerLink]="['/user-guide']" fragment="new-year">Open a new year</a></li>
       <li><a [routerLink]="['/user-guide']" fragment="multi-currency">Work with multiple currencies</a></li>
-      <li><a [routerLink]="['/user-guide']" fragment="filters">Use filters</a></li>
+      <li><a [routerLink]="['/user-guide']" fragment="filters">Query language (filters)</a></li>
       <li><a [routerLink]="['/user-guide']" fragment="printing">Print the journal and accounts</a></li>
     </ul>
   </nav>
@@ -47,7 +47,22 @@
     </ul>
     <p>
       Open the <strong>Accounts</strong> page to build your chart of accounts. Click <strong>Add Account</strong> to create a top-level account, or click an existing account to add a child account underneath it.
-      The <strong>Account Name</strong> starts with a numeric code, for example <code>1020 Bank Account</code>, and the first word is used as the account code. You can also add a note and a display order to control sorting.
+      You can also add a note and a display order to control sorting.
+    </p>
+    <p>
+      It is <strong>recommended</strong> that each <strong>Account Name</strong> begins with a numeric code as its first word, followed by a human-readable description. The first word is treated as the account's code and is used to build a path of references to the account's details. For example:
+    </p>
+    <ul>
+      <li><code>1 Assets</code></li>
+      <li><code>1000 Cash</code></li>
+      <li><code>1020 Bank Account</code></li>
+      <li><code>2210.001 John Smith</code> (an individual debtor under <code>2210 Debtors</code>)</li>
+    </ul>
+    <p>
+      On the <strong>Journal</strong> page each entry shows the account as a chain of clickable codes built from the first word of every account in its hierarchy, separated by colons. For example, an entry on <code>1020 Bank Account</code> (whose parent is <code>1000 Cash</code>, whose parent is <code>1 Assets</code>) is displayed as <code>1:1000:1020</code> followed by the description <code>Bank Account</code>. Each code is a link that opens the corresponding <strong>Account Ledger</strong>, so you can drill into any ancestor or the account itself directly from the journal.
+    </p>
+    <p>
+      Using <strong>unique</strong> account numbers as the first word is also what makes the built-in <strong>reports</strong> and <strong>macros</strong> easy to write: both can search for accounts by matching a regular expression against the colon-separated code path (for example <code>^1:10:110</code> matches every receivables account). When numbers are unique and arranged in a consistent hierarchy, a single regex reliably selects a whole branch of the chart of accounts. The sections on <a [routerLink]="['/user-guide']" fragment="macros">macros</a> and <a [routerLink]="['/user-guide']" fragment="reports">reports</a> below show concrete examples of this.
     </p>
     <p>
       Parent accounts let you organise the chart into a tree. For example, an <code>1000 Cash</code> parent may have children <code>1010 Cash on Hand</code> and <code>1020 Bank Account</code>.
@@ -92,46 +107,255 @@
   <section id="macros" class="guide-section">
     <h2>Use macros for recurring entries</h2>
     <p>
-      The <strong>Macros</strong> page lists predefined templates that generate complete journal entries from a few parameters. They are useful for recurring events such as monthly depreciation, salary payments, or loan interest.
+      The <strong>Macros</strong> page lists predefined templates that generate complete journal entries from a few parameters. They are useful for recurring events such as monthly depreciation, salary payments, invoicing, or loan interest.
     </p>
     <p>
-      To run a macro, choose it from the list, fill in the parameters (dates, amounts, accounts, and so on), and click the generate button. The application creates the corresponding transaction and returns you to the journal.
+      A macro is made up of four parts:
+    </p>
+    <ul>
+      <li><strong>Parameters</strong>: the values you fill in each time you run the macro. Each parameter has a type, a prompt, an optional default value, and (for account parameters) an optional <code>filter</code> regex that restricts which accounts can be selected. The supported types are:
+        <ul>
+          <li><code>date</code> — a date in <code>YYYY-MM-DD</code> format, shown as a date picker.</li>
+          <li><code>amount</code> — a monetary amount, shown as a number input.</li>
+          <li><code>text</code> — free text, for descriptions and notes.</li>
+          <li><code>code</code> — a short code such as an invoice number.</li>
+          <li><code>number</code> — a plain number.</li>
+          <li><code>account</code> — an account selector with autocomplete, constrained by the <code>filter</code> regex.</li>
+          <li><code>partner</code> — a business partner, chosen from a dropdown.</li>
+          <li><code>invoice</code> — an invoice number, with automatic sequential defaults (see <code>{next_invoice_SI}</code> below).</li>
+          <li><code>status</code> — the transaction status marker: <code>*</code> for cleared, <code>!</code> for pending, or empty.</li>
+        </ul>
+      </li>
+      <li><strong>Template</strong>: the body of the transaction, written in the same ledger-style text format used by the journal import. The first line is the date, an optional status marker (<code>*</code> or <code>!</code>), the partner, and a description separated by <code>|</code>. Lines starting with <code>;</code> are comments and become tags on the transaction (for example <code>; invoice:SI20260100001</code> creates an <code>invoice:SI20260100001</code> tag). Each subsequent indented line is an entry posting: an account, a commodity, and an amount (negative for credits). Placeholders in curly braces (for example <code>{date}</code>, <code>{amount}</code>, <code>{bank_account}</code>) are replaced with the parameter values when the macro runs.</li>
+      <li><strong>Validation</strong>: rules checked before the transaction is saved, such as <code>balanceCheck</code> (debits must equal credits) and <code>minPostings</code> (minimum number of entry lines).</li>
+      <li><strong>Notes</strong>: a free-text explanation shown on the macro card to help you remember when to use it.</li>
+    </ul>
+    <p>
+      The following built-in placeholders are always available, even without a matching parameter:
+    </p>
+    <ul>
+      <li><code>{today}</code> — the current date, for example <code>2026-08-02</code>.</li>
+      <li><code>{year}</code>, <code>{month}</code>, <code>{day}</code> — the current year, month (zero-padded), and day (zero-padded).</li>
+      <li><code>{next_invoice_SI}</code>, <code>{next_invoice_PI}</code>, and so on — the next sequential invoice number for the given prefix, looked up in the current journal.</li>
+    </ul>
+    <p>
+      Templates also support arithmetic expressions inside <code>{braces}</code> using parameter names and numeric literals. The operators <code>+ - * /</code> are supported, with standard precedence (<code>*</code> and <code>/</code> before <code>+</code> and <code>-</code>). Expressions are evaluated before simple placeholder substitution, so parameter names must match exactly. If an expression cannot be evaluated it is left unchanged. For example, the built-in <strong>TaxPayment</strong> macro uses <code>{actual_amount - provision_amount}</code> to record the difference between the actual tax bill and the amount provisioned at year end:
+    </p>
+<pre><code>{date} * {partner} | {description}
+    ; TaxPayment:
+    2:20:220:2208    CHF {provision_amount}
+    8:8900           CHF {actual_amount - provision_amount}
+    {bank_account}   CHF -{actual_amount}</code></pre>
+    <p>
+      With <code>provision_amount = 350</code> and <code>actual_amount = 380</code>, the expression resolves to <code>30</code>. Other examples: <code>{amount * 1.077}</code> applies a multiplier, and <code>{a + b * 2}</code> evaluates <code>b * 2</code> first.
     </p>
     <p>
-      Macros use the same accounts and partners as manual transactions, so make sure the relevant accounts exist before running a macro that depends on them.
+      To run a macro, choose it from the list, fill in the parameters, and click <strong>Execute Macro</strong>. The application creates the corresponding transaction and returns you to the journal.
     </p>
+    <p>
+      Account parameters use the colon-separated code path described in <a [routerLink]="['/user-guide']" fragment="accounts">Create your accounts</a>. The <code>filter</code> regex on an account parameter is matched against that full code path, so you can constrain the picker to a specific branch of the chart of accounts. This is why unique, well-organised account numbers make macros much easier to write. For example:
+    </p>
+    <ul>
+      <li><code>"filter":"^1.*:10.*:100.*:1020.*$"</code> only offers bank accounts under <code>1:10:100:1020</code>.</li>
+      <li><code>"filter":"^1.*:10.*:110.*:1100.*$"</code> only offers the receivables account <code>1100</code>.</li>
+      <li><code>"filter":"^6.*:6900.*$"</code> only offers the financial-expense account <code>6900</code>.</li>
+      <li><code>"filter":"^6.*:.*$|^1.*:10.*:120.*:.*$|^1.*:14.*:150.*$"</code> offers any expense account, any inventory account, or any fixed-asset account — a single macro can then be reused across several account families.</li>
+    </ul>
+    <p>
+      A complete example is the built-in <strong>CustomerPaysInvoice</strong> macro. It records a customer payment that clears a previously sent invoice:
+    </p>
+<pre><code>parameters:
+  - date          (date, default {today})
+  - partner       (partner — the customer)
+  - invoice_number (invoice — 8 digits)
+  - amount        (amount, e.g. 100.50)
+  - description   (text)
+  - ingoing_account    (account, filter "^1.*:10.*:100.*:10[0-9]0.*$")
+  - receivable_account (account, filter "^1.*:10.*:110.*:1100.*$")
+
+template:
+  {date} * {partner} | {description}
+      ; invoice:{invoice_number}
+      {ingoing_account}      CHF {amount}
+      {receivable_account}   CHF -{amount}
+
+validation: { "balanceCheck": true, "minPostings": 2 }</code></pre>
+    <p>
+      When executed with a date of <code>2026-01-15</code>, partner <code>Acme Corp</code>, invoice <code>SI20260100001</code>, amount <code>2000.00</code>, and the bank account <code>1:10:100:1020 Bank Account</code> selected for <code>ingoing_account</code> and <code>1:10:110:1100 Debtors</code> for <code>receivable_account</code>, the macro produces:
+    </p>
+<pre><code>2026-01-15 * Acme Corp | Payment for invoice SI20260100001
+    ; invoice:SI20260100001
+    1:10:100:1020 Bank Account      CHF 2000.00
+    1:10:110:1100 Debtors           CHF -2000.00</code></pre>
+    <p>
+      Macros use the same accounts and partners as manual transactions, so make sure the relevant accounts exist before running a macro that depends on them. Macros can be exported to and imported from a YAML file via the menu in the top-right of the <strong>Macros</strong> page, and the built-in set can be re-imported at any time with <strong>Import Built-in</strong>.
+    </p>
+    <p>
+      The built-in macros cover the most common small-business scenarios:
+    </p>
+    <ul>
+      <li><strong>InvoiceForServicesOrSaas</strong> — send a customer invoice for services or SaaS (debit receivables, credit revenue).</li>
+      <li><strong>CustomerPaysInvoice</strong> — record a customer payment that clears a previously sent invoice (debit bank, credit receivables).</li>
+      <li><strong>PayInvoiceFromBank</strong> — record a supplier invoice and pay it from the bank in two steps (debit expense, credit payables; then debit payables, credit bank).</li>
+      <li><strong>PaymentForGoods</strong> — purchase goods for resale (debit inventory, credit payables or cash).</li>
+      <li><strong>BankingExpense</strong> — record bank fees and charges (debit financial expense, credit bank).</li>
+      <li><strong>PaymentByStaff</strong> — a staff member pays a business expense with personal funds (debit expense, credit staff liability).</li>
+      <li><strong>RepayStaff</strong> — reimburse a staff member for expenses they paid (debit staff liability, credit bank).</li>
+      <li><strong>InventoryAdjustment</strong> — year-end inventory write-down for obsolete or damaged goods (debit expense, credit inventory).</li>
+      <li><strong>RecordDepreciation</strong> — annual depreciation of fixed assets (debit depreciation expense, credit fixed asset).</li>
+      <li><strong>TaxPayment</strong> — pay provisioned taxes, with an automatic adjustment if the actual bill differs from the provision.</li>
+      <li><strong>LegalReserveAllocation</strong> — mandatory 5% profit allocation to legal reserves for Swiss Sàrl (debit annual profit, credit legal reserves).</li>
+    </ul>
   </section>
 
   <section id="reports" class="guide-section">
     <h2>View reports</h2>
     <p>
-      The <strong>Reports</strong> page lets you generate formatted views of your data. Choose a report template, such as a <strong>Trial Balance</strong> or <strong>Profit and Loss</strong> statement, and set the date range you want to cover.
+      The <strong>Reports</strong> page lets you generate formatted views of your data. Choose a report template from the drop-down, set the date range you want to cover, and the report is rendered immediately. Use the <strong>Hide zero balances</strong> option to focus on accounts with activity. Reports share the same filter input as the Journal page, so you can also narrow a report with EQL predicates such as <code>partner:*ACME*</code>, <code>tag:invoice:PI00001</code>, and <code>date:between:2024-01-01..2024-12-31</code> (see <a [routerLink]="['/user-guide']" fragment="filters">Query language (filters)</a>).
     </p>
     <p>
-      A <strong>trial balance</strong> lists every account with its current balance. In a healthy set of books, the sum of all debit balances equals the sum of all credit balances. Use the <strong>Hide zero balances</strong> option to focus on accounts with activity.
+      A report template is a JSON document with a single <code>sections</code> array. Each section becomes a titled block in the rendered report and is configured by a combination of the following properties:
+    </p>
+    <ul>
+      <li><code>title</code> and <code>level</code>: the heading text and its depth (<code>1</code> for an <code>h1</code>, <code>2</code> for an <code>h2</code>, and so on; the default is <code>3</code>).</li>
+      <li><code>accountTypes</code>: an array of account types to include, for example <code>["ASSET","CASH"]</code> or <code>["REVENUE"]</code>. This selects accounts by their <em>type</em>, regardless of their number.</li>
+      <li><code>accountRegex</code>: a regular expression matched against each account's full colon-separated code path (the same path shown on the Journal page, e.g. <code>1:10:110:1100 Debtors</code>). This selects accounts by their <em>number</em>, which is why unique account numbers make reports easy to write.</li>
+      <li><code>showAccounts</code>: whether to list the individual accounts in the section (default <code>true</code>); set to <code>false</code> to show only a subtotal line.</li>
+      <li><code>showSubtotals</code>: whether to display a subtotal for the section.</li>
+      <li><code>showDebitsCredits</code>: whether to show separate debit and credit columns.</li>
+      <li><code>invertSign</code>: displays balances with the sign flipped, useful for liability, equity, and revenue accounts which normally carry a credit (negative) balance.</li>
+      <li><code>calculated</code>: renders a single computed line instead of account rows. Supported values are <code>"netIncome"</code> (revenue minus expenses) and <code>"totalAssets"</code>. Use this on an income statement to print the bottom line; it is automatically hidden when the value is zero.</li>
+      <li><code>includeNetIncome</code>: adds the period's net income to the section subtotal. Use this on a balance sheet so that current-period profit is included in equity and the sheet balances; the net-income line is automatically hidden when it is zero.</li>
+      <li><code>groupByPartner</code>: groups entries by business partner instead of by account, with optional <code>sortable</code>, <code>defaultSortColumn</code>, and <code>defaultSortDirection</code>.</li>
+      <li><code>tagKey</code> / <code>tagValuePrefix</code> with <code>calculated: "tagGrouped"</code>: groups transactions by a tag (for example unpaid invoices tagged <code>invoice:SI...</code>). The net amount per group can be restricted to specific accounts with <code>balanceAccountIds</code>, <code>balanceAccountRegex</code>, or <code>balanceAccountNameRegex</code> (matched against the full hierarchical name, e.g. <code>"1100"</code> matches <code>1:10:110:1100 Debtors</code>). Groups with a net balance above zero are shown as "underpaid" (in red); those below zero as "overpaid".</li>
+      <li><code>useJournalChain</code>: when <code>true</code>, loads data from every journal in the chain (including opening balances carried from previous years) instead of only the current journal. This is essential for reports such as unpaid invoices, where an invoice may have been issued in an earlier year and paid in a later one.</li>
+    </ul>
+    <p>
+      The simplest report is the built-in <strong>Income Statement</strong>. It selects revenue and expense accounts by type and then prints the calculated net income:
+    </p>
+<pre><code>{
+  "sections": [
+    { "title": "Revenue",  "accountTypes": ["REVENUE"],  "showSubtotals": true, "invertSign": true },
+    { "title": "Expenses", "accountTypes": ["EXPENSE"],  "showSubtotals": true },
+    { "title": "Net Income", "calculated": "netIncome" }
+  ]
+}</code></pre>
+    <p>
+      The <strong>Swiss Income Statement</strong> shows how <code>accountRegex</code> selects accounts by number. It groups expense accounts by their leading digit, which corresponds to the Swiss KMU chart of accounts (<code>4</code> = cost of goods, <code>5</code> = personnel, <code>6</code> = other operating expenses):
+    </p>
+<pre><code>{
+  "sections": [
+    { "title": "Cost of Materials and Goods",      "accountRegex": "^4 ", "showSubtotals": true },
+    { "title": "Personnel Expenses",               "accountRegex": "^5 ", "showSubtotals": true },
+    { "title": "Other Operating Expenses",         "accountRegex": "^6 ", "showSubtotals": true },
+    { "title": "Total Expenses", "accountTypes": ["EXPENSE"], "showAccounts": false },
+    { "title": "Net Income", "calculated": "netIncome" }
+  ]
+}</code></pre>
+    <p>
+      The <strong>Swiss Tax Declaration</strong> goes further and matches the full hierarchical code path. Each line of the form pulls a specific branch of the balance sheet, for example all receivables (<code>^1:10:110</code>), all loans to shareholders (<code>^1:10:13</code>), or share capital (<code>^2:28:280</code>):
+    </p>
+<pre><code>{
+  "sections": [
+    { "title": "A.1 Total receivables from sales of goods and services",
+      "accountRegex": "^1:10:110", "showSubtotals": false },
+    { "title": "A.2 Total receivables/loans to shareholders and related parties",
+      "accountRegex": "^1:10:13",  "showSubtotals": false },
+    { "title": "A.8 Total loans from shareholders and related parties",
+      "accountRegex": "^2:20:220:2210", "invertSign": true, "showSubtotals": false },
+    { "title": "C.1 Share capital",
+      "accountRegex": "^2:28:280", "invertSign": true, "showAccounts": false }
+  ]
+}</code></pre>
+    <p>
+      A <strong>balance sheet</strong> uses <code>includeNetIncome</code> to fold the current-period profit into equity so that total assets equal total liabilities plus equity. The built-in <strong>Balance Sheet</strong> separates cash from other assets and inverts the sign on liabilities and equity (which normally carry credit balances):
+    </p>
+<pre><code>{
+  "sections": [
+    { "title": "Cash and Cash Equivalents", "accountTypes": ["CASH"],    "showSubtotals": true },
+    { "title": "Other Assets",              "accountTypes": ["ASSET"],   "showSubtotals": true },
+    { "title": "Total Assets",              "accountTypes": ["CASH","ASSET"], "showAccounts": false },
+    { "title": "Liabilities",               "accountTypes": ["LIABILITY"], "showSubtotals": true, "invertSign": true },
+    { "title": "Equity",                    "accountTypes": ["EQUITY"],    "showSubtotals": true, "invertSign": true, "includeNetIncome": true },
+    { "title": "Total Liabilities and Equity", "accountTypes": ["LIABILITY","EQUITY"], "showAccounts": false, "includeNetIncome": true, "invertSign": true }
+  ]
+}</code></pre>
+    <p>
+      A <strong>tag-grouped report</strong> is useful for tracking unpaid invoices. The built-in <strong>Unpaid Sales Invoices</strong> report groups transactions by their <code>invoice:SI...</code> tag, calculates the net balance on the receivables account <code>1100</code> for each group, and loads data across the whole journal chain so that invoices issued in a previous year are still picked up:
+    </p>
+<pre><code>{
+  "sections": [
+    {
+      "title": "Unpaid Sales Invoices",
+      "calculated": "tagGrouped",
+      "tagKey": "invoice",
+      "tagValuePrefix": "SI",
+      "balanceAccountNameRegex": "1100",
+      "useJournalChain": true,
+      "sortable": true,
+      "defaultSortColumn": "net",
+      "defaultSortDirection": "desc"
+    }
+  ]
+}</code></pre>
+    <p>
+      Each group shows the invoice number, partner, first date, and net amount on the receivables account. A positive net means the invoice is underpaid (shown in red); a negative net means it is overpaid. Groups that net to zero are hidden unless you uncheck <strong>Hide zero balances</strong>. Because <code>balanceAccountNameRegex</code> is matched against the full hierarchical account name (e.g. <code>1:10:110:1100 Debtors</code>), the same unique account numbers that make macros easy to write also make tag-grouped reports easy to target.
     </p>
     <p>
-      Some reports can look across the whole journal chain, including opening balances carried from previous years. Select the appropriate template option or use the date filters to control the period shown.
+      A <strong>trial balance</strong> lists every account with its current balance. In a healthy set of books, the sum of all debit balances equals the sum of all credit balances. You can build one by selecting all account types in a single section, or use <code>accountRegex</code> such as <code>.*</code> to match every account.
+    </p>
+    <p>
+      Report templates can be exported to and imported from a YAML file via the menu in the top-right of the <strong>Reports</strong> page, and the built-in set can be re-imported at any time with <strong>Import Built-in</strong>.
     </p>
   </section>
 
   <section id="close-books" class="guide-section">
     <h2>Close the books at year end</h2>
     <p>
-      At the end of a financial year, revenue and expense accounts should be reset to zero and their net result transferred to an equity account. This is called <strong>closing the books</strong>.
+      At the end of a financial year, revenue and expense accounts are reset to zero and their net result is transferred to an equity account. This is called <strong>closing the books</strong>. The steps below should be followed in order; printing the financial statements at the wrong point is the most common year-end mistake.
     </p>
     <p>
-      Open the <strong>Close Books at End of Year</strong> page, choose the closing date (typically the last day of the year), and select the equity account that should receive the year's result, for example an account with the code path <code>2:290:2979</code>.
+      <strong>Phase 1 — Reconcile before you close.</strong> Before making any closing entries, make sure every transaction through the last day of the year is recorded and reconciled:
+    </p>
+    <ul>
+      <li>Reconcile bank and cash accounts against statements.</li>
+      <li>Verify that all supplier invoices received and all customer invoices sent have been entered.</li>
+      <li>Record any accrued revenue (services delivered but not yet invoiced) and accrued expenses (goods or services received but not yet invoiced).</li>
+      <li>Record any prepaid expenses and deferred revenue that cross the year boundary.</li>
+      <li>Count physical inventory (if applicable) and record write-downs for obsolete or damaged goods — the <strong>InventoryAdjustment</strong> macro can be used for this.</li>
+      <li>Review accounts receivable and create provisions for doubtful debts if needed.</li>
+    </ul>
+    <p>
+      <strong>Phase 2 — Closing adjustments.</strong> Record the following year-end adjustments, in this order, before closing the books:
+    </p>
+    <ol>
+      <li><strong>Depreciation</strong> — record annual depreciation on fixed assets using the <strong>RecordDepreciation</strong> macro (debit depreciation expense <code>6800</code>, credit the fixed-asset account).</li>
+      <li><strong>Provisions</strong> — create or adjust provisions for warranties, legal disputes, or restructuring.</li>
+      <li><strong>Accruals and deferrals</strong> — record the prepaid/accrued expense and deferred/accrued revenue entries identified in Phase 1.</li>
+      <li><strong>Tax provision</strong> — estimate the corporate income tax and capital tax owed for the year and record it as an expense (debit <code>8900</code> Direct taxes, credit <code>2208</code> Tax liabilities). The tax office sends an estimated bill during the year; the provision should cover any additional tax due on profit earned above their estimate. Consult your accountant or fiduciaire for the calculation.</li>
+      <li><strong>Legal reserve allocation</strong> — for a Swiss Sàrl, allocate 5% of the annual profit to legal reserves (debit <code>2979</code> Annual profit/loss, credit <code>2950</code> Legal reserves) using the <strong>LegalReserveAllocation</strong> macro. This is mandatory under Swiss CO Art. 671-671a and must continue until legal reserves reach 20% of share capital.</li>
+    </ol>
+    <p>
+      <strong>Phase 2.6 — Print your financial statements now.</strong> After the adjustments above are recorded, and <em>before</em> you close the books, print the <strong>Income Statement</strong> and <strong>Balance Sheet</strong> from the <a [routerLink]="['/user-guide']" fragment="reports">Reports</a> page. This is the point at which the income statement shows the full year's revenue and expenses (including the tax provision) and the correct net profit. Save these reports for your tax declaration and records. <strong>If you print the income statement after closing, it will be blank</strong> because all revenue and expense accounts will have been zeroed out.
     </p>
     <p>
-      The application shows a preview of the affected income and expense accounts and the amounts that will be transferred. Review the preview and confirm to create the closing transactions. After closing, the revenue and expense accounts have zero balances and the equity account reflects the net income or loss for the year.
+      The <strong>Swiss Tax Declaration</strong> report template is designed to be filled in from the figures available at this point. Print it alongside the balance sheet and income statement and give the full set to your accountant.
+    </p>
+    <p>
+      <strong>Phase 3 — Close the books.</strong> Open the <strong>Close Books at End of Year</strong> page, choose the closing date (typically the last day of the year), and select the equity account that should receive the year's result, for example the account with the code path <code>2:290:2979</code> (Annual profit/loss). The application shows a preview of every revenue and expense account with a non-zero balance and the amount that will be transferred. Review the preview and confirm to create the closing transactions. After closing, the revenue and expense accounts have zero balances and the equity account reflects the net income or loss for the year.
+    </p>
+    <p>
+      Each closing transaction is automatically tagged with a <code>Closing</code> tag (with an empty value) so that it can be distinguished from normal business transactions. The application's KPI totals already exclude <code>Closing</code>-tagged transactions, so the headline figures stay meaningful. When viewing reports or the journal after closing, you can exclude the closing entries yourself by adding <code>NOT tag:Closing</code> to the <a [routerLink]="['/user-guide']" fragment="filters">filter</a>. This lets you print the income statement and balance sheet as they looked <em>before</em> closing, even after the closing entries have been posted.
+    </p>
+    <p>
+      <strong>Phase 4 — Transfer profit to retained earnings.</strong> The balance remaining in <code>2979</code> (Annual profit/loss) after closing is the year's result. On the first day of the new year, transfer it to <code>2970</code> (Retained earnings). This is handled automatically when you open the new year — see <a [routerLink]="['/user-guide']" fragment="new-year">Open a new year</a> below.
     </p>
   </section>
 
   <section id="new-year" class="guide-section">
     <h2>Open a new year</h2>
     <p>
-      After closing the previous year, use the <strong>New Year</strong> page to create the next journal. The new journal copies the chart of accounts and any non-zero opening balances from the current one.
+      After closing the previous year (Phase 3 in <a [routerLink]="['/user-guide']" fragment="close-books">Close the books at year end</a>), use the <strong>New Year</strong> page to create the next journal. This performs Phase 4: it copies the chart of accounts and any non-zero opening balances from the current journal into a new journal, and transfers the balance of the <strong>annual profit/loss</strong> account (e.g. <code>2979</code>) into the <strong>retained earnings</strong> account (e.g. <code>2970</code>) on the first day of the new year.
     </p>
     <p>
       Provide an opening date (usually the first day of the new year), a title, the <strong>retained earnings</strong> account, and the <strong>annual profit and loss</strong> account.
@@ -156,18 +380,63 @@
   </section>
 
   <section id="filters" class="guide-section">
-    <h2>Use filters</h2>
+    <h2>Query language (filters)</h2>
     <p>
-      Many pages share a filter input that lets you narrow the displayed data. You can combine several search tokens.
+      The <strong>Journal</strong>, <strong>Accounts</strong>, <strong>Reports</strong>, and <strong>Entry Search</strong> pages share a single filter input that uses the <strong>Entry Query Language (EQL)</strong> — a small, human-readable filter language inspired by SQL <code>WHERE</code> clauses. The filter you type is sent to the backend, parsed into a predicate tree, and evaluated against every transaction in the current journal (or, for reports, against the journal chain when the template requests it).
+    </p>
+    <p>
+      The filter input offers an <strong>Apply</strong> button (or press <kbd>Enter</kbd>) to run the query and a <strong>✕</strong> button to clear it. The current filter is saved to local storage and shared across pages, so you can move from the Journal to the Accounts page to a Report without retyping it. Press <kbd>Ctrl+Space</kbd> while editing to bring up autocomplete suggestions for the available predicates and operators; when you are typing a <code>tag:</code> predicate, the known tag keys and values from the current journal are suggested automatically. On the <strong>Journal</strong> and <strong>Accounts</strong> pages you can also click a tag or partner directly to insert the corresponding filter token.
+    </p>
+    <p>
+      A query is built from <strong>predicates</strong> combined with the logical operators <code>AND</code>, <code>OR</code>, and <code>NOT</code>, and grouped with parentheses. Two predicates next to each other with only whitespace between them are treated as <code>AND</code> (implicit AND), which is what you would expect from a search box. Operator precedence, highest to lowest, is <code>NOT</code> &gt; <code>AND</code> &gt; <code>OR</code>.
+    </p>
+    <p>
+      Each predicate takes a <em>match value</em> in one of three forms:
     </p>
     <ul>
-      <li>Free text searches descriptions and account names in the current view.</li>
-      <li><code>tag:key:value</code> or <code>tag:key</code> limits results to transactions with a matching tag.</li>
-      <li><code>partner:PARTNER_ID</code> shows only transactions for that partner.</li>
-      <li><code>begin:YYYYMMDD</code> and <code>end:YYYYMMDD</code> restrict the date range.</li>
+      <li><strong>Glob</strong> (a plain token): <code>*</code> matches any run of characters and <code>?</code> matches a single character; matching is case-insensitive. A plain token with no wildcards is treated as a case-insensitive <em>exact</em> match.</li>
+      <li><strong>Quoted string</strong> (<code>"exact text"</code> or <code>'exact text'</code>): a case-insensitive literal equality test, with no wildcard expansion.</li>
+      <li><strong>Regex</strong> (<code>/pattern/</code>, with an optional trailing <code>i</code> flag for case-insensitivity): a Java regular expression match.</li>
     </ul>
     <p>
-      On the <strong>Journal</strong> and <strong>Accounts</strong> pages you can also click a tag or partner directly to add that filter automatically. The filter is saved in the page so you can navigate away and come back without losing it.
+      The available predicates are:
+    </p>
+    <ul>
+      <li><code>date:eq:2024-01-31</code>, <code>date:gt:</code>, <code>date:gte:</code>, <code>date:lt:</code>, <code>date:lte:</code>, and <code>date:between:2024-01-01..2024-12-31</code> — filter by the transaction date. Dates are ISO <code>YYYY-MM-DD</code>; <code>between</code> is inclusive.</li>
+      <li><code>partner:HOSTSTAR</code>, <code>partner:*STAR*</code>, <code>partner:/host.*/i</code> — filter by partner ID (the part of the transaction description after the <code>|</code>).</li>
+      <li><code>description:*invoice*</code>, <code>description:/^P\d+/</code>, <code>description:"Exact Text"</code> — filter by the transaction description, case-insensitive by default.</li>
+      <li><code>commodity:CHF</code> — a transaction matches if <em>any</em> of its entries uses the given commodity code.</li>
+      <li><code>amount:eq:100.00</code>, <code>amount:gt:</code>, <code>amount:gte:</code>, <code>amount:lt:</code>, <code>amount:lte:</code> — a transaction matches if <em>any</em> of its entries satisfies the condition. Use negative numbers for credits, e.g. <code>amount:lt:-50</code>.</li>
+      <li><code>note:*receipt*</code>, <code>note:/^ref:/i</code> — a transaction matches if <em>any</em> of its entries has a note matching the value.</li>
+      <li><code>tag:invoice</code>, <code>tag:invoice:*34</code>, <code>tag:invoice:/PI\d+/</code> — filter by tag key, optionally with a tag value. <code>tag:invoice</code> matches any transaction with an <code>invoice</code> tag; <code>tag:invoice:PI00001</code> matches only that key/value pair.</li>
+      <li><code>accounttype:EXPENSE</code> — a transaction matches if <em>any</em> entry's account is of the given type. Valid values: <code>ASSET</code>, <code>LIABILITY</code>, <code>EQUITY</code>, <code>REVENUE</code>, <code>EXPENSE</code>, <code>CASH</code> (case-insensitive).</li>
+      <li><code>accountname:*Bank*</code>, <code>accountname:/Cash/i</code>, <code>accountname:"Assets:Current Assets:Cash"</code> — filter by the full hierarchical account path. A transaction matches if <em>any</em> of its entries' account path satisfies the match.</li>
+    </ul>
+    <p>
+      Some examples:
+    </p>
+<pre><code>date:gte:2024-01-01 date:lte:2024-12-31</code></pre>
+    <p>Transactions in the year 2024 (implicit AND).</p>
+<pre><code>(tag:invoice OR tag:OpeningBalances) AND NOT accounttype:EQUITY</code></pre>
+    <p>Transactions tagged as invoice or opening-balances that do not involve an equity account.</p>
+<pre><code>description:*hoststar* AND amount:lt:0</code></pre>
+    <p>Hoststar transactions with at least one negative entry.</p>
+<pre><code>tag:invoice:/PI\d{5}/ AND NOT partner:/test/i</code></pre>
+    <p>Transactions with an invoice tag whose value looks like <code>PI12345</code>, excluding test partners.</p>
+    <p>
+      The <code>accountname</code> predicate matches against the full hierarchical path built from the account numbers described in <a [routerLink]="['/user-guide']" fragment="accounts">Create your accounts</a>, so unique account numbers make account-based filters precise too.
+    </p>
+    <p>
+      <strong>Backward compatibility.</strong> The older space-separated token syntax still works so existing bookmarks do not break. The old tokens are rewritten to EQL automatically:
+    </p>
+    <ul>
+      <li><code>begin:20240101</code> becomes <code>date:gte:2024-01-01</code></li>
+      <li><code>end:20241231</code> becomes <code>date:lt:2024-12-31</code></li>
+      <li><code>not:invoice</code> becomes <code>NOT tag:invoice</code></li>
+      <li>A bare token such as <code>invoice</code> becomes <code>tag:invoice</code>, and <code>invoice:PI00001</code> becomes <code>tag:invoice:PI00001</code>.</li>
+    </ul>
+    <p>
+      If a query cannot be parsed, the backend returns an error and the page shows it; fix the syntax and apply the filter again.
     </p>
   </section>
 

@@ -9,13 +9,21 @@ describe('authGuard', () => {
   let authService: jasmine.SpyObj<AuthService>;
   let router: jasmine.SpyObj<Router>;
   let controller: jasmine.SpyObj<Controller>;
-  let modelService: { journals$: () => any[] };
+  let modelService: {
+    journals$: () => any[];
+    getSelectedJournalId: jasmine.Spy;
+    getAccounts: jasmine.Spy;
+  };
 
   beforeEach(() => {
     const authServiceSpy = jasmine.createSpyObj('AuthService', ['isAuthenticated']);
     const routerSpy = jasmine.createSpyObj('Router', ['navigate']);
-    const controllerSpy = jasmine.createSpyObj('Controller', ['listJournals']);
-    modelService = { journals$: () => [] };
+    const controllerSpy = jasmine.createSpyObj('Controller', ['listJournals', 'getAccountTree']);
+    modelService = {
+      journals$: () => [],
+      getSelectedJournalId: jasmine.createSpy('getSelectedJournalId').and.returnValue(null),
+      getAccounts: jasmine.createSpy('getAccounts').and.returnValue([])
+    };
 
     TestBed.configureTestingModule({
       providers: [

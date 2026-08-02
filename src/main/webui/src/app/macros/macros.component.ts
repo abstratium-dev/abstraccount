@@ -41,19 +41,6 @@ export class MacrosComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadMacros();
-    // Ensure accounts are loaded for autocomplete in macro parameters
-    this.ensureAccountsLoaded();
-  }
-
-  private async ensureAccountsLoaded(): Promise<void> {
-    const journalId = this.modelService.getSelectedJournalId();
-    if (journalId) {
-      try {
-        await this.controller.getAccountTree(journalId);
-      } catch (error) {
-        console.error('Failed to load accounts for macros:', error);
-      }
-    }
   }
 
   async loadMacros(): Promise<void> {

@@ -236,6 +236,15 @@ test.describe('Journal and Account Management', () => {
     );
     await accountsPage.verifyAccountExists(page, '2206');
 
+    // Create child: 2208 Tax liabilities (provisions)
+    await accountsPage.createChildAccount(
+      page,
+      '220 Other short-term liabilities',
+      '2208 Tax liabilities (provisions)',
+      'LIABILITY'
+    );
+    await accountsPage.verifyAccountExists(page, '2208');
+
     // Create child: 2210 Other short-term liabilities
     await accountsPage.createChildAccount(
       page,
@@ -374,6 +383,15 @@ test.describe('Journal and Account Management', () => {
     );
     await accountsPage.verifyAccountExists(page, '6570.002');
 
+    // Create child: 6700 Other operating expenses
+    await accountsPage.createChildAccount(
+      page,
+      '6 Other Operating Expenses, Depreciations and Value Adjustments, Financial result',
+      '6700 Other operating expenses',
+      'EXPENSE'
+    );
+    await accountsPage.verifyAccountExists(page, '6700');
+
     // Create child: 6900 Financial expense
     await accountsPage.createChildAccount(
       page,
@@ -467,7 +485,8 @@ test.describe('Journal and Account Management', () => {
     await accountsPage.verifyAccountExists(page, '2200');
     await accountsPage.verifyAccountExists(page, '2201');
     await accountsPage.verifyAccountExists(page, '2206');
-    
+    await accountsPage.verifyAccountExists(page, '2208');
+
     // Verify Equity
     await accountsPage.verifyAccountExists(page, '28');
     await accountsPage.verifyAccountExists(page, '280');
@@ -476,7 +495,7 @@ test.describe('Journal and Account Management', () => {
     await accountsPage.verifyAccountExists(page, '2950');
     await accountsPage.verifyAccountExists(page, '2970');
     await accountsPage.verifyAccountExists(page, '2979');
-    
+
     // Verify Revenue
     await accountsPage.verifyAccountExists(page, '3');
     await accountsPage.verifyAccountExists(page, '3400');
@@ -486,14 +505,15 @@ test.describe('Journal and Account Management', () => {
     await accountsPage.verifyAccountExists(page, '6570');
     await accountsPage.verifyAccountExists(page, '6570.001');
     await accountsPage.verifyAccountExists(page, '6570.002');
+    await accountsPage.verifyAccountExists(page, '6700');
     await accountsPage.verifyAccountExists(page, '6900');
-    
+
     // Verify Non-Operational Expenses
     await accountsPage.verifyAccountExists(page, '8');
     await accountsPage.verifyAccountExists(page, '8900');
     await accountsPage.verifyAccountExists(page, '8910');
-    
-    console.log('All 34 accounts verified successfully');
+
+    console.log('All 36 accounts verified successfully');
     
     console.log('=== Test 1 Complete: Journal and Accounts Created Successfully ===');
   });

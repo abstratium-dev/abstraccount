@@ -64,11 +64,28 @@ test.describe('Test Macros', () => {
     await transactionsPage.waitForJournalPage(page);
 
     // ========================================================================
-    // Step 2: Delete existing "Test macros 004.1" transaction if it exists
+    // Step 2: Comprehensive cleanup - delete ALL 004 test transactions
+    // This ensures the invoice numbering starts fresh (SI00000001, SI00000002)
+    // and prevents duplicate transactions from previous test runs.
     // ========================================================================
-    console.log('--- Step 2: Cleaning up existing test transaction ---');
-    
-    await deleteTransactionByDescription(page, 'Test macros 004.1 banking expense');
+    console.log('--- Step 2: Comprehensive cleanup of all 004 test transactions ---');
+
+    const ALL_004_DESCRIPTIONS = [
+      'Test macros 004.1 banking expense',
+      'Test macros 004.2 repay staff (for initial loan)',
+      'Test macros 004.3 sales invoice',
+      'Test macros 004.4 second invoice',
+      'Test macros 004.5 Customer pays invoice SI00000001',
+      'Test macros 004.6 payment by staff',
+      'Test macros 004.6 repay staff',
+      'Test macros 004.8 tax provision for 2026',
+      'Test macros 004.9 tax payment for 2026',
+      'Test macros 004.10 legal reserve allocation for 2026',
+    ];
+    for (const desc of ALL_004_DESCRIPTIONS) {
+      await deleteTransactionByDescription(page, desc);
+    }
+    console.log('✓ All 004 test transactions cleaned up');
     
     // ========================================================================
     // Step 3: Navigate to macros page and select BankingExpense macro
@@ -1331,6 +1348,323 @@ test.describe('Test Macros', () => {
     
     console.log('=== Test 4.6b: RepayStaff Macro (for 004.6) - PASSED ===');
   });
+
+  // ==========================================================================
+  // Test 4.8: TaxProvision Macro
+  // ==========================================================================
+  test('should execute TaxProvision macro to record year-end tax provision', async ({ page }) => {
+    test.setTimeout(120_000);
+    console.log('=== Starting Test 4.8: TaxProvision Macro ===');
+
+    // Navigate and authenticate
+    await page.goto('/');
+    const signOutLink = page.locator('#signout-link');
+    const isSignedIn = await signOutLink.isVisible({ timeout: 2000 }).catch(() => false);
+
+    if (!isSignedIn) {
+      console.log('Not signed in, performing authentication...');
+      await authenticate(page, TEST_USER_EMAIL, TEST_USER_PASSWORD);
+      console.log('Authentication complete');
+    } else {
+      console.log('Already signed in');
+    }
+
+    await headerPage.waitForHeader(page);
+    await headerPage.selectJournal(page, TEST_JOURNAL_NAME);
+    await headerPage.clickJournalLink(page);
+    await transactionsPage.waitForJournalPage(page);
+    console.log('Journal page loaded');
+
+    // Clean up existing test transaction
+    console.log('--- Cleaning up existing test transaction ---');
+    await deleteTransactionByDescription(page, 'Test macros 004.8 tax provision for 2026');
+
+    // Navigate to macros page
+    console.log('--- Navigating to Macros Page ---');
+    await page.click('a#macros');
+    await macrosPage.waitForMacrosPage(page);
+    console.log('Macros page loaded');
+
+    await macrosPage.verifyMacroExists(page, 'TaxProvision');
+    console.log('✓ TaxProvision macro is available in the macro list');
+
+    await macrosPage.selectMacro(page, 'TaxProvision');
+    console.log('TaxProvision macro selected');
+
+    // Fill in parameters
+    console.log('--- Filling in Macro Parameters ---');
+
+    console.log('Filling date field (2026-12-31)...');
+    await macrosPage.fillParameter(page, 'date', '2026-12-31');
+
+    console.log('Filling description field...');
+    await macrosPage.fillParameter(page, 'description', 'Test macros 004.8 tax provision for 2026');
+
+    console.log('Filling total tax amount field (50.00)...');
+    await macrosPage.fillParameter(page, 'total_tax_amount', '50.00');
+
+    console.log('All fields filled');
+
+    // Execute the macro
+    console.log('--- Executing Macro ---');
+    await macrosPage.executeMacro(page);
+    console.log('Macro execution initiated');
+
+    await page.waitForTimeout(2000);
+
+    const hasError = await macrosPage.hasErrorMessage(page);
+    if (hasError) {
+      const errorMsg = await macrosPage.getErrorMessage(page);
+      console.log(`ERROR: ${errorMsg}`);
+      throw new Error(`Macro execution failed: ${errorMsg}`);
+    }
+
+    await page.waitForSelector('.modal-overlay', { state: 'hidden', timeout: 10000 });
+    console.log('✓ Macro dialog closed (execution successful)');
+
+    await transactionsPage.waitForJournalPage(page);
+    console.log('✓ Navigated back to journal page');
+
+    // Verify transaction was created
+    console.log('--- Verifying Transaction Creation ---');
+    await transactionsPage.verifyTransactionExists(page, 'Test macros 004.8 tax provision for 2026');
+    console.log('✓ Transaction "Test macros 004.8 tax provision for 2026" appears in transaction list');
+
+    // Verify transaction details
+    await transactionsPage.verifyTransactionDetails(page, 'Test macros 004.8 tax provision for 2026', {
+      date: '2026-12-31',
+      value: '50.00'
+    });
+
+    console.log('✓ TaxProvision macro scenarios validated:');
+    console.log('  - Macro selection and parameter form display');
+    console.log('  - Date: 2026-12-31');
+    console.log('  - Description: Test macros 004.8 tax provision for 2026');
+    console.log('  - Total tax amount: CHF 50.00');
+    console.log('  - Transaction created with 2 entries (Dr 8900, Cr 2208)');
+
+    console.log('=== Test 4.8: TaxProvision Macro - PASSED ===');
+  });
+
+  // ==========================================================================
+  // Test 4.9: TaxPayment Macro
+  // ==========================================================================
+  test('should execute TaxPayment macro to pay tax authority (actual > provision)', async ({ page }) => {
+    test.setTimeout(120_000);
+    console.log('=== Starting Test 4.9: TaxPayment Macro ===');
+
+    // Navigate and authenticate
+    await page.goto('/');
+    const signOutLink = page.locator('#signout-link');
+    const isSignedIn = await signOutLink.isVisible({ timeout: 2000 }).catch(() => false);
+
+    if (!isSignedIn) {
+      console.log('Not signed in, performing authentication...');
+      await authenticate(page, TEST_USER_EMAIL, TEST_USER_PASSWORD);
+      console.log('Authentication complete');
+    } else {
+      console.log('Already signed in');
+    }
+
+    await headerPage.waitForHeader(page);
+    await headerPage.selectJournal(page, TEST_JOURNAL_NAME);
+    await headerPage.clickJournalLink(page);
+    await transactionsPage.waitForJournalPage(page);
+    console.log('Journal page loaded');
+
+    // Clean up existing test transaction
+    console.log('--- Cleaning up existing test transaction ---');
+    await deleteTransactionByDescription(page, 'Test macros 004.9 tax payment for 2026');
+
+    // Navigate to macros page
+    console.log('--- Navigating to Macros Page ---');
+    await page.click('a#macros');
+    await macrosPage.waitForMacrosPage(page);
+    console.log('Macros page loaded');
+
+    await macrosPage.verifyMacroExists(page, 'TaxPayment');
+    console.log('✓ TaxPayment macro is available in the macro list');
+
+    await macrosPage.selectMacro(page, 'TaxPayment');
+    console.log('TaxPayment macro selected');
+
+    // Fill in parameters
+    console.log('--- Filling in Macro Parameters ---');
+
+    console.log('Filling date field (2027-01-15)...');
+    await macrosPage.fillParameter(page, 'date', '2027-01-15');
+
+    console.log('Filling partner field (P00000006 - Canton Vaud Tax Authority)...');
+    await macrosPage.fillParameterAutocomplete(page, 'Tax authority', 'P00000006');
+
+    console.log('Filling description field...');
+    await macrosPage.fillParameter(page, 'description', 'Test macros 004.9 tax payment for 2026');
+
+    console.log('Filling provision amount field (50.00)...');
+    await macrosPage.fillParameter(page, 'provision_amount', '50.00');
+
+    console.log('Filling actual amount field (55.00)...');
+    await macrosPage.fillParameter(page, 'actual_amount', '55.00');
+
+    console.log('Filling bank account field (1020)...');
+    const bankAccountInput = page.locator('.parameter-field')
+      .filter({ hasText: 'Bank account to pay from' })
+      .locator('abs-autocomplete input.autocomplete-input');
+    await bankAccountInput.click();
+    await page.waitForTimeout(300);
+    await bankAccountInput.fill('1020');
+    await page.waitForSelector('.dropdown .dropdown-item:not(.loading):not(.no-results):not(.hint)', { timeout: 10000 });
+    await page.waitForTimeout(500);
+
+    const account1020 = page.locator('.dropdown .dropdown-item:has-text("1020")');
+    await expect(account1020.first()).toBeVisible();
+    console.log('✓ Account 1020 Bank Account is available');
+    await account1020.first().click({ force: true });
+    await page.waitForTimeout(500);
+    console.log('Bank account 1020 selected');
+
+    console.log('All fields filled');
+
+    // Execute the macro
+    console.log('--- Executing Macro ---');
+    await macrosPage.executeMacro(page);
+    console.log('Macro execution initiated');
+
+    await page.waitForTimeout(2000);
+
+    const hasError = await macrosPage.hasErrorMessage(page);
+    if (hasError) {
+      const errorMsg = await macrosPage.getErrorMessage(page);
+      console.log(`ERROR: ${errorMsg}`);
+      throw new Error(`Macro execution failed: ${errorMsg}`);
+    }
+
+    await page.waitForSelector('.modal-overlay', { state: 'hidden', timeout: 10000 });
+    console.log('✓ Macro dialog closed (execution successful)');
+
+    await transactionsPage.waitForJournalPage(page);
+    console.log('✓ Navigated back to journal page');
+
+    // Verify transaction was created
+    console.log('--- Verifying Transaction Creation ---');
+    await transactionsPage.verifyTransactionExists(page, 'Test macros 004.9 tax payment for 2026');
+    console.log('✓ Transaction "Test macros 004.9 tax payment for 2026" appears in transaction list');
+
+    // Verify transaction details
+    await transactionsPage.verifyTransactionDetails(page, 'Test macros 004.9 tax payment for 2026', {
+      date: '2027-01-15',
+      partner: 'P00000006',
+      value: '55.00'
+    });
+
+    console.log('✓ TaxPayment macro scenarios validated:');
+    console.log('  - Macro selection and parameter form display');
+    console.log('  - Partner: P00000006 (Canton Vaud Tax Authority)');
+    console.log('  - Date: 2027-01-15');
+    console.log('  - Provision amount: CHF 50.00');
+    console.log('  - Actual amount: CHF 55.00');
+    console.log('  - Arithmetic expression {actual_amount - provision_amount} = 5.00 evaluated');
+    console.log('  - Transaction created with 3 entries (Dr 2208, Dr 8900, Cr 1020)');
+
+    console.log('=== Test 4.9: TaxPayment Macro - PASSED ===');
+  });
+
+  // ==========================================================================
+  // Test 4.10: LegalReserveAllocation Macro
+  // ==========================================================================
+  test('should execute LegalReserveAllocation macro to allocate to legal reserves', async ({ page }) => {
+    test.setTimeout(120_000);
+    console.log('=== Starting Test 4.10: LegalReserveAllocation Macro ===');
+
+    // Navigate and authenticate
+    await page.goto('/');
+    const signOutLink = page.locator('#signout-link');
+    const isSignedIn = await signOutLink.isVisible({ timeout: 2000 }).catch(() => false);
+
+    if (!isSignedIn) {
+      console.log('Not signed in, performing authentication...');
+      await authenticate(page, TEST_USER_EMAIL, TEST_USER_PASSWORD);
+      console.log('Authentication complete');
+    } else {
+      console.log('Already signed in');
+    }
+
+    await headerPage.waitForHeader(page);
+    await headerPage.selectJournal(page, TEST_JOURNAL_NAME);
+    await headerPage.clickJournalLink(page);
+    await transactionsPage.waitForJournalPage(page);
+    console.log('Journal page loaded');
+
+    // Clean up existing test transaction
+    console.log('--- Cleaning up existing test transaction ---');
+    await deleteTransactionByDescription(page, 'Test macros 004.10 legal reserve allocation for 2026');
+
+    // Navigate to macros page
+    console.log('--- Navigating to Macros Page ---');
+    await page.click('a#macros');
+    await macrosPage.waitForMacrosPage(page);
+    console.log('Macros page loaded');
+
+    await macrosPage.verifyMacroExists(page, 'LegalReserveAllocation');
+    console.log('✓ LegalReserveAllocation macro is available in the macro list');
+
+    await macrosPage.selectMacro(page, 'LegalReserveAllocation');
+    console.log('LegalReserveAllocation macro selected');
+
+    // Fill in parameters
+    console.log('--- Filling in Macro Parameters ---');
+
+    console.log('Filling date field (2026-12-31)...');
+    await macrosPage.fillParameter(page, 'date', '2026-12-31');
+
+    console.log('Filling allocation amount field (10.00)...');
+    await macrosPage.fillParameter(page, 'allocation_amount', '10.00');
+
+    console.log('Filling description field...');
+    await macrosPage.fillParameter(page, 'description', 'Test macros 004.10 legal reserve allocation for 2026');
+
+    console.log('All fields filled');
+
+    // Execute the macro
+    console.log('--- Executing Macro ---');
+    await macrosPage.executeMacro(page);
+    console.log('Macro execution initiated');
+
+    await page.waitForTimeout(2000);
+
+    const hasError = await macrosPage.hasErrorMessage(page);
+    if (hasError) {
+      const errorMsg = await macrosPage.getErrorMessage(page);
+      console.log(`ERROR: ${errorMsg}`);
+      throw new Error(`Macro execution failed: ${errorMsg}`);
+    }
+
+    await page.waitForSelector('.modal-overlay', { state: 'hidden', timeout: 10000 });
+    console.log('✓ Macro dialog closed (execution successful)');
+
+    await transactionsPage.waitForJournalPage(page);
+    console.log('✓ Navigated back to journal page');
+
+    // Verify transaction was created
+    console.log('--- Verifying Transaction Creation ---');
+    await transactionsPage.verifyTransactionExists(page, 'Test macros 004.10 legal reserve allocation for 2026');
+    console.log('✓ Transaction "Test macros 004.10 legal reserve allocation for 2026" appears in transaction list');
+
+    // Verify transaction details
+    await transactionsPage.verifyTransactionDetails(page, 'Test macros 004.10 legal reserve allocation for 2026', {
+      date: '2026-12-31',
+      value: '10.00'
+    });
+
+    console.log('✓ LegalReserveAllocation macro scenarios validated:');
+    console.log('  - Macro selection and parameter form display');
+    console.log('  - Date: 2026-12-31');
+    console.log('  - Allocation amount: CHF 10.00');
+    console.log('  - Description: Test macros 004.10 legal reserve allocation for 2026');
+    console.log('  - Transaction created with 2 entries (Dr 2979, Cr 2950)');
+
+    console.log('=== Test 4.10: LegalReserveAllocation Macro - PASSED ===');
+  });
 });
 
 /**
@@ -1373,25 +1707,32 @@ test.describe('Verify Reports After Macro Transactions', () => {
     console.log('--- Verifying Balance Sheet ---');
     
     // Expected values after all macro transactions (run ONCE):
-    // Assets: 1020 Bank = 1,935.50, 1100 Receivables = 11.00
-    // Liabilities: 2210.001 John Smith = 0.00 (cleared)
-    // Equity: 2800 Share Capital = 2,000.00
-    // Net Loss: 53.50 (revenue 18.00 - expenses 71.50)
-    // Total Assets: 1,946.50 = Total L+E: 0.00 + 2,000.00 - 53.50
-    
+    // Starting state from test 003 (updated with transactions 1-12):
+    //   1020 Bank = 1,785.00, 1100 Receivables = 67.00, 1230 Inventory = 40.00
+    //   2200 VAT payable = 7.00, 2210.001 John Smith = 38.50, 2800 Share Capital = 2,000.00
+    //   3400 Revenue = 60.00, 6570 = 13.50, 6570.002 = 100.00, 6700 = 10.00, 6900 = 15.00, 8900 = 75.00
+    // After macros 004.1-004.10:
+    //   1020 Bank = 1,680.50, 1100 Receivables = 178.00, 1230 Inventory = 40.00
+    //   2200 VAT = 7.00, 2208 Tax liabilities = 0.00, 2210.001 = 0.00
+    //   2800 = 2,000.00, 2950 Legal reserves = 10.00, 2979 Annual P/L = 10.00 (debit)
+    //   3400 Revenue = 178.00, 6570 = 13.50, 6570.001 = 17.00, 6570.002 = 100.00
+    //   6700 = 10.00, 6900 = 16.00, 8900 = 130.00
+    //   Net Loss: 108.50 (revenue 178.00 - expenses 286.50)
+    //   Total Assets: 1,898.50 = Total L+E: 7.00 + 2,000.00 - 108.50
+
     await reportsPage.verifySectionExists(page, 'Cash and Cash Equivalents');
-    await reportsPage.verifyAccountBalance(page, '1020', '1,935.50');
-    
+    await reportsPage.verifyAccountBalance(page, '1020', '1,680.50');
+
     await reportsPage.verifySectionExists(page, 'Assets');
-    await reportsPage.verifyAccountBalance(page, '1100', '11.00');
-    
+    await reportsPage.verifyAccountBalance(page, '1100', '178.00');
+
     await reportsPage.verifySectionExists(page, 'Equity');
     await reportsPage.verifyAccountBalance(page, '2800', '2,000.00');
-    
-    await reportsPage.verifyReportMatches(page, /Net.*Loss.*53\.50\s*CHF/, 'Net Loss');
-    
+
+    await reportsPage.verifyReportMatches(page, /Net.*Loss.*108\.50\s*CHF/, 'Net Loss');
+
     // Verify the balance sheet balances
-    await reportsPage.verifyBalanceSheetBalances(page, '1,946.50');
+    await reportsPage.verifyBalanceSheetBalances(page, '1,898.50');
     
     // Verify no negative signs in Liabilities section (sign inversion bug check)
     await reportsPage.verifyNoNegativeValues(page, 'Liabilities');
@@ -1430,20 +1771,23 @@ test.describe('Verify Reports After Macro Transactions', () => {
     // Verify report structure and values
     console.log('--- Verifying Income Statement ---');
     
-    // Expected: Revenue: 3400 (18.00) - macros run once
-    // Expenses: 6570 (38.50) + 6570.001 (17.00) + 6900 (16.00) = 71.50 total
-    // Net Loss: 53.50
-    
+    // Expected: Revenue: 3400 (178.00) - test 003 (60.00) + macros (7.00 + 111.00)
+    // Expenses: 6570 (13.50) + 6570.001 (17.00) + 6570.002 (100.00) + 6700 (10.00) + 6900 (16.00) + 8900 (130.00) = 286.50
+    // Net Loss: 108.50
+
     await reportsPage.verifySectionExists(page, 'Revenue');
-    await reportsPage.verifyAccountBalance(page, '3400', '18.00');
-    
+    await reportsPage.verifyAccountBalance(page, '3400', '178.00');
+
     await reportsPage.verifySectionExists(page, 'Expenses');
-    await reportsPage.verifyAccountBalance(page, '6570', '38.50');
+    await reportsPage.verifyAccountBalance(page, '6570', '13.50');
     await reportsPage.verifyAccountBalance(page, '6570.001', '17.00');
+    await reportsPage.verifyAccountBalance(page, '6570.002', '100.00');
+    await reportsPage.verifyAccountBalance(page, '6700', '10.00');
     await reportsPage.verifyAccountBalance(page, '6900', '16.00');
-    
-    // Verify Net Loss (revenue 18.00 - expenses 71.50 = -53.50)
-    await reportsPage.verifyReportMatches(page, /Net.*Loss.*53\.50\s*CHF/, 'Net Loss of 53.50');
+    await reportsPage.verifyAccountBalance(page, '8900', '130.00');
+
+    // Verify Net Loss (revenue 178.00 - expenses 286.50 = -108.50)
+    await reportsPage.verifyReportMatches(page, /Net.*Loss.*108\.50\s*CHF/, 'Net Loss of 108.50');
     
     console.log('✓ Income Statement verified successfully!');
     console.log('=== Income Statement Verification Complete ===');
@@ -1484,19 +1828,19 @@ test.describe('Verify Reports After Macro Transactions', () => {
     await reportsPage.verifySectionExists(page, 'Equity');
     
     // Verify all account balances (macros run once)
-    await reportsPage.verifyAccountBalance(page, '1020', '1,935.50'); // Bank account
-    await reportsPage.verifyAccountBalance(page, '1100', '11.00'); // Receivables
+    await reportsPage.verifyAccountBalance(page, '1020', '1,680.50'); // Bank account
+    await reportsPage.verifyAccountBalance(page, '1100', '178.00'); // Receivables
     await reportsPage.verifyAccountBalance(page, '2800', '2,000.00'); // Share capital
-    
+
     // Swiss Balance Sheet includes net income in equity, not as separate line
     // So we just verify the accounts and that it balances
-    
+
     // Verify no negative signs in liability and equity sections (sign inversion check)
     await reportsPage.verifyNoNegativeValues(page, 'Liabilities');
     await reportsPage.verifyNoNegativeValues(page, 'Equity');
-    
+
     // Verify the balance sheet balances (Assets = Liabilities + Equity)
-    await reportsPage.verifyBalanceSheetBalances(page, '1,946.50');
+    await reportsPage.verifyBalanceSheetBalances(page, '1,898.50');
     
     console.log('✓ Swiss Balance Sheet verified successfully!');
     console.log('=== Swiss Balance Sheet Verification Complete ===');
@@ -1542,29 +1886,29 @@ test.describe('Verify Reports After Macro Transactions', () => {
     // Verify the report contains revenue and expense data and net income
     const content = await reportsPage.getReportContent(page);
     
-    // Check that revenue section has data (should show 18.00)
+    // Check that revenue section has data (should show 178.00)
     if (!content.includes('Revenue')) {
       throw new Error('Revenue section not found in Swiss Income Statement');
     }
     console.log('✓ Revenue section found');
-    
-    // Check that expenses section has data (should show 71.50 total)
+
+    // Check that expenses section has data (should show 286.50 total)
     if (!content.includes('Expenses')) {
       throw new Error('Expenses section not found in Swiss Income Statement');
     }
     console.log('✓ Expenses section found');
-    
-    // Verify Net Income appears with the correct amount (53.50 loss)
+
+    // Verify Net Income appears with the correct amount (108.50 loss)
     const hasNetIncome = content.includes('Net Income') || content.includes('Net Loss');
-    const hasAmount = content.includes('53.50') || content.includes('53,50');
-    
+    const hasAmount = content.includes('108.50') || content.includes('108,50');
+
     if (!hasNetIncome) {
       throw new Error('Net Income/Loss label not found in Swiss Income Statement');
     }
     if (!hasAmount) {
-      throw new Error('Amount 53.50 CHF not found in Swiss Income Statement');
+      throw new Error('Amount 108.50 CHF not found in Swiss Income Statement');
     }
-    console.log('✓ Net Income/Loss: 53.50 CHF verified');
+    console.log('✓ Net Income/Loss: 108.50 CHF verified');
     
     console.log('✓ Swiss Income Statement verified successfully!');
     console.log('=== Swiss Income Statement Verification Complete ===');
@@ -1608,33 +1952,37 @@ test.describe('Verify Reports After Macro Transactions', () => {
     await reportsPage.verifySectionExists(page, 'Expenses');
     
     // Verify key accounts with their debit/credit balances (macros run once)
-    // Account 1020: Bank - Net Debit 1,935.50
+    // Account 1020: Bank - Net Debit 1,680.50
     await reportsPage.verifyReportContains(page, '1020', 'Bank Account');
-    await reportsPage.verifyReportContains(page, '1,935.50', 'Bank balance');
-    
-    // Account 1100: Receivables - Net Debit 111.00
+    await reportsPage.verifyReportContains(page, '1,680.50', 'Bank balance');
+
+    // Account 1100: Receivables - Net Debit 178.00
     await reportsPage.verifyReportContains(page, '1100', 'Receivables');
-    await reportsPage.verifyReportContains(page, '111.00', 'Receivables balance');
-    
+    await reportsPage.verifyReportContains(page, '178.00', 'Receivables balance');
+
     // Account 2800: Share Capital - Credit 2,000.00
     await reportsPage.verifyReportContains(page, '2800', 'Share Capital');
     await reportsPage.verifyReportContains(page, '2,000.00', 'Share Capital balance');
-    
-    // Account 3400: Revenue - Credit 18.00
+
+    // Account 3400: Revenue - Credit 178.00
     await reportsPage.verifyReportContains(page, '3400', 'Revenue');
-    await reportsPage.verifyReportContains(page, '18.00', 'Revenue balance');
-    
-    // Account 6570: IT expenses - Debit 38.50
+    await reportsPage.verifyReportContains(page, '178.00', 'Revenue balance');
+
+    // Account 6570: IT expenses - Debit 13.50
     await reportsPage.verifyReportContains(page, '6570', 'IT expenses');
-    await reportsPage.verifyReportContains(page, '38.50', 'IT expenses balance');
-    
+    await reportsPage.verifyReportContains(page, '13.50', 'IT expenses balance');
+
     // Account 6570.001: IT expense - Debit 17.00
     await reportsPage.verifyReportContains(page, '6570.001', 'IT expense');
     await reportsPage.verifyReportContains(page, '17.00', 'IT expense 6570.001 balance');
-    
+
     // Account 6900: Financial expense - Debit 16.00
     await reportsPage.verifyReportContains(page, '6900', 'Financial expense');
     await reportsPage.verifyReportContains(page, '16.00', 'Financial expense balance');
+
+    // Account 8900: Direct taxes - Debit 130.00
+    await reportsPage.verifyReportContains(page, '8900', 'Direct taxes');
+    await reportsPage.verifyReportContains(page, '130.00', 'Direct taxes balance');
     
     console.log('✓ Trial Balance verified successfully!');
     console.log('=== Trial Balance Verification Complete ===');
@@ -1692,17 +2040,17 @@ test.describe('Verify Reports After Macro Transactions', () => {
     }
     console.log('✓ Invoice SI00000002 found in report');
 
-    // Verify the invoice shows unpaid status (check for "unpaid" text near SI00000002)
-    // Look for a row or section containing SI00000002 and check for unpaid status
-    const si00000002Pattern = /SI00000002[\s\S]{0,500}unpaid/i;
+    // Verify the invoice shows unpaid/underpaid status (check for text near SI00000002)
+    // The report may show "unpaid" or "underpaid" depending on whether partial payments exist
+    const si00000002Pattern = /SI00000002[\s\S]{0,500}(unpaid|underpaid)/i;
     if (!si00000002Pattern.test(content)) {
-      // Try alternative pattern (unpaid before SI00000002)
-      const altPattern = /unpaid[\s\S]{0,500}SI00000002/i;
+      // Try alternative pattern (status before SI00000002)
+      const altPattern = /(unpaid|underpaid)[\s\S]{0,500}SI00000002/i;
       if (!altPattern.test(content)) {
-        throw new Error('Invoice SI00000002 does not have status "unpaid" in the report');
+        throw new Error('Invoice SI00000002 does not have status "unpaid" or "underpaid" in the report');
       }
     }
-    console.log('✓ Invoice SI00000002 has status "unpaid"');
+    console.log('✓ Invoice SI00000002 has unpaid/underpaid status');
 
     // Verify the amount is 111.00 CHF
     // Look for 111.00 near SI00000002
@@ -1714,7 +2062,7 @@ test.describe('Verify Reports After Macro Transactions', () => {
 
     console.log('✓ Unpaid Sales Invoices report validated successfully!');
     console.log('  - SI00000002 is present in the report');
-    console.log('  - Status is "unpaid"');
+    console.log('  - Status is unpaid/underpaid');
     console.log('  - Amount is 111.00 CHF');
     console.log('  - Hide zero-balance rows is enabled');
     console.log('=== Unpaid Sales Invoices Report Validation Complete ===');
@@ -1722,79 +2070,44 @@ test.describe('Verify Reports After Macro Transactions', () => {
 });
 
 /**
- * Helper function to delete a transaction by description
+ * Helper function to delete ALL transactions matching a description via the API.
+ * This is more reliable than the UI-based approach which only deletes one
+ * transaction at a time and can fail if the modal doesn't open properly.
  */
 async function deleteTransactionByDescription(page: any, description: string): Promise<void> {
-  console.log(`Looking for transaction with description: "${description}"`);
-  
-  // Check if transaction exists
-  const transactionCell = page.locator(`td:has-text("${description}")`);
-  const exists = await transactionCell.isVisible().catch(() => false);
-  
-  if (!exists) {
+  console.log(`Looking for transactions with description: "${description}"`);
+
+  const journalId = await page.evaluate(() => localStorage.getItem('journalId'));
+  if (!journalId) {
+    console.log('No journalId in localStorage, skipping cleanup');
+    return;
+  }
+
+  const response = await page.request.get(`/api/journal/${journalId}/transactions`);
+  if (!response.ok()) {
+    console.log(`API request failed: ${response.status()}, skipping cleanup`);
+    return;
+  }
+  const transactions = await response.json();
+
+  let deletedCount = 0;
+  for (const tx of transactions) {
+    const txDescription: string = tx.description || '';
+    if (txDescription === description || txDescription.includes(description)) {
+      const txId = tx.id;
+      console.log(`  Deleting transaction: "${txDescription}" (id: ${txId})`);
+      const deleteResponse = await page.request.delete(`/api/transaction/${txId}`);
+      if (deleteResponse.ok()) {
+        deletedCount++;
+        console.log(`  ✓ Deleted transaction ${txId}`);
+      } else {
+        console.log(`  ✗ Failed to delete transaction ${txId}: ${deleteResponse.status()}`);
+      }
+    }
+  }
+  if (deletedCount === 0) {
     console.log(`Transaction "${description}" not found, nothing to delete`);
-    return;
-  }
-  
-  console.log(`Transaction "${description}" found, deleting...`);
-  
-  // Click on the transaction row to open it
-  await transactionCell.first().click();
-  
-  // Wait for modal to appear - try multiple times if needed
-  let modalOpened = false;
-  for (let i = 0; i < 3; i++) {
-    await page.waitForTimeout(1000);
-    const isVisible = await page.locator('.modal-overlay').isVisible().catch(() => false);
-    if (isVisible) {
-      modalOpened = true;
-      break;
-    }
-    // Try clicking again
-    if (i < 2) {
-      await transactionCell.first().click();
-    }
-  }
-  
-  if (!modalOpened) {
-    console.log('Could not open transaction modal, skipping deletion');
-    return;
-  }
-  
-  console.log('Transaction modal opened');
-  await page.waitForTimeout(500);
-  
-  // Look for Delete button
-  const deleteButton = page.locator('button:has-text("Delete")');
-  const deleteExists = await deleteButton.isVisible().catch(() => false);
-  
-  if (deleteExists) {
-    await deleteButton.click();
-    
-    // Wait for confirmation dialog if it appears
-    await page.waitForTimeout(500);
-    
-    // Look for confirmation button (might be "Yes", "Confirm", "Delete", etc.)
-    const confirmButton = page.locator('button:has-text("Yes"), button:has-text("Confirm"), button:has-text("OK")').first();
-    const confirmExists = await confirmButton.isVisible({ timeout: 2000 }).catch(() => false);
-    
-    if (confirmExists) {
-      await confirmButton.click();
-      console.log('Confirmed deletion');
-    }
-    
-    // Wait for modal to close
-    await page.waitForSelector('.modal-overlay', { state: 'hidden', timeout: 10000 });
-    await page.waitForTimeout(500);
-    
-    console.log(`✓ Transaction "${description}" deleted`);
   } else {
-    console.log('Delete button not found, closing modal');
-    const cancelButton = page.locator('button:has-text("Cancel")');
-    const cancelExists = await cancelButton.isVisible().catch(() => false);
-    if (cancelExists) {
-      await cancelButton.click();
-      await page.waitForSelector('.modal-overlay', { state: 'hidden', timeout: 5000 });
-    }
+    console.log(`Cleanup complete: ${deletedCount} transaction(s) deleted for "${description}"`);
   }
 }

@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import * as landingPage from '../pages/landing.page';
 import * as headerPage from '../pages/header.page';
-import * as settingsPage from '../pages/settings.page';
+import * as journalManagementPage from '../pages/journal-management.page';
 import { authenticate } from './auth-helper';
 import { TEST_JOURNAL_NAME, TEST_USER_EMAIL, TEST_USER_PASSWORD } from './test-constants';
 
@@ -63,7 +63,7 @@ test.describe('Setup: Authentication and Environment', () => {
     // The journal selector dropdown now lives on the Journal Management page,
     // so navigate there once before the cleanup loop.
     await headerPage.goToJournalManagementPage(page);
-    await settingsPage.waitForSettingsPage(page);
+    await journalManagementPage.waitForJournalManagementPage(page);
 
     let deletedCount = 0;
     let hasMoreJournals = true;
@@ -84,7 +84,7 @@ test.describe('Setup: Authentication and Environment', () => {
         await headerPage.selectJournalOnManagementPage(page, TEST_JOURNAL_NAME);
 
         // Delete the journal (the danger zone is on this same page)
-        await settingsPage.deleteJournal(page, TEST_JOURNAL_NAME);
+        await journalManagementPage.deleteJournal(page, TEST_JOURNAL_NAME);
 
         deletedCount++;
         console.log(`Test journal deleted (${deletedCount} total deleted)`);
@@ -92,7 +92,7 @@ test.describe('Setup: Authentication and Environment', () => {
         // After deletion the app navigates to '/'; go back to the Journal
         // Management page to check for more test journals.
         await headerPage.goToJournalManagementPage(page);
-        await settingsPage.waitForSettingsPage(page);
+        await journalManagementPage.waitForJournalManagementPage(page);
       } else {
         // No more test journals found
         hasMoreJournals = false;

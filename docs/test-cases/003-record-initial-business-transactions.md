@@ -18,16 +18,25 @@ Verify that a user can record a series of initial business transactions during c
 - Administrative fees and payments
 - Capital contributions
 - Bank fees
+- Inventory purchases for resale (via `PaymentForGoods` macro)
+- Supplier invoices with delayed payment (via `PayInvoiceFromBank` macro)
+- Sales invoices with VAT (multi-entry transaction)
+- Credit notes to customers (revenue reversal)
+- Expense refunds from suppliers (expense reversal)
+- Inventory write-downs (via `InventoryAdjustment` macro)
+- Direct tax payments
 
-This test demonstrates the complete workflow of recording real business transactions with proper double-entry accounting, including both the expense/liability recognition and the corresponding payment transactions.
+This test demonstrates the complete workflow of recording real business transactions with proper double-entry accounting, including both the expense/liability recognition and the corresponding payment transactions. It also exercises all account types in both debit and credit directions, and verifies account balances after every transaction.
 
 ## Test Data
 
 ### Partner/Vendor Information
-- **P00000001:** John Smith (Founder providing short-term loan)
-- **P00000002:** Startup Help GmbH (Company formation service provider)
+- **P00000001:** John Smith (Founder providing short-term loan, also a customer)
+- **P00000002:** Startup Help GmbH (Company formation service provider, also a supplier)
 - **P00000003:** Post CH Netz AG (Swiss postal service)
 - **P00000004:** PostFinance AG (Bank)
+- **P00000005:** Microsoft (Supplier of IT services)
+- **P00000006:** Canton Vaud Tax Authority (Tax authority)
 
 ### Transaction Series
 
@@ -114,6 +123,86 @@ This test demonstrates the complete workflow of recording real business transact
 - **Entries:**
   1. **Debit:** `2000 Accounts payable (suppliers&creditors)` - CHF 15.00
   2. **Credit:** `1020 Bank Account (asset)` - CHF 15.00
+
+#### Transaction 6: Purchase Goods for Resale (Cash Purchase via `PaymentForGoods` macro)
+- **Date:** 2026-08-01
+- **Partner:** P00000002 Startup Help GmbH
+- **Description:** "Test 003.6 Purchase components for resale"
+- **Invoice:** PI00000006
+- **Status:** Posted (*)
+- **Entries:**
+  1. **Debit:** `1230 Goods held for resale` - CHF 50.00
+  2. **Credit:** `1020 Bank Account (asset)` - CHF 50.00
+- **Purpose:** Tests ASSET (inventory) debit direction and CASH credit direction. Exercises the `PaymentForGoods` macro.
+
+#### Transaction 7: Supplier Invoice with Delayed Payment (via `PayInvoiceFromBank` macro)
+- **Date:** 2026-08-03 (invoice) and 2026-08-10 (payment)
+- **Partner:** P00000005 Microsoft
+- **Description:** "Test 003.7 Anthropic API services invoice"
+- **Invoice:** PI00000007
+- **Status:** Posted (*)
+- **Entries (Step 1 - Invoice, 2026-08-03):**
+  1. **Debit:** `6570.002 Anthropic` - CHF 100.00
+  2. **Credit:** `2000 Accounts payable (suppliers&creditors)` - CHF 100.00
+- **Entries (Step 2 - Payment, 2026-08-10):**
+  1. **Debit:** `2000 Accounts payable (suppliers&creditors)` - CHF 100.00
+  2. **Credit:** `1020 Bank Account (asset)` - CHF 100.00
+- **Purpose:** Tests A/P carrying a balance across dates (invoice on 08-03, payment on 08-10). Exercises the `PayInvoiceFromBank` macro which creates both transactions in one step.
+
+#### Transaction 8: Sales Invoice with VAT (3-entry transaction)
+- **Date:** 2026-08-06
+- **Partner:** P00000001 John Smith
+- **Description:** "Test 003.8 Consulting services with VAT"
+- **Invoice:** SV00000001
+- **Status:** Posted (*)
+- **Entries:**
+  1. **Debit:** `1100 Accounts receivable (Debtors)` - CHF 107.00
+  2. **Credit:** `3400 Revenue from services` - CHF 100.00
+  3. **Credit:** `2200 VAT payable` - CHF 7.00
+- **Purpose:** Tests 3-entry transaction, ASSET (receivable) debit, REVENUE credit, and LIABILITY (VAT) credit. This is a fundamental Swiss accounting pattern.
+
+#### Transaction 9: Credit Note to Customer (Revenue Reversal)
+- **Date:** 2026-08-08
+- **Partner:** P00000001 John Smith
+- **Description:** "Test 003.9 Credit note for partial refund of consulting services"
+- **Invoice:** CN00000001
+- **Status:** Posted (*)
+- **Entries:**
+  1. **Debit:** `3400 Revenue from services` - CHF 40.00
+  2. **Credit:** `1100 Accounts receivable (Debtors)` - CHF 40.00
+- **Purpose:** Tests REVENUE debit direction (reversal) and ASSET (receivable) credit direction. No previously tested transaction debits revenue.
+
+#### Transaction 10: Expense Refund from Supplier (Expense Reversal)
+- **Date:** 2026-08-12
+- **Partner:** P00000002 Startup Help GmbH
+- **Description:** "Test 003.10 Refund for overcharged administrative expense"
+- **Invoice:** PC00000001
+- **Status:** Posted (*)
+- **Entries:**
+  1. **Debit:** `1020 Bank Account (asset)` - CHF 25.00
+  2. **Credit:** `6570 IT and computing expenses` - CHF 25.00
+- **Purpose:** Tests EXPENSE credit direction (reversal) and CASH debit direction. No previously tested transaction credits an expense account.
+
+#### Transaction 11: Inventory Write-Down (via `InventoryAdjustment` macro)
+- **Date:** 2026-08-15
+- **Description:** "Test 003.11 Year-end inventory write-down for obsolete components"
+- **Status:** Posted (*)
+- **Tags:** `YearEnd:InventoryAdjustment`
+- **Entries:**
+  1. **Debit:** `6700 Other operating expenses` - CHF 10.00
+  2. **Credit:** `1230 Goods held for resale` - CHF 10.00
+- **Purpose:** Tests EXPENSE (6700) debit and ASSET (inventory) credit direction. Exercises the `InventoryAdjustment` macro. This is a year-end closing adjustment.
+
+#### Transaction 12: Direct Tax Payment (no prior provision)
+- **Date:** 2026-08-20
+- **Partner:** P00000006 Canton Vaud Tax Authority
+- **Description:** "Test 003.12 Direct tax payment for 2026"
+- **Invoice:** TX00000001
+- **Status:** Posted (*)
+- **Entries:**
+  1. **Debit:** `8900 Direct taxes (legal entities)` - CHF 75.00
+  2. **Credit:** `1020 Bank Account (asset)` - CHF 75.00
+- **Purpose:** Tests EXPENSE (8900) debit and CASH credit. Account 8900 was created but never used in prior tests. This is a direct tax payment without a prior tax provision (tax provision and legal reserve allocation are tested in a later test case).
 
 ## Test Steps
 
@@ -246,45 +335,356 @@ Feature: Initial Business Transactions
     And the accounts payable should decrease by CHF 15.00
     And the bank account balance should decrease by CHF 15.00
 
+  Scenario: Record purchase of goods for resale (PaymentForGoods macro)
+    When the user navigates to the macros page and selects "PaymentForGoods"
+    And the user enters date "2026-08-01"
+    And the user enters partner "P00000002 Startup Help GmbH"
+    And the user enters invoice "PI00000006"
+    And the user enters amount "50.00"
+    And the user enters description "Test 003.6 Purchase components for resale"
+    And the user selects inventory account "1230 Goods held for resale"
+    And the user selects liability account "1020 Bank Account (asset)"
+    And the user executes the macro
+    Then the transaction should be saved successfully
+    And the inventory account balance should be CHF 50.00
+    And the bank account balance should be CHF 1,935.00
+
+  Scenario: Record supplier invoice with delayed payment (PayInvoiceFromBank macro)
+    When the user navigates to the macros page and selects "PayInvoiceFromBank"
+    And the user enters invoice date "2026-08-03"
+    And the user enters payment date "2026-08-10"
+    And the user enters partner "P00000005 Microsoft"
+    And the user enters invoice "PI00000007"
+    And the user enters amount "100.00"
+    And the user enters description "Test 003.7 Anthropic API services invoice"
+    And the user selects expense account "6570.002 Anthropic"
+    And the user selects liability account "2000 Accounts payable (suppliers&creditors)"
+    And the user selects bank account "1020 Bank Account (asset)"
+    And the user executes the macro
+    Then two transactions should be created (invoice and payment)
+    And after the invoice date, accounts payable should be CHF 100.00
+    And after the payment date, accounts payable should be CHF 0.00
+    And the bank account balance should be CHF 1,835.00
+
+  Scenario: Record sales invoice with VAT (3-entry transaction)
+    When the user creates a new transaction with date "2026-08-06"
+    And the user enters partner "P00000001 John Smith"
+    And the user enters description "Test 003.8 Consulting services with VAT"
+    And the user enters invoice "SV00000001"
+    And the user adds a debit entry to "1100 Accounts receivable (Debtors)" for CHF 107.00
+    And the user adds a credit entry to "3400 Revenue from services" for CHF 100.00
+    And the user adds a credit entry to "2200 VAT payable" for CHF 7.00
+    And the user saves the transaction
+    Then the transaction should be saved successfully
+    And the receivables should be CHF 107.00
+    And the revenue should be CHF 100.00
+    And the VAT payable should be CHF 7.00
+
+  Scenario: Record credit note to customer (revenue reversal)
+    When the user creates a new transaction with date "2026-08-08"
+    And the user enters partner "P00000001 John Smith"
+    And the user enters description "Test 003.9 Credit note for partial refund of consulting services"
+    And the user enters invoice "CN00000001"
+    And the user adds a debit entry to "3400 Revenue from services" for CHF 40.00
+    And the user adds a credit entry to "1100 Accounts receivable (Debtors)" for CHF 40.00
+    And the user saves the transaction
+    Then the transaction should be saved successfully
+    And the revenue should be CHF 60.00
+    And the receivables should be CHF 67.00
+
+  Scenario: Record expense refund from supplier (expense reversal)
+    When the user creates a new transaction with date "2026-08-12"
+    And the user enters partner "P00000002 Startup Help GmbH"
+    And the user enters description "Test 003.10 Refund for overcharged administrative expense"
+    And the user enters invoice "PC00000001"
+    And the user adds a debit entry to "1020 Bank Account (asset)" for CHF 25.00
+    And the user adds a credit entry to "6570 IT and computing expenses" for CHF 25.00
+    And the user saves the transaction
+    Then the transaction should be saved successfully
+    And the IT expenses should be CHF 13.50
+    And the bank account balance should be CHF 1,860.00
+
+  Scenario: Record inventory write-down (InventoryAdjustment macro)
+    When the user navigates to the macros page and selects "InventoryAdjustment"
+    And the user enters date "2026-08-15"
+    And the user enters description "Test 003.11 Year-end inventory write-down for obsolete components"
+    And the user enters adjustment amount "10.00"
+    And the user selects inventory account "1230 Goods held for resale"
+    And the user selects expense account "6700 Other operating expenses"
+    And the user executes the macro
+    Then the transaction should be saved successfully
+    And the inventory account balance should be CHF 40.00
+    And the other operating expenses should be CHF 10.00
+
+  Scenario: Record direct tax payment
+    When the user creates a new transaction with date "2026-08-20"
+    And the user enters partner "P00000006 Canton Vaud Tax Authority"
+    And the user enters description "Test 003.12 Direct tax payment for 2026"
+    And the user enters invoice "TX00000001"
+    And the user adds a debit entry to "8900 Direct taxes (legal entities)" for CHF 75.00
+    And the user adds a credit entry to "1020 Bank Account (asset)" for CHF 75.00
+    And the user saves the transaction
+    Then the transaction should be saved successfully
+    And the direct taxes should be CHF 75.00
+    And the bank account balance should be CHF 1,785.00
+
   Scenario: Verify cumulative account balances after all transactions
-    When the user views account balances as of "2026-07-24"
+    When the user views account balances as of "2026-08-20"
     Then the following balances should be displayed:
       | Account                                       | Balance       |
       | 1000 Cash                                     | CHF 0.00      |
-      | 1020 Bank Account (asset)                     | CHF 1,985.00  |
+      | 1020 Bank Account (asset)                     | CHF 1,785.00  |
+      | 1100 Accounts receivable (Debtors)            | CHF 67.00     |
+      | 1230 Goods held for resale                    | CHF 40.00     |
       | 2000 Accounts payable (suppliers&creditors)   | CHF 0.00      |
-      | 2210.001 John Smith                           | CHF 38.50    |
+      | 2200 VAT payable                              | CHF 7.00      |
+      | 2210.001 John Smith                           | CHF 38.50     |
       | 2800 Basic, shareholder or foundation capital | CHF 2,000.00  |
-      | 6500 Administrative expenses                  | CHF 34.30     |
-      | 6700 Other operating expenses                 | CHF 4.20      |
+      | 3400 Revenue from services                    | CHF 60.00     |
+      | 6570 IT and computing expenses                | CHF 13.50     |
+      | 6570.002 Anthropic                            | CHF 100.00    |
+      | 6700 Other operating expenses                 | CHF 10.00     |
       | 6900 Financial expense                        | CHF 15.00     |
+      | 8900 Direct taxes (legal entities)            | CHF 75.00     |
     And the balance sheet equation should hold: Assets = Liabilities + Equity
 ```
 
 ## Expected Results
 
 1. **Transaction Recording:**
-   - All 9 transactions are created successfully
+   - All transactions (1-12) are created successfully
    - Each transaction is properly dated and marked as posted
    - Partner/vendor information is correctly associated
    - Invoice references are stored and retrievable
-   - Tags (`Payment:`) are properly applied where specified
+   - Tags (`Payment:`, `YearEnd:InventoryAdjustment`) are properly applied where specified
 
 2. **Double-Entry Accounting:**
    - Every transaction is balanced (debits = credits)
    - Accounts payable increases with invoices and decreases with payments
    - Cash and bank accounts reflect all movements correctly
-   - Expense accounts accumulate properly
+   - Expense accounts accumulate properly and decrease with refunds
+   - Revenue accounts increase with invoices and decrease with credit notes
+   - Inventory accounts increase with purchases and decrease with write-downs
+   - VAT payable tracks tax collected on sales
 
-3. **Account Balances (as of 2026-07-24):**
-   - Cash: CHF 0.00 (38.50 in - 38.50 out)
-   - Bank Account: CHF 1,985.00 (2,000.00 in - 15.00 out)
-   - Accounts Payable: CHF 0.00 (15.00 in - 15.00 out)
-   - John Smith (liability): CHF 38.50
-   - Share Capital: CHF 2,000.00
-   - Total Administrative Expenses: CHF 34.30 (34.30)
-   - Other Operating Expenses: CHF 4.20
-   - Financial Expenses: CHF 15.00
+3. **Account Balances After Each Transaction:**
+
+   Balances are shown as the raw sum of entry amounts (positive = debit, negative = credit). For credit-normal accounts (LIABILITY, EQUITY, REVENUE), a negative balance represents a credit balance (the normal direction).
+
+   **After Transaction 1 (2026-05-25): Short-term Loan from Founder**
+
+   | Account    | Balance  |
+   |------------|----------|
+   | 1000 Cash  | 38.50    |
+   | 2210.001   | -38.50   |
+
+   **After Transaction 2a (2026-05-26): Admin Fee Invoice**
+
+   | Account    | Balance  |
+   |------------|----------|
+   | 1000 Cash  | 38.50    |
+   | 2000 A/P   | -34.30   |
+   | 6570 IT    | 34.30    |
+   | 2210.001   | -38.50   |
+
+   **After Transaction 2b (2026-05-26): Admin Fee Payment**
+
+   | Account    | Balance  |
+   |------------|----------|
+   | 1000 Cash  | 4.20     |
+   | 2000 A/P   | 0.00     |
+   | 6570 IT    | 34.30    |
+   | 2210.001   | -38.50   |
+
+   **After Transaction 3a (2026-06-18): Postal Fee Invoice**
+
+   | Account    | Balance  |
+   |------------|----------|
+   | 1000 Cash  | 4.20     |
+   | 2000 A/P   | -4.20    |
+   | 6570 IT    | 38.50    |
+   | 2210.001   | -38.50   |
+
+   **After Transaction 3b (2026-06-18): Postal Fee Payment**
+
+   | Account    | Balance  |
+   |------------|----------|
+   | 1000 Cash  | 0.00     |
+   | 2000 A/P   | 0.00     |
+   | 6570 IT    | 38.50    |
+   | 2210.001   | -38.50   |
+
+   **After Transaction 4 (2026-06-26): Capital Contribution**
+
+   | Account    | Balance   |
+   |------------|-----------|
+   | 1000 Cash  | 0.00      |
+   | 1020 Bank  | 2,000.00  |
+   | 2000 A/P   | 0.00      |
+   | 2210.001   | -38.50    |
+   | 2800       | -2,000.00 |
+   | 6570 IT    | 38.50     |
+
+   **After Transaction 5a (2026-07-24): Bank Fee Invoice**
+
+   | Account    | Balance   |
+   |------------|-----------|
+   | 1000 Cash  | 0.00      |
+   | 1020 Bank  | 2,000.00  |
+   | 2000 A/P   | -15.00    |
+   | 2210.001   | -38.50    |
+   | 2800       | -2,000.00 |
+   | 6570 IT    | 38.50     |
+   | 6900 Fin   | 15.00     |
+
+   **After Transaction 5b (2026-07-24): Bank Fee Payment**
+
+   | Account    | Balance   |
+   |------------|-----------|
+   | 1000 Cash  | 0.00      |
+   | 1020 Bank  | 1,985.00  |
+   | 2000 A/P   | 0.00      |
+   | 2210.001   | -38.50    |
+   | 2800       | -2,000.00 |
+   | 6570 IT    | 38.50     |
+   | 6900 Fin   | 15.00     |
+
+   **After Transaction 6 (2026-08-01): Purchase Goods for Resale**
+
+   | Account    | Balance   |
+   |------------|-----------|
+   | 1000 Cash  | 0.00      |
+   | 1020 Bank  | 1,935.00  |
+   | 1230 Inv   | 50.00     |
+   | 2000 A/P   | 0.00      |
+   | 2210.001   | -38.50    |
+   | 2800       | -2,000.00 |
+   | 6570 IT    | 38.50     |
+   | 6900 Fin   | 15.00     |
+
+   **After Transaction 7a (2026-08-03): Supplier Invoice (PayInvoiceFromBank step 1)**
+
+   | Account    | Balance   |
+   |------------|-----------|
+   | 1000 Cash  | 0.00      |
+   | 1020 Bank  | 1,935.00  |
+   | 1230 Inv   | 50.00     |
+   | 2000 A/P   | -100.00   |
+   | 2210.001   | -38.50    |
+   | 2800       | -2,000.00 |
+   | 6570 IT    | 38.50     |
+   | 6570.002   | 100.00    |
+   | 6900 Fin   | 15.00     |
+
+   **After Transaction 7b (2026-08-10): Supplier Payment (PayInvoiceFromBank step 2)**
+
+   | Account    | Balance   |
+   |------------|-----------|
+   | 1000 Cash  | 0.00      |
+   | 1020 Bank  | 1,835.00  |
+   | 1230 Inv   | 50.00     |
+   | 2000 A/P   | 0.00      |
+   | 2210.001   | -38.50    |
+   | 2800       | -2,000.00 |
+   | 6570 IT    | 38.50     |
+   | 6570.002   | 100.00    |
+   | 6900 Fin   | 15.00     |
+
+   **After Transaction 8 (2026-08-06): Sales Invoice with VAT**
+
+   | Account    | Balance   |
+   |------------|-----------|
+   | 1000 Cash  | 0.00      |
+   | 1020 Bank  | 1,835.00  |
+   | 1100 A/R   | 107.00    |
+   | 1230 Inv   | 50.00     |
+   | 2000 A/P   | 0.00      |
+   | 2200 VAT   | -7.00     |
+   | 2210.001   | -38.50    |
+   | 2800       | -2,000.00 |
+   | 3400 Rev   | -100.00   |
+   | 6570 IT    | 38.50     |
+   | 6570.002   | 100.00    |
+   | 6900 Fin   | 15.00     |
+
+   **After Transaction 9 (2026-08-08): Credit Note to Customer**
+
+   | Account    | Balance   |
+   |------------|-----------|
+   | 1000 Cash  | 0.00      |
+   | 1020 Bank  | 1,835.00  |
+   | 1100 A/R   | 67.00     |
+   | 1230 Inv   | 50.00     |
+   | 2000 A/P   | 0.00      |
+   | 2200 VAT   | -7.00     |
+   | 2210.001   | -38.50    |
+   | 2800       | -2,000.00 |
+   | 3400 Rev   | -60.00    |
+   | 6570 IT    | 38.50     |
+   | 6570.002   | 100.00    |
+   | 6900 Fin   | 15.00     |
+
+   **After Transaction 10 (2026-08-12): Expense Refund from Supplier**
+
+   | Account    | Balance   |
+   |------------|-----------|
+   | 1000 Cash  | 0.00      |
+   | 1020 Bank  | 1,860.00  |
+   | 1100 A/R   | 67.00     |
+   | 1230 Inv   | 50.00     |
+   | 2000 A/P   | 0.00      |
+   | 2200 VAT   | -7.00     |
+   | 2210.001   | -38.50    |
+   | 2800       | -2,000.00 |
+   | 3400 Rev   | -60.00    |
+   | 6570 IT    | 13.50     |
+   | 6570.002   | 100.00    |
+   | 6900 Fin   | 15.00     |
+
+   **After Transaction 11 (2026-08-15): Inventory Write-Down**
+
+   | Account    | Balance   |
+   |------------|-----------|
+   | 1000 Cash  | 0.00      |
+   | 1020 Bank  | 1,860.00  |
+   | 1100 A/R   | 67.00     |
+   | 1230 Inv   | 40.00     |
+   | 2000 A/P   | 0.00      |
+   | 2200 VAT   | -7.00     |
+   | 2210.001   | -38.50    |
+   | 2800       | -2,000.00 |
+   | 3400 Rev   | -60.00    |
+   | 6570 IT    | 13.50     |
+   | 6570.002   | 100.00    |
+   | 6700 OOE   | 10.00     |
+   | 6900 Fin   | 15.00     |
+
+   **After Transaction 12 (2026-08-20): Direct Tax Payment (Final)**
+
+   | Account    | Balance   |
+   |------------|-----------|
+   | 1000 Cash  | 0.00      |
+   | 1020 Bank  | 1,785.00  |
+   | 1100 A/R   | 67.00     |
+   | 1230 Inv   | 40.00     |
+   | 2000 A/P   | 0.00      |
+   | 2200 VAT   | -7.00     |
+   | 2210.001   | -38.50    |
+   | 2800       | -2,000.00 |
+   | 3400 Rev   | -60.00    |
+   | 6570 IT    | 13.50     |
+   | 6570.002   | 100.00    |
+   | 6700 OOE   | 10.00     |
+   | 6900 Fin   | 15.00     |
+   | 8900 Tax   | 75.00     |
+
+   **Accounting Equation Verification (Final):**
+   - Total Assets: 0.00 + 1,785.00 + 67.00 + 40.00 = 1,892.00
+   - Total Liabilities: 7.00 (VAT) + 38.50 (John Smith) = 45.50
+   - Total Equity: 2,000.00 (Share Capital) + Net Income
+   - Net Income: Revenue (60.00) - Expenses (13.50 + 100.00 + 10.00 + 15.00 + 75.00 = 213.50) = -153.50 (net loss)
+   - Total Equity: 2,000.00 - 153.50 = 1,846.50
+   - Total L + E: 45.50 + 1,846.50 = 1,892.00 ✓ (matches Total Assets)
 
 4. **Data Integrity:**
    - All transactions are persisted to the database
@@ -292,6 +692,7 @@ Feature: Initial Business Transactions
    - Invoice references link related transactions
    - Payment tags distinguish payment transactions from invoices
    - Transaction history is complete and queryable
+   - Account balances are verified after every transaction
 
 ## Acceptance Criteria
 
@@ -317,6 +718,15 @@ Feature: Initial Business Transactions
 - Partner/vendor tracking enables relationship management and reporting
 - Invoice references enable tracking of payables and receivables
 - The test shows realistic company formation costs in Switzerland
+- Transactions 6-12 exercise all account types in both debit and credit directions:
+  - **ASSET (inventory)**: debited in transaction 6 (purchase), credited in transaction 11 (write-down)
+  - **REVENUE**: credited in transaction 8 (invoice), debited in transaction 9 (credit note)
+  - **EXPENSE**: debited in multiple transactions, credited in transaction 10 (refund)
+  - **LIABILITY (VAT)**: credited in transaction 8 (VAT collected on sale)
+  - **LIABILITY (A/P)**: carries a balance across dates in transaction 7 (invoice on 08-03, payment on 08-10)
+- Transactions 6, 7, and 11 use built-in macros (`PaymentForGoods`, `PayInvoiceFromBank`, `InventoryAdjustment`)
+- Transaction 8 is a 3-entry transaction (receivable debit, revenue credit, VAT credit)
+- Tax provision and legal reserve allocation are tested in a later test case
 
 ## Technical Notes
 
@@ -328,18 +738,26 @@ Full paths for accounts referenced in this test:
 Assets:
 - 1 Assets:10 Current Assets:100 Cash and cash equivalents:1000 Cash
 - 1 Assets:10 Current Assets:100 Cash and cash equivalents:1020 Bank Account (asset)
+- 1 Assets:10 Current Assets:110 Accounts Receivable:1100 Accounts receivable (Debtors)
+- 1 Assets:10 Current Assets:120 Inventories and non-invoiced services:1230 Goods held for resale
 
 Liabilities:
 - 2 Liabilities:20 Current liabilities:200 Accounts payable (A/P):2000 Accounts payable (suppliers&creditors)
+- 2 Liabilities:20 Current liabilities:220 Other short-term liabilities:2200 VAT payable
 - 2 Liabilities:20 Current liabilities:220 Other short-term liabilities:2210 Other short-term liabilities:2210.001 John Smith
 
 Equity:
-- 2 Equity:28 Shareholders Equity (legal entities):280 Basic, shareholder or foundation capital:2800 Basic, shareholder or foundation capital
+- 2 Liabilities:28 Shareholders Equity (legal entities):280 Basic, shareholder or foundation capital:2800 Basic, shareholder or foundation capital
+
+Revenue:
+- 3 Net proceeds from sales of goods and services:3400 Revenue from services
 
 Expenses:
-- 6 Other Operating Expenses, Depreciations and Value Adjustments, Financial result:6500 Administrative expenses
+- 6 Other Operating Expenses, Depreciations and Value Adjustments, Financial result:6570 IT and computing expenses, including leasing
+- 6 Other Operating Expenses, Depreciations and Value Adjustments, Financial result:6570 IT and computing expenses, including leasing:6570.002 Anthropic
 - 6 Other Operating Expenses, Depreciations and Value Adjustments, Financial result:6700 Other operating expenses
 - 6 Other Operating Expenses, Depreciations and Value Adjustments, Financial result:6900 Financial expense
+- 8 Non-Operational, Extraordinary, Non-Recurring or Prior-Period Expenses and Income:8900 Direct taxes (legal entities)
 ```
 
 ### Transaction Metadata

@@ -19,4 +19,5 @@ export const TEST_PARTNERS: { partnerNumber: string; partnerName: string }[] = [
   { partnerNumber: 'P00000003', partnerName: 'Post CH Netz AG' },
   { partnerNumber: 'P00000004', partnerName: 'PostFinance AG' },
   { partnerNumber: 'P00000005', partnerName: 'Microsoft' },
+  { partnerNumber: 'P00000006', partnerName: 'Canton Vaud Tax Authority' },
 ];

@@ -24,10 +24,19 @@ function getConfirmationInput(page: Page) {
 }
 
 /**
- * Gets the "Delete Journal Permanently" button
+ * Gets the "Delete Journal Permanently" button.
+ *
+ * The button is selected by its stable id (#delete-journal) rather than by its
+ * accessible name, because the label changes to "Deleting..." while a deletion
+ * is in progress. Selecting by name would make the locator resolve to a
+ * different element (or none) once the text changes, which in turn would make
+ * `expect(...).not.toBeVisible()` pass prematurely - before the deletion has
+ * actually completed. Using the id guarantees the locator keeps pointing at the
+ * same button element until it is truly removed from the DOM (when the
+ * component is destroyed by navigation away from the page).
  */
 function getDeleteButton(page: Page) {
-  return page.getByRole('button', { name: /Delete Journal Permanently/i });
+  return page.locator('#delete-journal');
 }
 
 /**
@@ -44,7 +53,7 @@ function getNoJournalMessage(page: Page) {
 /**
  * Waits for the journal management page to be visible
  */
-export async function waitForSettingsPage(page: Page) {
+export async function waitForJournalManagementPage(page: Page) {
   console.log('Waiting for journal management page to be visible...');
   await expect(getHeading(page)).toBeVisible({ timeout: 10000 });
   console.log('Journal management page is visible');
@@ -89,7 +98,7 @@ export async function clickDeleteButton(page: Page) {
  */
 export async function deleteJournal(page: Page, journalName: string) {
   console.log(`Deleting journal: ${journalName}`);
-  await waitForSettingsPage(page);
+  await waitForJournalManagementPage(page);
   
   const hasJournal = await isJournalSelected(page);
   if (!hasJournal) {
@@ -109,7 +118,7 @@ export async function deleteJournal(page: Page, journalName: string) {
 /**
  * Verifies that the journal management page is displayed correctly
  */
-export async function verifySettingsPage(page: Page) {
+export async function verifyJournalManagementPage(page: Page) {
   console.log('Verifying journal management page...');
   await expect(getHeading(page)).toBeVisible();
   console.log('Journal management page verified');

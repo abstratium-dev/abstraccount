@@ -27,6 +27,10 @@
               placeholder="e.g., 1000 Cash"
               [disabled]="loading"
             />
+            <small class="form-hint">
+              It is recommended to start the name with a numeric code as the first word, followed by a description (e.g. <code>1 Assets</code>, <code>1000 Cash</code>, <code>1020 Bank Account</code>, <code>2210.001 John Smith</code>).
+              The first word is used as the account code to build a path of references to the account's details, for example on the Journal page where an entry may appear as <code>1:1000:1020 Bank Account</code> with each code linking to that account's ledger.
+            </small>
           </div>
 
           <div class="form-group">

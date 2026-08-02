@@ -70,10 +70,7 @@ export class JournalComponent implements OnInit {
   }
 
   async ngOnInit(): Promise<void> {
-    const journalId = this.modelService.getSelectedJournalId();
-    if (journalId) {
-      await this.controller.getAccountTree(journalId);
-    }
+    // Account tree is loaded by the auth guard, no need to load it here.
     // If FilterInputComponent had nothing in localStorage it will not emit filterChange,
     // so we must trigger the initial load ourselves.
     if (!this.filterInitialized && this.selectedJournal) {

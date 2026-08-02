@@ -31,16 +31,20 @@ These TODOs are to be resolved by the developer, NOT THE LLM.
 - add a "locked" flag to journals so that closed periods can be protected from further changes.
   - the flag should be checked on execution of macros and on any transaction or account modification (create/update/delete).
   - any other mutating operation against a locked journal should also be rejected with a clear error.
-  - expose a way for an administrator to (un)lock a journal from the journal management UI.
+  - expose a way for the user to (un)lock a journal from the journal management UI, but warn them that this could really mess up their accounts as the system will not carry over changes they make into follow-on years!
+  - auto-lock when creating a new year using that function in the header context menu
 
 - add a pricing page and work out how to actually sell this
+
+- the user guide and closing page should describe that before hand, the user should do the tax provision (and tax payment?) and legal reserve allocation
 
 - finish e2e tests
   - add testing of filters
   - add testing of entries (pivot)
+  - add tests that assert that when child accounts are hidden, the parent of them shows the correct balance which is the sum of the children, and it shows 0 otherwise. in fact, instead of showing 0, if it is a parent it should show no number! hmm but what if they actually have an entry that directly references them? remember that account kids can be added at any time, so it isn't possible to limit entries to only kids
   - multitenancy tests
-  - what is the status of testing closing and year end?
-  - does this test that all the entries are properly created?
+  - tax provision and tax payment and legal reserve allocation will be done in a later test
+  - test closing the books and year end, checking accounts have the correct balances at the end.
   - make it use the built-in macros and reports by importing them before it does anything with them
 
 - link the EQL docs to the user guide

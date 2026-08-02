@@ -7,6 +7,7 @@ import io.quarkus.runtime.Startup;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.jboss.logging.Logger;
 
@@ -47,21 +48,20 @@ public class PartnerDataAdapter {
     private final Map<String, Map<String, PartnerData>> partnerCache = new ConcurrentHashMap<>();
     private final Set<String> attemptedLoads = ConcurrentHashMap.newKeySet();
 
-    private WatchService watchService;
-    private Thread watchThread;
-    private volatile boolean running = false;
+    @Inject
+    PartnerFileWatcher fileWatcher;
 
     @PostConstruct
     void init() {
         LOG.info("Initializing PartnerDataAdapter with directory: " + partnerDataDir);
 
-        startFileWatcher();
+        // Wire the file watcher to reload the cache for the changed org
+        fileWatcher.setChangeListener(this::reloadPartnerDataForOrg);
     }
 
     @PreDestroy
     void cleanup() {
         LOG.info("Shutting down PartnerDataAdapter");
-        stopFileWatcher();
     }
 
     /**
@@ -466,104 +466,6 @@ public class PartnerDataAdapter {
         fields.add(currentField.toString());
 
         return fields;
-    }
-
-    /**
-     * Start watching the partner data directory for changes.
-     */
-    void startFileWatcher() {
-        try {
-            Path directory = Paths.get(partnerDataDir);
-
-            if (!Files.exists(directory)) {
-                Files.createDirectories(directory);
-                LOG.info("Created partner data directory: " + directory);
-            }
-
-            watchService = FileSystems.getDefault().newWatchService();
-            directory.register(watchService, StandardWatchEventKinds.ENTRY_MODIFY, StandardWatchEventKinds.ENTRY_CREATE);
-
-            running = true;
-            watchThread = new Thread(this::watchForChanges, "PartnerDataWatcher");
-            watchThread.setDaemon(true);
-            watchThread.start();
-
-            LOG.info("Started file watcher for directory: " + directory);
-        } catch (IOException e) {
-            LOG.error("Failed to start file watcher", e);
-        }
-    }
-
-    /**
-     * Stop watching the partner data directory.
-     */
-    void stopFileWatcher() {
-        running = false;
-
-        if (watchThread != null) {
-            watchThread.interrupt();
-            try {
-                watchThread.join(5000);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
-        }
-
-        if (watchService != null) {
-            try {
-                watchService.close();
-            } catch (IOException e) {
-                LOG.error("Error closing watch service", e);
-            }
-        }
-    }
-
-    /**
-     * Watch for file changes and reload data for the affected organisation only.
-     */
-    void watchForChanges() {
-        while (running) {
-            try {
-                WatchKey key = watchService.take();
-
-                for (WatchEvent<?> event : key.pollEvents()) {
-                    WatchEvent.Kind<?> kind = event.kind();
-
-                    if (kind == StandardWatchEventKinds.OVERFLOW) {
-                        continue;
-                    }
-
-                    @SuppressWarnings("unchecked")
-                    WatchEvent<Path> ev = (WatchEvent<Path>) event;
-                    Path changedFile = ev.context();
-                    String fileName = changedFile.getFileName().toString();
-
-                    if (!fileName.endsWith(".csv")) {
-                        continue;
-                    }
-
-                    String orgId = fileName.substring(0, fileName.length() - 4);
-                    LOG.info("Partner data file changed for org " + orgId + ", reloading: " + changedFile);
-
-                    // Small delay to ensure file write is complete
-                    Thread.sleep(100);
-
-                    reloadPartnerDataForOrg(orgId);
-                }
-
-                boolean valid = key.reset();
-                if (!valid) {
-                    LOG.warn("Watch key no longer valid");
-                    break;
-                }
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                LOG.info("File watcher interrupted");
-                break;
-            } catch (Exception e) {
-                LOG.error("Error in file watcher", e);
-            }
-        }
     }
 
     private Path getOrgFilePath(String orgId) {

@@ -17,8 +17,7 @@ describe('JournalComponent', () => {
       'getJournalMetadata',
       'getTransactions',
       'getTags',
-      'setSelectedJournalId',
-      'getAccountTree'
+      'setSelectedJournalId'
     ]);
 
     await TestBed.configureTestingModule({
@@ -48,7 +47,6 @@ describe('JournalComponent', () => {
 
     expect(controller.listJournals).not.toHaveBeenCalled();
     expect(router.navigate).not.toHaveBeenCalled();
-    expect(controller.getAccountTree).not.toHaveBeenCalled();
   });
 
   it('should not trigger a journal list load on init (loaded by auth guard)', async () => {

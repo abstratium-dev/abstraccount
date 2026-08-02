@@ -1,36 +1,171 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, Page } from '@playwright/test';
 import * as headerPage from '../pages/header.page';
 import * as transactionsPage from '../pages/transactions.page';
 import * as reportsPage from '../pages/reports.page';
 import * as partnersPage from '../pages/partners.page';
+import * as macrosPage from '../pages/macros.page';
 import { authenticate } from './auth-helper';
 import { TEST_JOURNAL_NAME, TEST_USER_EMAIL, TEST_USER_PASSWORD, TEST_PARTNERS } from './test-constants';
 
 /**
  * Test 3: Record Initial Business Transactions
- * 
+ *
  * This test implements the test case from:
  * docs/test-cases/003-record-initial-business-transactions.md
- * 
+ *
  * PREREQUISITE: Tests 001 and 002 must have been run successfully to create the journal,
  * account tree, and opening balances.
- * 
+ *
  * This test creates a series of initial business transactions during company formation,
- * including loans, fees, payments, capital contributions, and bank fees.
+ * including loans, fees, payments, capital contributions, bank fees, inventory purchases,
+ * supplier invoices with delayed payment, sales invoices with VAT, credit notes,
+ * expense refunds, inventory write-downs, and direct tax payments.
+ *
+ * Account balances are verified via the API after every transaction.
  */
+
+// ============================================================================
+// Helper functions
+// ============================================================================
+
+/**
+ * Verifies account balances by fetching all transactions from the API and
+ * computing balances per account (matched by account number prefix).
+ *
+ * @param page - Playwright page object
+ * @param expectedBalances - Map of account number -> expected balance (raw sum of amounts)
+ */
+async function verifyAccountBalances(page: Page, expectedBalances: Record<string, number>): Promise<void> {
+  const journalId = await page.evaluate(() => localStorage.getItem('journalId'));
+  if (!journalId) throw new Error('No journalId in localStorage');
+
+  const response = await page.request.get(`/api/journal/${journalId}/transactions`);
+  if (!response.ok()) throw new Error(`API request failed: ${response.status()}`);
+  const transactions = await response.json();
+
+  // Compute balances per account by account name prefix (account number)
+  const balances = new Map<string, number>();
+  for (const tx of transactions) {
+    for (const entry of tx.entries) {
+      const accountName: string = entry.accountName || '';
+      // Extract account number from account name (e.g., "1000 Cash" -> "1000", "2210.001 John Smith" -> "2210.001")
+      const match = accountName.match(/^([\d.]+)/);
+      if (match) {
+        const accountNumber = match[1];
+        const current = balances.get(accountNumber) ?? 0;
+        balances.set(accountNumber, current + entry.amount);
+      }
+    }
+  }
+
+  // Verify expected balances
+  const errors: string[] = [];
+  for (const [accountNumber, expectedBalance] of Object.entries(expectedBalances)) {
+    const actualBalance = balances.get(accountNumber) ?? 0;
+    if (Math.abs(actualBalance - expectedBalance) > 0.001) {
+      errors.push(`Account ${accountNumber}: expected ${expectedBalance.toFixed(2)}, got ${actualBalance.toFixed(2)}`);
+    } else {
+      console.log(`  ✓ Account ${accountNumber}: ${actualBalance.toFixed(2)} (expected ${expectedBalance.toFixed(2)})`);
+    }
+  }
+
+  if (errors.length > 0) {
+    throw new Error('Balance verification failed:\n  ' + errors.join('\n  '));
+  }
+}
+
+/**
+ * Deletes all transactions matching the given descriptions via the API.
+ * This is more reliable than UI-based deletion.
+ */
+async function deleteTransactionsByDescriptions(page: Page, descriptions: string[]): Promise<void> {
+  const journalId = await page.evaluate(() => localStorage.getItem('journalId'));
+  if (!journalId) throw new Error('No journalId in localStorage');
+
+  const response = await page.request.get(`/api/journal/${journalId}/transactions`);
+  if (!response.ok()) throw new Error(`API request failed: ${response.status()}`);
+  const transactions = await response.json();
+
+  let deletedCount = 0;
+  for (const tx of transactions) {
+    const txDescription: string = tx.description || '';
+    // Check if this transaction's description matches any in our list
+    const shouldDelete = descriptions.some(desc => txDescription === desc || txDescription.includes(desc));
+    if (shouldDelete) {
+      const txId = tx.id;
+      console.log(`  Deleting transaction: "${txDescription}" (id: ${txId})`);
+      const deleteResponse = await page.request.delete(`/api/transaction/${txId}`);
+      if (deleteResponse.ok()) {
+        deletedCount++;
+        console.log(`  ✓ Deleted transaction ${txId}`);
+      } else {
+        console.log(`  ✗ Failed to delete transaction ${txId}: ${deleteResponse.status()}`);
+      }
+    }
+  }
+  console.log(`Cleanup complete: ${deletedCount} transactions deleted`);
+}
+
+/**
+ * Fills an account autocomplete field in a macro dialog by searching for the
+ * parameter field with a label matching the prompt text, then typing the
+ * account number and selecting from the dropdown.
+ */
+async function fillAccountParameter(page: Page, labelPrompt: string, accountNumber: string): Promise<void> {
+  console.log(`Filling account parameter "${labelPrompt}" with: ${accountNumber}`);
+  const input = page.locator('.parameter-field')
+    .filter({ hasText: labelPrompt })
+    .locator('abs-autocomplete input.autocomplete-input');
+  await input.click();
+  await page.waitForTimeout(300);
+  await input.fill(accountNumber);
+  await page.waitForSelector('.dropdown .dropdown-item:not(.loading):not(.no-results):not(.hint)', { timeout: 10000 });
+  await page.waitForTimeout(500);
+
+  // Select the matching dropdown item
+  const dropdownItem = page.locator('.dropdown .dropdown-item:not(.loading):not(.no-results):not(.hint)')
+    .filter({ hasText: accountNumber });
+  await expect(dropdownItem.first()).toBeVisible();
+  await dropdownItem.first().click({ force: true });
+  await page.waitForTimeout(500);
+  console.log(`Account parameter "${labelPrompt}" filled with ${accountNumber}`);
+}
+
+/**
+ * Descriptions of all transactions for cleanup.
+ * Includes both original transactions (1-5b) and new transactions (6-12).
+ */
+const ALL_TRANSACTION_DESCRIPTIONS = [
+  // Original transactions (1-5b)
+  'Short term loan from John Smith, to start company',
+  'Fee to create Sàrl paid to Startup Help GmbH',
+  'Payment of fee to create Sàrl paid to Startup Help GmbH',
+  'Receipt for sending founding docs eingeschrieben',
+  'Capital payment into abstratium paid into PF',
+  'PRIX POUR LA GESTION DU COMPTE CONSIGNATION DU CAPITAL CRÉATION D\'ENTREPRISE',
+  // New transactions (6-12)
+  'Test 003.6 Purchase components for resale',
+  'Test 003.7 Anthropic API services invoice',
+  'Test 003.7 Payment of invoice',
+  'Test 003.8 Consulting services with VAT',
+  'Test 003.9 Credit note for partial refund of consulting services',
+  'Test 003.10 Refund for overcharged administrative expense',
+  'Test 003.11 Year-end inventory write-down for obsolete components',
+  'Test 003.12 Direct tax payment for 2026',
+];
 
 test.describe('Initial Business Transactions', () => {
   test('should record all initial business formation transactions', async ({ page }) => {
-    test.setTimeout(120_000);
+    test.setTimeout(300_000);
     console.log('=== Starting Test 3: Record Initial Business Transactions ===');
-    
+
     // Navigate to the application
     await page.goto('/');
-    
+
     // Check if we need to sign in
     const signOutLink = page.locator('#signout-link');
     const isSignedIn = await signOutLink.isVisible({ timeout: 2000 }).catch(() => false);
-    
+
     if (!isSignedIn) {
       console.log('Not signed in, performing authentication...');
       await authenticate(page, TEST_USER_EMAIL, TEST_USER_PASSWORD);
@@ -38,15 +173,15 @@ test.describe('Initial Business Transactions', () => {
     } else {
       console.log('Already signed in');
     }
-    
+
     // Ensure we're signed in
     await headerPage.waitForHeader(page);
-    
+
     // ========================================================================
     // Step 1: Select the journal and navigate to transactions page
     // ========================================================================
     console.log('--- Step 1: Selecting Journal ---');
-    
+
     await headerPage.selectJournal(page, TEST_JOURNAL_NAME);
     await headerPage.clickJournalLink(page);
     await transactionsPage.waitForJournalPage(page);
@@ -61,6 +196,16 @@ test.describe('Initial Business Transactions', () => {
 
     // Navigate back to the journal page after partner creation
     await headerPage.clickJournalLink(page);
+    await transactionsPage.waitForJournalPage(page);
+
+    // ========================================================================
+    // Cleanup: Delete any existing transactions from prior runs via API
+    // ========================================================================
+    console.log('--- Cleaning up existing transactions from prior runs ---');
+    await deleteTransactionsByDescriptions(page, ALL_TRANSACTION_DESCRIPTIONS);
+    await page.waitForLoadState('networkidle');
+    // Reload the page to reflect the cleaned state
+    await page.reload();
     await transactionsPage.waitForJournalPage(page);
     
     // ========================================================================
@@ -85,9 +230,16 @@ test.describe('Initial Business Transactions', () => {
     await transactionsPage.verifyBalanced(page);
     await transactionsPage.saveTransaction(page);
     await page.waitForLoadState('networkidle');
-    
+
     console.log('✓ Transaction 1 saved: Short-term loan');
-    
+
+    // Verify balances after Transaction 1
+    console.log('--- Verifying balances after Transaction 1 ---');
+    await verifyAccountBalances(page, {
+      '1000': 38.50,
+      '2210.001': -38.50,
+    });
+
     // ========================================================================
     // Transaction 2a: Administrative Fee Invoice
     // ========================================================================
@@ -112,7 +264,16 @@ test.describe('Initial Business Transactions', () => {
     await page.waitForLoadState('networkidle');
     
     console.log('✓ Transaction 2a saved: Administrative fee invoice');
-    
+
+    // Verify balances after Transaction 2a
+    console.log('--- Verifying balances after Transaction 2a ---');
+    await verifyAccountBalances(page, {
+      '1000': 38.50,
+      '2000': -34.30,
+      '6570': 34.30,
+      '2210.001': -38.50,
+    });
+
     // ========================================================================
     // Transaction 2b: Administrative Fee Payment
     // ========================================================================
@@ -138,7 +299,16 @@ test.describe('Initial Business Transactions', () => {
     await page.waitForLoadState('networkidle');
     
     console.log('✓ Transaction 2b saved: Administrative fee payment');
-    
+
+    // Verify balances after Transaction 2b
+    console.log('--- Verifying balances after Transaction 2b ---');
+    await verifyAccountBalances(page, {
+      '1000': 4.20,
+      '2000': 0.00,
+      '6570': 34.30,
+      '2210.001': -38.50,
+    });
+
     // ========================================================================
     // Transaction 3a: Postal Service Fee Invoice
     // ========================================================================
@@ -163,7 +333,16 @@ test.describe('Initial Business Transactions', () => {
     await page.waitForLoadState('networkidle');
     
     console.log('✓ Transaction 3a saved: Postal service fee invoice');
-    
+
+    // Verify balances after Transaction 3a
+    console.log('--- Verifying balances after Transaction 3a ---');
+    await verifyAccountBalances(page, {
+      '1000': 4.20,
+      '2000': -4.20,
+      '6570': 38.50,
+      '2210.001': -38.50,
+    });
+
     // ========================================================================
     // Transaction 3b: Postal Service Fee Payment
     // ========================================================================
@@ -189,7 +368,16 @@ test.describe('Initial Business Transactions', () => {
     await page.waitForLoadState('networkidle');
     
     console.log('✓ Transaction 3b saved: Postal service fee payment');
-    
+
+    // Verify balances after Transaction 3b
+    console.log('--- Verifying balances after Transaction 3b ---');
+    await verifyAccountBalances(page, {
+      '1000': 0.00,
+      '2000': 0.00,
+      '6570': 38.50,
+      '2210.001': -38.50,
+    });
+
     // ========================================================================
     // Transaction 4: Capital Contribution
     // ========================================================================
@@ -214,7 +402,18 @@ test.describe('Initial Business Transactions', () => {
     await page.waitForLoadState('networkidle');
     
     console.log('✓ Transaction 4 saved: Capital contribution');
-    
+
+    // Verify balances after Transaction 4
+    console.log('--- Verifying balances after Transaction 4 ---');
+    await verifyAccountBalances(page, {
+      '1000': 0.00,
+      '1020': 2000.00,
+      '2000': 0.00,
+      '2210.001': -38.50,
+      '2800': -2000.00,
+      '6570': 38.50,
+    });
+
     // ========================================================================
     // Transaction 5a: Bank Account Management Fee Invoice
     // ========================================================================
@@ -239,7 +438,19 @@ test.describe('Initial Business Transactions', () => {
     await page.waitForLoadState('networkidle');
     
     console.log('✓ Transaction 5a saved: Bank account management fee invoice');
-    
+
+    // Verify balances after Transaction 5a
+    console.log('--- Verifying balances after Transaction 5a ---');
+    await verifyAccountBalances(page, {
+      '1000': 0.00,
+      '1020': 2000.00,
+      '2000': -15.00,
+      '2210.001': -38.50,
+      '2800': -2000.00,
+      '6570': 38.50,
+      '6900': 15.00,
+    });
+
     // ========================================================================
     // Transaction 5b: Bank Account Management Fee Payment
     // ========================================================================
@@ -263,23 +474,399 @@ test.describe('Initial Business Transactions', () => {
     await transactionsPage.verifyBalanced(page);
     await transactionsPage.saveTransaction(page);
     await page.waitForLoadState('networkidle');
-    
+
     console.log('✓ Transaction 5b saved: Bank account management fee payment');
-    
+
+    // Verify balances after Transaction 5b
+    console.log('--- Verifying balances after Transaction 5b ---');
+    await verifyAccountBalances(page, {
+      '1000': 0.00,
+      '1020': 1985.00,
+      '2000': 0.00,
+      '2210.001': -38.50,
+      '2800': -2000.00,
+      '6570': 38.50,
+      '6900': 15.00,
+    });
+
+    // ========================================================================
+    // Transaction 6: Purchase Goods for Resale (PaymentForGoods macro)
+    // ========================================================================
+    console.log('--- Transaction 6: Purchase Goods for Resale (PaymentForGoods macro) ---');
+
+    // Navigate to macros page
+    await page.click('a#macros');
+    await macrosPage.waitForMacrosPage(page);
+    await macrosPage.selectMacro(page, 'PaymentForGoods');
+
+    // Fill in macro parameters
+    await macrosPage.fillParameter(page, 'date', '2026-08-01');
+    await macrosPage.fillParameterAutocomplete(page, 'Partner (supplier)', 'P00000002');
+    await macrosPage.fillParameter(page, 'invoice_number', 'PI00000006');
+    await macrosPage.fillParameter(page, 'amount', '50.00');
+    await macrosPage.fillParameter(page, 'description', 'Test 003.6 Purchase components for resale');
+
+    // Fill inventory account and liability account using label-based selection
+    await fillAccountParameter(page, 'Inventory account', '1230');
+    await fillAccountParameter(page, 'Liability account', '1020');
+
+    await macrosPage.executeMacro(page);
+    await page.waitForTimeout(2000);
+
+    // Close macro dialog if still open
+    const macroDialog6 = page.locator('.modal-overlay');
+    if (await macroDialog6.isVisible().catch(() => false)) {
+      await macrosPage.closeDialog(page);
+    }
+
+    // Navigate back to journal page
+    await headerPage.clickJournalLink(page);
+    await transactionsPage.waitForJournalPage(page);
+    await page.waitForLoadState('networkidle');
+
+    console.log('✓ Transaction 6 saved: Purchase goods for resale');
+
+    // Verify balances after Transaction 6
+    console.log('--- Verifying balances after Transaction 6 ---');
+    await verifyAccountBalances(page, {
+      '1000': 0.00,
+      '1020': 1935.00,
+      '1230': 50.00,
+      '2000': 0.00,
+      '2210.001': -38.50,
+      '2800': -2000.00,
+      '6570': 38.50,
+      '6900': 15.00,
+    });
+
+    // ========================================================================
+    // Transaction 7a: Supplier Invoice (delayed payment - step 1)
+    // ========================================================================
+    console.log('--- Transaction 7a: Supplier Invoice (delayed payment - step 1) ---');
+
+    await transactionsPage.clickAddTransaction(page);
+
+    await transactionsPage.fillTransactionDate(page, '2026-08-03');
+    await transactionsPage.fillTransactionDescription(page, 'Test 003.7 Anthropic API services invoice');
+    await transactionsPage.fillTransactionPartner(page, 'P00000005');
+    await transactionsPage.setTransactionStatus(page, 'CLEARED');
+    await transactionsPage.addTag(page, 'invoice:PI00000007');
+
+    // Entry 1: Debit Expense (Anthropic) CHF 100.00
+    await transactionsPage.createEntry(page, 0, '6570.002', 100.00, 'CHF');
+
+    // Entry 2: Credit Accounts Payable CHF 100.00
+    await transactionsPage.createEntry(page, 1, '2000', -100.00, 'CHF');
+
+    await transactionsPage.verifyBalanced(page);
+    await transactionsPage.saveTransaction(page);
+    await page.waitForLoadState('networkidle');
+
+    console.log('✓ Transaction 7a saved: Supplier invoice');
+
+    // Verify balances after Transaction 7a (invoice created, not yet paid)
+    console.log('--- Verifying balances after Transaction 7a ---');
+    await verifyAccountBalances(page, {
+      '1000': 0.00,
+      '1020': 1935.00,
+      '1230': 50.00,
+      '2000': -100.00,
+      '2210.001': -38.50,
+      '2800': -2000.00,
+      '6570': 38.50,
+      '6570.002': 100.00,
+      '6900': 15.00,
+    });
+
+    // ========================================================================
+    // Transaction 7b: Supplier Payment (delayed payment - step 2)
+    // ========================================================================
+    console.log('--- Transaction 7b: Supplier Payment (delayed payment - step 2) ---');
+
+    await transactionsPage.clickAddTransaction(page);
+
+    await transactionsPage.fillTransactionDate(page, '2026-08-10');
+    await transactionsPage.fillTransactionDescription(page, 'Test 003.7 Payment of invoice');
+    await transactionsPage.fillTransactionPartner(page, 'P00000005');
+    await transactionsPage.setTransactionStatus(page, 'CLEARED');
+    await transactionsPage.addTag(page, 'invoice:PI00000007');
+    await transactionsPage.addTag(page, 'Payment');
+
+    // Entry 1: Debit Accounts Payable CHF 100.00
+    await transactionsPage.createEntry(page, 0, '2000', 100.00, 'CHF');
+
+    // Entry 2: Credit Bank Account CHF 100.00
+    await transactionsPage.createEntry(page, 1, '1020', -100.00, 'CHF');
+
+    await transactionsPage.verifyBalanced(page);
+    await transactionsPage.saveTransaction(page);
+    await page.waitForLoadState('networkidle');
+
+    console.log('✓ Transaction 7b saved: Supplier payment');
+
+    // Verify balances after Transaction 7b (invoice paid, A/P cleared)
+    console.log('--- Verifying balances after Transaction 7b ---');
+    await verifyAccountBalances(page, {
+      '1000': 0.00,
+      '1020': 1835.00,
+      '1230': 50.00,
+      '2000': 0.00,
+      '2210.001': -38.50,
+      '2800': -2000.00,
+      '6570': 38.50,
+      '6570.002': 100.00,
+      '6900': 15.00,
+    });
+
+    // ========================================================================
+    // Transaction 8: Sales Invoice with VAT (3-entry transaction)
+    // ========================================================================
+    console.log('--- Transaction 8: Sales Invoice with VAT (3-entry transaction) ---');
+
+    await transactionsPage.clickAddTransaction(page);
+
+    await transactionsPage.fillTransactionDate(page, '2026-08-06');
+    await transactionsPage.fillTransactionDescription(page, 'Test 003.8 Consulting services with VAT');
+    await transactionsPage.fillTransactionPartner(page, 'P00000001');
+    await transactionsPage.setTransactionStatus(page, 'CLEARED');
+    await transactionsPage.addTag(page, 'invoice:SV00000001');
+
+    // Entry 1: Debit Accounts Receivable CHF 107.00
+    await transactionsPage.createEntry(page, 0, '1100', 107.00, 'CHF');
+
+    // Entry 2: Credit Revenue CHF 100.00
+    await transactionsPage.createEntry(page, 1, '3400', -100.00, 'CHF');
+
+    // Entry 3: Credit VAT payable CHF 7.00 (need to add a third entry)
+    await transactionsPage.clickAddEntry(page);
+    await transactionsPage.createEntry(page, 2, '2200', -7.00, 'CHF');
+
+    await transactionsPage.verifyBalanced(page);
+    await transactionsPage.saveTransaction(page);
+    await page.waitForLoadState('networkidle');
+
+    console.log('✓ Transaction 8 saved: Sales invoice with VAT');
+
+    // Verify balances after Transaction 8
+    console.log('--- Verifying balances after Transaction 8 ---');
+    await verifyAccountBalances(page, {
+      '1000': 0.00,
+      '1020': 1835.00,
+      '1100': 107.00,
+      '1230': 50.00,
+      '2000': 0.00,
+      '2200': -7.00,
+      '2210.001': -38.50,
+      '2800': -2000.00,
+      '3400': -100.00,
+      '6570': 38.50,
+      '6570.002': 100.00,
+      '6900': 15.00,
+    });
+
+    // ========================================================================
+    // Transaction 9: Credit Note to Customer (Revenue Reversal)
+    // ========================================================================
+    console.log('--- Transaction 9: Credit Note to Customer ---');
+
+    await transactionsPage.clickAddTransaction(page);
+
+    await transactionsPage.fillTransactionDate(page, '2026-08-08');
+    await transactionsPage.fillTransactionDescription(page, 'Test 003.9 Credit note for partial refund of consulting services');
+    await transactionsPage.fillTransactionPartner(page, 'P00000001');
+    await transactionsPage.setTransactionStatus(page, 'CLEARED');
+    await transactionsPage.addTag(page, 'invoice:CN00000001');
+
+    // Entry 1: Debit Revenue CHF 40.00 (reverses revenue)
+    await transactionsPage.createEntry(page, 0, '3400', 40.00, 'CHF');
+
+    // Entry 2: Credit Accounts Receivable CHF 40.00 (reduces receivable)
+    await transactionsPage.createEntry(page, 1, '1100', -40.00, 'CHF');
+
+    await transactionsPage.verifyBalanced(page);
+    await transactionsPage.saveTransaction(page);
+    await page.waitForLoadState('networkidle');
+
+    console.log('✓ Transaction 9 saved: Credit note to customer');
+
+    // Verify balances after Transaction 9
+    console.log('--- Verifying balances after Transaction 9 ---');
+    await verifyAccountBalances(page, {
+      '1000': 0.00,
+      '1020': 1835.00,
+      '1100': 67.00,
+      '1230': 50.00,
+      '2000': 0.00,
+      '2200': -7.00,
+      '2210.001': -38.50,
+      '2800': -2000.00,
+      '3400': -60.00,
+      '6570': 38.50,
+      '6570.002': 100.00,
+      '6900': 15.00,
+    });
+
+    // ========================================================================
+    // Transaction 10: Expense Refund from Supplier (Expense Reversal)
+    // ========================================================================
+    console.log('--- Transaction 10: Expense Refund from Supplier ---');
+
+    await transactionsPage.clickAddTransaction(page);
+
+    await transactionsPage.fillTransactionDate(page, '2026-08-12');
+    await transactionsPage.fillTransactionDescription(page, 'Test 003.10 Refund for overcharged administrative expense');
+    await transactionsPage.fillTransactionPartner(page, 'P00000002');
+    await transactionsPage.setTransactionStatus(page, 'CLEARED');
+    await transactionsPage.addTag(page, 'invoice:PC00000001');
+
+    // Entry 1: Debit Bank Account CHF 25.00 (cash back)
+    await transactionsPage.createEntry(page, 0, '1020', 25.00, 'CHF');
+
+    // Entry 2: Credit IT Expenses CHF 25.00 (reduces expense)
+    await transactionsPage.createEntry(page, 1, '6570', -25.00, 'CHF');
+
+    await transactionsPage.verifyBalanced(page);
+    await transactionsPage.saveTransaction(page);
+    await page.waitForLoadState('networkidle');
+
+    console.log('✓ Transaction 10 saved: Expense refund from supplier');
+
+    // Verify balances after Transaction 10
+    console.log('--- Verifying balances after Transaction 10 ---');
+    await verifyAccountBalances(page, {
+      '1000': 0.00,
+      '1020': 1860.00,
+      '1100': 67.00,
+      '1230': 50.00,
+      '2000': 0.00,
+      '2200': -7.00,
+      '2210.001': -38.50,
+      '2800': -2000.00,
+      '3400': -60.00,
+      '6570': 13.50,
+      '6570.002': 100.00,
+      '6900': 15.00,
+    });
+
+    // ========================================================================
+    // Transaction 11: Inventory Write-Down (InventoryAdjustment macro)
+    // ========================================================================
+    console.log('--- Transaction 11: Inventory Write-Down (InventoryAdjustment macro) ---');
+
+    // Navigate to macros page
+    await page.click('a#macros');
+    await macrosPage.waitForMacrosPage(page);
+    await macrosPage.selectMacro(page, 'InventoryAdjustment UNTESTED');
+
+    // Fill in macro parameters
+    await macrosPage.fillParameter(page, 'date', '2026-08-15');
+    await macrosPage.fillParameter(page, 'description', 'Test 003.11 Year-end inventory write-down for obsolete components');
+    await macrosPage.fillParameter(page, 'adjustment_amount', '10.00');
+
+    // Fill account parameters using label-based selection
+    await fillAccountParameter(page, 'Inventory account', '1230');
+    await fillAccountParameter(page, 'Expense account', '6700');
+
+    await macrosPage.executeMacro(page);
+    await page.waitForTimeout(2000);
+
+    // Close macro dialog if still open
+    const macroDialog11 = page.locator('.modal-overlay');
+    if (await macroDialog11.isVisible().catch(() => false)) {
+      await macrosPage.closeDialog(page);
+    }
+
+    // Navigate back to journal page
+    await headerPage.clickJournalLink(page);
+    await transactionsPage.waitForJournalPage(page);
+    await page.waitForLoadState('networkidle');
+
+    console.log('✓ Transaction 11 saved: Inventory write-down');
+
+    // Verify balances after Transaction 11
+    console.log('--- Verifying balances after Transaction 11 ---');
+    await verifyAccountBalances(page, {
+      '1000': 0.00,
+      '1020': 1860.00,
+      '1100': 67.00,
+      '1230': 40.00,
+      '2000': 0.00,
+      '2200': -7.00,
+      '2210.001': -38.50,
+      '2800': -2000.00,
+      '3400': -60.00,
+      '6570': 13.50,
+      '6570.002': 100.00,
+      '6700': 10.00,
+      '6900': 15.00,
+    });
+
+    // ========================================================================
+    // Transaction 12: Direct Tax Payment
+    // ========================================================================
+    console.log('--- Transaction 12: Direct Tax Payment ---');
+
+    await transactionsPage.clickAddTransaction(page);
+
+    await transactionsPage.fillTransactionDate(page, '2026-08-20');
+    await transactionsPage.fillTransactionDescription(page, 'Test 003.12 Direct tax payment for 2026');
+    await transactionsPage.fillTransactionPartner(page, 'P00000006');
+    await transactionsPage.setTransactionStatus(page, 'CLEARED');
+    await transactionsPage.addTag(page, 'invoice:TX00000001');
+
+    // Entry 1: Debit Direct taxes CHF 75.00
+    await transactionsPage.createEntry(page, 0, '8900', 75.00, 'CHF');
+
+    // Entry 2: Credit Bank Account CHF 75.00
+    await transactionsPage.createEntry(page, 1, '1020', -75.00, 'CHF');
+
+    await transactionsPage.verifyBalanced(page);
+    await transactionsPage.saveTransaction(page);
+    await page.waitForLoadState('networkidle');
+
+    console.log('✓ Transaction 12 saved: Direct tax payment');
+
+    // Verify balances after Transaction 12 (final)
+    console.log('--- Verifying final balances after Transaction 12 ---');
+    await verifyAccountBalances(page, {
+      '1000': 0.00,
+      '1020': 1785.00,
+      '1100': 67.00,
+      '1230': 40.00,
+      '2000': 0.00,
+      '2200': -7.00,
+      '2210.001': -38.50,
+      '2800': -2000.00,
+      '3400': -60.00,
+      '6570': 13.50,
+      '6570.002': 100.00,
+      '6700': 10.00,
+      '6900': 15.00,
+      '8900': 75.00,
+    });
+
     // ========================================================================
     // Verification: Check that all transactions appear in the list
     // ========================================================================
     console.log('--- Verification: Checking Transaction List ---');
-    
+
     await transactionsPage.verifyTransactionExists(page, 'Short term loan from John Smith');
     await transactionsPage.verifyTransactionExists(page, 'Fee to create Sàrl paid to Startup Help GmbH');
     await transactionsPage.verifyTransactionExists(page, 'Payment of fee to create Sàrl paid to Startup Help GmbH');
     await transactionsPage.verifyTransactionExists(page, 'Receipt for sending founding docs eingeschrieben');
     await transactionsPage.verifyTransactionExists(page, 'Capital payment into abstratium paid into PF');
     await transactionsPage.verifyTransactionExists(page, 'PRIX POUR LA GESTION DU COMPTE');
-    
+    await transactionsPage.verifyTransactionExists(page, 'Test 003.6 Purchase components for resale');
+    await transactionsPage.verifyTransactionExists(page, 'Test 003.7 Anthropic API services invoice');
+    await transactionsPage.verifyTransactionExists(page, 'Test 003.7 Payment of invoice');
+    await transactionsPage.verifyTransactionExists(page, 'Test 003.8 Consulting services with VAT');
+    await transactionsPage.verifyTransactionExists(page, 'Test 003.9 Credit note for partial refund');
+    await transactionsPage.verifyTransactionExists(page, 'Test 003.10 Refund for overcharged administrative expense');
+    await transactionsPage.verifyTransactionExists(page, 'Test 003.11 Year-end inventory write-down');
+    await transactionsPage.verifyTransactionExists(page, 'Test 003.12 Direct tax payment for 2026');
+
     console.log('✓ All transactions verified in list');
-    
+
     console.log('=== Test 3 Complete: All Initial Business Transactions Created Successfully ===');
   });
 
@@ -310,15 +897,22 @@ test.describe('Initial Business Transactions', () => {
     await page.click('a#accounts-table');
     await page.waitForLoadState('networkidle');
     
-    // Define expected balances
+    // Define expected balances (final, after all 12 transactions)
     const expectedBalances = [
       { account: '1000', balance: '0.00' },
-      { account: '1020', balance: '1,985.00' },
+      { account: '1020', balance: '1,785.00' },
+      { account: '1100', balance: '67.00' },
+      { account: '1230', balance: '40.00' },
       { account: '2000', balance: '0.00' },
+      { account: '2200', balance: '7.00' },
       { account: '2210.001', balance: '38.50' },
       { account: '2800', balance: '2,000.00' },
-      { account: '6570', balance: '38.50' }, // Using 6570 instead of 6500/6700
-      { account: '6900', balance: '15.00' }
+      { account: '3400', balance: '60.00' },
+      { account: '6570', balance: '13.50' },
+      { account: '6570.002', balance: '100.00' },
+      { account: '6700', balance: '10.00' },
+      { account: '6900', balance: '15.00' },
+      { account: '8900', balance: '75.00' }
     ];
     
     // Verify each account balance
@@ -378,28 +972,36 @@ test.describe('Initial Business Transactions', () => {
     
     // Verify report structure and values
     console.log('--- Verifying Balance Sheet ---');
-    
-    // Expected values based on transactions:
-    // Assets: 1020 Bank = 1,985.00
-    // Liabilities: 2210.001 John Smith = 38.50
+
+    // Expected values based on all 12 transactions:
+    // Assets: 1020 Bank = 1,785.00, 1100 A/R = 67.00, 1230 Inventory = 40.00
+    // Total Assets: 1,892.00
+    // Liabilities: 2200 VAT = 7.00, 2210.001 John Smith = 38.50
+    // Total Liabilities: 45.50
     // Equity: 2800 Share Capital = 2,000.00
-    // Net Loss: 53.50 (expenses: 38.50 + 15.00)
-    // Total L+E: 38.50 + 2,000.00 - 53.50 = 1,985.00 (must equal Total Assets)
-    
+    // Net Loss: 153.50 (expenses 213.50 - revenue 60.00)
+    // Total Equity: 2,000.00 - 153.50 = 1,846.50
+    // Total L+E: 45.50 + 1,846.50 = 1,892.00 (must equal Total Assets)
+
     await reportsPage.verifySectionExists(page, 'Cash and Cash Equivalents');
-    await reportsPage.verifyAccountBalance(page, '1020', '1,985.00');
-    
+    await reportsPage.verifyAccountBalance(page, '1020', '1,785.00');
+
+    await reportsPage.verifySectionExists(page, 'Assets');
+    await reportsPage.verifyAccountBalance(page, '1100', '67.00');
+    await reportsPage.verifyAccountBalance(page, '1230', '40.00');
+
     await reportsPage.verifySectionExists(page, 'Liabilities');
+    await reportsPage.verifyAccountBalance(page, '2200', '7.00');
     await reportsPage.verifyAccountBalance(page, '2210.001', '38.50');
-    
+
     await reportsPage.verifySectionExists(page, 'Equity');
     await reportsPage.verifyAccountBalance(page, '2800', '2,000.00');
-    
-    await reportsPage.verifyReportMatches(page, /Net.*Loss.*53\.50\s*CHF/, 'Net Loss');
-    
+
+    await reportsPage.verifyReportMatches(page, /Net.*Loss.*153\.50\s*CHF/, 'Net Loss');
+
     // Verify the balance sheet balances
-    await reportsPage.verifyBalanceSheetBalances(page, '1,985.00');
-    
+    await reportsPage.verifyBalanceSheetBalances(page, '1,892.00');
+
     // Verify no negative signs in Liabilities section (sign inversion bug check)
     await reportsPage.verifyNoNegativeValues(page, 'Liabilities');
     
@@ -436,14 +1038,21 @@ test.describe('Initial Business Transactions', () => {
     
     // Verify report structure and values
     console.log('--- Verifying Income Statement ---');
-    
-    // Expected: No revenue, Expenses: 6570 (38.50) + 6900 (15.00) = 53.50 total
+
+    // Expected: Revenue 3400 = 60.00, Expenses: 6570 (13.50) + 6570.002 (100.00) + 6700 (10.00) + 6900 (15.00) + 8900 (75.00) = 213.50
+    // Net Loss: 213.50 - 60.00 = 153.50
+    await reportsPage.verifySectionExists(page, 'Revenue');
+    await reportsPage.verifyAccountBalance(page, '3400', '60.00');
+
     await reportsPage.verifySectionExists(page, 'Expenses');
-    await reportsPage.verifyAccountBalance(page, '6570', '38.50');
+    await reportsPage.verifyAccountBalance(page, '6570', '13.50');
+    await reportsPage.verifyAccountBalance(page, '6570.002', '100.00');
+    await reportsPage.verifyAccountBalance(page, '6700', '10.00');
     await reportsPage.verifyAccountBalance(page, '6900', '15.00');
-    
-    // Verify Net Loss (no revenue, so expenses = net loss)
-    await reportsPage.verifyReportMatches(page, /Net.*Loss.*53\.50\s*CHF/, 'Net Loss of 53.50');
+    await reportsPage.verifyAccountBalance(page, '8900', '75.00');
+
+    // Verify Net Loss (expenses 213.50 - revenue 60.00 = 153.50)
+    await reportsPage.verifyReportMatches(page, /Net.*Loss.*153\.50\s*CHF/, 'Net Loss of 153.50');
     
     console.log('✓ Income Statement verified successfully!');
     console.log('=== Income Statement Verification Complete ===');
@@ -485,19 +1094,23 @@ test.describe('Initial Business Transactions', () => {
     await reportsPage.verifySectionExists(page, 'Equity');
     
     // Verify all account balances
-    await reportsPage.verifyAccountBalance(page, '1020', '1,985.00'); // Bank account
+    await reportsPage.verifyAccountBalance(page, '1020', '1,785.00'); // Bank account
+    await reportsPage.verifyAccountBalance(page, '1100', '67.00'); // Accounts receivable
+    await reportsPage.verifyAccountBalance(page, '1230', '40.00'); // Inventory
+    await reportsPage.verifyAccountBalance(page, '2200', '7.00'); // VAT payable
     await reportsPage.verifyAccountBalance(page, '2210.001', '38.50'); // John Smith liability
     await reportsPage.verifyAccountBalance(page, '2800', '2,000.00'); // Share capital
-    
+
     // Swiss Balance Sheet includes net income in equity, not as separate line
     // So we just verify the accounts and that it balances
-    
+
     // Verify no negative signs in liability and equity sections (sign inversion check)
     await reportsPage.verifyNoNegativeValues(page, 'Liabilities');
     await reportsPage.verifyNoNegativeValues(page, 'Equity');
-    
+
     // Verify the balance sheet balances (Assets = Liabilities + Equity)
-    await reportsPage.verifyBalanceSheetBalances(page, '1,985.00');
+    // Total Assets: 1,785.00 + 67.00 + 40.00 = 1,892.00
+    await reportsPage.verifyBalanceSheetBalances(page, '1,892.00');
     
     console.log('✓ Swiss Balance Sheet verified successfully!');
     console.log('=== Swiss Balance Sheet Verification Complete ===');
@@ -543,23 +1156,23 @@ test.describe('Initial Business Transactions', () => {
     // Verify the report contains expense data and net income
     const content = await reportsPage.getReportContent(page);
     
-    // Check that expenses section has data (should show 53.50 total)
+    // Check that expenses section has data (should show 213.50 total expenses, 60.00 revenue, 153.50 net loss)
     if (!content.includes('Expenses')) {
       throw new Error('Expenses section not found in Swiss Income Statement');
     }
     console.log('✓ Expenses section found');
-    
-    // Verify Net Income appears with the correct amount (53.50)
+
+    // Verify Net Income appears with the correct amount (153.50 net loss)
     const hasNetIncome = content.includes('Net Income') || content.includes('Net Loss');
-    const hasAmount = content.includes('53.50') || content.includes('53,50');
-    
+    const hasAmount = content.includes('153.50') || content.includes('153,50');
+
     if (!hasNetIncome) {
       throw new Error('Net Income/Loss label not found in Swiss Income Statement');
     }
     if (!hasAmount) {
-      throw new Error('Amount 53.50 CHF not found in Swiss Income Statement');
+      throw new Error('Amount 153.50 CHF not found in Swiss Income Statement');
     }
-    console.log('✓ Net Income/Loss: 53.50 CHF verified');
+    console.log('✓ Net Income/Loss: 153.50 CHF verified');
     
     console.log('✓ Swiss Income Statement verified with all values');
     
@@ -603,24 +1216,40 @@ test.describe('Initial Business Transactions', () => {
     await reportsPage.verifySectionExists(page, 'Liabilities');
     await reportsPage.verifySectionExists(page, 'Equity');
     await reportsPage.verifySectionExists(page, 'Expenses');
-    
+
     // Verify key accounts with their debit/credit balances
-    // Account 1020: Debit 2000, Credit 15 = Net Debit 1,985.00
+    // Account 1020: Net Debit 1,785.00
     await reportsPage.verifyReportContains(page, '1020', 'Bank Account');
-    await reportsPage.verifyReportContains(page, '1,985.00', 'Bank balance');
-    
+    await reportsPage.verifyReportContains(page, '1,785.00', 'Bank balance');
+
+    // Account 1100: Net Debit 67.00
+    await reportsPage.verifyReportContains(page, '1100', 'Accounts receivable');
+    await reportsPage.verifyReportContains(page, '67.00', 'Receivables balance');
+
+    // Account 1230: Net Debit 40.00
+    await reportsPage.verifyReportContains(page, '1230', 'Goods held for resale');
+    await reportsPage.verifyReportContains(page, '40.00', 'Inventory balance');
+
     // Account 2210.001: Credit 38.50
     await reportsPage.verifyReportContains(page, '2210.001', 'John Smith liability');
     await reportsPage.verifyReportContains(page, '38.50', 'John Smith balance');
-    
+
     // Account 2800: Credit 2,000.00
     await reportsPage.verifyReportContains(page, '2800', 'Share Capital');
     await reportsPage.verifyReportContains(page, '2,000.00', 'Share Capital balance');
-    
-    // Account 6570: Debit 38.50 (34.30 + 4.20)
+
+    // Account 3400: Credit 60.00 (revenue)
+    await reportsPage.verifyReportContains(page, '3400', 'Revenue from services');
+    await reportsPage.verifyReportContains(page, '60.00', 'Revenue balance');
+
+    // Account 6570: Debit 13.50 (38.50 - 25.00 refund)
     await reportsPage.verifyReportContains(page, '6570', 'IT expenses');
-    await reportsPage.verifyReportContains(page, '38.50', 'IT expenses balance');
-    
+    await reportsPage.verifyReportContains(page, '13.50', 'IT expenses balance');
+
+    // Account 8900: Debit 75.00
+    await reportsPage.verifyReportContains(page, '8900', 'Direct taxes');
+    await reportsPage.verifyReportContains(page, '75.00', 'Direct taxes balance');
+
     // Account 6900: Debit 15.00
     await reportsPage.verifyReportContains(page, '6900', 'Financial expense');
     await reportsPage.verifyReportContains(page, '15.00', 'Financial expense balance');
@@ -666,22 +1295,25 @@ test.describe('Initial Business Transactions', () => {
     
     // Verify key expense amounts appear in the report
     // Partner Activity Report shows income and expenses, not equity transactions
-    // P00000002 - Startup Help GmbH: Expenses 34.30
-    await reportsPage.verifyReportContains(page, '34.30', 'Startup Help expense');
-    
-    // P00000003 - Swiss Post: Expenses 4.20
+    // Note: amounts may be netted (e.g., refunds reduce gross expenses)
+
+    // P00000003 - Swiss Post: Expenses 4.20 (no refund)
     await reportsPage.verifyReportContains(page, '4.20', 'Swiss Post expense');
-    
-    // P00000004 - PostFinance: Expenses 15.00
+
+    // P00000004 - PostFinance: Expenses 15.00 (no refund)
     await reportsPage.verifyReportContains(page, '15.00', 'PostFinance expense');
-    
-    // Verify total expenses appear (sum of all partner expenses)
-    await reportsPage.verifyReportContains(page, '53.50', 'Total expenses across all partners');
-    
+
+    // P00000005 - Microsoft: Expenses 100.00 (transaction 7a - Anthropic API services)
+    await reportsPage.verifyReportContains(page, '100.00', 'Microsoft expense');
+
+    // P00000006 - Canton Vaud: Expenses 75.00 (transaction 12 - direct tax payment)
+    await reportsPage.verifyReportContains(page, '75.00', 'Canton Vaud tax expense');
+
     // Verify at least some partner identifiers appear
     const content = await reportsPage.getReportContent(page);
-    const hasPartnerData = content.includes('Smith') || content.includes('GmbH') || 
+    const hasPartnerData = content.includes('Smith') || content.includes('GmbH') ||
                           content.includes('Post') || content.includes('Finance') ||
+                          content.includes('Microsoft') || content.includes('Canton') ||
                           content.includes('P00000');
     if (!hasPartnerData) {
       throw new Error('No partner identifiers found in Partner Activity Report');
