@@ -288,7 +288,7 @@ Feature: Entry Query Language (EQL) Filters
     And the user regenerates the report
     Then the report should show a different bank account balance
     And the difference should equal the amount of the TaxPayment transactions
-    And the 8900 Direct taxes account balance should be reduced by the filtered transactions
+    And the 8900 Direct taxes account may not appear (both 8900 transactions are TaxPayment-tagged, so 8900 becomes 0.00 after filtering)
 
   Scenario: Income Statement respects date filter
     Given the user clears any active filter

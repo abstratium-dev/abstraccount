@@ -29,16 +29,16 @@ opening position. All other accounts in the tree use their default opening
 balance of CHF 0.00. The transaction must balance (debits = credits = 0.00).
 
 #### Equity Accounts (Credit side - establishing the baseline)
-1. **2800 Basic, shareholder or foundation capital**
-   - Full path: `2 Equity:28 Shareholders Equity (legal entities):280 Basic, shareholder or foundation capital:2800 Basic, shareholder or foundation capital`
+1. **2800 Share capital**
+   - Full path: `2 Equity:28 Shareholders Equity:280 Share capital:2800 Share capital`
    - Amount: CHF 0.00
 
-2. **2970 Profit carried forward or loss carried forward**
-   - Full path: `2 Equity:290 Reserves and retained earnings, own capital shares and disposable profit:2970 Profit carried forward or loss carried forward`
+2. **2970 Profit carried forward**
+   - Full path: `2 Equity:290 Reserves and retained earnings:2970 Profit carried forward`
    - Amount: CHF 0.00
 
 3. **2979 Annual profit or loss**
-   - Full path: `2 Equity:290 Reserves and retained earnings, own capital shares and disposable profit:2979 Annual profit or loss`
+   - Full path: `2 Equity:290 Reserves and retained earnings:2979 Annual profit or loss`
    - Amount: CHF 0.00
 
 #### Asset Accounts (Debit side)
@@ -47,32 +47,32 @@ balance of CHF 0.00. The transaction must balance (debits = credits = 0.00).
    - Amount: CHF 0.00
 
 5. **1020 Bank Account**
-   - Full path: `1 Assets:10 Current Assets:100 Cash and cash equivalents:1020 Bank Account (asset)`
+   - Full path: `1 Assets:10 Current Assets:100 Cash and cash equivalents:1020 Bank Account`
    - Amount: CHF 0.00
 
-6. **1100 Accounts receivable (Debtors)**
-   - Full path: `1 Assets:10 Current Assets:110 Accounts Receivable:1100 Accounts receivable (Debtors)`
+6. **1100 Trade receivables**
+   - Full path: `1 Assets:10 Current Assets:110 Accounts Receivable:1100 Trade receivables`
    - Amount: CHF 0.00
 
-7. **120 Inventories and non-invoiced services**
-   - Full path: `1 Assets:10 Current Assets:120 Inventories and non-invoiced services`
+7. **120 Inventories**
+   - Full path: `1 Assets:10 Current Assets:120 Inventories`
    - Amount: CHF 0.00
 
-8. **150 Movable tangible fixed assets**
-   - Full path: `1 Assets:14 Non-current assets:150 Movable tangible fixed assets`
+8. **1230 Goods held for resale**
+   - Full path: `1 Assets:10 Current Assets:120 Inventories:1230 Goods held for resale`
    - Amount: CHF 0.00
 
 #### Liability Accounts (Credit side)
-9. **2000 Accounts payable (suppliers & creditors)**
-   - Full path: `2 Liabilities:20 Current liabilities:200 Accounts payable (A/P):2000 Accounts payable (suppliers&creditors)`
+9. **2000 Accounts payable**
+   - Full path: `2 Liabilities:20 Current liabilities:200 Accounts payable:2000 Accounts payable`
    - Amount: CHF 0.00
 
 10. **2210 Other short-term liabilities**
     - Full path: `2 Liabilities:20 Current liabilities:220 Other short-term liabilities:2210 Other short-term liabilities`
     - Amount: CHF 0.00
 
-11. **2210.001 John Smith** (sub-account of 2210)
-    - Full path: `2 Liabilities:20 Current liabilities:220 Other short-term liabilities:2210 Other short-term liabilities:2210.001 John Smith`
+11. **2210.001 Staff member** (sub-account of 2210)
+    - Full path: `2 Liabilities:20 Current liabilities:220 Other short-term liabilities:2210 Other short-term liabilities:2210.001 Staff member`
     - Amount: CHF 0.00
 
 ## Test Steps
@@ -99,13 +99,13 @@ Feature: Opening Balances Transaction
     
     # Add Equity account entries (establishing the baseline)
     When the user clicks "Add Entry"
-    And the user searches for and selects account "2800 Basic, shareholder or foundation capital"
+    And the user searches for and selects account "2800 Share capital"
     And the user enters amount "0.00" CHF
     And the user selects "Credit" as the entry type
     Then the entry should be added to the transaction
-    
+
     When the user clicks "Add Entry"
-    And the user searches for and selects account "2970 Profit carried forward or loss carried forward"
+    And the user searches for and selects account "2970 Profit carried forward"
     And the user enters amount "0.00" CHF
     And the user selects "Credit" as the entry type
     Then the entry should be added to the transaction
@@ -124,32 +124,32 @@ Feature: Opening Balances Transaction
     Then the entry should be added to the transaction
     
     When the user clicks "Add Entry"
-    And the user searches for and selects account "1020 Bank Account (asset)"
+    And the user searches for and selects account "1020 Bank Account"
+    And the user enters amount "0.00" CHF
+    And the user selects "Debit" as the entry type
+    Then the entry should be added to the transaction
+
+    When the user clicks "Add Entry"
+    And the user searches for and selects account "1100 Trade receivables"
     And the user enters amount "0.00" CHF
     And the user selects "Debit" as the entry type
     Then the entry should be added to the transaction
     
     When the user clicks "Add Entry"
-    And the user searches for and selects account "1100 Accounts receivable (Debtors)"
+    And the user searches for and selects account "120 Inventories"
     And the user enters amount "0.00" CHF
     And the user selects "Debit" as the entry type
     Then the entry should be added to the transaction
     
     When the user clicks "Add Entry"
-    And the user searches for and selects account "120 Inventories and non-invoiced services"
-    And the user enters amount "0.00" CHF
-    And the user selects "Debit" as the entry type
-    Then the entry should be added to the transaction
-    
-    When the user clicks "Add Entry"
-    And the user searches for and selects account "150 Movable tangible fixed assets"
+    And the user searches for and selects account "1230 Goods held for resale"
     And the user enters amount "0.00" CHF
     And the user selects "Debit" as the entry type
     Then the entry should be added to the transaction
     
     # Add Liability account entries
     When the user clicks "Add Entry"
-    And the user searches for and selects account "2000 Accounts payable (suppliers&creditors)"
+    And the user searches for and selects account "2000 Accounts payable"
     And the user enters amount "0.00" CHF
     And the user selects "Credit" as the entry type
     Then the entry should be added to the transaction
@@ -161,7 +161,7 @@ Feature: Opening Balances Transaction
     Then the entry should be added to the transaction
     
     When the user clicks "Add Entry"
-    And the user searches for and selects account "2210.001 John Smith"
+    And the user searches for and selects account "2210.001 Staff member"
     And the user enters amount "0.00" CHF
     And the user selects "Credit" as the entry type
     Then the entry should be added to the transaction

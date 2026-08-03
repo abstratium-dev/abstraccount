@@ -4,6 +4,7 @@ import * as transactionsPage from '../pages/transactions.page';
 import * as reportsPage from '../pages/reports.page';
 import * as partnersPage from '../pages/partners.page';
 import * as macrosPage from '../pages/macros.page';
+import * as toastPage from '../pages/toast.page';
 import { authenticate } from './auth-helper';
 import { TEST_JOURNAL_NAME, TEST_USER_EMAIL, TEST_USER_PASSWORD, TEST_PARTNERS } from './test-constants';
 
@@ -999,6 +1000,62 @@ test.describe('Initial Business Transactions', () => {
     }
     
     console.log('=== All Account Balances Verified Successfully ===');
+  });
+
+  test('should import built-in report templates', async ({ page }) => {
+    test.setTimeout(120_000);
+    console.log('=== Starting Import Built-in Report Templates ===');
+
+    // 1. Navigate and authenticate
+    console.log('--- Step 1: Navigating and authenticating ---');
+    await page.goto('/');
+    const signOutLink = page.locator('#signout-link');
+    const isSignedIn = await signOutLink.isVisible({ timeout: 2000 }).catch(() => false);
+
+    if (!isSignedIn) {
+      console.log('Not signed in, performing authentication...');
+      await authenticate(page, TEST_USER_EMAIL, TEST_USER_PASSWORD);
+      console.log('Authentication complete');
+    }
+
+    await headerPage.waitForHeader(page);
+    await headerPage.selectJournal(page, TEST_JOURNAL_NAME);
+
+    // 2. Navigate to the reports page
+    console.log('--- Step 2: Navigating to Reports Page ---');
+    await page.click('a#reports');
+    await reportsPage.waitForReportsPage(page);
+
+    // 3. Clean up any existing report templates via the API so the import
+    //    succeeds with a success toast rather than a conflict dialog.
+    console.log('--- Step 3: Cleaning up existing report templates ---');
+    await reportsPage.deleteAllReportTemplatesViaApi(page);
+    // Reload the reports page so the template dropdown reflects the cleanup
+    await page.click('a#reports');
+    await reportsPage.waitForReportsPage(page);
+
+    // 4. Open the reports menu and click "Import Built-in"
+    console.log('--- Step 4: Clicking Import Built-in ---');
+    await reportsPage.openMenu(page);
+    await reportsPage.clickImportBuiltin(page);
+
+    // 5. Assert the success toast announcing the import
+    console.log('--- Step 5: Asserting success toast ---');
+    await toastPage.waitForSuccessToast(page, /Successfully imported \d+ report template\(s\)/);
+
+    // 6. Verify the templates now appear in the dropdown
+    console.log('--- Step 6: Verifying templates are available ---');
+    await page.click('a#reports');
+    await reportsPage.waitForReportsPage(page);
+    const templateNames = await reportsPage.getTemplateNames(page);
+    console.log(`Available templates: ${templateNames.join(', ')}`);
+    expect(templateNames.length).toBeGreaterThan(0);
+    // The built-in export includes the Balance Sheet template, which the
+    // subsequent report-verification tests rely on.
+    expect(templateNames.some(n => n.includes('Balance Sheet'))).toBe(true);
+
+    console.log('✓ Built-in report templates imported successfully!');
+    console.log('=== Import Built-in Report Templates Complete ===');
   });
 
   test('should verify Balance Sheet report is correct', async ({ page }) => {

@@ -1,7 +1,8 @@
 import { Component, inject, OnInit, Signal, effect } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { RouterLink, ActivatedRoute, Router } from '@angular/router';
 import { Controller, ReportTemplate, AccountEntryDTO, AccountTreeNode, TagDTO, TransactionDTO, ImportResult } from '../controller';
 import { ModelService } from '../model.service';
 import { AccountService } from '../account.service';
@@ -24,6 +25,8 @@ export class ReportsComponent implements OnInit {
   accountService = inject(AccountService);
   private toast = inject(ToastService);
   private confirmDialog = inject(ConfirmDialogService);
+  private route = inject(ActivatedRoute);
+  private router = inject(Router);
 
   readonly netIncomeLabel = 'Net Income';
 
@@ -66,6 +69,10 @@ export class ReportsComponent implements OnInit {
   private readonly STORAGE_KEY = 'abstraccount:reports';
   private readonly GLOBAL_EQL_KEY = 'abstraccount:globalEql';
 
+  // Set once the template list has finished loading so the route-param handler
+  // only acts once it can resolve names to templates.
+  private templatesLoaded = false;
+
   constructor() {
     // React to changes in selected journal
     effect(() => {
@@ -73,6 +80,13 @@ export class ReportsComponent implements OnInit {
       if (journalId) {
         this.onJournalChange(journalId);
       }
+    });
+
+    // React to the optional :reportName route parameter. Because /reports and
+    // /reports/<name> share a single matcher route, Angular reuses this
+    // component instance and paramMap simply emits again - no page reload.
+    this.route.paramMap.pipe(takeUntilDestroyed()).subscribe(params => {
+      this.handleRouteReportName(params.get('reportName'));
     });
   }
 
@@ -83,12 +97,26 @@ export class ReportsComponent implements OnInit {
     this.loadGlobalEql();
 
     await this.loadTemplates();
+    this.templatesLoaded = true;
+
+    // The URL's :reportName (if present) takes precedence over the stored selection.
+    const reportName = this.route.snapshot.paramMap.get('reportName');
+    if (reportName) {
+      const template = this.templates().find(t => t.name === reportName);
+      if (template) {
+        this.selectedTemplateId = template.id;
+        await this.onTemplateSelect(true);
+        return;
+      }
+      // Unknown name in URL (e.g. a stale link to a deleted report) - fall through
+      // to the stored selection instead of breaking the page.
+    }
 
     // If we have a stored template ID, select it after templates load
     if (this.selectedTemplateId) {
       const templateExists = this.templates().some(t => t.id === this.selectedTemplateId);
       if (templateExists) {
-        await this.onTemplateSelect();
+        await this.onTemplateSelect(true);
       }
     }
   }
@@ -134,12 +162,15 @@ export class ReportsComponent implements OnInit {
     }
   }
 
-  async onTemplateSelect() {
+  async onTemplateSelect(fromUrl = false) {
     this.saveToStorage();
 
     if (!this.selectedTemplateId) {
       this.selectedTemplate = null;
       this.reportSections = [];
+      if (!fromUrl) {
+        this.updateReportUrl(null);
+      }
       return;
     }
 
@@ -149,11 +180,50 @@ export class ReportsComponent implements OnInit {
     try {
       this.selectedTemplate = await this.controller.getReportTemplate(this.selectedTemplateId);
       await this.generateReport();
+      if (!fromUrl) {
+        this.updateReportUrl(this.selectedTemplate.name);
+      }
     } catch (error) {
       console.error('Error loading template:', error);
       this.error = 'Failed to load template';
     } finally {
       this.loading = false;
+    }
+  }
+
+  /**
+   * Keep the URL's optional :reportName segment in sync with the selection.
+   * Uses push navigation (no replaceUrl) so each selection is a separate
+   * browser-history entry and the back button walks through them.
+   */
+  private updateReportUrl(name: string | null): void {
+    const commands = name ? ['/reports', name] : ['/reports'];
+    this.router.navigate(commands);
+  }
+
+  /**
+   * Called whenever the :reportName route parameter changes (initial load and
+   * subsequent in-place navigations). Updates the selection to match the URL
+   * without triggering a redundant URL write-back.
+   */
+  private async handleRouteReportName(reportName: string | null): Promise<void> {
+    if (!this.templatesLoaded) {
+      return;
+    }
+    if (reportName) {
+      const template = this.templates().find(t => t.name === reportName);
+      if (template && template.id !== this.selectedTemplateId) {
+        this.selectedTemplateId = template.id;
+        await this.onTemplateSelect(true);
+      }
+    } else {
+      // No report in the URL - clear the selection so the page reflects the URL.
+      if (this.selectedTemplateId) {
+        this.selectedTemplateId = null;
+        this.selectedTemplate = null;
+        this.reportSections = [];
+        this.saveToStorage();
+      }
     }
   }
 
@@ -638,7 +708,7 @@ export class ReportsComponent implements OnInit {
       // Special case for indirect-method cash-flow statement.
       // The cash-flow rows carry their own subtotals; the section subtotal is
       // the total change in cash so the report footer can display it.
-      const cashFlowRows = createCashFlowStatement(context, accounts);
+      const cashFlowRows = createCashFlowStatement(context, accounts, section.cashFlowConfig);
       if (this.hideZeroBalances) {
         // Keep section headers and subtotals, hide zero detail rows.
         const filteredRows = cashFlowRows.filter(r => r.isSubtotal || r.level === 1 || r.amount !== 0);
@@ -1001,6 +1071,7 @@ export class ReportsComponent implements OnInit {
         this.selectedTemplateId = null;
         this.selectedTemplate = null;
         this.reportSections = [];
+        this.updateReportUrl(null);
       }
     } catch (error) {
       console.error('Error deleting report template:', error);

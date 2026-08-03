@@ -348,7 +348,7 @@ test.describe('Transaction Filters (EQL)', () => {
     await reportsPage.generateReport(page);
 
     // Verify the 1020 Bank account and 8900 Direct taxes appear with full balances
-    // After tests 003+004, 8900 should have 75.00 (from T12a) + 55.00 (from 004.8 tax provision) = 130.00
+    // After tests 003+004, 8900 should have 75.00 (from T12a) + 55.00 (from 004.9 TaxPayment) = 130.00
     // and 1020 Bank should have 1,680.50
     const unfilteredContent = await reportsPage.getReportContent(page);
     expect(unfilteredContent).toContain('1020');
@@ -371,20 +371,21 @@ test.describe('Transaction Filters (EQL)', () => {
     // Regenerate the report (should happen automatically, but wait for it)
     await reportsPage.generateReport(page);
 
-    // The filtered report should still show 1020 but with a different balance
-    // (TaxPayment transactions T12a/T12b move 75.00 through 2000 and 1020)
+    // The filtered report should still show 1020 but with a different balance.
+    // TaxPayment transactions T12a/T12b move 75.00 through 2000 and 1020, and
+    // 004.9 TaxPayment moves 55.00 through 1020. After excluding all TaxPayment
+    // transactions, 1020 Bank = 1,680.50 + 75.00 + 55.00 = 1,810.50.
     const filteredContent = await reportsPage.getReportContent(page);
     expect(filteredContent).toContain('1020');
     console.log('✓ Filtered Trial Balance still shows 1020');
 
-    // The 8900 balance should be reduced (T12a debited 8900 by 75.00)
-    // After filter: 8900 = 130.00 - 75.00 = 55.00 (only the 004.8 tax provision remains)
-    // Check that 8900 still appears but with a different amount
-    expect(filteredContent).toContain('8900');
-    console.log('✓ Filtered Trial Balance still shows 8900 (reduced)');
+    // Both 8900 transactions (T12a 75.00 and 004.9 55.00) are TaxPayment-tagged,
+    // so after filtering 8900 = 0.00. The account may or may not appear in the
+    // filtered report (depending on "Hide zero-balance rows" setting), so we
+    // don't assert its presence. Instead, we verify the 1020 balance differs.
 
     // Verify the amounts differ between filtered and unfiltered
-    // Extract 8900 balance from both reports
+    // Extract 1020 balance from both reports
     const extractBalance = (content: string, account: string): string | null => {
       // Look for the account number followed by a balance amount
       const regex = new RegExp(account + '[^0-9-]*(-?[\\d,]+\\.\\d{2})', 'i');
@@ -392,13 +393,13 @@ test.describe('Transaction Filters (EQL)', () => {
       return match ? match[1] : null;
     };
 
-    const unfiltered8900 = extractBalance(unfilteredContent, '8900');
-    const filtered8900 = extractBalance(filteredContent, '8900');
-    console.log(`8900 unfiltered: ${unfiltered8900}, filtered: ${filtered8900}`);
+    const unfiltered1020 = extractBalance(unfilteredContent, '1020');
+    const filtered1020 = extractBalance(filteredContent, '1020');
+    console.log(`1020 unfiltered: ${unfiltered1020}, filtered: ${filtered1020}`);
 
-    if (unfiltered8900 && filtered8900) {
-      expect(unfiltered8900).not.toEqual(filtered8900);
-      console.log('✓ 8900 balance differs between filtered and unfiltered');
+    if (unfiltered1020 && filtered1020) {
+      expect(unfiltered1020).not.toEqual(filtered1020);
+      console.log('✓ 1020 balance differs between filtered and unfiltered');
     }
 
     // Clean up: clear the filter

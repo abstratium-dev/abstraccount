@@ -13,6 +13,71 @@ export async function waitForReportsPage(page: Page): Promise<void> {
   console.log('Reports page is visible');
 }
 
+// ============================================================================
+// Menu / Import Built-in helpers
+// ============================================================================
+
+/**
+ * Open the reports template options menu (the ☰ button in the reports header).
+ */
+export async function openMenu(page: Page): Promise<void> {
+  console.log('Opening reports menu...');
+  const menuBtn = page.locator('[data-testid="reports-menu-btn"]');
+  await expect(menuBtn).toBeVisible({ timeout: 10000 });
+  await menuBtn.click();
+  // Wait for the dropdown to render
+  await expect(page.locator('[data-testid="import-builtin-btn"]')).toBeVisible({ timeout: 5000 });
+  console.log('Reports menu opened');
+}
+
+/**
+ * Click the "Import Built-in" menu item. The menu must already be open
+ * (see {@link openMenu}).
+ */
+export async function clickImportBuiltin(page: Page): Promise<void> {
+  console.log('Clicking "Import Built-in"...');
+  const btn = page.locator('[data-testid="import-builtin-btn"]');
+  await expect(btn).toBeVisible({ timeout: 5000 });
+  await btn.click();
+  console.log('"Import Built-in" clicked');
+}
+
+/**
+ * Delete every report template via the API. Used to ensure a clean state
+ * before importing the built-in templates so the import succeeds with a
+ * success toast rather than a conflict dialog.
+ */
+export async function deleteAllReportTemplatesViaApi(page: Page): Promise<number> {
+  console.log('Deleting all existing report templates via API...');
+  const response = await page.request.get('/api/report/templates');
+  if (!response.ok()) {
+    throw new Error(`Failed to list report templates: ${response.status()}`);
+  }
+  const templates = await response.json() as Array<{ id: string; name: string }>;
+  let deleted = 0;
+  for (const template of templates) {
+    const del = await page.request.delete(`/api/report/templates/${template.id}`);
+    if (del.ok()) {
+      deleted++;
+      console.log(`  ✓ Deleted template "${template.name}" (${template.id})`);
+    } else {
+      console.log(`  ✗ Failed to delete template "${template.name}" (${template.id}): ${del.status()}`);
+    }
+  }
+  console.log(`Deleted ${deleted} of ${templates.length} report template(s)`);
+  return deleted;
+}
+
+/**
+ * Get the list of report template names currently available in the template
+ * select dropdown.
+ */
+export async function getTemplateNames(page: Page): Promise<string[]> {
+  await page.waitForSelector('select#template-select', { state: 'visible' });
+  const options = await page.locator('select#template-select option').allTextContents();
+  return options.map(o => o.trim()).filter(o => o.length > 0);
+}
+
 /**
  * Select a report template by name
  */

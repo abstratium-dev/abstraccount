@@ -2,12 +2,12 @@
   <div class="macros-header">
     <h2>Transaction Macros</h2>
     <div class="menu-wrapper">
-      <button class="menu-btn" (click)="toggleMenu()" aria-label="Macro options">☰</button>
+      <button class="menu-btn" (click)="toggleMenu()" aria-label="Macro options" data-testid="macros-menu-btn">☰</button>
       @if (menuOpen) {
         <div class="menu-dropdown" (click)="$event.stopPropagation()">
-          <button (click)="exportMacros(); closeMenu()">Export</button>
-          <button (click)="openImportDialog(); closeMenu()">Import</button>
-          <button (click)="importBuiltinMacros(); closeMenu()">Import Built-in</button>
+          <button (click)="exportMacros(); closeMenu()" data-testid="export-macros-btn">Export</button>
+          <button (click)="openImportDialog(); closeMenu()" data-testid="import-macros-btn">Import</button>
+          <button (click)="importBuiltinMacros(); closeMenu()" data-testid="import-builtin-macros-btn">Import Built-in</button>
         </div>
       }
     </div>

@@ -1,7 +1,20 @@
-import { Routes } from '@angular/router';
+import { Routes, UrlMatcher, UrlSegment, UrlMatchResult } from '@angular/router';
 import { authGuard } from './core/auth.guard';
 import { NotFoundComponent } from './core/not-found/not-found.component';
 import { LandingComponent } from './landing/landing.component';
+
+// Matches both /reports (no report selected) and /reports/<reportName> (a
+// report selected by name). Using one matcher for both shapes keeps a single
+// route config object so the component is reused across navigations.
+const reportsMatcher: UrlMatcher = (segments: UrlSegment[]): UrlMatchResult | null => {
+  if (segments.length === 1 && segments[0].path === 'reports') {
+    return { consumed: segments };
+  }
+  if (segments.length === 2 && segments[0].path === 'reports') {
+    return { consumed: segments, posParams: { reportName: segments[1] } };
+  }
+  return null;
+};
 
 export const routes: Routes = [
   { path: '',                          component: LandingComponent },
@@ -34,8 +47,12 @@ export const routes: Routes = [
     path: 'signed-out',
     loadComponent: () => import('./core/signed-out/signed-out.component').then(m => m.SignedOutComponent)
   },
+  // A single matcher route so that /reports and /reports/<reportName> share the
+  // same route config. This lets Angular reuse the ReportsComponent instance (no
+  // page reload) when navigating between the two while still exposing the
+  // selected report's name as an optional path segment.
   {
-    path: 'reports',
+    matcher: reportsMatcher,
     canActivate: [authGuard],
     loadComponent: () => import('./reports/reports.component').then(m => m.ReportsComponent)
   },

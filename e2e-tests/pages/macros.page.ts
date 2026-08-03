@@ -13,6 +13,76 @@ export async function waitForMacrosPage(page: Page): Promise<void> {
   console.log('Macros page loaded');
 }
 
+// ============================================================================
+// Menu / Import Built-in helpers
+// ============================================================================
+
+/**
+ * Open the macros options menu (the ☰ button in the macros header).
+ */
+export async function openMenu(page: Page): Promise<void> {
+  console.log('Opening macros menu...');
+  const menuBtn = page.locator('[data-testid="macros-menu-btn"]');
+  await expect(menuBtn).toBeVisible({ timeout: 10000 });
+  await menuBtn.click();
+  // Wait for the dropdown to render
+  await expect(page.locator('[data-testid="import-builtin-macros-btn"]')).toBeVisible({ timeout: 5000 });
+  console.log('Macros menu opened');
+}
+
+/**
+ * Click the "Import Built-in" menu item. The menu must already be open
+ * (see {@link openMenu}).
+ */
+export async function clickImportBuiltin(page: Page): Promise<void> {
+  console.log('Clicking "Import Built-in" (macros)...');
+  const btn = page.locator('[data-testid="import-builtin-macros-btn"]');
+  await expect(btn).toBeVisible({ timeout: 5000 });
+  await btn.click();
+  console.log('"Import Built-in" (macros) clicked');
+}
+
+/**
+ * Delete every macro via the API. Used to ensure a clean state before
+ * importing the built-in macros so the import succeeds with a success
+ * toast rather than a conflict dialog.
+ */
+export async function deleteAllMacrosViaApi(page: Page): Promise<number> {
+  console.log('Deleting all existing macros via API...');
+  const response = await page.request.get('/api/macro');
+  if (!response.ok()) {
+    throw new Error(`Failed to list macros: ${response.status()}`);
+  }
+  const macros = await response.json() as Array<{ id: string; name: string }>;
+  let deleted = 0;
+  for (const macro of macros) {
+    const del = await page.request.delete(`/api/macro/${macro.id}`);
+    if (del.ok()) {
+      deleted++;
+      console.log(`  ✓ Deleted macro "${macro.name}" (${macro.id})`);
+    } else {
+      console.log(`  ✗ Failed to delete macro "${macro.name}" (${macro.id}): ${del.status()}`);
+    }
+  }
+  console.log(`Deleted ${deleted} of ${macros.length} macro(s)`);
+  return deleted;
+}
+
+/**
+ * Get the list of macro names currently displayed on the page.
+ */
+export async function getMacroNames(page: Page): Promise<string[]> {
+  await waitForMacrosPage(page);
+  const cards = page.locator('.macro-card h3');
+  const count = await cards.count();
+  const names: string[] = [];
+  for (let i = 0; i < count; i++) {
+    const text = await cards.nth(i).textContent();
+    if (text) names.push(text.trim());
+  }
+  return names;
+}
+
 /**
  * Click on a macro card to select it
  */

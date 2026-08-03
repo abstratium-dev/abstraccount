@@ -133,10 +133,14 @@ export async function selectJournal(page: Page, journalTitle: string) {
 export async function selectCreateNewJournal(page: Page) {
   console.log('Selecting "Create New Journal" action...');
 
-  // If the auth guard already redirected us to /create-journal (empty db),
-  // there is no journal-management page to visit.
-  const currentUrl = page.url();
-  if (currentUrl.includes('/create-journal')) {
+  // After sign-in the SPA redirects from /signed-in to either /create-journal
+  // (empty database) or a journal-related page. Wait for the create-journal
+  // heading with a generous timeout; if it appears, we are already where we
+  // need to be. If it does not appear, journals exist and we navigate to the
+  // journal management page to click the "Create New Journal" button.
+  const createJournalHeading = page.getByRole('heading', { name: /^Start Your Books$/i });
+  const alreadyOnCreateJournal = await createJournalHeading.isVisible({ timeout: 10000 }).catch(() => false);
+  if (alreadyOnCreateJournal) {
     console.log('Already on /create-journal (empty database), skipping journal management');
     return;
   }

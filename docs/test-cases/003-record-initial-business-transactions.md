@@ -26,6 +26,8 @@ Verify that a user can record a series of initial business transactions during c
 - Inventory write-downs (via `InventoryAdjustment` macro)
 - Direct tax payments
 
+This test also verifies that the user can import the built-in report templates and generate financial reports (Balance Sheet, Income Statement, Swiss Balance Sheet, Swiss Income Statement, Trial Balance, and Partner Activity) that correctly reflect the recorded transactions.
+
 This test demonstrates the complete workflow of recording real business transactions with proper double-entry accounting, including both the expense/liability recognition and the corresponding payment transactions. It also exercises all account types in both debit and credit directions, and verifies account balances after every transaction.
 
 ## Test Data
@@ -49,7 +51,7 @@ This test demonstrates the complete workflow of recording real business transact
 - **Status:** Posted (*)
 - **Entries:**
   1. **Debit:** `1000 Cash` - CHF 38.50
-  2. **Credit:** `2210.001 John Smith` - CHF 38.50
+  2. **Credit:** `2210.001 Staff member` - CHF 38.50
 
 #### Transaction 2a: IFJ Formation Fee (Invoice)
 - **Date:** 2024-05-26
@@ -59,7 +61,7 @@ This test demonstrates the complete workflow of recording real business transact
 - **Status:** Posted (*)
 - **Entries:**
   1. **Debit:** `6500 Administrative expenses` - CHF 34.30
-  2. **Credit:** `2000 Accounts payable (suppliers&creditors)` - CHF 34.30
+  2. **Credit:** `2000 Accounts payable` - CHF 34.30
 
 #### Transaction 2b: IFJ Formation Fee (Payment)
 - **Date:** 2024-05-26
@@ -69,7 +71,7 @@ This test demonstrates the complete workflow of recording real business transact
 - **Status:** Posted (*)
 - **Tags:** `Payment:`
 - **Entries:**
-  1. **Debit:** `2000 Accounts payable (suppliers&creditors)` - CHF 34.30
+  1. **Debit:** `2000 Accounts payable` - CHF 34.30
   2. **Credit:** `1000 Cash` - CHF 34.30
 
 #### Transaction 3a: Postal Service Fee (Invoice)
@@ -80,7 +82,7 @@ This test demonstrates the complete workflow of recording real business transact
 - **Status:** Posted (*)
 - **Entries:**
   1. **Debit:** `6700 Other operating expenses` - CHF 4.20
-  2. **Credit:** `2000 Accounts payable (suppliers&creditors)` - CHF 4.20
+  2. **Credit:** `2000 Accounts payable` - CHF 4.20
 
 #### Transaction 3b: Postal Service Fee (Payment)
 - **Date:** 2024-06-18
@@ -90,7 +92,7 @@ This test demonstrates the complete workflow of recording real business transact
 - **Status:** Posted (*)
 - **Tags:** `Payment:`
 - **Entries:**
-  1. **Debit:** `2000 Accounts payable (suppliers&creditors)` - CHF 4.20
+  1. **Debit:** `2000 Accounts payable` - CHF 4.20
   2. **Credit:** `1000 Cash` - CHF 4.20
 
 #### Transaction 4: Capital Contribution
@@ -101,7 +103,7 @@ This test demonstrates the complete workflow of recording real business transact
 - **Status:** Posted (*)
 - **Entries:**
   1. **Debit:** `1020 Bank Account (asset)` - CHF 2,000.00
-  2. **Credit:** `2800 Basic, shareholder or foundation capital` - CHF 2,000.00
+  2. **Credit:** `2800 Share capital` - CHF 2,000.00
 
 #### Transaction 5a: Bank Account Management Fee (Invoice)
 - **Date:** 2024-07-24
@@ -111,7 +113,7 @@ This test demonstrates the complete workflow of recording real business transact
 - **Status:** Posted (*)
 - **Entries:**
   1. **Debit:** `6900 Financial expense` - CHF 15.00
-  2. **Credit:** `2000 Accounts payable (suppliers&creditors)` - CHF 15.00
+  2. **Credit:** `2000 Accounts payable` - CHF 15.00
 
 #### Transaction 5b: Bank Account Management Fee (Payment)
 - **Date:** 2024-07-24
@@ -121,7 +123,7 @@ This test demonstrates the complete workflow of recording real business transact
 - **Status:** Posted (*)
 - **Tags:** `Payment:`
 - **Entries:**
-  1. **Debit:** `2000 Accounts payable (suppliers&creditors)` - CHF 15.00
+  1. **Debit:** `2000 Accounts payable` - CHF 15.00
   2. **Credit:** `1020 Bank Account (asset)` - CHF 15.00
 
 #### Transaction 6: Purchase Goods for Resale (Cash Purchase via `PaymentForGoods` macro)
@@ -143,9 +145,9 @@ This test demonstrates the complete workflow of recording real business transact
 - **Status:** Posted (*)
 - **Entries (Step 1 - Invoice, 2024-08-03):**
   1. **Debit:** `6570.002 Anthropic` - CHF 100.00
-  2. **Credit:** `2000 Accounts payable (suppliers&creditors)` - CHF 100.00
+  2. **Credit:** `2000 Accounts payable` - CHF 100.00
 - **Entries (Step 2 - Payment, 2024-08-10):**
-  1. **Debit:** `2000 Accounts payable (suppliers&creditors)` - CHF 100.00
+  1. **Debit:** `2000 Accounts payable` - CHF 100.00
   2. **Credit:** `1020 Bank Account (asset)` - CHF 100.00
 - **Purpose:** Tests A/P carrying a balance across dates (invoice on 08-03, payment on 08-10). Exercises the `PayInvoiceFromBank` macro which creates both transactions in one step.
 
@@ -156,8 +158,8 @@ This test demonstrates the complete workflow of recording real business transact
 - **Invoice:** SV00000001
 - **Status:** Posted (*)
 - **Entries:**
-  1. **Debit:** `1100 Accounts receivable (Debtors)` - CHF 108.10
-  2. **Credit:** `3400 Revenue from services` - CHF 100.00
+  1. **Debit:** `1100 Trade receivables` - CHF 108.10
+  2. **Credit:** `3400 Services revenue` - CHF 100.00
   3. **Credit:** `2200 VAT payable` - CHF 8.10
 - **Purpose:** Tests 3-entry transaction, ASSET (receivable) debit, REVENUE credit, and LIABILITY (VAT) credit. This is a fundamental Swiss accounting pattern. VAT is charged at the Swiss standard rate of 8.1%.
 
@@ -168,8 +170,8 @@ This test demonstrates the complete workflow of recording real business transact
 - **Invoice:** CN00000001
 - **Status:** Posted (*)
 - **Entries:**
-  1. **Debit:** `3400 Revenue from services` - CHF 40.00
-  2. **Credit:** `1100 Accounts receivable (Debtors)` - CHF 40.00
+  1. **Debit:** `3400 Services revenue` - CHF 40.00
+  2. **Credit:** `1100 Trade receivables` - CHF 40.00
 - **Purpose:** Tests REVENUE debit direction (reversal) and ASSET (receivable) credit direction. No previously tested transaction debits revenue.
 
 #### Transaction 10: Expense Refund from Supplier (Expense Reversal)
@@ -201,8 +203,8 @@ This test demonstrates the complete workflow of recording real business transact
 - **Status:** Posted (*)
 - **Tags:** `TaxPayment:`
 - **Entries:**
-  1. **Debit:** `8900 Direct taxes (legal entities)` - CHF 75.00
-  2. **Credit:** `2000 Accounts payable (suppliers&creditors)` - CHF 75.00
+  1. **Debit:** `8900 Direct taxes` - CHF 75.00
+  2. **Credit:** `2000 Accounts payable` - CHF 75.00
 - **Purpose:** Records the tax charge when the bill arrives, creating an account payable to the tax authority.
 
 #### Transaction 12b: Direct Tax Payment
@@ -213,7 +215,7 @@ This test demonstrates the complete workflow of recording real business transact
 - **Status:** Posted (*)
 - **Tags:** `Payment:`, `TaxPayment:`
 - **Entries:**
-  1. **Debit:** `2000 Accounts payable (suppliers&creditors)` - CHF 75.00
+  1. **Debit:** `2000 Accounts payable` - CHF 75.00
   2. **Credit:** `1020 Bank Account (asset)` - CHF 75.00
 - **Purpose:** Pays the tax bill from the bank, clearing the account payable. Together with 12a this is a two-step tax payment (bill then pay), matching the pattern in the reference journal. This is a direct tax payment without a prior tax provision (tax provision and legal reserve allocation are tested in a later test case).
 
@@ -248,7 +250,7 @@ Feature: Initial Business Transactions
     Then the entry should be added to the transaction
     
     When the user clicks "Add Entry"
-    And the user selects account "2210.001 John Smith"
+    And the user selects account "2210.001 Staff member"
     And the user enters amount "38.50" CHF
     And the user selects "Credit" as the entry type
     Then the entry should be added to the transaction
@@ -270,7 +272,7 @@ Feature: Initial Business Transactions
     And the user enters description "Fee to create Sàrl paid to Startup Help GmbH"
     And the user enters invoice "PI00000002"
     And the user adds a debit entry to "6500 Administrative expenses" for CHF 34.30
-    And the user adds a credit entry to "2000 Accounts payable (suppliers&creditors)" for CHF 34.30
+    And the user adds a credit entry to "2000 Accounts payable" for CHF 34.30
     And the user saves the transaction
     Then the transaction should be saved successfully
     And the administrative expenses should increase by CHF 34.30
@@ -282,7 +284,7 @@ Feature: Initial Business Transactions
     And the user enters description "Payment of fee to create Sàrl paid to Startup Help GmbH"
     And the user enters invoice "PI00000002"
     And the user adds tag "Payment:"
-    And the user adds a debit entry to "2000 Accounts payable (suppliers&creditors)" for CHF 34.30
+    And the user adds a debit entry to "2000 Accounts payable" for CHF 34.30
     And the user adds a credit entry to "1000 Cash" for CHF 34.30
     And the user saves the transaction
     Then the transaction should be saved successfully
@@ -296,7 +298,7 @@ Feature: Initial Business Transactions
     And the user enters description "Receipt for sending founding docs eingeschrieben"
     And the user enters invoice "PI00000003"
     And the user adds a debit entry to "6700 Other operating expenses" for CHF 4.20
-    And the user adds a credit entry to "2000 Accounts payable (suppliers&creditors)" for CHF 4.20
+    And the user adds a credit entry to "2000 Accounts payable" for CHF 4.20
     And the user saves the transaction
     Then the transaction should be saved successfully
     
@@ -306,7 +308,7 @@ Feature: Initial Business Transactions
     And the user enters description "Receipt for sending founding docs eingeschrieben"
     And the user enters invoice "PI00000003"
     And the user adds tag "Payment:"
-    And the user adds a debit entry to "2000 Accounts payable (suppliers&creditors)" for CHF 4.20
+    And the user adds a debit entry to "2000 Accounts payable" for CHF 4.20
     And the user adds a credit entry to "1000 Cash" for CHF 4.20
     And the user saves the transaction
     Then the transaction should be saved successfully
@@ -317,7 +319,7 @@ Feature: Initial Business Transactions
     And the user enters description "Capital payment into abstratium paid into PF"
     And the user enters invoice "PI00000004"
     And the user adds a debit entry to "1020 Bank Account (asset)" for CHF 2,000.00
-    And the user adds a credit entry to "2800 Basic, shareholder or foundation capital" for CHF 2,000.00
+    And the user adds a credit entry to "2800 Share capital" for CHF 2,000.00
     And the user saves the transaction
     Then the transaction should be saved successfully
     And the bank account balance should be CHF 2,000.00
@@ -329,7 +331,7 @@ Feature: Initial Business Transactions
     And the user enters description "PRIX POUR LA GESTION DU COMPTE CONSIGNATION DU CAPITAL CRÉATION D'ENTREPRISE"
     And the user enters invoice "PI00000005"
     And the user adds a debit entry to "6900 Financial expense" for CHF 15.00
-    And the user adds a credit entry to "2000 Accounts payable (suppliers&creditors)" for CHF 15.00
+    And the user adds a credit entry to "2000 Accounts payable" for CHF 15.00
     And the user saves the transaction
     Then the transaction should be saved successfully
     And the financial expenses should increase by CHF 15.00
@@ -340,7 +342,7 @@ Feature: Initial Business Transactions
     And the user enters description "PRIX POUR LA GESTION DU COMPTE CONSIGNATION DU CAPITAL CRÉATION D'ENTREPRISE"
     And the user enters invoice "PI00000005"
     And the user adds tag "Payment:"
-    And the user adds a debit entry to "2000 Accounts payable (suppliers&creditors)" for CHF 15.00
+    And the user adds a debit entry to "2000 Accounts payable" for CHF 15.00
     And the user adds a credit entry to "1020 Bank Account (asset)" for CHF 15.00
     And the user saves the transaction
     Then the transaction should be saved successfully
@@ -370,7 +372,7 @@ Feature: Initial Business Transactions
     And the user enters amount "100.00"
     And the user enters description "Test 003.7 Anthropic API services invoice"
     And the user selects expense account "6570.002 Anthropic"
-    And the user selects liability account "2000 Accounts payable (suppliers&creditors)"
+    And the user selects liability account "2000 Accounts payable"
     And the user selects bank account "1020 Bank Account (asset)"
     And the user executes the macro
     Then two transactions should be created (invoice and payment)
@@ -383,8 +385,8 @@ Feature: Initial Business Transactions
     And the user enters partner "P00000001 John Smith"
     And the user enters description "Test 003.8 Consulting services with VAT"
     And the user enters invoice "SV00000001"
-    And the user adds a debit entry to "1100 Accounts receivable (Debtors)" for CHF 108.10
-    And the user adds a credit entry to "3400 Revenue from services" for CHF 100.00
+    And the user adds a debit entry to "1100 Trade receivables" for CHF 108.10
+    And the user adds a credit entry to "3400 Services revenue" for CHF 100.00
     And the user adds a credit entry to "2200 VAT payable" for CHF 8.10
     And the user saves the transaction
     Then the transaction should be saved successfully
@@ -397,8 +399,8 @@ Feature: Initial Business Transactions
     And the user enters partner "P00000001 John Smith"
     And the user enters description "Test 003.9 Credit note for partial refund of consulting services"
     And the user enters invoice "CN00000001"
-    And the user adds a debit entry to "3400 Revenue from services" for CHF 40.00
-    And the user adds a credit entry to "1100 Accounts receivable (Debtors)" for CHF 40.00
+    And the user adds a debit entry to "3400 Services revenue" for CHF 40.00
+    And the user adds a credit entry to "1100 Trade receivables" for CHF 40.00
     And the user saves the transaction
     Then the transaction should be saved successfully
     And the revenue should be CHF 60.00
@@ -435,8 +437,8 @@ Feature: Initial Business Transactions
     And the user enters description "Test 003.12 Direct tax bill for 2024"
     And the user enters invoice "TX00000001"
     And the user adds tag "TaxPayment:"
-    And the user adds a debit entry to "8900 Direct taxes (legal entities)" for CHF 75.00
-    And the user adds a credit entry to "2000 Accounts payable (suppliers&creditors)" for CHF 75.00
+    And the user adds a debit entry to "8900 Direct taxes" for CHF 75.00
+    And the user adds a credit entry to "2000 Accounts payable" for CHF 75.00
     And the user saves the transaction
     Then the transaction should be saved successfully
     And the direct taxes should be CHF 75.00
@@ -449,7 +451,7 @@ Feature: Initial Business Transactions
     And the user enters invoice "TX00000001"
     And the user adds tag "Payment:"
     And the user adds tag "TaxPayment:"
-    And the user adds a debit entry to "2000 Accounts payable (suppliers&creditors)" for CHF 75.00
+    And the user adds a debit entry to "2000 Accounts payable" for CHF 75.00
     And the user adds a credit entry to "1020 Bank Account (asset)" for CHF 75.00
     And the user saves the transaction
     Then the transaction should be saved successfully
@@ -463,19 +465,114 @@ Feature: Initial Business Transactions
       | Account                                       | Balance       |
       | 1000 Cash                                     | CHF 0.00      |
       | 1020 Bank Account (asset)                     | CHF 1,785.00  |
-      | 1100 Accounts receivable (Debtors)            | CHF 68.10     |
+      | 1100 Trade receivables            | CHF 68.10     |
       | 1230 Goods held for resale                    | CHF 40.00     |
-      | 2000 Accounts payable (suppliers&creditors)   | CHF 0.00      |
+      | 2000 Accounts payable   | CHF 0.00      |
       | 2200 VAT payable                              | CHF 8.10      |
-      | 2210.001 John Smith                           | CHF 38.50     |
-      | 2800 Basic, shareholder or foundation capital | CHF 2,000.00  |
-      | 3400 Revenue from services                    | CHF 60.00     |
+      | 2210.001 Staff member                           | CHF 38.50     |
+      | 2800 Share capital | CHF 2,000.00  |
+      | 3400 Services revenue                    | CHF 60.00     |
       | 6500 Administrative expenses                  | CHF 9.30      |
       | 6570.002 Anthropic                            | CHF 100.00    |
       | 6700 Other operating expenses                 | CHF 14.20     |
       | 6900 Financial expense                        | CHF 15.00     |
-      | 8900 Direct taxes (legal entities)            | CHF 75.00     |
+      | 8900 Direct taxes            | CHF 75.00     |
     And the balance sheet equation should hold: Assets = Liabilities + Equity
+
+  Scenario: Import built-in report templates
+    Given the user has signed into the application
+    And the journal "Abstratium 2024" is selected
+    And any existing report templates have been deleted via the API
+
+    When the user navigates to the "Reports" section
+    And the user opens the report template options menu
+    And the user clicks "Import Built-in"
+    Then the built-in report templates should be fetched from the server
+    And the templates should be imported via the report template import API
+    And a success toast should be displayed containing "Successfully imported N report template(s)"
+    And the report template dropdown should contain the imported templates
+    And the "Balance Sheet" template should be available in the dropdown
+    And the "Income Statement" template should be available in the dropdown
+    And the "Trial Balance" template should be available in the dropdown
+
+  Scenario: Verify Balance Sheet report
+    Given the built-in report templates have been imported
+    When the user navigates to the "Reports" section
+    And the user selects the "Balance Sheet" report template
+    Then the report should be generated and displayed
+    And the report should contain a "Cash and Cash Equivalents" section
+    And account "1020" should show a balance of "1,785.00" CHF
+    And the report should contain an "Assets" section
+    And account "1100" should show a balance of "68.10" CHF
+    And account "1230" should show a balance of "40.00" CHF
+    And the report should contain a "Liabilities" section
+    And account "2200" should show a balance of "8.10" CHF
+    And account "2210.001" should show a balance of "38.50" CHF
+    And the report should contain an "Equity" section
+    And account "2800" should show a balance of "2,000.00" CHF
+    And the report should show a Net Loss of "153.50" CHF
+    And the balance sheet should balance with Total Assets = Total Liabilities and Equity = "1,893.10" CHF
+    And the Liabilities section should not contain negative values
+
+  Scenario: Verify Income Statement report
+    Given the built-in report templates have been imported
+    When the user navigates to the "Reports" section
+    And the user selects the "Income Statement" report template
+    Then the report should be generated and displayed
+    And the report should contain a "Revenue" section
+    And account "3400" should show a balance of "60.00" CHF
+    And the report should contain an "Expenses" section
+    And account "6500" should show a balance of "9.30" CHF
+    And account "6570.002" should show a balance of "100.00" CHF
+    And account "6700" should show a balance of "14.20" CHF
+    And account "6900" should show a balance of "15.00" CHF
+    And account "8900" should show a balance of "75.00" CHF
+    And the report should show a Net Loss of "153.50" CHF
+
+  Scenario: Verify Swiss Balance Sheet (Bilan) report
+    Given the built-in report templates have been imported
+    When the user navigates to the "Reports" section
+    And the user selects the "Swiss Balance Sheet (Bilan)" report template
+    Then the report should be generated and displayed
+    And the report should contain "Assets", "Liabilities", and "Equity" sections
+    And account "1020" should show a balance of "1,785.00" CHF
+    And account "1100" should show a balance of "68.10" CHF
+    And account "1230" should show a balance of "40.00" CHF
+    And account "2200" should show a balance of "8.10" CHF
+    And account "2210.001" should show a balance of "38.50" CHF
+    And account "2800" should show a balance of "2,000.00" CHF
+    And the Liabilities and Equity sections should not contain negative values
+    And the balance sheet should balance with Total = "1,893.10" CHF
+
+  Scenario: Verify Swiss Income Statement (Compte de résultat) report
+    Given the built-in report templates have been imported
+    When the user navigates to the "Reports" section
+    And the user selects the "Compte de résultat" report template
+    Then the report should be generated and displayed
+    And the report should contain "Revenue" and "Expenses" sections
+
+  Scenario: Verify Trial Balance report
+    Given the built-in report templates have been imported
+    When the user navigates to the "Reports" section
+    And the user selects the "Trial Balance" report template
+    Then the report should be generated and displayed
+    And the report should contain "Cash", "Assets", "Liabilities", "Equity", and "Expenses" sections
+    And the report should contain account "1020" with balance "1,785.00"
+    And the report should contain account "1100" with balance "68.10"
+    And the report should contain account "1230" with balance "40.00"
+    And the report should contain account "2210.001" with balance "38.50"
+    And the report should contain account "2800" with balance "2,000.00"
+    And the report should contain account "3400" with balance "60.00"
+    And the report should contain account "6500" with balance "9.30"
+    And the report should contain account "8900" with balance "75.00"
+    And the report should contain account "6900" with balance "15.00"
+
+  Scenario: Verify Partner Activity report
+    Given the built-in report templates have been imported
+    When the user navigates to the "Reports" section
+    And the user selects the "Partner Activity" report template
+    Then the report should be generated and displayed
+    And the report should contain "Income", "Expenses", and "Net" columns
 ```
 
 ## Expected Results
@@ -766,8 +863,15 @@ Feature: Initial Business Transactions
 - [ ] User can view transaction history filtered by invoice reference
 - [ ] Account balances reflect all posted transactions
 - [ ] Balance sheet remains balanced after all transactions
+- [ ] User can import built-in report templates via the "Import Built-in" menu button
+- [ ] A success toast is displayed confirming the number of imported report templates
 - [ ] User can generate reports showing expense breakdown
 - [ ] User can generate reports showing cash flow
+- [ ] Balance Sheet report correctly shows assets, liabilities, and equity
+- [ ] Income Statement report correctly shows revenue and expenses
+- [ ] Swiss Balance Sheet (Bilan) report correctly reflects account balances
+- [ ] Trial Balance report correctly shows all accounts with their balances
+- [ ] Partner Activity report shows income, expenses, and net columns
 
 ## Notes
 
@@ -786,6 +890,7 @@ Feature: Initial Business Transactions
 - Transactions 6, 7, and 11 use built-in macros (`PaymentForGoods`, `PayInvoiceFromBank`, `InventoryAdjustment`)
 - Transaction 8 is a 3-entry transaction (receivable debit, revenue credit, VAT credit)
 - Tax provision and legal reserve allocation are tested in a later test case
+- The built-in report templates are imported via the "Import Built-in" menu button on the Reports page before any report verification scenarios. Existing templates are deleted via the API first to avoid import conflicts. The import fetches `/builtin/report-templates-export.yaml` and posts it to the report template import API.
 
 ## Technical Notes
 
@@ -797,27 +902,27 @@ Full paths for accounts referenced in this test:
 Assets:
 - 1 Assets:10 Current Assets:100 Cash and cash equivalents:1000 Cash
 - 1 Assets:10 Current Assets:100 Cash and cash equivalents:1020 Bank Account (asset)
-- 1 Assets:10 Current Assets:110 Accounts Receivable:1100 Accounts receivable (Debtors)
-- 1 Assets:10 Current Assets:120 Inventories and non-invoiced services:1230 Goods held for resale
+- 1 Assets:10 Current Assets:110 Accounts Receivable:1100 Trade receivables
+- 1 Assets:10 Current Assets:120 Inventories:1230 Goods held for resale
 
 Liabilities:
-- 2 Liabilities:20 Current liabilities:200 Accounts payable (A/P):2000 Accounts payable (suppliers&creditors)
+- 2 Liabilities:20 Current liabilities:200 Accounts payable:2000 Accounts payable
 - 2 Liabilities:20 Current liabilities:220 Other short-term liabilities:2200 VAT payable
-- 2 Liabilities:20 Current liabilities:220 Other short-term liabilities:2210 Other short-term liabilities:2210.001 John Smith
+- 2 Liabilities:20 Current liabilities:220 Other short-term liabilities:2210 Other short-term liabilities:2210.001 Staff member
 
 Equity:
-- 2 Equity:28 Shareholders Equity (legal entities):280 Basic, shareholder or foundation capital:2800 Basic, shareholder or foundation capital
+- 2 Equity:28 Shareholders Equity:280 Share capital:2800 Share capital
 
 Revenue:
-- 3 Net proceeds from sales of goods and services:3400 Revenue from services
+- 3 Revenue:3400 Services revenue
 
 Expenses:
-- 6 Other Operating Expenses, Depreciations and Value Adjustments, Financial result:6500 Administrative expenses
-- 6 Other Operating Expenses, Depreciations and Value Adjustments, Financial result:6570 IT and computing expenses, including leasing
-- 6 Other Operating Expenses, Depreciations and Value Adjustments, Financial result:6570 IT and computing expenses, including leasing:6570.002 Anthropic
-- 6 Other Operating Expenses, Depreciations and Value Adjustments, Financial result:6700 Other operating expenses
-- 6 Other Operating Expenses, Depreciations and Value Adjustments, Financial result:6900 Financial expense
-- 8 Non-Operational, Extraordinary, Non-Recurring or Prior-Period Expenses and Income:8900 Direct taxes (legal entities)
+- 6 Other operating expenses:6500 Administrative expenses
+- 6 Other operating expenses:6570 IT and computing expenses
+- 6 Other operating expenses:6570 IT and computing expenses:6570.002 Anthropic
+- 6 Other operating expenses:6700 Other operating expenses
+- 6 Other operating expenses:6900 Financial expense
+- 8 Non-operating expenses:8900 Direct taxes
 ```
 
 ### Transaction Metadata

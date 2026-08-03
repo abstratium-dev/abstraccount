@@ -8,6 +8,8 @@ import { ConfirmDialogService } from '../core/confirm-dialog/confirm-dialog.serv
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { signal } from '@angular/core';
+import { ActivatedRoute, convertToParamMap, ParamMap, provideRouter, Router } from '@angular/router';
+import { Subject } from 'rxjs';
 
 describe('ReportsComponent', () => {
   let component: ReportsComponent;
@@ -16,6 +18,9 @@ describe('ReportsComponent', () => {
   let modelService: jasmine.SpyObj<ModelService>;
   let toast: jasmine.SpyObj<ToastService>;
   let confirmDialog: jasmine.SpyObj<ConfirmDialogService>;
+  let router: Router;
+  let paramMapSubject: Subject<ParamMap>;
+  let activatedRouteStub: { snapshot: { paramMap: ParamMap }; paramMap: Subject<ParamMap> };
 
   const mockTemplates: ReportTemplate[] = [
     {
@@ -50,6 +55,15 @@ describe('ReportsComponent', () => {
       parentId: null,
       accountCode: 3000,
       children: []
+    },
+    {
+      id: 'acc3',
+      name: 'Bank',
+      type: 'CASH',
+      note: null,
+      parentId: null,
+      accountCode: 1100,
+      children: []
     }
   ];
 
@@ -72,6 +86,10 @@ describe('ReportsComponent', () => {
   ];
 
   beforeEach(async () => {
+    // Ensure each test starts with a clean reports state regardless of
+    // saveToStorage() calls made by earlier tests in the same karma session.
+    localStorage.removeItem('abstraccount:reports');
+
     const controllerSpy = jasmine.createSpyObj('Controller', [
       'listReportTemplates',
       'getReportTemplate',
@@ -79,6 +97,7 @@ describe('ReportsComponent', () => {
       'getAccountTree',
       'getTags',
       'getTransactions',
+      'listJournals',
       'exportReportTemplates',
       'importReportTemplates',
       'deleteReportTemplate'
@@ -97,6 +116,12 @@ describe('ReportsComponent', () => {
     const toastSpy = jasmine.createSpyObj('ToastService', ['success', 'error', 'info', 'show']);
     const confirmDialogSpy = jasmine.createSpyObj('ConfirmDialogService', ['confirm']);
 
+    paramMapSubject = new Subject<ParamMap>();
+    activatedRouteStub = {
+      snapshot: { paramMap: convertToParamMap({}) },
+      paramMap: paramMapSubject,
+    };
+
     await TestBed.configureTestingModule({
       imports: [ReportsComponent, FormsModule],
       providers: [
@@ -104,6 +129,10 @@ describe('ReportsComponent', () => {
         { provide: ModelService, useValue: modelServiceSpy },
         { provide: ToastService, useValue: toastSpy },
         { provide: ConfirmDialogService, useValue: confirmDialogSpy },
+        provideRouter([]),
+        // Placed AFTER provideRouter so it overrides the ActivatedRoute that
+        // provideRouter registers at the root injector.
+        { provide: ActivatedRoute, useValue: activatedRouteStub },
         provideHttpClient(),
         provideHttpClientTesting()
       ]
@@ -115,7 +144,14 @@ describe('ReportsComponent', () => {
     modelService = TestBed.inject(ModelService) as jasmine.SpyObj<ModelService>;
     toast = TestBed.inject(ToastService) as jasmine.SpyObj<ToastService>;
     confirmDialog = TestBed.inject(ConfirmDialogService) as jasmine.SpyObj<ConfirmDialogService>;
+    router = TestBed.inject(Router);
+    spyOn(router, 'navigate');
   });
+
+  /** Helper: simulate the router emitting a new :reportName value. */
+  function emitRouteReportName(name: string | null): void {
+    paramMapSubject.next(convertToParamMap(name ? { reportName: name } : {}));
+  }
 
   it('should create', () => {
     expect(component).toBeTruthy();
@@ -179,7 +215,7 @@ describe('ReportsComponent', () => {
     const mockTransactions = [
       {
         id: 't1', date: '2024-06-01', description: 'Cash sale', status: 'CLEARED', partnerId: null, partnerName: null, tags: [], entries: [
-          { id: 'e1', entryOrder: 1, entryId: 'e1', accountId: 'acc1', accountName: 'Cash', accountType: 'ASSET', amount: 500, commodity: 'CHF', note: null, tags: [] },
+          { id: 'e1', entryOrder: 1, entryId: 'e1', accountId: 'acc3', accountName: 'Bank', accountType: 'CASH', amount: 500, commodity: 'CHF', note: null, tags: [] },
           { id: 'e2', entryOrder: 2, entryId: 'e2', accountId: 'acc2', accountName: 'Revenue', accountType: 'REVENUE', amount: -500, commodity: 'CHF', note: null, tags: [] }
         ]
       }
@@ -195,8 +231,58 @@ describe('ReportsComponent', () => {
     expect(component.reportSections.length).toBe(1);
     expect(component.reportSections[0].cashFlowRows).toBeDefined();
     expect(component.reportSections[0].cashFlowRows!.length).toBeGreaterThan(0);
-    expect(component.reportSections[0].cashFlowRows!.some(r => r.title === 'Operating activities')).toBe(true);
-    expect(component.reportSections[0].cashFlowRows!.some(r => r.title === 'Cash flow from operating activities')).toBe(true);
+    expect(component.reportSections[0].cashFlowRows!.some(r => r.title === 'Operating activities' && r.subtitle === 'Cash from running the business')).toBe(true);
+    expect(component.reportSections[0].cashFlowRows!.some(r => r.title === 'Total cash from running the business')).toBe(true);
+    expect(component.reportSections[0].subtotal).toBe(500);
+  });
+
+  it('should load cash flow report from journal chain', async () => {
+    const cashFlowTemplate: ReportTemplate = {
+      id: 'cash-flow-002',
+      name: 'Swiss Cash Flow Statement',
+      description: 'Indirect-method cash flow statement over journal chain',
+      templateContent: '{"sections":[{"title":"Cash Flow Statement","calculated":"cashFlow","useJournalChain":true}]}'
+    };
+    component.selectedTemplate = cashFlowTemplate;
+
+    const chainJournals = [
+      { id: 'journal1', title: '2024 Journal', subtitle: null, currency: 'CHF', commodities: {}, logo: null, previousJournalId: 'journal0', locked: false },
+      { id: 'journal0', title: '2023 Journal', subtitle: null, currency: 'CHF', commodities: {}, logo: null, previousJournalId: null, locked: false }
+    ];
+    controller.listJournals.and.returnValue(Promise.resolve(chainJournals));
+    controller.getAccountTree.and.returnValue(Promise.resolve(mockAccounts));
+    controller.getTags.and.returnValue(Promise.resolve([]));
+
+    const openingTransaction = {
+      id: 't0', date: '2024-01-01', description: 'Opening cash', status: 'CLEARED', partnerId: null, partnerName: null, tags: [{ key: 'OpeningBalances', value: '' }], entries: [
+        { id: 'e0', entryOrder: 1, entryId: 'e0', accountId: 'acc3', accountName: 'Bank', accountType: 'CASH', amount: 1000, commodity: 'CHF', note: null, tags: [] }
+      ]
+    };
+    const cashSaleTransaction = {
+      id: 't1', date: '2024-06-01', description: 'Cash sale', status: 'CLEARED', partnerId: null, partnerName: null, tags: [], entries: [
+        { id: 'e1', entryOrder: 1, entryId: 'e1', accountId: 'acc3', accountName: 'Bank', accountType: 'CASH', amount: 500, commodity: 'CHF', note: null, tags: [] },
+        { id: 'e2', entryOrder: 2, entryId: 'e2', accountId: 'acc2', accountName: 'Revenue', accountType: 'REVENUE', amount: -500, commodity: 'CHF', note: null, tags: [] }
+      ]
+    };
+    controller.getTransactions.and.callFake((id: string) => {
+      if (id === 'journal0') {
+        return Promise.resolve([openingTransaction]);
+      }
+      return Promise.resolve([cashSaleTransaction]);
+    });
+    modelService.getSelectedJournalId.and.returnValue('journal1');
+    component.startDate = '2024-01-01';
+    component.endDate = '2024-12-31';
+
+    await component.generateReport();
+    await fixture.whenStable();
+
+    expect(controller.listJournals).toHaveBeenCalled();
+    expect(controller.getTransactions).toHaveBeenCalledWith('journal1', undefined, '2024-12-31', undefined, undefined, undefined);
+    expect(component.reportSections.length).toBe(1);
+    expect(component.reportSections[0].cashFlowRows).toBeDefined();
+    expect(component.reportSections[0].cashFlowRows!.some(r => r.title === 'Cash at the start of the period' && r.subtitle === undefined)).toBe(true);
+    expect(component.reportSections[0].subtotal).toBe(500);
   });
 
   it('should handle error when no journal is selected', async () => {
@@ -1191,5 +1277,146 @@ describe('ReportsComponent', () => {
     expect(controller.deleteReportTemplate).toHaveBeenCalledWith(testTemplate.id);
     expect(component.error).toContain('Failed to delete');
     expect(toast.error).toHaveBeenCalledWith(jasmine.stringMatching(/Failed to delete report template.*Balance Sheet/));
+  });
+
+  // ===== URL <-> selection sync (optional :reportName segment) =====
+
+  it('should update the URL with the report name when a template is selected', async () => {
+    const selectedTemplate = mockTemplates[0];
+    controller.getReportTemplate.and.returnValue(Promise.resolve(selectedTemplate));
+    controller.getEntriesForReport.and.returnValue(Promise.resolve(mockEntries));
+    controller.getAccountTree.and.returnValue(Promise.resolve(mockAccounts));
+    controller.getTags.and.returnValue(Promise.resolve([]));
+    modelService.getSelectedJournalId.and.returnValue('journal1');
+
+    component.selectedTemplateId = selectedTemplate.id;
+    await component.onTemplateSelect();
+    await fixture.whenStable();
+
+    expect(router.navigate).toHaveBeenCalledWith(['/reports', selectedTemplate.name]);
+  });
+
+  it('should update the URL to /reports when the template is deselected', async () => {
+    component.selectedTemplateId = null;
+    component.reportSections = [{ title: 'Test', level: 3, accounts: [], subtotal: 0, commodity: 'CHF', showDebitsCredits: false, showAccounts: true, groupByPartner: false, invertSign: false, sortable: false, sortColumn: null, sortDirection: 'asc' }];
+
+    await component.onTemplateSelect();
+    await fixture.whenStable();
+
+    expect(router.navigate).toHaveBeenCalledWith(['/reports']);
+    expect(component.selectedTemplate).toBeNull();
+  });
+
+  it('should not write the URL when selection is driven by the route param', async () => {
+    const selectedTemplate = mockTemplates[0];
+    controller.getReportTemplate.and.returnValue(Promise.resolve(selectedTemplate));
+    controller.getEntriesForReport.and.returnValue(Promise.resolve(mockEntries));
+    controller.getAccountTree.and.returnValue(Promise.resolve(mockAccounts));
+    controller.getTags.and.returnValue(Promise.resolve([]));
+    modelService.getSelectedJournalId.and.returnValue('journal1');
+
+    component.selectedTemplateId = selectedTemplate.id;
+    await component.onTemplateSelect(true);
+    await fixture.whenStable();
+
+    expect(router.navigate).not.toHaveBeenCalled();
+    expect(component.selectedTemplate).toEqual(selectedTemplate);
+  });
+
+  it('should select the template named in the URL on init', async () => {
+    controller.listReportTemplates.and.returnValue(Promise.resolve(mockTemplates));
+    controller.getReportTemplate.and.returnValue(Promise.resolve(mockTemplates[1]));
+    controller.getEntriesForReport.and.returnValue(Promise.resolve(mockEntries));
+    controller.getAccountTree.and.returnValue(Promise.resolve(mockAccounts));
+    controller.getTags.and.returnValue(Promise.resolve([]));
+    modelService.getSelectedJournalId.and.returnValue('journal1');
+    activatedRouteStub.snapshot.paramMap = convertToParamMap({ reportName: 'Income Statement' });
+
+    await component.ngOnInit();
+    await fixture.whenStable();
+
+    expect(component.selectedTemplateId).toBe('income-statement-001');
+    expect(controller.getReportTemplate).toHaveBeenCalledWith('income-statement-001');
+  });
+
+  it('should fall back to the stored template when the URL name does not match any template', async () => {
+    controller.listReportTemplates.and.returnValue(Promise.resolve(mockTemplates));
+    controller.getReportTemplate.and.returnValue(Promise.resolve(mockTemplates[0]));
+    controller.getEntriesForReport.and.returnValue(Promise.resolve(mockEntries));
+    controller.getAccountTree.and.returnValue(Promise.resolve(mockAccounts));
+    controller.getTags.and.returnValue(Promise.resolve([]));
+    modelService.getSelectedJournalId.and.returnValue('journal1');
+    activatedRouteStub.snapshot.paramMap = convertToParamMap({ reportName: 'Nonexistent Report' });
+    spyOn(localStorage, 'getItem').and.callFake((key: string) => {
+      if (key === 'abstraccount:reports') {
+        return JSON.stringify({ selectedTemplateId: 'balance-sheet-001', hideZeroBalances: true });
+      }
+      return null;
+    });
+
+    await component.ngOnInit();
+    await fixture.whenStable();
+
+    expect(component.selectedTemplateId).toBe('balance-sheet-001');
+    expect(controller.getReportTemplate).toHaveBeenCalledWith('balance-sheet-001');
+  });
+
+  it('should select a template when the route param changes after init', async () => {
+    controller.listReportTemplates.and.returnValue(Promise.resolve(mockTemplates));
+    controller.getReportTemplate.and.returnValue(Promise.resolve(mockTemplates[0]));
+    controller.getEntriesForReport.and.returnValue(Promise.resolve(mockEntries));
+    controller.getAccountTree.and.returnValue(Promise.resolve(mockAccounts));
+    controller.getTags.and.returnValue(Promise.resolve([]));
+    modelService.getSelectedJournalId.and.returnValue('journal1');
+
+    await component.ngOnInit();
+    await fixture.whenStable();
+    controller.getReportTemplate.calls.reset();
+
+    emitRouteReportName('Balance Sheet');
+    await fixture.whenStable();
+
+    expect(component.selectedTemplateId).toBe('balance-sheet-001');
+    expect(controller.getReportTemplate).toHaveBeenCalledWith('balance-sheet-001');
+  });
+
+  it('should clear the selection when the route param is removed after init', async () => {
+    controller.listReportTemplates.and.returnValue(Promise.resolve(mockTemplates));
+    controller.getReportTemplate.and.returnValue(Promise.resolve(mockTemplates[0]));
+    controller.getEntriesForReport.and.returnValue(Promise.resolve(mockEntries));
+    controller.getAccountTree.and.returnValue(Promise.resolve(mockAccounts));
+    controller.getTags.and.returnValue(Promise.resolve([]));
+    modelService.getSelectedJournalId.and.returnValue('journal1');
+
+    component.selectedTemplateId = 'balance-sheet-001';
+    component.selectedTemplate = mockTemplates[0];
+    component.reportSections = [{ title: 'Test', level: 3, accounts: [], subtotal: 0, commodity: 'CHF', showDebitsCredits: false, showAccounts: true, groupByPartner: false, invertSign: false, sortable: false, sortColumn: null, sortDirection: 'asc' }];
+
+    await component.ngOnInit();
+    await fixture.whenStable();
+
+    emitRouteReportName(null);
+    await fixture.whenStable();
+
+    expect(component.selectedTemplateId).toBeNull();
+    expect(component.selectedTemplate).toBeNull();
+    expect(component.reportSections.length).toBe(0);
+  });
+
+  it('should not react to route param changes before templates are loaded', () => {
+    emitRouteReportName('Balance Sheet');
+    expect(component.selectedTemplateId).toBeNull();
+  });
+
+  it('should clear the URL when the selected report template is deleted', async () => {
+    const testTemplate = mockTemplates[0];
+    component.selectedTemplateId = testTemplate.id;
+    component.selectedTemplate = testTemplate;
+    controller.deleteReportTemplate.and.returnValue(Promise.resolve());
+    confirmDialog.confirm.and.returnValue(Promise.resolve(true));
+
+    await component.deleteReportTemplate(testTemplate);
+
+    expect(router.navigate).toHaveBeenCalledWith(['/reports']);
   });
 });

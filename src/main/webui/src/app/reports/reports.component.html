@@ -2,12 +2,12 @@
 
   <div class="reports-header">
     <div class="menu-wrapper">
-      <button class="menu-btn" (click)="toggleMenu()" aria-label="Report template options">☰</button>
+      <button class="menu-btn" (click)="toggleMenu()" aria-label="Report template options" data-testid="reports-menu-btn">☰</button>
       @if (menuOpen) {
         <div class="menu-dropdown" (click)="$event.stopPropagation()">
-          <button (click)="exportReportTemplates(); closeMenu()">Export Templates</button>
-          <button (click)="openImportDialog(); closeMenu()">Import Templates</button>
-          <button (click)="importBuiltinReportTemplates(); closeMenu()">Import Built-in</button>
+          <button (click)="exportReportTemplates(); closeMenu()" data-testid="export-templates-btn">Export Templates</button>
+          <button (click)="openImportDialog(); closeMenu()" data-testid="import-templates-btn">Import Templates</button>
+          <button (click)="importBuiltinReportTemplates(); closeMenu()" data-testid="import-builtin-btn">Import Built-in</button>
           @if (templates().length > 0) {
             <div class="menu-separator"></div>
             @for (template of templates(); track template.id) {
@@ -315,7 +315,7 @@
       </table>
 
       <!-- Subtotal only (no account details) -->
-      <div *ngIf="!section.showAccounts && section.subtotal !== 0" [ngClass]="{'total-line': true, 'level-1': section.level === 1, 'level-2': section.level === 2, 'level-3': section.level === 3}">
+      <div *ngIf="!section.showAccounts && !section.cashFlowRows && section.subtotal !== 0" [ngClass]="{'total-line': true, 'level-1': section.level === 1, 'level-2': section.level === 2, 'level-3': section.level === 3}">
         <span class="total-label"><strong>{{ section.title }}</strong></span>
         <span class="total-amount"><strong>{{ formatCurrencyWithCommodity(applyDisplaySign(section.subtotal, section.invertSign), section.commodity) }}</strong></span>
       </div>
@@ -328,11 +328,31 @@
 
       <!-- Cash flow statement rows -->
       <div *ngIf="section.cashFlowRows && section.cashFlowRows.length > 0" class="cash-flow-container">
+        <p class="cash-flow-legend">
+          <span class="direction-in">↑ Cash came in</span>
+          <span class="direction-out">↓ Cash went out</span>
+          <span class="direction-none">— No cash effect</span>
+        </p>
         <table class="report-table cash-flow-table">
+          <thead>
+            <tr>
+              <th>Item</th>
+              <th class="direction-column">Movement</th>
+              <th class="amount-column">Amount</th>
+            </tr>
+          </thead>
           <tbody>
             <tr *ngFor="let row of section.cashFlowRows" [class.subtotal-row]="row.isSubtotal" [class.section-header-row]="row.level === 1" [class.grand-total-row]="row.level === 4">
-              <td [class.level-1]="row.level === 1" [class.level-2]="row.level === 2" [class.level-3]="row.level === 3" [class.level-4]="row.level === 4">{{ row.title }}</td>
-              <td class="amount-column">{{ formatCurrencyWithCommodity(row.amount, section.commodity) }}</td>
+              <td [class.level-1]="row.level === 1" [class.level-2]="row.level === 2" [class.level-3]="row.level === 3" [class.level-4]="row.level === 4">
+                <div class="cash-flow-title">{{ row.title }}</div>
+                <div *ngIf="row.subtitle" class="cash-flow-subtitle">{{ row.subtitle }}</div>
+              </td>
+              <td class="direction-column">
+                <span *ngIf="row.amount > 0" class="direction-in">↑ In</span>
+                <span *ngIf="row.amount < 0" class="direction-out">↓ Out</span>
+                <span *ngIf="row.amount === 0" class="direction-none">—</span>
+              </td>
+              <td class="amount-column" [class.amount-in]="row.amount > 0" [class.amount-out]="row.amount < 0">{{ formatCurrencyWithCommodity(row.amount, section.commodity) }}</td>
             </tr>
           </tbody>
         </table>

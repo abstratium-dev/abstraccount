@@ -23,17 +23,17 @@ These TODOs are to be resolved by the developer, NOT THE LLM.
 - bug: does adding new year copy the account descriptions?
   - llm says no bug but why is 2026 empty?
 
-- X add a cashflow report to the built-in ones.
-
 - add a pricing page and work out how to actually sell this
 
 - the user guide and closing page should describe that before hand, the user should do the tax provision (and tax payment?) and legal reserve allocation
+
+- update the tax provision macro to state that this is the difference between what you just worked out and what may have already been paid earlier in the year when the authorities asked you to pay an amount up front, based on previous declarations.
+  - double check that is correct!
 
 - finish e2e tests
   - multitenancy tests
   - tax provision and tax payment and legal reserve allocation will be done in a later test
   - test closing the books and year end, checking accounts have the correct balances at the end.
-  - make it use the built-in macros and reports by importing them before it does anything with them
 
 - deploy to test and prod
 

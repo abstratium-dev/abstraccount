@@ -11,7 +11,9 @@ See [PRECONDITIONS.md](./PRECONDITIONS.md) for general preconditions.
 - [Test Case 001](./001-create-journal-with-accounts.md) - Journal and account tree must exist
 - [Test Case 002](./002-open-the-books.md) - Opening balances must be established
 - [Test Case 003](./003-record-initial-business-transactions.md) - Initial transactions recorded
-- [Test Case 004](./004.1-test-macros.md) - Macro transactions recorded
+- [Test Case 004](./004.1-test-macros.md) - Macro transactions recorded (004.1 through 004.9)
+
+**Note:** Tests 004.8 (TaxProvision) and 004.10 (LegalReserveAllocation) have been moved to [Test Case 007](./007-year-end-closing.md). The balances in this test reflect the state after test 004 only (without year-end closing entries). The accounts checked in this test (6 Expenses, 1 Assets, 100 Cash, 10 Current Assets, 1020 Bank, 1000 Cash) are not affected by the year-end closing entries.
 
 ## Test Objective
 
@@ -31,7 +33,7 @@ After tests 001-004, the following account hierarchy and balances exist in journ
 ```
 6 Expenses (root, no direct entries → direct balance = 0)
 ├── 6500 Administrative expenses (9.30)
-├── 6570 IT expense (no direct entries → direct balance = 0)
+├── 6570 IT and computing expenses (no direct entries → direct balance = 0)
 │   ├── 6570.001 Microsoft (17.00)
 │   └── 6570.002 Anthropic (100.00)
 ├── 6700 Advertising costs (14.20)
@@ -39,8 +41,8 @@ After tests 001-004, the following account hierarchy and balances exist in journ
 ```
 
 - `6 Expenses` subtree sum = 9.30 + 17.00 + 100.00 + 14.20 + 16.00 = **156.50**
-- `6570 IT expense` subtree sum = 17.00 + 100.00 = **117.00**
-- `6570 IT expense` direct balance = **0** (no entries posted directly to 6570)
+- `6570 IT and computing expenses` subtree sum = 17.00 + 100.00 = **117.00**
+- `6570 IT and computing expenses` direct balance = **0** (no entries posted directly to 6570)
 
 ### Asset hierarchy (key for testing)
 
@@ -50,7 +52,7 @@ After tests 001-004, the following account hierarchy and balances exist in journ
 │   ├── 100 Cash and cash equivalents (no direct entries → direct balance = 0)
 │   │   ├── 1000 Cash (0)
 │   │   └── 1020 Bank Account (1,680.50)
-│   ├── 110 Trade receivables (no direct entries → direct balance = 0)
+│   ├── 110 Accounts Receivable (no direct entries → direct balance = 0)
 │   │   └── 1100 Trade receivables (179.10)
 │   └── 120 Inventories (no direct entries → direct balance = 0)
 │       └── 1230 Goods held for resale (40.00)
@@ -81,8 +83,8 @@ Feature: Collapsed Parent Account Balances
     And the balance should NOT be bold (not in displaced-balance style)
 
   Scenario: Expanded mid-level parent with no direct entries shows 0
-    Given the account "6570 IT expense" is expanded
-    When the user views the balance for "6570 IT expense"
+    Given the account "6570 IT and computing expenses" is expanded
+    When the user views the balance for "6570 IT and computing expenses"
     Then the balance should be "0.00" (direct balance only)
     And the children "6570.001 Microsoft" and "6570.002 Anthropic" should be visible
 
@@ -103,10 +105,10 @@ Feature: Collapsed Parent Account Balances
     And the balance should be bold (displaced-balance style)
 
   Scenario: Collapsed mid-level parent shows subtree sum
-    Given the account "6570 IT expense" is expanded
-    When the user collapses the account "6570 IT expense"
+    Given the account "6570 IT and computing expenses" is expanded
+    When the user collapses the account "6570 IT and computing expenses"
     Then the children "6570.001 Microsoft" and "6570.002 Anthropic" should NOT be visible
-    And the balance for "6570 IT expense" should be "117.00" (subtree sum)
+    And the balance for "6570 IT and computing expenses" should be "117.00" (subtree sum)
     And the balance should be bold (displaced-balance style)
 
   Scenario: Collapsed root asset shows subtree sum
@@ -133,9 +135,9 @@ Feature: Collapsed Parent Account Balances
     And the balance should NOT be bold
 
   Scenario: Collapsing then expanding preserves child balances
-    Given the account "6570 IT expense" is expanded
-    When the user collapses the account "6570 IT expense"
-    And the user expands the account "6570 IT expense"
+    Given the account "6570 IT and computing expenses" is expanded
+    When the user collapses the account "6570 IT and computing expenses"
+    And the user expands the account "6570 IT and computing expenses"
     Then "6570.001 Microsoft" should be visible with balance "17.00"
     And "6570.002 Anthropic" should be visible with balance "100.00"
 

@@ -39,9 +39,9 @@ async function setup(page: import('@playwright/test').Page): Promise<void> {
 // Account codes from test 001 (names are included for documentation but
 // matching is done by code only since all codes here are unique).
 // The actual account names in test 001 are:
-//   6    = "6 Other Operating Expenses, Depreciations and Value Adjustments, Financial result"
+//   6    = "6 Other operating expenses"
 //   6500 = "6500 Administrative expenses"
-//   6570 = "6570 IT and computing expenses, including leasing"
+//   6570 = "6570 IT and computing expenses"
 //   6570.001 = "6570.001 Microsoft"
 //   6570.002 = "6570.002 Anthropic"
 //   6700 = "6700 Other operating expenses"

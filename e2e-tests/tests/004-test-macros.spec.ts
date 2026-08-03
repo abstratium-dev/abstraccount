@@ -4,6 +4,7 @@ import * as transactionsPage from '../pages/transactions.page';
 import * as macrosPage from '../pages/macros.page';
 import * as reportsPage from '../pages/reports.page';
 import * as partnersPage from '../pages/partners.page';
+import * as toastPage from '../pages/toast.page';
 import { authenticate } from './auth-helper';
 import { TEST_JOURNAL_NAME, TEST_USER_EMAIL, TEST_USER_PASSWORD, TEST_PARTNERS } from './test-constants';
 
@@ -20,6 +21,62 @@ import { TEST_JOURNAL_NAME, TEST_USER_EMAIL, TEST_USER_PASSWORD, TEST_PARTNERS }
  */
 
 test.describe('Test Macros', () => {
+  test('should import built-in macros', async ({ page }) => {
+    test.setTimeout(120_000);
+    console.log('=== Starting Import Built-in Macros ===');
+
+    // 1. Navigate and authenticate
+    console.log('--- Step 1: Navigating and authenticating ---');
+    await page.goto('/');
+    const signOutLink = page.locator('#signout-link');
+    const isSignedIn = await signOutLink.isVisible({ timeout: 2000 }).catch(() => false);
+
+    if (!isSignedIn) {
+      console.log('Not signed in, performing authentication...');
+      await authenticate(page, TEST_USER_EMAIL, TEST_USER_PASSWORD);
+      console.log('Authentication complete');
+    }
+
+    await headerPage.waitForHeader(page);
+    await headerPage.selectJournal(page, TEST_JOURNAL_NAME);
+
+    // 2. Navigate to the macros page
+    console.log('--- Step 2: Navigating to Macros Page ---');
+    await page.click('a#macros');
+    await macrosPage.waitForMacrosPage(page);
+
+    // 3. Clean up any existing macros via the API so the import succeeds
+    //    with a success toast rather than a conflict dialog.
+    console.log('--- Step 3: Cleaning up existing macros ---');
+    await macrosPage.deleteAllMacrosViaApi(page);
+    // Reload the macros page so the macro grid reflects the cleanup
+    await page.click('a#macros');
+    await macrosPage.waitForMacrosPage(page);
+
+    // 4. Open the macros menu and click "Import Built-in"
+    console.log('--- Step 4: Clicking Import Built-in ---');
+    await macrosPage.openMenu(page);
+    await macrosPage.clickImportBuiltin(page);
+
+    // 5. Assert the success toast announcing the import
+    console.log('--- Step 5: Asserting success toast ---');
+    await toastPage.waitForSuccessToast(page, /Successfully imported \d+ macro\(s\)/);
+
+    // 6. Verify the macros now appear on the page
+    console.log('--- Step 6: Verifying macros are available ---');
+    await page.click('a#macros');
+    await macrosPage.waitForMacrosPage(page);
+    const macroNames = await macrosPage.getMacroNames(page);
+    console.log(`Available macros: ${macroNames.join(', ')}`);
+    expect(macroNames.length).toBeGreaterThan(0);
+    // The built-in export includes the BankingExpense macro, which the
+    // subsequent macro-execution tests rely on.
+    expect(macroNames.some(n => n.includes('BankingExpense'))).toBe(true);
+
+    console.log('✓ Built-in macros imported successfully!');
+    console.log('=== Import Built-in Macros Complete ===');
+  });
+
   test('should execute BankingExpense macro and validate all scenarios', async ({ page }) => {
     test.setTimeout(120_000);
     console.log('=== Starting Test 4: Test Macros - BankingExpense ===');
@@ -78,9 +135,13 @@ test.describe('Test Macros', () => {
       'Test macros 004.5 Customer pays invoice SI00000001',
       'Test macros 004.6 payment by staff',
       'Test macros 004.6 repay staff',
-      'Test macros 004.8 tax provision for 2024',
       'Test macros 004.9 tax payment for 2024',
+      // 004.8 and 004.10 are now in test 007 (year-end closing), but we clean
+      // them up here too in case of leftover transactions from previous runs.
+      'Test macros 004.8 tax provision for 2024',
       'Test macros 004.10 legal reserve allocation for 2024',
+      'Test 007 tax provision for 2024',
+      'Test 007 legal reserve allocation for 2024',
     ];
     for (const desc of ALL_004_DESCRIPTIONS) {
       await deleteTransactionByDescription(page, desc);
@@ -1350,106 +1411,14 @@ test.describe('Test Macros', () => {
   });
 
   // ==========================================================================
-  // Test 4.8: TaxProvision Macro
-  // ==========================================================================
-  test('should execute TaxProvision macro to record year-end tax provision', async ({ page }) => {
-    test.setTimeout(120_000);
-    console.log('=== Starting Test 4.8: TaxProvision Macro ===');
-
-    // Navigate and authenticate
-    await page.goto('/');
-    const signOutLink = page.locator('#signout-link');
-    const isSignedIn = await signOutLink.isVisible({ timeout: 2000 }).catch(() => false);
-
-    if (!isSignedIn) {
-      console.log('Not signed in, performing authentication...');
-      await authenticate(page, TEST_USER_EMAIL, TEST_USER_PASSWORD);
-      console.log('Authentication complete');
-    } else {
-      console.log('Already signed in');
-    }
-
-    await headerPage.waitForHeader(page);
-    await headerPage.selectJournal(page, TEST_JOURNAL_NAME);
-    await headerPage.clickJournalLink(page);
-    await transactionsPage.waitForJournalPage(page);
-    console.log('Journal page loaded');
-
-    // Clean up existing test transaction
-    console.log('--- Cleaning up existing test transaction ---');
-    await deleteTransactionByDescription(page, 'Test macros 004.8 tax provision for 2024');
-
-    // Navigate to macros page
-    console.log('--- Navigating to Macros Page ---');
-    await page.click('a#macros');
-    await macrosPage.waitForMacrosPage(page);
-    console.log('Macros page loaded');
-
-    await macrosPage.verifyMacroExists(page, 'TaxProvision');
-    console.log('✓ TaxProvision macro is available in the macro list');
-
-    await macrosPage.selectMacro(page, 'TaxProvision');
-    console.log('TaxProvision macro selected');
-
-    // Fill in parameters
-    console.log('--- Filling in Macro Parameters ---');
-
-    console.log('Filling date field (2024-12-13)...');
-    await macrosPage.fillParameter(page, 'date', '2024-12-13');
-
-    console.log('Filling description field...');
-    await macrosPage.fillParameter(page, 'description', 'Test macros 004.8 tax provision for 2024');
-
-    console.log('Filling total tax amount field (50.00)...');
-    await macrosPage.fillParameter(page, 'total_tax_amount', '50.00');
-
-    console.log('All fields filled');
-
-    // Execute the macro
-    console.log('--- Executing Macro ---');
-    await macrosPage.executeMacro(page);
-    console.log('Macro execution initiated');
-
-    await page.waitForTimeout(2000);
-
-    const hasError = await macrosPage.hasErrorMessage(page);
-    if (hasError) {
-      const errorMsg = await macrosPage.getErrorMessage(page);
-      console.log(`ERROR: ${errorMsg}`);
-      throw new Error(`Macro execution failed: ${errorMsg}`);
-    }
-
-    await page.waitForSelector('.modal-overlay', { state: 'hidden', timeout: 10000 });
-    console.log('✓ Macro dialog closed (execution successful)');
-
-    await transactionsPage.waitForJournalPage(page);
-    console.log('✓ Navigated back to journal page');
-
-    // Verify transaction was created
-    console.log('--- Verifying Transaction Creation ---');
-    await transactionsPage.verifyTransactionExists(page, 'Test macros 004.8 tax provision for 2024');
-    console.log('✓ Transaction "Test macros 004.8 tax provision for 2024" appears in transaction list');
-
-    // Verify transaction details
-    await transactionsPage.verifyTransactionDetails(page, 'Test macros 004.8 tax provision for 2024', {
-      date: '2024-12-13',
-      value: '50.00'
-    });
-
-    console.log('✓ TaxProvision macro scenarios validated:');
-    console.log('  - Macro selection and parameter form display');
-    console.log('  - Date: 2024-12-13');
-    console.log('  - Description: Test macros 004.8 tax provision for 2024');
-    console.log('  - Total tax amount: CHF 50.00');
-    console.log('  - Transaction created with 2 entries (Dr 8900, Cr 2208)');
-
-    console.log('=== Test 4.8: TaxProvision Macro - PASSED ===');
-  });
-
-  // ==========================================================================
   // Test 4.9: TaxPayment Macro
+  //
+  // This test pays a tax bill that arrives during the year. There is no prior
+  // year-end tax provision (the TaxProvision macro is exercised in test 007 as
+  // part of the year-end closing flow), so provision_amount is 0 and the full
+  // actual_amount is debited to the 8900 Direct taxes expense account.
   // ==========================================================================
-  test('should execute TaxPayment macro to pay tax authority (actual > provision)', async ({ page }) => {
+  test('should execute TaxPayment macro to pay tax authority (no prior provision)', async ({ page }) => {
     test.setTimeout(120_000);
     console.log('=== Starting Test 4.9: TaxPayment Macro ===');
 
@@ -1500,8 +1469,10 @@ test.describe('Test Macros', () => {
     console.log('Filling description field...');
     await macrosPage.fillParameter(page, 'description', 'Test macros 004.9 tax payment for 2024');
 
-    console.log('Filling provision amount field (50.00)...');
-    await macrosPage.fillParameter(page, 'provision_amount', '50.00');
+    // No prior year-end tax provision was recorded (TaxProvision is part of the
+    // year-end closing flow in test 007), so the provisioned amount is 0.
+    console.log('Filling provision amount field (0.00 - no prior provision)...');
+    await macrosPage.fillParameter(page, 'provision_amount', '0.00');
 
     console.log('Filling actual amount field (55.00)...');
     await macrosPage.fillParameter(page, 'actual_amount', '55.00');
@@ -1561,109 +1532,12 @@ test.describe('Test Macros', () => {
     console.log('  - Macro selection and parameter form display');
     console.log('  - Partner: P00000006 (Canton Vaud Tax Authority)');
     console.log('  - Date: 2025-01-15');
-    console.log('  - Provision amount: CHF 50.00');
+    console.log('  - Provision amount: CHF 0.00 (no prior year-end provision)');
     console.log('  - Actual amount: CHF 55.00');
-    console.log('  - Arithmetic expression {actual_amount - provision_amount} = 5.00 evaluated');
-    console.log('  - Transaction created with 3 entries (Dr 2208, Dr 8900, Cr 1020)');
+    console.log('  - Arithmetic expression {actual_amount - provision_amount} = 55.00 evaluated');
+    console.log('  - Transaction created with 3 entries (Dr 2208 0.00, Dr 8900 55.00, Cr 1020 55.00)');
 
     console.log('=== Test 4.9: TaxPayment Macro - PASSED ===');
-  });
-
-  // ==========================================================================
-  // Test 4.10: LegalReserveAllocation Macro
-  // ==========================================================================
-  test('should execute LegalReserveAllocation macro to allocate to legal reserves', async ({ page }) => {
-    test.setTimeout(120_000);
-    console.log('=== Starting Test 4.10: LegalReserveAllocation Macro ===');
-
-    // Navigate and authenticate
-    await page.goto('/');
-    const signOutLink = page.locator('#signout-link');
-    const isSignedIn = await signOutLink.isVisible({ timeout: 2000 }).catch(() => false);
-
-    if (!isSignedIn) {
-      console.log('Not signed in, performing authentication...');
-      await authenticate(page, TEST_USER_EMAIL, TEST_USER_PASSWORD);
-      console.log('Authentication complete');
-    } else {
-      console.log('Already signed in');
-    }
-
-    await headerPage.waitForHeader(page);
-    await headerPage.selectJournal(page, TEST_JOURNAL_NAME);
-    await headerPage.clickJournalLink(page);
-    await transactionsPage.waitForJournalPage(page);
-    console.log('Journal page loaded');
-
-    // Clean up existing test transaction
-    console.log('--- Cleaning up existing test transaction ---');
-    await deleteTransactionByDescription(page, 'Test macros 004.10 legal reserve allocation for 2024');
-
-    // Navigate to macros page
-    console.log('--- Navigating to Macros Page ---');
-    await page.click('a#macros');
-    await macrosPage.waitForMacrosPage(page);
-    console.log('Macros page loaded');
-
-    await macrosPage.verifyMacroExists(page, 'LegalReserveAllocation');
-    console.log('✓ LegalReserveAllocation macro is available in the macro list');
-
-    await macrosPage.selectMacro(page, 'LegalReserveAllocation');
-    console.log('LegalReserveAllocation macro selected');
-
-    // Fill in parameters
-    console.log('--- Filling in Macro Parameters ---');
-
-    console.log('Filling date field (2024-12-13)...');
-    await macrosPage.fillParameter(page, 'date', '2024-12-13');
-
-    console.log('Filling allocation amount field (10.00)...');
-    await macrosPage.fillParameter(page, 'allocation_amount', '10.00');
-
-    console.log('Filling description field...');
-    await macrosPage.fillParameter(page, 'description', 'Test macros 004.10 legal reserve allocation for 2024');
-
-    console.log('All fields filled');
-
-    // Execute the macro
-    console.log('--- Executing Macro ---');
-    await macrosPage.executeMacro(page);
-    console.log('Macro execution initiated');
-
-    await page.waitForTimeout(2000);
-
-    const hasError = await macrosPage.hasErrorMessage(page);
-    if (hasError) {
-      const errorMsg = await macrosPage.getErrorMessage(page);
-      console.log(`ERROR: ${errorMsg}`);
-      throw new Error(`Macro execution failed: ${errorMsg}`);
-    }
-
-    await page.waitForSelector('.modal-overlay', { state: 'hidden', timeout: 10000 });
-    console.log('✓ Macro dialog closed (execution successful)');
-
-    await transactionsPage.waitForJournalPage(page);
-    console.log('✓ Navigated back to journal page');
-
-    // Verify transaction was created
-    console.log('--- Verifying Transaction Creation ---');
-    await transactionsPage.verifyTransactionExists(page, 'Test macros 004.10 legal reserve allocation for 2024');
-    console.log('✓ Transaction "Test macros 004.10 legal reserve allocation for 2024" appears in transaction list');
-
-    // Verify transaction details
-    await transactionsPage.verifyTransactionDetails(page, 'Test macros 004.10 legal reserve allocation for 2024', {
-      date: '2024-12-13',
-      value: '10.00'
-    });
-
-    console.log('✓ LegalReserveAllocation macro scenarios validated:');
-    console.log('  - Macro selection and parameter form display');
-    console.log('  - Date: 2024-12-13');
-    console.log('  - Allocation amount: CHF 10.00');
-    console.log('  - Description: Test macros 004.10 legal reserve allocation for 2024');
-    console.log('  - Transaction created with 2 entries (Dr 2979, Cr 2950)');
-
-    console.log('=== Test 4.10: LegalReserveAllocation Macro - PASSED ===');
   });
 });
 
@@ -1676,6 +1550,21 @@ test.describe('Test Macros', () => {
  * See docs/test-cases/004.7-verify-reports.md for detailed calculations.
  */
 test.describe('Verify Reports After Macro Transactions', () => {
+  // Helper to clean up year-end closing transactions (test 007) so the reports
+  // reflect only the state after test 004. Must be called after authentication
+  // and journal selection.
+  async function cleanupYearEndClosingTransactions(page: any): Promise<void> {
+    for (const desc of [
+      'Test 007 tax provision for 2024',
+      'Test 007 legal reserve allocation for 2024',
+      'Test macros 004.8 tax provision for 2024',
+      'Test macros 004.10 legal reserve allocation for 2024',
+    ]) {
+      await deleteTransactionByDescription(page, desc);
+    }
+    console.log('✓ Cleaned up year-end closing transactions before report verification');
+  }
+
   test('should verify Balance Sheet report after all macro transactions', async ({ page }) => {
     test.setTimeout(120_000);
     console.log('=== Starting Balance Sheet Verification (After Macros) ===');
@@ -1693,7 +1582,11 @@ test.describe('Verify Reports After Macro Transactions', () => {
     
     await headerPage.waitForHeader(page);
     await headerPage.selectJournal(page, TEST_JOURNAL_NAME);
-    
+
+    // Clean up year-end closing transactions (test 007) so reports reflect
+    // only the state after test 004.
+    await cleanupYearEndClosingTransactions(page);
+
     // Navigate to reports page
     console.log('--- Navigating to Reports Page ---');
     await page.click('a#reports');
@@ -1711,14 +1604,16 @@ test.describe('Verify Reports After Macro Transactions', () => {
     //   1020 Bank = 1,785.00, 1100 Receivables = 68.10, 1230 Inventory = 40.00
     //   2200 VAT payable = 8.10, 2210.001 John Smith = 38.50, 2800 Share Capital = 2,000.00
     //   3400 Revenue = 60.00, 6500 = 9.30, 6570.002 = 100.00, 6700 = 4.20, 6900 = 15.00, 8900 = 75.00
-    // After macros 004.1-004.10:
+    // After macros 004.1-004.6b and 004.9 (TaxPayment with no prior provision):
     //   1020 Bank = 1,680.50, 1100 Receivables = 179.10, 1230 Inventory = 40.00
     //   2200 VAT = 8.10, 2208 Tax liabilities = 0.00, 2210.001 = 0.00
-    //   2800 = 2,000.00, 2950 Legal reserves = 10.00, 2979 Annual P/L = 10.00 (debit)
+    //   2800 = 2,000.00, 2950 Legal reserves = 0.00, 2979 Annual P/L = 0.00
     //   3400 Revenue = 178.00, 6500 = 9.30, 6570.001 = 17.00, 6570.002 = 100.00
-    //   6700 = 14.20, 6900 = 16.00, 8900 = 130.00
+    //   6700 = 14.20, 6900 = 16.00, 8900 = 130.00 (75.00 from T12a + 55.00 from 004.9)
     //   Net Loss: 108.50 (revenue 178.00 - expenses 286.50)
     //   Total Assets: 1,899.60 = Total L+E: 8.10 + 2,000.00 - 108.50
+    // Note: TaxProvision (004.8) and LegalReserveAllocation (004.10) are now part
+    // of test 007 (year-end closing), so 2950 and 2979 remain at 0.00 here.
 
     await reportsPage.verifySectionExists(page, 'Cash and Cash Equivalents');
     await reportsPage.verifyAccountBalance(page, '1020', '1,680.50');
@@ -1758,7 +1653,11 @@ test.describe('Verify Reports After Macro Transactions', () => {
     
     await headerPage.waitForHeader(page);
     await headerPage.selectJournal(page, TEST_JOURNAL_NAME);
-    
+
+    // Clean up year-end closing transactions (test 007) so reports reflect
+    // only the state after test 004.
+    await cleanupYearEndClosingTransactions(page);
+
     // Navigate to reports page
     console.log('--- Navigating to Reports Page ---');
     await page.click('a#reports');
@@ -1810,7 +1709,11 @@ test.describe('Verify Reports After Macro Transactions', () => {
     
     await headerPage.waitForHeader(page);
     await headerPage.selectJournal(page, TEST_JOURNAL_NAME);
-    
+
+    // Clean up year-end closing transactions (test 007) so reports reflect
+    // only the state after test 004.
+    await cleanupYearEndClosingTransactions(page);
+
     // Navigate to reports page
     console.log('--- Navigating to Reports Page ---');
     await page.click('a#reports');
@@ -1863,7 +1766,11 @@ test.describe('Verify Reports After Macro Transactions', () => {
     
     await headerPage.waitForHeader(page);
     await headerPage.selectJournal(page, TEST_JOURNAL_NAME);
-    
+
+    // Clean up year-end closing transactions (test 007) so reports reflect
+    // only the state after test 004.
+    await cleanupYearEndClosingTransactions(page);
+
     // Navigate to reports page
     console.log('--- Navigating to Reports Page ---');
     await page.click('a#reports');
@@ -1931,7 +1838,11 @@ test.describe('Verify Reports After Macro Transactions', () => {
     
     await headerPage.waitForHeader(page);
     await headerPage.selectJournal(page, TEST_JOURNAL_NAME);
-    
+
+    // Clean up year-end closing transactions (test 007) so reports reflect
+    // only the state after test 004.
+    await cleanupYearEndClosingTransactions(page);
+
     // Navigate to reports page
     console.log('--- Navigating to Reports Page ---');
     await page.click('a#reports');
@@ -2005,6 +1916,10 @@ test.describe('Verify Reports After Macro Transactions', () => {
 
     await headerPage.waitForHeader(page);
     await headerPage.selectJournal(page, TEST_JOURNAL_NAME);
+
+    // Clean up year-end closing transactions (test 007) so reports reflect
+    // only the state after test 004.
+    await cleanupYearEndClosingTransactions(page);
 
     // Navigate to reports page
     console.log('--- Navigating to Reports Page ---');

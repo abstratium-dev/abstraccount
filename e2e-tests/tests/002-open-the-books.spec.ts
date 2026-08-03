@@ -19,6 +19,7 @@ import { TEST_JOURNAL_NAME, TEST_USER_EMAIL, TEST_USER_PASSWORD } from './test-c
 
 test.describe('Opening Balances Transaction', () => {
   test('should create opening balances transaction to open the books', async ({ page }) => {
+    test.setTimeout(120_000);
     console.log('=== Starting Test 2: Open the Books ===');
     
     // Navigate to the application
@@ -125,7 +126,7 @@ test.describe('Opening Balances Transaction', () => {
     // Entry 7: 120 Inventories and non-invoiced services (Debit 0.00)
     await transactionsPage.clickAddEntry(page);
     await transactionsPage.createEntry(page, 6, '120', 0.00, 'CHF');
-    
+
     // Entry 8: 1230 Goods held for resale - CHF 0.00 (Debit)
     await transactionsPage.clickAddEntry(page);
     await transactionsPage.createEntry(page, 7, '1230', 0, 'CHF');

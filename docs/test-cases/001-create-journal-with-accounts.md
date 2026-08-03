@@ -9,7 +9,7 @@ See [PRECONDITIONS.md](./PRECONDITIONS.md) for general preconditions.
 
 ## Test Objective
 
-Verify that a user can create a new journal and establish a complete account tree structure following Swiss accounting standards (Swiss GAAP FER), including assets, liabilities, equity, and expense accounts.
+Verify that a user can create a new journal (which automatically receives a starter chart of accounts) and then add the additional accounts needed by later test cases, following Swiss accounting standards (Swiss GAAP FER).
 
 ## Test Data
 
@@ -19,11 +19,13 @@ Verify that a user can create a new journal and establish a complete account tre
 - **Fiscal Year Start:** 2024-01-01
 - **Fiscal Year End:** 2024-12-31
 
-### Account Tree Structure
+### Starter Chart of Accounts (created automatically)
 
-The following account hierarchy should be created, inspired by the Swiss chart of accounts:
+When a new journal is created, the backend (`JournalCreationService`) automatically
+creates a starter chart of accounts. The test does **not** create these accounts
+manually — it only verifies that they exist after journal creation.
 
-#### 1. Assets (Actifs)
+#### 1. Assets
 ```
 1 Assets
 ├── 10 Current Assets
@@ -31,86 +33,114 @@ The following account hierarchy should be created, inspired by the Swiss chart o
 │   │   ├── 1000 Cash
 │   │   └── 1020 Bank Account
 │   ├── 110 Accounts Receivable
-│   │   └── 1100 Accounts receivable (Debtors)
-│   └── 120 Inventories and non-invoiced services
-│       ├── 1200 Inventory of hardware and components
-│       ├── 1210 Finished goods
-│       ├── 1220 Work in progress
-│       └── 1230 Goods held for resale
+│   │   └── 1100 Trade receivables
+│   ├── 120 Inventories
+│   │   └── 1200 Inventory of hardware and components
+│   ├── 130 Receivables from shareholders
+│   └── 14 Non-current assets
+│       ├── 140 Participations
+│       └── 150 Fixed assets
 ```
 
-#### 2. Liabilities (Passif - Liabilities)
+#### 2. Liabilities
 ```
 2 Liabilities
 └── 20 Current liabilities
-    ├── 200 Accounts payable (A/P)
-    │   └── 2000 Accounts payable (suppliers & creditors)
-    └── 220 Other short-term liabilities
-        ├── 2200 VAT payable
-        ├── 2201 VAT settlement
-        ├── 2206 Withholding tax payable
-        ├── 2208 Tax liabilities (provisions)
-        └── 2210 Other short-term liabilities
-            └── 2210.001 John Smith
+    ├── 200 Accounts payable
+    │   └── 2000 Accounts payable
+    ├── 220 Other short-term liabilities
+    │   ├── 2208 Direct taxes
+    │   └── 2210 Other short-term liabilities
+    │       └── 2210.001 Staff member
+    ├── 230 Transitory liabilities
+    └── 240 Provisions
+```
 
+#### 2. Equity
+```
+2 Equity
+├── 28 Shareholders Equity
+│   └── 280 Share capital
+│       └── 2800 Share capital
+└── 290 Reserves and retained earnings
+    ├── 2950 Legal reserves
+    ├── 2970 Profit carried forward
+    └── 2979 Annual profit or loss
 ```
 
 > **Note on the duplicate root code `2`:** Both Liabilities and Equity use root
 > account code `2`. This is intentional and correct per Swiss SME accounting
 > practice (Swiss GAAP FER): both are "Passif" (the credit side of the balance
 > sheet) and share the `2x` numbering range. They are distinguished by account
-> *name* (`2 Liabilities` vs `2 Equity`), not by code. This mirrors the
-> reference journal, where the two roots are `2 Passif / Liabilities` and
-> `2 Passif / Equity`.
+> *name* (`2 Liabilities` vs `2 Equity`), not by code.
 
-#### 2. Equity (Passif - Equity)
+#### 3. Revenue
 ```
-2 Equity
-├── 28 Shareholders Equity (legal entities)
-│   └── 280 Basic, shareholder or foundation capital
-│       └── 2800 Basic, shareholder or foundation capital
-└── 290 Reserves and retained earnings, own capital shares and disposable profit
-    ├── 2950 Legal reserves from profit
-    ├── 2970 Profit carried forward or loss carried forward
-    └── 2979 Annual profit or loss
+3 Revenue
+├── 3400 Services revenue
+└── 3600 Other operating income
 ```
 
-#### 3. Income
+#### 4. Expenses
 ```
-3 Net proceeds from sales of goods and services
-├── 3400 Revenues from services
-```
+4 Cost of materials and goods
+└── 4000 Purchases of materials and components
 
-#### 6. Operating Expenses
-```
-6 Other Operating Expenses, Depreciations and Value Adjustments, Financial result
+5 Personnel expenses
+└── 5000 Salaries
+
+6 Other operating expenses
+├── 6300 Insurance expense
 ├── 6500 Administrative expenses
-├── 6570 IT and computing expenses, including leasing
-│   ├── 6570.001 Microsoft
-│   └── 6570.002 Anthropic
+├── 6570 IT and computing expenses
 ├── 6700 Other operating expenses
+├── 6800 Depreciation
 └── 6900 Financial expense
+
+8 Non-operating expenses
+└── 8900 Direct taxes
 ```
 
-#### 8. Non-Operational Expenses
+### Additional Accounts (created manually by this test)
+
+The following accounts are **not** part of the starter chart and must be created
+manually. They are required by later test cases (002–006).
+
+#### Under 120 Inventories
 ```
-8 Non-Operational, Extraordinary, Non-Recurring or Prior-Period Expenses and Income
-├── 8900 Direct taxes (legal entities)
-└── 8910 Taxes from prior periods
+1230 Goods held for resale
+```
+
+#### Under 220 Other short-term liabilities
+```
+2200 VAT payable
+2201 VAT settlement
+2206 Withholding tax payable
+```
+
+#### Under 6570 IT and computing expenses
+```
+6570.001 Microsoft
+6570.002 Anthropic
+```
+
+#### Under 8 Non-operating expenses
+```
+8910 Taxes from prior periods
 ```
 
 > **Note on the tax accounts (2208, 8900, 8910):** These three accounts model
 > the direct-tax lifecycle for a Swiss legal entity:
-> - **8900 Direct taxes (legal entities)** — the *expense* account. Debited when
+> - **8900 Direct taxes** — the *expense* account (from starter chart). Debited when
 >   a tax charge is recognised (either on receipt of the tax bill, or at year-end
 >   via a tax provision).
-> - **2208 Tax liabilities (provisions)** — the *liability* account on the
->   balance sheet. Credited at year-end when a tax provision is recorded
+> - **2208 Direct taxes** — the *liability* account on the balance sheet (from
+>   starter chart). Credited at year-end when a tax provision is recorded
 >   (Dr 8900 / Cr 2208), and debited when the provision is released against the
 >   actual tax payment. It holds the tax still owed at the end of the year.
 > - **8910 Taxes from prior periods** — the expense account for tax charges
->   relating to prior fiscal years. It is created for completeness; the example
->   journal does not currently post any amount to it.
+>   relating to prior fiscal years (created manually by this test). It is created
+>   for completeness; the example journal does not currently post any amount to it.
 >
 > The reference journal shows the typical pattern: the tax bill arrives and is
 > booked as an expense against accounts payable (Dr 8900 / Cr 2000), then paid a
@@ -121,7 +151,7 @@ The following account hierarchy should be created, inspired by the Swiss chart o
 
 ## Test Steps
 
-### Scenario: Create a new journal with complete account tree
+### Scenario: Create a new journal with starter chart and additional accounts
 
 ```gherkin
 Feature: Journal and Account Management
@@ -130,7 +160,7 @@ Feature: Journal and Account Management
     Given the user is signed into the application
     And the user is on the journals overview page
 
-  Scenario: Create new journal with Swiss chart of accounts
+  Scenario: Create new journal (receives starter chart automatically)
     When the user clicks on "Create New Journal"
     Then the journal creation form should be displayed
     
@@ -142,197 +172,122 @@ Feature: Journal and Account Management
     Then the journal "Abstratium 2024" should be created successfully
     And the user should be redirected to the journal detail page
     And a success message "Journal created successfully" should be displayed
-    
-    # Create Assets hierarchy
+    # The backend automatically creates the starter chart of accounts at this point
+
+  Scenario: Navigate to accounts page and create additional accounts
     When the user navigates to the "Accounts" section
-    And the user clicks "Add Root Account"
-    And the user enters account code "1"
-    And the user enters account name "Assets"
-    And the user clicks "Save Account"
-    Then the account "1 Assets" should be created
-    
-    When the user selects account "1 Assets"
-    And the user clicks "Add Child Account"
-    And the user enters account code "10"
-    And the user enters account name "Current Assets"
-    And the user clicks "Save Account"
-    Then the account "10 Current Assets" should be created as a child of "1 Assets"
-    
-    When the user selects account "10 Current Assets"
-    And the user clicks "Add Child Account"
-    And the user enters account code "100"
-    And the user enters account name "Cash and cash equivalents"
-    And the user clicks "Save Account"
-    Then the account "100 Cash and cash equivalents" should be created
-    
-    When the user selects account "100 Cash and cash equivalents"
-    And the user clicks "Add Child Account"
-    And the user enters account code "1000"
-    And the user enters account name "Cash"
-    And the user clicks "Save Account"
-    Then the account "1000 Cash" should be created
-    
-    When the user selects account "100 Cash and cash equivalents"
-    And the user clicks "Add Child Account"
-    And the user enters account code "1020"
-    And the user enters account name "Bank Account"
-    And the user clicks "Save Account"
-    Then the account "1020 Bank Account" should be created
-    
-    # Create Accounts Receivable
-    When the user selects account "10 Current Assets"
-    And the user clicks "Add Child Account"
-    And the user enters account code "110"
-    And the user enters account name "Accounts Receivable"
-    And the user clicks "Save Account"
-    Then the account "110 Accounts Receivable" should be created
-    
-    When the user selects account "110 Accounts Receivable"
-    And the user clicks "Add Child Account"
-    And the user enters account code "1100"
-    And the user enters account name "Accounts receivable (Debtors)"
-    And the user clicks "Save Account"
-    Then the account "1100 Accounts receivable (Debtors)" should be created
-    
-    # Create Inventory accounts
-    When the user selects account "10 Current Assets"
-    And the user clicks "Add Child Account"
-    And the user enters account code "120"
-    And the user enters account name "Inventories and non-invoiced services"
-    And the user clicks "Save Account"
-    Then the account "120 Inventories and non-invoiced services" should be created
-    
-    When the user selects account "120 Inventories and non-invoiced services"
-    And the user clicks "Add Child Account"
-    And the user enters account code "1200"
-    And the user enters account name "Inventory of hardware and components"
-    And the user clicks "Save Account"
-    Then the account "1200 Inventory of hardware and components" should be created
-    
-    When the user selects account "120 Inventories and non-invoiced services"
-    And the user clicks "Add Child Account"
-    And the user enters account code "1210"
-    And the user enters account name "Finished goods"
-    And the user clicks "Save Account"
-    Then the account "1210 Finished goods" should be created
-    
-    When the user selects account "120 Inventories and non-invoiced services"
-    And the user clicks "Add Child Account"
-    And the user enters account code "1220"
-    And the user enters account name "Work in progress"
-    And the user clicks "Save Account"
-    Then the account "1220 Work in progress" should be created
-    
-    When the user selects account "120 Inventories and non-invoiced services"
+    Then the accounts page should be displayed
+    And the starter chart accounts should already be present
+
+    # Create 1230 Goods held for resale under 120 Inventories
+    When the user selects account "120 Inventories"
     And the user clicks "Add Child Account"
     And the user enters account code "1230"
     And the user enters account name "Goods held for resale"
     And the user clicks "Save Account"
-    Then the account "1230 Goods held for resale" should be created
-    
-    # Create Non-current assets
-    When the user selects account "1 Actifs / Assets"
-    And the user clicks "Add Child Account"
-    And the user enters account code "14"
-    And the user enters account name "Non-current assets"
-    And the user clicks "Save Account"
-    Then the account "14 Non-current assets" should be created
-    
-    When the user selects account "14 Non-current assets"
-    And the user clicks "Add Child Account"
-    And the user enters account code "150"
-    And the user enters account name "Movable tangible fixed assets"
-    And the user clicks "Save Account"
-    Then the account "150 Movable tangible fixed assets" should be created
-    
-    # Create Liabilities root and structure
-    When the user navigates to the "Accounts" section
-    And the user clicks "Add Root Account"
-    And the user enters account code "2"
-    And the user enters account name "Liabilities"
-    And the user clicks "Save Account"
-    Then the account "2 Liabilities" should be created
-    
-    When the user selects account "2 Liabilities"
-    And the user clicks "Add Child Account"
-    And the user enters account code "20"
-    And the user enters account name "Current liabilities"
-    And the user clicks "Save Account"
-    Then the account "20 Current liabilities" should be created
-    
-    When the user selects account "20 Current liabilities"
-    And the user clicks "Add Child Account"
-    And the user enters account code "200"
-    And the user enters account name "Accounts payable (A/P)"
-    And the user clicks "Save Account"
-    Then the account "200 Accounts payable (A/P)" should be created
-    
-    When the user selects account "200 Accounts payable (A/P)"
-    And the user clicks "Add Child Account"
-    And the user enters account code "2000"
-    And the user enters account name "Accounts payable (suppliers & creditors)"
-    And the user clicks "Save Account"
-    Then the account "2000 Accounts payable (suppliers & creditors)" should be created
-    
-    When the user selects account "20 Current liabilities"
-    And the user clicks "Add Child Account"
-    And the user enters account code "220"
-    And the user enters account name "Other short-term liabilities"
-    And the user clicks "Save Account"
-    Then the account "220 Other short-term liabilities" should be created
-    
+    Then the account "1230 Goods held for resale" should be created as a child of "120 Inventories"
+
+    # Create 2200 VAT payable under 220 Other short-term liabilities
     When the user selects account "220 Other short-term liabilities"
     And the user clicks "Add Child Account"
     And the user enters account code "2200"
     And the user enters account name "VAT payable"
     And the user clicks "Save Account"
     Then the account "2200 VAT payable" should be created
-    
+
+    # Create 2201 VAT settlement under 220 Other short-term liabilities
     When the user selects account "220 Other short-term liabilities"
     And the user clicks "Add Child Account"
     And the user enters account code "2201"
     And the user enters account name "VAT settlement"
     And the user clicks "Save Account"
     Then the account "2201 VAT settlement" should be created
-    
+
+    # Create 2206 Withholding tax payable under 220 Other short-term liabilities
     When the user selects account "220 Other short-term liabilities"
     And the user clicks "Add Child Account"
     And the user enters account code "2206"
     And the user enters account name "Withholding tax payable"
     And the user clicks "Save Account"
     Then the account "2206 Withholding tax payable" should be created
-    
-    When the user selects account "220 Other short-term liabilities"
-    And the user clicks "Add Child Account"
-    And the user enters account code "2208"
-    And the user enters account name "Tax liabilities (provisions)"
-    And the user clicks "Save Account"
-    Then the account "2208 Tax liabilities (provisions)" should be created
-    
-    When the user selects account "220 Other short-term liabilities"
-    And the user clicks "Add Child Account"
-    And the user enters account code "2210"
-    And the user enters account name "Other short-term liabilities"
-    And the user clicks "Save Account"
-    Then the account "2210 Other short-term liabilities" should be created
 
-    When the user selects account "2210 Other short-term liabilities"
+    # Create 6570.001 Microsoft under 6570 IT and computing expenses
+    When the user selects account "6570 IT and computing expenses"
     And the user clicks "Add Child Account"
-    And the user enters account code "2210.001"
-    And the user enters account name "John Smith"
+    And the user enters account code "6570.001"
+    And the user enters account name "Microsoft"
     And the user clicks "Save Account"
-    Then the account "2210.001 John Smith" should be created
-    
-    # Note: Continue with remaining account hierarchies following the same pattern
-    # This test case demonstrates the pattern - the full implementation would continue
-    # with Equity accounts (2 Equity), Expense accounts (6), and Non-operational (8)
-    
-    # Verification
+    Then the account "6570.001 Microsoft" should be created
+
+    # Create 6570.002 Anthropic under 6570 IT and computing expenses
+    When the user selects account "6570 IT and computing expenses"
+    And the user clicks "Add Child Account"
+    And the user enters account code "6570.002"
+    And the user enters account name "Anthropic"
+    And the user clicks "Save Account"
+    Then the account "6570.002 Anthropic" should be created
+
+    # Create 8910 Taxes from prior periods under 8 Non-operating expenses
+    When the user selects account "8 Non-operating expenses"
+    And the user clicks "Add Child Account"
+    And the user enters account code "8910"
+    And the user enters account name "Taxes from prior periods"
+    And the user clicks "Save Account"
+    Then the account "8910 Taxes from prior periods" should be created
+
+  Scenario: Verify the complete account tree
     When the user views the complete account tree
-    Then the account tree should display all created accounts in hierarchical order
+    Then the account tree should display all accounts in hierarchical order
     And each account should show its code and name
     And the parent-child relationships should be correctly displayed
-    And the total number of root accounts should be at least 3 (Assets, Liabilities, Equity)
+
+    # Verify starter chart accounts
+    Then the following accounts should exist:
+      | Code   | Name                              |
+      | 1      | Assets                            |
+      | 10     | Current Assets                    |
+      | 100    | Cash and cash equivalents         |
+      | 1000   | Cash                              |
+      | 1020   | Bank Account                      |
+      | 110    | Accounts Receivable               |
+      | 1100   | Trade receivables                 |
+      | 120    | Inventories                       |
+      | 2      | Liabilities                       |
+      | 20     | Current liabilities               |
+      | 200    | Accounts payable                  |
+      | 2000   | Accounts payable                  |
+      | 220    | Other short-term liabilities      |
+      | 2208   | Direct taxes                      |
+      | 2210   | Other short-term liabilities      |
+      | 2210.001 | Staff member                    |
+      | 2      | Equity                            |
+      | 28     | Shareholders Equity               |
+      | 280    | Share capital                     |
+      | 2800   | Share capital                     |
+      | 290    | Reserves and retained earnings    |
+      | 2950   | Legal reserves                    |
+      | 2970   | Profit carried forward            |
+      | 2979   | Annual profit or loss             |
+      | 3      | Revenue                           |
+      | 3400   | Services revenue                  |
+      | 6      | Other operating expenses          |
+      | 6500   | Administrative expenses           |
+      | 6570   | IT and computing expenses         |
+      | 6700   | Other operating expenses          |
+      | 6900   | Financial expense                 |
+      | 8      | Non-operating expenses            |
+      | 8900   | Direct taxes                      |
+
+    # Verify additional accounts created by this test
+    Then the following accounts should exist:
+      | Code     | Name                      |
+      | 1230     | Goods held for resale     |
+      | 2200     | VAT payable               |
+      | 2201     | VAT settlement            |
+      | 2206     | Withholding tax payable   |
+      | 6570.001 | Microsoft                 |
+      | 6570.002 | Anthropic                 |
+      | 8910     | Taxes from prior periods  |
 ```
 
 ## Expected Results
@@ -341,14 +296,19 @@ Feature: Journal and Account Management
    - Journal "Abstratium 2024" is created with CHF currency
    - Fiscal year dates are correctly set
    - Journal appears in the journals list
+   - Starter chart of accounts is automatically created by the backend
 
-2. **Account Tree Structure:**
-   - All accounts are created with correct codes and names
+2. **Additional Account Creation:**
+   - All 7 additional accounts are created with correct codes and names
    - Parent-child relationships are correctly established
-   - Account hierarchy is displayed correctly in the UI
+   - Each additional account is placed under the correct parent from the starter chart
+
+3. **Account Tree Structure:**
+   - All accounts (starter + additional) are present in the tree
+   - Parent-child relationships are correctly displayed in the UI
    - Accounts follow Swiss GAAP FER numbering convention
 
-3. **Data Integrity:**
+4. **Data Integrity:**
    - All accounts are associated with the correct journal
    - Account codes are unique within the journal
    - No orphaned accounts exist
@@ -357,8 +317,8 @@ Feature: Journal and Account Management
 ## Acceptance Criteria
 
 - [ ] User can create a new journal with all required fields
-- [ ] User can create root-level accounts
-- [ ] User can create child accounts under parent accounts
+- [ ] Starter chart of accounts is automatically created by the backend
+- [ ] User can create child accounts under parent accounts from the starter chart
 - [ ] Account tree displays correct hierarchy
 - [ ] Account codes and names are stored correctly
 - [ ] Multiple levels of nesting are supported (at least 4 levels deep)
@@ -369,3 +329,6 @@ Feature: Journal and Account Management
 ## Notes
 
 - Account codes use a hierarchical numbering system where child accounts extend parent codes
+- The starter chart is created by `JournalCreationService.java` in the backend
+- Only 7 additional accounts need to be created manually; the rest come from the starter chart
+- The `2` code is used for both `2 Liabilities` and `2 Equity` — they are distinguished by name

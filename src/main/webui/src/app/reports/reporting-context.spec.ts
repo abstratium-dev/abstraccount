@@ -757,30 +757,46 @@ describe('ReportingContext', () => {
       expect(titles).toContain('Financing activities');
       expect(titles).toContain('Reconciliation to cash');
 
-      const operating = rows.find(r => r.title === 'Cash flow from operating activities');
+      const operatingHeader = rows.find(r => r.title === 'Operating activities');
+      expect(operatingHeader).toBeDefined();
+      expect(operatingHeader!.subtitle).toBe('Cash from running the business');
+
+      const investingHeader = rows.find(r => r.title === 'Investing activities');
+      expect(investingHeader).toBeDefined();
+      expect(investingHeader!.subtitle).toBe('Cash from buying or selling assets');
+
+      const financingHeader = rows.find(r => r.title === 'Financing activities');
+      expect(financingHeader).toBeDefined();
+      expect(financingHeader!.subtitle).toBe('Cash from loans and owner money');
+
+      const reconciliationHeader = rows.find(r => r.title === 'Reconciliation to cash');
+      expect(reconciliationHeader).toBeDefined();
+      expect(reconciliationHeader!.subtitle).toBe('Cash balance check');
+
+      const operating = rows.find(r => r.title === 'Total cash from running the business');
       expect(operating).toBeDefined();
       // operating = profit(3000) + depreciation(1000) - AR(2000) - inventory(500) + AP(500) = 2000
       expect(operating!.amount).toBe(2000);
 
-      const investing = rows.find(r => r.title === 'Cash flow from investing activities');
+      const investing = rows.find(r => r.title === 'Total cash from buying/selling assets');
       expect(investing).toBeDefined();
       // investing = -machineryChange(4000) = -4000; accumulated depreciation is excluded
       expect(investing!.amount).toBe(-4000);
 
-      const financing = rows.find(r => r.title === 'Cash flow from financing activities');
+      const financing = rows.find(r => r.title === 'Total cash from loans and owner money');
       expect(financing).toBeDefined();
       // financing = -loanChange(-3000) = 3000
       expect(financing!.amount).toBe(3000);
 
-      const totalChange = rows.find(r => r.title === 'Increase / decrease in cash' && r.level === 4);
+      const totalChange = rows.find(r => r.title === 'Total change in cash' && r.level === 4);
       expect(totalChange).toBeDefined();
       expect(totalChange!.amount).toBe(1000);
 
-      const openingCash = rows.find(r => r.title === 'Opening cash and cash equivalents');
+      const openingCash = rows.find(r => r.title === 'Cash at the start of the period');
       expect(openingCash).toBeDefined();
       expect(openingCash!.amount).toBe(10000);
 
-      const closingCash = rows.find(r => r.title === 'Closing cash and cash equivalents');
+      const closingCash = rows.find(r => r.title === 'Cash at the end of the period');
       expect(closingCash).toBeDefined();
       expect(closingCash!.amount).toBe(11000);
     });
@@ -793,9 +809,31 @@ describe('ReportingContext', () => {
       const context = createReportingContext(entries, cashFlowAccounts, '2024-01-01', '2024-12-31', entries);
       const rows = createCashFlowStatement(context, cashFlowAccounts);
 
-      expect(rows.some(r => r.title === 'Depreciation and value adjustments')).toBe(false);
-      expect(rows.some(r => r.title === 'Investments / disinvestments in tangible fixed assets')).toBe(false);
-      expect(rows.some(r => r.title === 'Issue / reduction of share capital')).toBe(false);
+      expect(rows.some(r => r.title === 'Depreciation (money set aside, not spent)')).toBe(false);
+      expect(rows.some(r => r.title === 'Equipment, machines, furniture bought or sold')).toBe(false);
+      expect(rows.some(r => r.title === 'Money put in or taken out by owners')).toBe(false);
+    });
+
+    it('should use account mappings from the supplied cashFlowConfig', () => {
+      const entries = [
+        makeEntry('e1', 't1', '2024-06-01', 'trade-receivables', 2000),
+        makeEntry('e2', 't1', '2024-06-01', 'sales-revenue', -2000)
+      ];
+      const context = createReportingContext(entries, cashFlowAccounts, '2024-01-01', '2024-12-31', entries);
+      const customConfig = {
+        workingCapital: [
+          { title: 'Custom customer debts', includeAccountNameRegex: '^1:10:110' }
+        ]
+      };
+
+      const rows = createCashFlowStatement(context, cashFlowAccounts, customConfig);
+
+      expect(rows.some(r => r.title === 'Money customers owe us (receivables)')).toBe(false);
+      expect(rows.some(r => r.title === 'Custom customer debts')).toBe(true);
+
+      const customLine = rows.find(r => r.title === 'Custom customer debts');
+      expect(customLine).toBeDefined();
+      expect(customLine!.amount).toBe(-2000);
     });
   });
 });

@@ -17,6 +17,26 @@ export interface ReportConfig {
   sections: ReportSection[];
 }
 
+/**
+ * A single account-pattern mapping used inside a cash-flow configuration.
+ */
+export interface CashFlowAccountMapping {
+  title: string;
+  includeAccountNameRegex: string;
+  excludeAccountNameRegex?: string;
+}
+
+/**
+ * User-configurable account mappings for the indirect-method cash-flow report.
+ * All patterns are matched against the full hierarchical account-code path.
+ */
+export interface CashFlowConfig {
+  depreciation?: CashFlowAccountMapping;
+  workingCapital?: CashFlowAccountMapping[];
+  investing?: CashFlowAccountMapping[];
+  financing?: CashFlowAccountMapping[];
+}
+
 export interface ReportSection {
   title: string;
   level?: number; // 1 = h1, 2 = h2, 3 = h3, etc. Default is 3 (h3)
@@ -38,6 +58,7 @@ export interface ReportSection {
   balanceAccountRegex?: string; // For tagGrouped: regex to match account IDs for balance calculation
   balanceAccountNameRegex?: string; // For tagGrouped: regex to match account names/paths (e.g., "1100" to match "1:10:110:1100")
   useJournalChain?: boolean; // If true, load data from all journals in the chain; otherwise only current journal (default: false)
+  cashFlowConfig?: CashFlowConfig; // For cashFlow: account-pattern mappings
 }
 
 /**
@@ -100,6 +121,7 @@ export interface CashFlowRow {
   amount: number;
   level: number; // 1 = section header, 2 = line item, 3 = subtotal, 4 = grand total
   isSubtotal: boolean;
+  subtitle?: string; // Layman explanation shown for section headers
 }
 
 /**

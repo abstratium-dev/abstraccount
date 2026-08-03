@@ -216,8 +216,8 @@ Shows revenue and expenses with net income calculation. The Net Income section u
 ### Cash Flow Statement
 
 The cash flow statement uses a dedicated `calculated: "cashFlow"` section type
-and the indirect method. It is designed to follow the Swiss SME cash-flow
-structure.
+and the indirect method. Account patterns are configured in
+`cashFlowConfig` so the report can be adapted to any chart of accounts.
 
 ```json
 {
@@ -225,25 +225,51 @@ structure.
     {
       "title": "Swiss Cash Flow Statement",
       "calculated": "cashFlow",
-      "useJournalChain": true
+      "useJournalChain": true,
+      "cashFlowConfig": {
+        "depreciation": {
+          "title": "Depreciation (money set aside, not spent)",
+          "includeAccountNameRegex": "^6:6800"
+        },
+        "workingCapital": [
+          { "title": "Money customers owe us (receivables)", "includeAccountNameRegex": "^1:10:110" },
+          { "title": "Stock / inventory we bought", "includeAccountNameRegex": "^1:10:120" },
+          { "title": "Other money owed to us", "includeAccountNameRegex": "^1:10:130" },
+          { "title": "Money we owe suppliers (payables)", "includeAccountNameRegex": "^2:20:200" },
+          { "title": "Other money we owe", "includeAccountNameRegex": "^2:20:220" },
+          { "title": "Money received in advance", "includeAccountNameRegex": "^2:20:23" },
+          { "title": "Money set aside for future costs (provisions)", "includeAccountNameRegex": "^2:20:24" }
+        ],
+        "investing": [
+          { "title": "Shares in other companies bought or sold", "includeAccountNameRegex": "^1:14:140", "excludeAccountNameRegex": "^1:14:140:1409" },
+          { "title": "Equipment, machines, furniture bought or sold", "includeAccountNameRegex": "^1:14:150", "excludeAccountNameRegex": "^1:14:150:1509" }
+        ],
+        "financing": [
+          { "title": "Loans taken out or repaid", "includeAccountNameRegex": "^2:20:210" },
+          { "title": "Money put in or taken out by owners", "includeAccountNameRegex": "^2:28:280" }
+        ]
+      }
     }
   ]
 }
 ```
 
-The statement is produced entirely from the existing journal data:
-
-- **Operating activities** start from the period's net income/loss and add back
-  non-cash items (depreciation) and adjust for changes in working capital
-  (receivables, inventories, payables, provisions, etc.).
+- **Operating activities** start from the period's net income/loss (computed
+  from `REVENUE` and `EXPENSE` account types) and add back non-cash items
+  (depreciation) and adjust for changes in working capital.
 - **Investing activities** reflect purchases and sales of fixed assets and
-  participations. Accumulated-depreciation sub-accounts (e.g. `1509`) are
-  excluded so depreciation does not leak into investing cash flow.
+  participations. `excludeAccountNameRegex` lets you strip out sub-accounts
+  such as accumulated depreciation.
 - **Financing activities** capture debt principal movements and share-capital
   changes.
 - **Reconciliation to cash** compares opening and closing cash and cash
   equivalents. Opening cash is taken from entries dated before the report start
   date, or from entries tagged with `OpeningBalances`.
+
+All `includeAccountNameRegex` / `excludeAccountNameRegex` patterns are matched
+against the full hierarchical account-code path (e.g. `1:10:110:1100`).
+This lets users reconfigure the report to any account numbering or naming
+scheme. If `cashFlowConfig` is omitted, a default Swiss SME mapping is used.
 
 The template is available as a built-in import in
 `report-templates-export.yaml`.

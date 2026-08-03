@@ -1,7 +1,8 @@
-<div class="toast-container">
-  <div *ngFor="let toast of toasts()" 
-       class="toast" 
+<div class="toast-container" data-testid="toast-container">
+  <div *ngFor="let toast of toasts()"
+       class="toast"
        [ngClass]="'toast-' + toast.type"
+       [attr.data-testid]="'toast-' + toast.type"
        animate.enter="slide-in"
        animate.leave="slide-out">
     <div class="toast-content">
@@ -11,7 +12,7 @@
         <span *ngIf="toast.type === 'info'">ℹ</span>
         <span *ngIf="toast.type === 'warning'">⚠</span>
       </span>
-      <span class="toast-message">{{ toast.message }}</span>
+      <span class="toast-message" data-testid="toast-message">{{ toast.message }}</span>
       <button *ngIf="toast.action" 
               class="toast-action" 
               (click)="executeAction(toast)"
