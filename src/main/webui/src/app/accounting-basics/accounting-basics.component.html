@@ -1,0 +1,161 @@
+<div class="guide-page">
+  <h1 class="guide-title">Accounting Basics</h1>
+  <p class="guide-intro">
+    A short introduction to the accounting concepts used throughout Abstraccount™: the accounting equation and double-entry bookkeeping, how to build a chart of accounts, how to record transactions in a journal, and how to read the reports the application can generate.
+    Once you're comfortable with this, head back to the <a [routerLink]="['/user-guide']">User Guide</a> for step-by-step instructions on using the application itself.
+  </p>
+
+  <nav class="guide-toc" aria-label="Table of contents">
+    <h2>On this page</h2>
+    <ul>
+      <li><a [routerLink]="['/accounting-basics']" fragment="principles">Basic accounting principles</a></li>
+      <li><a [routerLink]="['/accounting-basics']" fragment="accounts">Creating accounts</a></li>
+      <li><a [routerLink]="['/accounting-basics']" fragment="journal-entries">Adding transactions to journals</a></li>
+      <li><a [routerLink]="['/accounting-basics']" fragment="reports">Generating and reading reports</a></li>
+    </ul>
+  </nav>
+
+  <section id="principles" class="guide-section">
+    <h2>Basic accounting principles</h2>
+    <p>
+      Accounting is the process of recording, classifying, and summarising financial transactions so that the financial position and performance of an organisation can be understood at a glance.
+      Every accounting system, including this one, is built on a small number of ideas that, once understood, make everything else — creating accounts, recording transactions, and reading reports — straightforward.
+    </p>
+    <h3>The accounting equation</h3>
+    <p>
+      At any point in time, everything a business owns (its <strong>assets</strong>) was paid for either by money it owes to others (its <strong>liabilities</strong>) or by money the owners put in or the business earned itself (its <strong>equity</strong>). This is expressed as the accounting equation, and it must always balance:
+    </p>
+    <p class="guide-formula">Assets = Liabilities + Equity</p>
+    <h3>Double-entry bookkeeping</h3>
+    <p>
+      Abstraccount™, like almost every accounting system, uses <strong>double-entry bookkeeping</strong>: every transaction is recorded as two or more lines (<strong>entries</strong>) whose amounts sum to zero. If you increase one account you must decrease another by the same amount, so the accounting equation always stays true. For example, buying office equipment with cash increases the equipment asset and decreases the cash asset by the same amount — total assets are unchanged, and the equation still balances.
+    </p>
+    <h3>Debits and credits</h3>
+    <p>
+      Each line of a transaction is either a <strong>debit</strong> (a positive amount) or a <strong>credit</strong> (a negative amount). Whether a debit increases or decreases an account's balance depends on the account's <strong>type</strong>, also called its <strong>normal balance</strong>:
+    </p>
+    <table>
+      <thead>
+        <tr><th>Account type</th><th>Increased by</th><th>Decreased by</th><th>Examples</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><strong>ASSET</strong> / <strong>CASH</strong></td><td>Debit</td><td>Credit</td><td>Bank account, cash on hand, receivables, equipment</td></tr>
+        <tr><td><strong>LIABILITY</strong></td><td>Credit</td><td>Debit</td><td>Loans, supplier payables, tax owed</td></tr>
+        <tr><td><strong>EQUITY</strong></td><td>Credit</td><td>Debit</td><td>Share capital, retained earnings</td></tr>
+        <tr><td><strong>REVENUE</strong></td><td>Credit</td><td>Debit</td><td>Sales, service income, interest income</td></tr>
+        <tr><td><strong>EXPENSE</strong></td><td>Debit</td><td>Credit</td><td>Rent, salaries, utilities, depreciation</td></tr>
+      </tbody>
+    </table>
+    <p>
+      A useful mnemonic: assets and expenses grow with debits; liabilities, equity, and revenue grow with credits. Because assets and expenses "feel" like debits and everything else "feels" like a credit, a transaction that increases an expense and decreases cash (like paying rent) naturally balances: a debit to the expense and a credit to cash.
+    </p>
+    <h3>The accounting period</h3>
+    <p>
+      Businesses report their results over fixed periods, usually a financial year. <strong>Revenue</strong> and <strong>expense</strong> accounts measure activity <em>during</em> a period and are reset to zero at the end of it (a process called <strong>closing the books</strong>), while <strong>asset</strong>, <strong>liability</strong>, and <strong>equity</strong> accounts carry a running balance that continues into the next period. This distinction is why the Income Statement and the Balance Sheet look so different, and why closing the books and opening a new year are separate steps in this application — see <a [routerLink]="['/user-guide']" fragment="close-books">Close the books at year end</a> and <a [routerLink]="['/user-guide']" fragment="new-year">Open a new year</a> in the User Guide.
+    </p>
+  </section>
+
+  <section id="accounts" class="guide-section">
+    <h2>Creating accounts</h2>
+    <p>
+      A <strong>chart of accounts</strong> is the list of all the accounts a business uses to record its transactions. Building it is usually the first step in setting up a new set of books:
+    </p>
+    <ol>
+      <li>Start with a handful of top-level accounts, one for each account type: Assets, Liabilities, Equity, Revenue, and Expenses.</li>
+      <li>Under each, add the specific accounts the business actually needs. A small business might start with a bank account, cash on hand, accounts receivable (money customers owe), accounts payable (money owed to suppliers), share capital, sales revenue, and a handful of expense accounts such as rent, salaries, and office supplies.</li>
+      <li>Group related accounts under parent accounts so the chart stays organised as it grows — for example, a "Cash and Equivalents" parent above the bank account and petty cash.</li>
+      <li>Add more accounts only when you actually need them. It is easier to add a new account later than to untangle a chart that has too many unused ones.</li>
+    </ol>
+    <p>
+      It helps enormously to give every account a unique numeric code (for example <code>1000</code> for a bank account, <code>6000</code> for rent expense), because reports and automation can then select whole groups of accounts by matching a pattern against the code instead of listing every account by name. This application's built-in reports and macros rely on exactly this technique — see <a [routerLink]="['/user-guide']" fragment="accounts">Create your accounts</a> in the User Guide for how to set this up in practice.
+    </p>
+  </section>
+
+  <section id="journal-entries" class="guide-section">
+    <h2>Adding transactions to journals</h2>
+    <p>
+      A <strong>journal</strong> is the chronological record of every transaction. Each transaction has a date, a description, and two or more entry lines, each against a single account. The entry lines must always sum to zero — that is what "double-entry" means in practice, and it is the basic check that catches most recording mistakes.
+    </p>
+    <p>
+      A few worked examples, using debit (positive) and credit (negative) amounts:
+    </p>
+    <h3>Example 1 — Paying office rent from the bank</h3>
+    <p>Rent is an expense, and paying it reduces the bank account:</p>
+    <ul>
+      <li><code>6000 Rent Expense</code>: <code>1'000.00</code> (debit)</li>
+      <li><code>1020 Bank Account</code>: <code>-1'000.00</code> (credit)</li>
+    </ul>
+    <h3>Example 2 — Invoicing a customer for services rendered</h3>
+    <p>Issuing an invoice creates revenue immediately and increases the amount the customer owes (a receivable), even though no cash has changed hands yet:</p>
+    <ul>
+      <li><code>1100 Accounts Receivable</code>: <code>2'500.00</code> (debit)</li>
+      <li><code>3000 Sales Revenue</code>: <code>-2'500.00</code> (credit)</li>
+    </ul>
+    <h3>Example 3 — Receiving payment for that invoice</h3>
+    <p>When the customer pays, cash increases and the receivable is cleared. Revenue is not touched again — it was already recorded when the invoice was issued:</p>
+    <ul>
+      <li><code>1020 Bank Account</code>: <code>2'500.00</code> (debit)</li>
+      <li><code>1100 Accounts Receivable</code>: <code>-2'500.00</code> (credit)</li>
+    </ul>
+    <h3>Example 4 — Taking out a bank loan</h3>
+    <p>Borrowing money increases both an asset (cash) and a liability (the obligation to repay it):</p>
+    <ul>
+      <li><code>1020 Bank Account</code>: <code>10'000.00</code> (debit)</li>
+      <li><code>2100 Bank Loan</code>: <code>-10'000.00</code> (credit)</li>
+    </ul>
+    <p>
+      Each transaction can also carry a <strong>status</strong> (for example whether it has been reconciled against a bank statement), an optional <strong>business partner</strong>, and free-form <strong>tags</strong> for grouping and filtering later (used, for example, by the unpaid-invoices report). See <a [routerLink]="['/user-guide']" fragment="journal">Record journal entries</a> in the User Guide for how to enter transactions like these in the application.
+    </p>
+  </section>
+
+  <section id="reports" class="guide-section">
+    <h2>Generating and reading reports</h2>
+    <p>
+      Reports summarise the transactions recorded in the journal. Abstraccount™ ships with a set of built-in report templates (see <code>report-templates-export.yaml</code>), and the most important of them correspond to the standard financial statements used in accounting.
+    </p>
+    <h3>Trial balance</h3>
+    <p>
+      The <strong>trial balance</strong> is the simplest report: it lists every account together with its current balance. Because every transaction's debits and credits sum to zero, the total of all debit balances must equal the total of all credit balances across the whole chart of accounts. If they don't, something was recorded incorrectly. Accountants traditionally run a trial balance before preparing any other report, as a sanity check on the books.
+    </p>
+    <h3>Income statement (profit &amp; loss)</h3>
+    <p>
+      The <strong>income statement</strong> (also called the profit &amp; loss statement, or P&amp;L) covers a period of time — for example a month, quarter, or year — and shows whether the business made a profit or a loss over that period. It lists revenue accounts, lists expense accounts, and subtracts one from the other:
+    </p>
+    <p class="guide-formula">Net Income = Revenue − Expenses</p>
+    <p>
+      Because revenue and expense accounts are reset to zero at the start of each period (see <a [routerLink]="['/accounting-basics']" fragment="principles">The accounting period</a> above), the income statement only ever reflects activity that occurred within the chosen date range.
+    </p>
+    <h3>Balance sheet</h3>
+    <p>
+      The <strong>balance sheet</strong> is a snapshot at a single point in time (rather than over a period) showing what the business owns and owes: its assets, liabilities, and equity. A correctly prepared balance sheet always satisfies the accounting equation:
+    </p>
+    <p class="guide-formula">Assets = Liabilities + Equity</p>
+    <p>
+      Because equity should include profit earned but not yet formally closed into retained earnings, a balance sheet report typically folds the current period's net income into the equity section — this is what the built-in report's <code>includeNetIncome</code> option does — so that total assets always equal total liabilities plus equity, even mid-year.
+    </p>
+    <h3>Cash flow statement</h3>
+    <p>
+      Profit and cash are not the same thing: an invoice increases revenue the moment it is issued, but the cash may not arrive until weeks later, and a cash purchase of equipment doesn't reduce profit at all (it converts one asset into another). The <strong>cash flow statement</strong> reconciles the two by explaining, in cash terms, why the cash balance changed over a period. It is usually broken into three parts:
+    </p>
+    <ul>
+      <li><strong>Operating activities</strong>: cash generated or used by the core business — net income adjusted for non-cash items like depreciation, and for changes in receivables, payables, and inventory (working capital).</li>
+      <li><strong>Investing activities</strong>: cash spent on or received from buying and selling long-term assets, such as equipment or investments.</li>
+      <li><strong>Financing activities</strong>: cash from or to owners and lenders, such as loans taken out or repaid, and capital contributed or withdrawn.</li>
+    </ul>
+    <p>
+      The built-in <strong>Swiss Cash Flow Statement</strong> template computes exactly this using the indirect method (starting from net income and adjusting it, rather than listing every cash movement individually), and reconciles the result to the opening and closing cash balances.
+    </p>
+    <h3>Other useful reports</h3>
+    <p>
+      Beyond the four statements above, the built-in templates include a few practical, business-focused reports:
+    </p>
+    <ul>
+      <li><strong>Partner Activity Report</strong> — income and expenses grouped by business partner (customer or supplier), useful for seeing who a business does the most business with.</li>
+      <li><strong>Unpaid Sales Invoices</strong> — groups transactions by invoice tag and nets them against the receivables account, so invoices that are still outstanding stand out.</li>
+      <li><strong>Swiss Tax Declaration</strong> — pulls specific figures required by a Swiss corporate tax return directly from the chart of accounts.</li>
+    </ul>
+    <p>
+      Once these underlying ideas make sense, the mechanics of choosing a template, setting a date range, and filtering a report in the application are covered in <a [routerLink]="['/user-guide']" fragment="reports">View reports</a> in the User Guide, including how each report template is defined.
+    </p>
+  </section>
+</div>

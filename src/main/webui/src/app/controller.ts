@@ -319,6 +319,16 @@ export interface UpdateTransactionRequest {
   entries: UpdateEntryRequest[];
 }
 
+export interface AttachmentDTO {
+  id: string;
+  transactionId: string;
+  fileName: string;
+  contentType: string;
+  sizeBytes: number;
+  uploadedAt: string;
+  uploadedBy: string | null;
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -1011,6 +1021,76 @@ export class Controller {
       console.error('Error deleting transaction:', error);
       throw error;
     }
+  }
+
+  // Attachment methods
+
+  /**
+   * List the attachments (metadata only) for a transaction.
+   */
+  async listAttachments(transactionId: string): Promise<AttachmentDTO[]> {
+    try {
+      return await firstValueFrom(
+        this.http.get<AttachmentDTO[]>(`/api/attachment/transaction/${transactionId}`)
+      );
+    } catch (error) {
+      console.error('Error listing attachments:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Upload a new attachment (e.g. a receipt PDF) for a transaction.
+   */
+  async uploadAttachment(transactionId: string, file: File): Promise<AttachmentDTO> {
+    try {
+      const formData = new FormData();
+      formData.append('file', file, file.name);
+      return await firstValueFrom(
+        this.http.post<AttachmentDTO>(`/api/attachment/transaction/${transactionId}`, formData)
+      );
+    } catch (error) {
+      console.error('Error uploading attachment:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Replace the content of an existing attachment.
+   */
+  async replaceAttachment(attachmentId: string, file: File): Promise<AttachmentDTO> {
+    try {
+      const formData = new FormData();
+      formData.append('file', file, file.name);
+      return await firstValueFrom(
+        this.http.put<AttachmentDTO>(`/api/attachment/${attachmentId}`, formData)
+      );
+    } catch (error) {
+      console.error('Error replacing attachment:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Delete an attachment.
+   */
+  async deleteAttachment(attachmentId: string): Promise<void> {
+    try {
+      await firstValueFrom(
+        this.http.delete(`/api/attachment/${attachmentId}`)
+      );
+    } catch (error) {
+      console.error('Error deleting attachment:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * URL to view/download an attachment's raw bytes (e.g. for an <iframe> preview
+   * or an <a> download link). No separate HTTP call needed to build this.
+   */
+  getAttachmentDownloadUrl(attachmentId: string): string {
+    return `/api/attachment/${attachmentId}`;
   }
 
   /**

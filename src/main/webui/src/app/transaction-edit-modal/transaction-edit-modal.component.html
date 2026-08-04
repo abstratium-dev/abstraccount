@@ -124,6 +124,52 @@
             <span *ngIf="!isBalanced()" class="badge badge-secondary" style="margin-left: 0.5rem">⚠ Unbalanced</span>
           </div>
         </div>
+
+        <!-- Attachments section (only for already-saved transactions) -->
+        <div class="form-group" *ngIf="!isNew">
+          <div class="sub-tiles-header">
+            <label>Attachments</label>
+            <label class="btn-add-small" [class.disabled]="isJournalLocked() || attachmentUploading">
+              {{ attachmentUploading ? 'Uploading...' : 'Upload Receipt' }}
+              <input type="file" accept="application/pdf" hidden
+                     [disabled]="isJournalLocked() || attachmentUploading"
+                     (change)="onAttachmentFileSelected($event)">
+            </label>
+          </div>
+
+          <div *ngIf="isJournalLocked()" class="badge badge-secondary" style="margin-bottom: 0.5rem">
+            🔒 Journal is locked - attachments can be viewed but not changed
+          </div>
+
+          <div *ngIf="attachmentError" class="error-box">{{ attachmentError }}</div>
+          <div *ngIf="attachmentsLoading">Loading attachments...</div>
+
+          <div class="entries-list" *ngIf="!attachmentsLoading && attachments.length > 0">
+            <div *ngFor="let attachment of attachments" class="entry-item">
+              <div class="entry-header">
+                <a [href]="getAttachmentDownloadUrl(attachment)" target="_blank" class="entry-number">
+                  {{ attachment.fileName }}
+                </a>
+                <span>{{ formatAttachmentSize(attachment.sizeBytes) }}</span>
+              </div>
+              <div class="form-row" style="align-items: center">
+                <a [href]="getAttachmentDownloadUrl(attachment)" target="_blank" class="btn-secondary">View</a>
+                <label class="btn-secondary" [class.disabled]="isJournalLocked() || attachmentUploading">
+                  Replace
+                  <input type="file" accept="application/pdf" hidden
+                         [disabled]="isJournalLocked() || attachmentUploading"
+                         (change)="onAttachmentReplaceSelected($event, attachment)">
+                </label>
+                <button type="button" class="btn-icon btn-icon-danger" [disabled]="isJournalLocked()"
+                        (click)="deleteAttachment(attachment)">×</button>
+              </div>
+            </div>
+          </div>
+
+          <div *ngIf="!attachmentsLoading && attachments.length === 0" class="badge badge-secondary">
+            No attachments yet
+          </div>
+        </div>
       </form>
     </div>
 

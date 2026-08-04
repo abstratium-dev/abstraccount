@@ -49,6 +49,8 @@ public class TestTransactionHelper {
 
     @Transactional
     public void deleteAllData() {
+        entityManager.createNativeQuery("DELETE FROM T_attachment_content").executeUpdate();
+        entityManager.createQuery("DELETE FROM AttachmentEntity").executeUpdate();
         entityManager.createQuery("DELETE FROM TagEntity").executeUpdate();
         entityManager.createQuery("DELETE FROM EntryEntity").executeUpdate();
         entityManager.createQuery("DELETE FROM TransactionEntity").executeUpdate();

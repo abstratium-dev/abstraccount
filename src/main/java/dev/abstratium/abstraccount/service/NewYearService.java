@@ -185,12 +185,6 @@ public class NewYearService {
         em.persist(newJournal);
         LOG.debugf("Created new journal: %s (%s)", newJournal.getTitle(), newJournal.getId());
 
-        // Auto-lock the source journal: once a new year has been created from it,
-        // the source period is considered closed and must not be modified further,
-        // because changes would not be carried over into the new year's opening balances.
-        sourceJournal.setLocked(true);
-        LOG.infof("Auto-locked source journal %s after new year creation", sourceJournalId);
-
         // Load source accounts
         List<AccountEntity> sourceAccounts = journalPersistenceService.loadAllAccounts(sourceJournalId);
 

@@ -104,5 +104,9 @@ export const routes: Routes = [
     path: 'user-guide',
     loadComponent: () => import('./user-guide/user-guide.component').then(m => m.UserGuideComponent)
   },
+  {
+    path: 'accounting-basics',
+    loadComponent: () => import('./accounting-basics/accounting-basics.component').then(m => m.AccountingBasicsComponent)
+  },
   { path: '**',                        component: NotFoundComponent }
 ];

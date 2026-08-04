@@ -180,17 +180,18 @@ export async function verifyTotal(
   commodity: string = 'CHF'
 ): Promise<void> {
   const content = await page.content();
-  
-  // Create pattern to match total line
+
+  // Create pattern to match total line — allow HTML tags and attributes
+  // (which may contain digits) between the label and the value.
   const pattern = new RegExp(
-    `${totalLabel}[^0-9]*${expectedValue.replace(/,/g, '[,\\s]?')}\\s*${commodity}`,
+    `${totalLabel}[\\s\\S]{0,300}?${expectedValue.replace(/,/g, '[,\\s]?')}\\s*${commodity}`,
     'i'
   );
-  
+
   if (!pattern.test(content)) {
     throw new Error(`Total "${totalLabel}" should be ${expectedValue} ${commodity}`);
   }
-  
+
   console.log(`✓ ${totalLabel}: ${expectedValue} ${commodity}`);
 }
 

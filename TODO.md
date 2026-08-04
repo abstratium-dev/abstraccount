@@ -32,12 +32,16 @@ These TODOs are to be resolved by the developer, NOT THE LLM.
 
 - finish e2e tests
   - multitenancy tests
-  - tax provision and tax payment and legal reserve allocation will be done in a later test
-  - test closing the books and year end, checking accounts have the correct balances at the end.
+  - attachments
+  - X tax provision and tax payment and legal reserve allocation will be done in a later test
+  - X test closing the books and year end, checking accounts have the correct balances at the end.
+  - open next year
 
 - deploy to test and prod
 
 ## Tomorrow
+
+- virus scanning of attachments
 
 - improve entries screen
 - fix bug on entries scren where it sometimes hangs
@@ -95,7 +99,6 @@ These TODOs are to be resolved by the developer, NOT THE LLM.
         4:4200 Purchases of goods for resale       CHF -8.36
         2:2210.001 Ant                             CHF -214.06
 
-- Link to receipt documents
 - reports
   - configure which reports are added to the "reports bar" at the top, without having to be chosen from the dropdown, but simply clicked on.
 

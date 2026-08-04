@@ -802,9 +802,11 @@ button {
     background: var(--color-border-primary);
   }
 
-  &:disabled {
+  &:disabled,
+  &.disabled {
     opacity: 0.6;
     cursor: not-allowed;
+    pointer-events: none;
   }
 }
 
@@ -907,9 +909,11 @@ button {
     background: var(--color-primary-light);
   }
 
-  &:disabled {
+  &:disabled,
+  &.disabled {
     opacity: 0.5;
     cursor: not-allowed;
+    pointer-events: none;
   }
 }
 
@@ -2748,5 +2752,177 @@ button {
       color: var(--color-error);
       background: transparent;
     }
+  }
+}
+
+/* ===== LONG-FORM GUIDE PAGES (User Guide, Accounting Basics, ...) ===== */
+.guide-page {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+  color: var(--color-text-primary);
+  line-height: 1.6;
+}
+
+.guide-title {
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+
+.guide-intro {
+  font-size: 1.1rem;
+  color: var(--color-text-muted);
+  margin-bottom: 2rem;
+}
+
+.guide-toc {
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-primary);
+  border-radius: 0.75rem;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 2.5rem;
+
+  h2 {
+    font-size: 1.15rem;
+    margin-top: 0;
+    margin-bottom: 1rem;
+  }
+
+  ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    columns: 2;
+    column-gap: 1.5rem;
+  }
+
+  li {
+    margin-bottom: 0.5rem;
+    break-inside: avoid;
+  }
+
+  a {
+    color: var(--color-primary);
+    text-decoration: none;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+
+  @media (max-width: 600px) {
+    ul {
+      columns: 1;
+    }
+  }
+}
+
+.guide-section {
+  margin-bottom: 2.5rem;
+  scroll-margin-top: 1rem;
+
+  h2 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--color-border-primary);
+  }
+
+  h3 {
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+  }
+
+  p,
+  ul,
+  ol,
+  table {
+    margin-bottom: 1rem;
+  }
+
+  ul,
+  ol {
+    padding-left: 1.5rem;
+  }
+
+  ul {
+    list-style-type: disc;
+  }
+
+  li {
+    margin-bottom: 0.5rem;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  th, td {
+    text-align: left;
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid var(--color-border-primary);
+  }
+
+  th {
+    font-weight: 600;
+  }
+
+  td.debit,
+  td.credit {
+    font-family: monospace;
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  code {
+    font-family: monospace;
+    background: var(--color-bg-secondary);
+    padding: 0.1rem 0.3rem;
+    border-radius: 0.25rem;
+    border: 1px solid var(--color-border-primary);
+  }
+
+  pre {
+    background: var(--color-bg-secondary);
+    border: 1px solid var(--color-border-primary);
+    border-radius: 0.5rem;
+    padding: 1rem 1.25rem;
+    margin-bottom: 1rem;
+    overflow-x: auto;
+
+    code {
+      background: none;
+      border: none;
+      padding: 0;
+      border-radius: 0;
+      white-space: pre;
+    }
+  }
+
+  kbd {
+    font-family: monospace;
+    font-size: 0.85em;
+    background: var(--color-bg-secondary);
+    border: 1px solid var(--color-border-primary);
+    border-bottom-width: 2px;
+    border-radius: 0.25rem;
+    padding: 0.05rem 0.35rem;
+  }
+}
+
+.guide-formula {
+  font-size: 1.25rem;
+  text-align: center;
+  margin: 1.5rem 0;
+  font-weight: 600;
+}
+
+@media (max-width: 600px) {
+  .guide-title {
+    font-size: 2rem;
   }
 }

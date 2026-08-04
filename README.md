@@ -5,9 +5,10 @@
 ## ✨ Key Features
 
 - **Double-entry bookkeeping** — record transactions with balanced debits and credits, split lines, and tags
+- **Transaction attachments** — attach, view, replace, and delete PDF receipts and other supporting documents on any saved transaction, kept private to your organisation
 - **Hierarchical chart of accounts** — organise assets, liabilities, equity, revenue, and expenses into a tree with rolled-up balances
 - **Macros & automation** — reusable templates for recurring entries such as invoices, payments, depreciation, and salaries
-- **Financial reports** — trial balance, income statement, and balance sheet over any date range (cash flow report coming soon)
+- **Financial reports** — trial balance, income statement, balance sheet, and cash flow statement over any date range
 - **Partner management** — track customers, vendors, and employees with per-partner ledgers and history
 - **Multi-currency** — configure a currency per journal and record transactions in your chosen currency
 - **Fiscal years** — define year boundaries, close the books at year end, and roll opening balances into a new year

@@ -1460,8 +1460,8 @@ test.describe('Test Macros', () => {
     // Fill in parameters
     console.log('--- Filling in Macro Parameters ---');
 
-    console.log('Filling date field (2025-01-15)...');
-    await macrosPage.fillParameter(page, 'date', '2025-01-15');
+    console.log('Filling date field (2024-11-15)...');
+    await macrosPage.fillParameter(page, 'date', '2024-11-15');
 
     console.log('Filling partner field (P00000006 - Canton Vaud Tax Authority)...');
     await macrosPage.fillParameterAutocomplete(page, 'Tax authority', 'P00000006');
@@ -1523,7 +1523,7 @@ test.describe('Test Macros', () => {
 
     // Verify transaction details
     await transactionsPage.verifyTransactionDetails(page, 'Test macros 004.9 tax payment for 2024', {
-      date: '2025-01-15',
+      date: '2024-11-15',
       partner: 'P00000006',
       value: '55.00'
     });
@@ -1531,7 +1531,7 @@ test.describe('Test Macros', () => {
     console.log('✓ TaxPayment macro scenarios validated:');
     console.log('  - Macro selection and parameter form display');
     console.log('  - Partner: P00000006 (Canton Vaud Tax Authority)');
-    console.log('  - Date: 2025-01-15');
+    console.log('  - Date: 2024-11-15');
     console.log('  - Provision amount: CHF 0.00 (no prior year-end provision)');
     console.log('  - Actual amount: CHF 55.00');
     console.log('  - Arithmetic expression {actual_amount - provision_amount} = 55.00 evaluated');

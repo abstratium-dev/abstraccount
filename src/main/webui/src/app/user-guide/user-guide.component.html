@@ -1,7 +1,8 @@
-<div class="user-guide-page">
+<div class="guide-page">
   <h1 class="guide-title">User Guide</h1>
   <p class="guide-intro">
     This guide walks you through building an accounting journal from scratch: creating a chart of accounts, recording transactions, running reports, closing a year, and opening a new one.
+    It assumes a basic knowledge of accounting (double-entry bookkeeping, debits and credits, and the standard financial statements). If any of that is unfamiliar, read <a [routerLink]="['/accounting-basics']">Accounting Basics</a> first.
   </p>
 
   <nav class="guide-toc" aria-label="Table of contents">
@@ -10,6 +11,7 @@
       <li><a [routerLink]="['/user-guide']" fragment="getting-started">Getting started</a></li>
       <li><a [routerLink]="['/user-guide']" fragment="accounts">Create your accounts</a></li>
       <li><a [routerLink]="['/user-guide']" fragment="journal">Record journal entries</a></li>
+      <li><a [routerLink]="['/user-guide']" fragment="attachments">Attach receipts (PDFs) to transactions</a></li>
       <li><a [routerLink]="['/user-guide']" fragment="macros">Use macros for recurring entries</a></li>
       <li><a [routerLink]="['/user-guide']" fragment="reports">View reports</a></li>
       <li><a [routerLink]="['/user-guide']" fragment="close-books">Close the books at year end</a></li>
@@ -34,7 +36,7 @@
       The application is built around <strong>double-entry bookkeeping</strong>. This means every transaction affects at least two accounts and the total debits must equal the total credits.
       The accounting equation is:
     </p>
-    <p class="formula">Assets = Liabilities + Equity</p>
+    <p class="guide-formula">Assets = Liabilities + Equity</p>
     <p>
       Each account has a <strong>normal balance</strong> that tells you whether it is increased by a debit or a credit:
     </p>
@@ -101,6 +103,25 @@
     </ul>
     <p>
       Saved transactions appear immediately in the journal. You can edit or delete a transaction through the context menu in the journal list.
+    </p>
+  </section>
+
+  <section id="attachments" class="guide-section">
+    <h2>Attach receipts (PDFs) to transactions</h2>
+    <p>
+      Once a transaction has been saved, you can attach one or more supporting documents to it, for example a scanned receipt, an invoice, or a proof of payment. Open the transaction from the <strong>Journal</strong> page to edit it, then scroll to the <strong>Attachments</strong> section at the bottom of the dialog.
+    </p>
+    <ul>
+      <li><strong>Upload</strong>: click <strong>Upload Receipt</strong> and choose a PDF file from your computer. Only PDF files are accepted.</li>
+      <li><strong>View</strong>: click a file's name, or its <strong>View</strong> button, to open it in a new browser tab.</li>
+      <li><strong>Replace</strong>: click <strong>Replace</strong> on an existing attachment to swap in a new PDF, for example if you scanned a better copy or corrected a mistake. This keeps the same attachment entry but updates its content and file name.</li>
+      <li><strong>Delete</strong>: click the <strong>×</strong> button next to an attachment to remove it.</li>
+    </ul>
+    <p>
+      Attachments are private to your organisation — no other organisation using this application can ever see, download, or modify them.
+    </p>
+    <p>
+      Once a journal is <a [routerLink]="['/user-guide']" fragment="close-books">locked</a> at year end, its attachments can still be viewed and downloaded, but they can no longer be uploaded, replaced, or deleted — just like the transactions themselves. The <strong>Attachments</strong> section shows a lock notice while this applies.
     </p>
   </section>
 
@@ -211,7 +232,10 @@ validation: &#123; "balanceCheck": true, "minPostings": 2 &#125;</code></pre>
   <section id="reports" class="guide-section">
     <h2>View reports</h2>
     <p>
-      The <strong>Reports</strong> page lets you generate formatted views of your data. Choose a report template from the drop-down, set the date range you want to cover, and the report is rendered immediately. Use the <strong>Hide zero balances</strong> option to focus on accounts with activity. Reports share the same filter input as the Journal page, so you can also narrow a report with EQL predicates such as <code>partner:*ACME*</code>, <code>tag:invoice:PI00001</code>, and <code>date:between:2024-01-01..2024-12-31</code> (see <a [routerLink]="['/user-guide']" fragment="filters">Query language (filters)</a>).
+      This section explains how to use the <strong>Reports</strong> page and how report templates are structured. For an explanation of what a balance sheet, income statement, trial balance, or cash flow statement actually mean and what they are used for, see <a [routerLink]="['/accounting-basics']" fragment="reports">Generating and reading reports</a> in Accounting Basics.
+    </p>
+    <p>
+      The <strong>Reports</strong> page lets you generate formatted views of your data. Choose a report template from the drop-down, set the date range you want to cover, and the report is rendered immediately. Use the <strong>Hide zero balances</strong> option to focus on accounts with activity. Reports share the same filter input as the Journal page, so you can also narrow a report with Entry Query Language (EQL) predicates such as <code>partner:*ACME*</code>, <code>tag:invoice:PI00001</code>, and <code>date:between:2024-01-01..2024-12-31</code> (see <a [routerLink]="['/user-guide']" fragment="filters">Query language (filters)</a>).
     </p>
     <p>
       A report template is a JSON document with a single <code>sections</code> array. Each section becomes a titled block in the rendered report and is configured by a combination of the following properties:
@@ -336,13 +360,13 @@ validation: &#123; "balanceCheck": true, "minPostings": 2 &#125;</code></pre>
       <li><strong>Legal reserve allocation</strong> — for a Swiss Sàrl, allocate 5% of the annual profit to legal reserves (debit <code>2979</code> Annual profit/loss, credit <code>2950</code> Legal reserves) using the <strong>LegalReserveAllocation</strong> macro. This is mandatory under Swiss CO Art. 671-671a and must continue until legal reserves reach 20% of share capital.</li>
     </ol>
     <p>
-      <strong>Phase 2.6 — Print your financial statements now.</strong> After the adjustments above are recorded, and <em>before</em> you close the books, print the <strong>Income Statement</strong> and <strong>Balance Sheet</strong> from the <a [routerLink]="['/user-guide']" fragment="reports">Reports</a> page. This is the point at which the income statement shows the full year's revenue and expenses (including the tax provision) and the correct net profit. Save these reports for your tax declaration and records. <strong>If you print the income statement after closing, it will be blank</strong> because all revenue and expense accounts will have been zeroed out.
+      <strong>Phase 2.6 — Print your financial statements now.</strong> After the adjustments above are recorded, and <em>before</em> you close the books, print the <strong>Income Statement</strong>, <strong>Balance Sheet</strong>, and <strong>Cash Flow Statement</strong> from the <a [routerLink]="['/user-guide']" fragment="reports">Reports</a> page. This is the point at which the income statement shows the full year's revenue and expenses (including the tax provision) and the correct net profit. Save these reports for your tax declaration and records. <strong>If you print the income statement after closing, it will be blank</strong> because all revenue and expense accounts will have been zeroed out.
     </p>
     <p>
-      The <strong>Swiss Tax Declaration</strong> report template is designed to be filled in from the figures available at this point. Print it alongside the balance sheet and income statement and give the full set to your accountant.
+      The <strong>Swiss Tax Declaration</strong> report template is designed to be filled in from the figures available at this point. Print it alongside the balance sheet, income statement, and cash flow statement and give the full set to your accountant.
     </p>
     <p>
-      <strong>Phase 3 — Close the books.</strong> Open the <strong>Close Books at End of Year</strong> page, choose the closing date (typically the last day of the year), and select the equity account that should receive the year's result, for example the account with the code path <code>2:290:2979</code> (Annual profit/loss). The application shows a preview of every revenue and expense account with a non-zero balance and the amount that will be transferred. Review the preview and confirm to create the closing transactions. After closing, the revenue and expense accounts have zero balances and the equity account reflects the net income or loss for the year.
+      <strong>Phase 3 — Close the books.</strong> Open the <strong>Close Books at End of Year</strong> page, choose the closing date (typically the last day of the year), and select the equity account that should receive the year's result, for example the account with the code path <code>2:290:2979</code> (Annual profit/loss). The application shows a preview of every revenue and expense account with a non-zero balance and the amount that will be transferred. Review the preview and confirm to create the closing transactions. After closing, the revenue and expense accounts have zero balances and the equity account reflects the net income or loss for the year, and the journal is locked so the closed period cannot be changed.
     </p>
     <p>
       Each closing transaction is automatically tagged with a <code>Closing</code> tag (with an empty value) so that it can be distinguished from normal business transactions. The application's KPI totals already exclude <code>Closing</code>-tagged transactions, so the headline figures stay meaningful. When viewing reports or the journal after closing, you can exclude the closing entries yourself by adding <code>NOT tag:Closing</code> to the <a [routerLink]="['/user-guide']" fragment="filters">filter</a>. This lets you print the income statement and balance sheet as they looked <em>before</em> closing, even after the closing entries have been posted.

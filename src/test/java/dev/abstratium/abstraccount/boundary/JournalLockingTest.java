@@ -37,7 +37,7 @@ import jakarta.transaction.Transactional;
  *       execution, close-books, journal deletion, upload with replace) are
  *       rejected with HTTP 423 when the journal is locked.</li>
  *   <li>The same operations succeed once the journal is unlocked.</li>
- *   <li>Creating a new year auto-locks the source journal.</li>
+ *   <li>Closing the books locks the journal.</li>
  * </ul>
  */
 @QuarkusTest
@@ -401,51 +401,38 @@ public class JournalLockingTest {
             .statusCode(423);
     }
 
-    // --- New year auto-lock test ---
+    // --- Close books auto-lock test ---
 
     @Test
     @TestSecurity(user = "testuser", roles = {Roles.USER})
-    void testNewYearExecution_autoLocksSourceJournal() {
-        // Add retained earnings and annual profit/loss accounts for the new year flow
-        String retainedEarningsId = createEquityAccount("2970 Retained Earnings");
-        String annualProfitLossId = createEquityAccount("2979 Annual profit/loss");
+    void testCloseBooksExecution_autoLocksJournal() {
+        // Add an equity account to receive the closing balances
+        createEquityAccount("2979 Annual profit/loss");
 
         String requestBody = String.format("""
             {
-                "sourceJournalId": "%s",
-                "newJournalTitle": "New Year Auto Lock %d",
-                "openingDate": "2025-01-01",
-                "retainedEarningsCodePath": "2970",
-                "annualProfitLossCodePath": "2979"
+                "journalId": "%s",
+                "closingDate": "2024-12-31",
+                "equityAccountCodePath": "2979"
             }
-            """, journalId, System.currentTimeMillis());
+            """, journalId);
 
-        String newJournalId = given()
+        given()
             .contentType(ContentType.JSON)
             .body(requestBody)
         .when()
-            .post("/api/new-year/execute")
+            .post("/api/close-books/execute")
         .then()
             .statusCode(200)
-            .body("newJournalId", not(emptyString()))
-            .extract()
-            .path("newJournalId");
+            .body("transactionCount", greaterThan(0));
 
-        // The source journal should now be locked
+        // The journal should now be locked
         given()
         .when()
             .get("/api/journal/" + journalId + "/metadata")
         .then()
             .statusCode(200)
             .body("locked", equalTo(true));
-
-        // The new journal should NOT be locked
-        given()
-        .when()
-            .get("/api/journal/" + newJournalId + "/metadata")
-        .then()
-            .statusCode(200)
-            .body("locked", equalTo(false));
     }
 
     @Transactional

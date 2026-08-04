@@ -4,6 +4,7 @@ import dev.abstratium.abstraccount.boundary.CloseAccountPreviewDTO;
 import dev.abstratium.abstraccount.boundary.CloseBooksPreviewDTO;
 import dev.abstratium.abstraccount.entity.AccountEntity;
 import dev.abstratium.abstraccount.entity.EntryEntity;
+import dev.abstratium.abstraccount.entity.JournalEntity;
 import dev.abstratium.abstraccount.entity.TagEntity;
 import dev.abstratium.abstraccount.entity.TransactionEntity;
 import dev.abstratium.abstraccount.model.TransactionStatus;
@@ -96,6 +97,14 @@ public class CloseBooksService {
             String txId = createClosingTransaction(
                 journalId, closingDate, preview, equityAccount);
             transactionIds.add(txId);
+        }
+
+        // Lock the journal once it has been closed so no further changes can be made
+        // to the period that has just been sealed.
+        JournalEntity journal = em.find(JournalEntity.class, journalId);
+        if (journal != null) {
+            journal.setLocked(true);
+            LOG.infof("Locked journal %s after closing books", journalId);
         }
 
         LOG.debugf("Created %d closing transactions", transactionIds.size());
