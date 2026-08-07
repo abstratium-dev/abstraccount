@@ -91,13 +91,13 @@ Feature: Year-End Closing - TaxProvision
       | Field | Type | Default Value | Required |
       | Transaction date | Date picker | {year}-12-31 | Yes |
       | Description of tax provision | Text input | Tax provision for {year} | Yes |
-      | Total tax provision (income + capital) | Number input | (empty) | Yes |
+      | Additional tax to provision (total estimated tax for the year, minus tax already expensed to 8900 this year) | Number input | (empty) | Yes |
     And default values should be pre-filled where specified
     And required fields should be clearly marked
 
     When the user enters "2024-12-31" as the transaction date
     And the user enters "Test 007 tax provision for 2024" as the description
-    And the user enters "50.00" as the total tax provision amount
+    And the user enters "50.00" as the additional tax provision amount
     Then all required fields should be filled
     And the form should pass validation
 

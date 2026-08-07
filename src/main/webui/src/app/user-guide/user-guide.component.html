@@ -15,6 +15,7 @@
       <li><a [routerLink]="['/user-guide']" fragment="macros">Use macros for recurring entries</a></li>
       <li><a [routerLink]="['/user-guide']" fragment="reports">View reports</a></li>
       <li><a [routerLink]="['/user-guide']" fragment="close-books">Close the books at year end</a></li>
+      <li><a [routerLink]="['/user-guide']" fragment="tax-macros">Tax provisions and payments across years</a></li>
       <li><a [routerLink]="['/user-guide']" fragment="new-year">Open a new year</a></li>
       <li><a [routerLink]="['/user-guide']" fragment="multi-currency">Work with multiple currencies</a></li>
       <li><a [routerLink]="['/user-guide']" fragment="filters">Query language (filters)</a></li>
@@ -109,19 +110,19 @@
   <section id="attachments" class="guide-section">
     <h2>Attach receipts (PDFs) to transactions</h2>
     <p>
-      Once a transaction has been saved, you can attach one or more supporting documents to it, for example a scanned receipt, an invoice, or a proof of payment. Open the transaction from the <strong>Journal</strong> page to edit it, then scroll to the <strong>Attachments</strong> section at the bottom of the dialog.
+      You can attach one or more supporting documents to any transaction, for example a scanned receipt, an invoice, or a proof of payment. On the <strong>Journal</strong> page, click the <strong>⋮</strong> button on a transaction's row to open its context menu, which lists the transaction's attachments alongside the usual Edit and Delete actions.
     </p>
     <ul>
-      <li><strong>Upload</strong>: click <strong>Upload Receipt</strong> and choose a PDF file from your computer. Only PDF files are accepted.</li>
-      <li><strong>View</strong>: click a file's name, or its <strong>View</strong> button, to open it in a new browser tab.</li>
-      <li><strong>Replace</strong>: click <strong>Replace</strong> on an existing attachment to swap in a new PDF, for example if you scanned a better copy or corrected a mistake. This keeps the same attachment entry but updates its content and file name.</li>
-      <li><strong>Delete</strong>: click the <strong>×</strong> button next to an attachment to remove it.</li>
+      <li><strong>Add</strong>: click <strong>Add Attachment</strong> in the context menu and choose a PDF file from your computer. Only PDF files are accepted.</li>
+      <li><strong>View / download one</strong>: click an attachment's file name in the context menu to open it in a new browser tab, where you can view or download it.</li>
+      <li><strong>Delete</strong>: click the <strong>×</strong> button next to an attachment to remove it. You'll be asked to confirm before it's deleted.</li>
+      <li><strong>Download all</strong>: open <strong>Journal Management</strong>, select a journal, and click <strong>Download Attachments (ZIP)</strong> to download every attachment in that journal as a single ZIP file.</li>
     </ul>
     <p>
       Attachments are private to your organisation — no other organisation using this application can ever see, download, or modify them.
     </p>
     <p>
-      Once a journal is <a [routerLink]="['/user-guide']" fragment="close-books">locked</a> at year end, its attachments can still be viewed and downloaded, but they can no longer be uploaded, replaced, or deleted — just like the transactions themselves. The <strong>Attachments</strong> section shows a lock notice while this applies.
+      Once a journal is <a [routerLink]="['/user-guide']" fragment="close-books">locked</a> at year end, its attachments can still be viewed and downloaded, but they can no longer be added or deleted — just like the transactions themselves.
     </p>
   </section>
 
@@ -373,6 +374,98 @@ validation: &#123; "balanceCheck": true, "minPostings": 2 &#125;</code></pre>
     </p>
     <p>
       <strong>Phase 4 — Transfer profit to retained earnings.</strong> The balance remaining in <code>2979</code> (Annual profit/loss) after closing is the year's result. On the first day of the new year, transfer it to <code>2970</code> (Retained earnings). This is handled automatically when you open the new year — see <a [routerLink]="['/user-guide']" fragment="new-year">Open a new year</a> below.
+    </p>
+  </section>
+
+  <section id="tax-macros" class="guide-section">
+    <h2>Tax provisions and payments across years</h2>
+    <p>
+      Swiss corporate income and capital tax is confusing to book correctly because the cash and the accounting rarely line up: the tax office bills you an estimated instalment ("acompte") <em>during</em> the year, based on your <em>previous</em> year's declaration, while the actual amount you owe for that year is only confirmed a year or more later, after you file the return. This section walks through the two built-in macros that handle this — <strong>TaxProvision</strong> and <strong>TaxPayment</strong> — with a full worked example spanning two tax years.
+    </p>
+    <p>
+      Both are <strong>built-in macros</strong>, listed under <a [routerLink]="['/user-guide']" fragment="macros">Use macros for recurring entries</a> above, and use the same two accounts:
+    </p>
+    <ul>
+      <li><code>8900 Direct taxes</code> — an <strong>expense</strong> account. Its balance for a given year should end up equal to your best estimate of the <em>total</em> income and capital tax attributable to that year's profit, no more and no less.</li>
+      <li><code>2208 Tax liabilities</code> — a <strong>liability</strong> account. Its balance is whatever has been recognised as tax expense but not yet paid in cash. A year-end <strong>TaxProvision</strong> entry increases it; a later <strong>TaxPayment</strong> that clears the debt decreases it.</li>
+    </ul>
+    <p>
+      The key idea to hold onto is: <strong>every acompte or bill you receive belongs to one specific tax year</strong>, and must be matched against the <code>2208</code> balance for <em>that</em> year, not against whatever bill you happen to be paying this month. Sometimes you will pay two bills in the same season that relate to two different years — one clearing last year's leftover liability, one starting this year's expense from scratch. Getting the <code>provision_amount</code> parameter right each time is what keeps the two years from bleeding into each other.
+    </p>
+
+    <h3>Worked example: two tax years</h3>
+    <p>
+      <strong>Year 1, May.</strong> This is a brand-new company. Based on a CHF 20,000 share capital investment and an assumption of zero profit, the tax office sends an acompte bill for CHF 50 for Year 1, which you pay from the bank. No tax has ever been provisioned before, so there is nothing sitting in <code>2208</code> to clear — the whole amount must be recognised as expense immediately. Run <strong>TaxPayment</strong> with <code>provision_amount = 0</code> and <code>actual_amount = 50</code>:
+    </p>
+<pre><code>Year1-05-20 * Cantonal Tax Authority | Tax acompte for Year 1
+    ; TaxPayment:
+    2:20:220:2208    CHF 0.00
+    8:8900           CHF 50.00
+    1:10:100:1020    CHF -50.00</code></pre>
+    <p>
+      Result: <code>8900</code> now shows CHF 50 of tax expense for Year 1, <code>2208</code> stays at zero, and the bank is down CHF 50.
+    </p>
+    <p>
+      <strong>Year 1, December 31.</strong> While closing the books (see <a [routerLink]="['/user-guide']" fragment="close-books">Close the books at year end</a>, Phase 2, step 4) you calculate — with a small amount of profit this year — that the <em>total</em> tax for Year 1 should really be CHF 75, not CHF 50. The <code>additional_tax_amount</code> you give to <strong>TaxProvision</strong> is the <em>additional</em> amount still owed on top of what is already sitting in <code>8900</code> (CHF 50), i.e. <code>75 - 50 = 25</code>:
+    </p>
+<pre><code>Year1-12-31 | Tax provision for Year 1
+    ; YearEnd:TaxProvision
+    8:8900    CHF 25.00
+    2:20:220:2208    CHF -25.00</code></pre>
+    <p>
+      Result: <code>8900</code> now totals CHF 75 for Year 1 (the correct full-year estimate: CHF 50 already paid + CHF 25 provisioned), and <code>2208</code> carries a CHF 25 liability forward onto the balance sheet — this is the amount you still expect to owe the tax office for Year 1, once it is finally assessed. This CHF 25 balance in <code>2208</code> survives the year-end close (only <code>REVENUE</code>/<code>EXPENSE</code> accounts are zeroed — see <a [routerLink]="['/user-guide']" fragment="close-books">Close the books at year end</a>) and is carried into the new journal by <a [routerLink]="['/user-guide']" fragment="new-year">Open a new year</a>.
+    </p>
+    <p>
+      <strong>Year 2, March.</strong> You file the tax declaration for Year 1. Filing itself is not a bookkeeping event — no entries needed, unless your fiduciaire charges a fee for it (that would be a normal expense transaction).
+    </p>
+    <p>
+      <strong>Year 2, April.</strong> The tax office processes the Year 1 return and determines that the <em>correct</em> total tax for Year 1 was actually CHF 80 — not the CHF 75 you had estimated (CHF 50 already paid in May, plus the CHF 25 provisioned in December). This is the more realistic case: the actual assessed tax almost never matches the year-end estimate exactly. The bill you receive is for the remaining CHF 30 still owed (<code>80 total − 50 already paid</code>), and it must still be matched against the CHF 25 already sitting in <code>2208</code> from the Year 1 provision. Run <strong>TaxPayment</strong> with <code>provision_amount = 25</code> (what was provisioned) and <code>actual_amount = 30</code> (what the final bill for the remainder actually says):
+    </p>
+<pre><code>Year2-04-15 * Cantonal Tax Authority | Final Year 1 tax payment
+    ; TaxPayment:
+    2:20:220:2208    CHF 25.00
+    8:8900           CHF 5.00
+    1:10:100:1020    CHF -30.00</code></pre>
+    <p>
+      Effect on each account:
+    </p>
+    <ul>
+      <li><code>2208 Tax liabilities</code> is debited CHF 25, bringing it back to zero — the whole Year 1 provision liability is now cleared.</li>
+      <li><code>8900 Direct taxes</code> is debited CHF 5 (<code>actual_amount − provision_amount = 30 − 25</code>) — this lands in <em>Year 2's</em> books, not Year 1's. It is a small, pragmatic true-up for the part of Year 1's tax that turned out to be under-estimated, expensed in the year the shortfall became known rather than by reopening Year 1's already-closed books.</li>
+      <li><code>1020 Bank Account</code> is credited CHF 30 — the actual cash paid now.</li>
+    </ul>
+    <p>
+      Added up across both years, Year 1's books recognised CHF 75 of tax expense (CHF 50 in May + CHF 25 provisioned in December) and Year 2's books pick up the remaining CHF 5, for a combined CHF 80 of expense matching the tax office's final figure — even though Year 1 is already closed and locked and cannot be changed.
+    </p>
+    <p>
+      <strong>Year 2, May.</strong> A separate bill arrives: the acompte for the <em>current</em> year, Year 2, now that the tax office has Year 1's actual result to base its estimate on. This is a completely different liability from the one you just paid in April — it has nothing to do with the Year 1 balance in <code>2208</code> (which is already zero). Once again there is no prior provision for Year 2 yet, so the whole amount is fresh expense. Run <strong>TaxPayment</strong> with <code>provision_amount = 0</code> and <code>actual_amount = 75</code>:
+    </p>
+<pre><code>Year2-05-20 * Cantonal Tax Authority | Tax acompte for Year 2
+    ; TaxPayment:
+    2:20:220:2208    CHF 0.00
+    8:8900           CHF 75.00
+    1:10:100:1020    CHF -75.00</code></pre>
+    <p>
+      And so on: at the end of Year 2 you run <strong>TaxProvision</strong> again to top <code>8900</code> up to your best estimate of Year 2's total tax, the following spring you settle Year 2's final bill against that provision with <strong>TaxPayment</strong>, and a new acompte for Year 3 arrives around the same time. Each year's tax is tracked independently through its own provision-then-settle cycle, even though the bills for two different years can land in your inbox within weeks of each other.
+    </p>
+
+    <h3>Which bill affects which account?</h3>
+    <ul>
+      <li><strong>An acompte or final bill for a year that has <em>no</em> outstanding balance in <code>2208</code></strong> (typically: an acompte for the current year, before any provision has been made for it) → pass <code>provision_amount = 0</code>. The entire amount is fresh expense in <code>8900</code>; <code>2208</code> is untouched.</li>
+      <li><strong>A final bill that settles a year you already provisioned for</strong> (i.e. <code>2208</code> already carries a balance for that year) → pass <code>provision_amount</code> equal to that <code>2208</code> balance. That portion clears the liability with no profit-and-loss impact; only the leftover difference, if any, hits <code>8900</code>.</li>
+      <li><strong>Never</strong> combine two different tax years' amounts into a single <code>provision_amount</code>/<code>actual_amount</code> pair — if you receive two bills in the same month for two different years, run <strong>TaxPayment</strong> twice, once per year, each with the correct <code>provision_amount</code> for that specific year.</li>
+    </ul>
+
+    <h3>If you receive a tax refund</h3>
+    <p>
+      Occasionally the final assessment is <em>lower</em> than what you already paid in acomptes, and the tax office refunds the difference instead of billing you. There are two cases:
+    </p>
+    <ul>
+      <li><strong>The final bill is smaller than the provision, but money still flows out (just less of it).</strong> This still works with <strong>TaxPayment</strong> as above: with <code>provision_amount = 25</code> and <code>actual_amount = 15</code>, <code>2208</code> is cleared by 25, <code>8900</code> is <em>reduced</em> by CHF 10 (a negative adjustment, since <code>actual_amount - provision_amount = -10</code>), and the bank is only debited CHF 15. No refund is involved, just a smaller final payment.</li>
+      <li><strong>Actual cash comes back into the bank.</strong> The <strong>TaxPayment</strong> template always credits (decreases) the bank account, so it is not a good fit when money is flowing <em>in</em>. Instead, record a plain manual transaction (see <a [routerLink]="['/user-guide']" fragment="journal">Record journal entries</a>) that debits the bank account for the refund received, credits <code>2208</code> to clear whatever liability remains for that year, and — if the refund also means the year's provision turned out to be too high — credits <code>8900</code> to reduce that year's tax expense by the excess. Tag it something like <code>TaxRefund:</code> so it is easy to find later, and note the tax year it relates to in the description, e.g. "Tax refund for Year 1".</li>
+    </ul>
+    <p>
+      As always with tax matters, confirm the exact split between clearing the liability and adjusting the expense with your accountant or fiduciaire — the examples above show the mechanics, but the amounts depend on your specific cantonal assessment.
     </p>
   </section>
 

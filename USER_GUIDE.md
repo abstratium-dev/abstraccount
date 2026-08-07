@@ -12,7 +12,7 @@ Abstraccount™ is a double-entry bookkeeping application designed for Swiss SME
 #### Key Features
 
 - **Double-entry bookkeeping** — record transactions with balanced debits and credits, split lines, and tags.
-- **Transaction attachments** — attach, view, replace, and delete PDF receipts and other supporting documents on any saved transaction. Attachments are private to your organisation and, once a journal is locked, remain viewable but not modifiable.
+- **Transaction attachments** — attach, view, and delete PDF receipts and other supporting documents from any transaction, or download every attachment in a journal as a single ZIP file. Attachments are private to your organisation and, once a journal is locked, remain viewable but not modifiable.
 - **Swiss chart of accounts** — hierarchical accounts compatible with the Swiss KMU-Kontenplan, organised into assets, liabilities, equity, revenue, and expenses with rolled-up balances.
 - **Macros & automation** — reusable templates for recurring entries such as invoices, payments, depreciation, and salaries.
 - **Financial reports** — trial balance, profit and loss, balance sheet, and cash flow statement over any date range.
@@ -37,7 +37,7 @@ Abstraccount™ is a double-entry bookkeeping application designed for Swiss SME
 
 1. **Create a journal** — give it a title, currency, and optional logo.
 2. **Build the chart of accounts** — add top-level and child accounts following Swiss KMU-Kontenplan conventions (or your own scheme).
-3. **Record transactions** — enter balanced debits and credits, optionally with partners and tags, or use a macro for recurring entries. Attach a receipt (PDF) to a saved transaction if you have one.
+3. **Record transactions** — enter balanced debits and credits, optionally with partners and tags, or use a macro for recurring entries. Attach a receipt (PDF) via the transaction's context menu if you have one.
 4. **Run reports** — generate trial balances, profit and loss, balance sheets, cash flow statements, and other reports over the desired date range.
 5. **Close the books at year end** — transfer revenue and expense balances to an equity account.
 6. **Open a new year** — create the next journal with carried-forward opening balances and continue recording.

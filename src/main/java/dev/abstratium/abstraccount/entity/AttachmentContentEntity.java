@@ -30,7 +30,7 @@ public class AttachmentContentEntity {
     private String attachmentId;
 
     @Lob
-    @Column(name = "content", nullable = false)
+    @Column(name = "content", nullable = false, length = 20 * 1024 * 1024)
     private byte[] content;
 
     public AttachmentContentEntity() {

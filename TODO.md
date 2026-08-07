@@ -25,15 +25,15 @@ These TODOs are to be resolved by the developer, NOT THE LLM.
 
 - add a pricing page and work out how to actually sell this
 
-- the user guide and closing page should describe that before hand, the user should do the tax provision (and tax payment?) and legal reserve allocation
+- add an endpoint for getting support by a contact page
 
-- update the tax provision macro to state that this is the difference between what you just worked out and what may have already been paid earlier in the year when the authorities asked you to pay an amount up front, based on previous declarations.
-  - double check that is correct!
+- add community support
+
+- the user guide and closing page should describe that before hand, the user should do the tax provision (and tax payment?) and legal reserve allocation
 
 - finish e2e tests
   - multitenancy tests
   - attachments
-  - X tax provision and tax payment and legal reserve allocation will be done in a later test
   - X test closing the books and year end, checking accounts have the correct balances at the end.
   - open next year
 

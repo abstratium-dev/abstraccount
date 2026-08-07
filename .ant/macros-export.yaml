@@ -224,22 +224,10 @@ items:
     \    CHF {provision_amount}\n    8:8900    CHF {actual_amount - provision_amount}\n\
     \    {bank_account}    CHF -{actual_amount}"
   validation: "{\"balanceCheck\":true,\"minPostings\":2}"
-  notes: "This macro handles three scenarios: 1. If actual = provision: Only liability\
-    \ and bank accounts are affected. 2. If actual > provision: Additional tax expense\
-    \ is recorded. 3. If actual < provision: Tax expense is reduced (negative amount).\
-    \ Example: Provision was CHF 350, actual bill is CHF 380 - Debit 220 (Tax liability):\
-    \ CHF 350 (clears the provision), Debit 8900 (Tax expense): CHF 30 (additional\
-    \ expense), Credit 1020 (Bank): CHF 380 (total payment)."
+  notes: "This macro handles three scenarios: 1. If actual = provision: Only liability and bank accounts are affected. 2. If actual > provision: Additional tax expense is recorded. 3. If actual < provision: Tax expense is reduced (negative amount). Example: Provision was CHF 350, actual bill is CHF 380 - Debit 220 (Tax liability): CHF 350 (clears the provision), Debit 8900 (Tax expense): CHF 30 (additional expense), Credit 1020 (Bank): CHF 380 (total payment). See the Help section (\"Tax provisions and payments across years\") for detailed instructions and worked examples."
 - name: "TaxProvision"
   description: "Record year-end tax provision (income tax + capital tax)"
-  parameters: "[{\"name\":\"date\",\"type\":\"date\",\"prompt\":\"Transaction date\
-    \ (typically December 31)\",\"defaultValue\":\"{year}-12-31\",\"required\":true},{\"\
-    name\":\"description\",\"type\":\"text\",\"prompt\":\"Description of tax provision\"\
-    ,\"defaultValue\":\"Tax provision for {year}\",\"required\":true},{\"name\":\"\
-    total_tax_amount\",\"type\":\"amount\",\"prompt\":\"Total tax provision (income\
-    \ + capital)\",\"required\":true}]"
-  template: "{date} | {description}\n    ; YearEnd:TaxProvision\n    8:8900    CHF\
-    \ {total_tax_amount}\n    2:20:220:2208    CHF -{total_tax_amount}"
+  parameters: "[{\"name\":\"date\",\"type\":\"date\",\"prompt\":\"Transaction date (typically December 31)\",\"defaultValue\":\"{year}-12-31\",\"required\":true},{\"name\":\"description\",\"type\":\"text\",\"prompt\":\"Description of tax provision\",\"defaultValue\":\"Tax provision for {year}\",\"required\":true},{\"name\":\"additional_tax_amount\",\"type\":\"amount\",\"prompt\":\"Additional tax to provision (total estimated tax for the year, minus tax already expensed to 8900 this year)\",\"required\":true}]"
+  template: "{date} | {description}\n    ; YearEnd:TaxProvision\n    8:8900    CHF {additional_tax_amount}\n    2:20:220:2208    CHF -{additional_tax_amount}"
   validation: "{\"balanceCheck\":true,\"minPostings\":2}"
-  notes: "Record year-end tax provision for income and capital taxes. This creates\
-    \ a liability for taxes owed."
+  notes: "Record year-end tax provision for income and capital taxes. The amount is NOT your total tax for the year - it is the difference between your total estimated tax and whatever has already been recognised as expense (account 8900) from acomptes billed or paid earlier in the same year. This creates a liability (2208) for the remaining tax owed but not yet paid. See the Help section (\"Tax provisions and payments across years\") for detailed instructions and worked examples."

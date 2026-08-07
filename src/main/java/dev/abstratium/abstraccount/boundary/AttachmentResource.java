@@ -108,18 +108,6 @@ public class AttachmentResource {
     }
 
     /**
-     * Downloads all attachments for a single transaction as a zip file.
-     */
-    @GET
-    @Path("/transaction/{transactionId}/zip")
-    @Produces("application/zip")
-    public Response downloadTransactionZip(@PathParam("transactionId") String transactionId) {
-        requireTransactionInOrg(transactionId);
-        List<AttachmentEntity> attachments = attachmentPersistenceService.listByTransaction(transactionId);
-        return buildZipResponse(attachments, "transaction-" + transactionId + "-attachments.zip");
-    }
-
-    /**
      * Verifies that a transaction exists in the caller's organisation
      * (tenant-scoped {@code em.find}, see
      * {@code docs/HIBERNATE_DISCRIMINATOR_MULTITENANCY.md}), throwing a 404

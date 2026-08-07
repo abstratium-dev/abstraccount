@@ -150,10 +150,31 @@
 
 <!-- Context Menu -->
 <div *ngIf="contextMenuTransactionId" 
+     #contextMenuEl
      class="context-menu" 
      [style.position]="'fixed'"
-     [style.left.px]="contextMenuPosition.x" 
-     [style.top.px]="contextMenuPosition.y">
+     [style.right.px]="contextMenuPosition.right" 
+     [style.top.px]="contextMenuPosition.top">
   <button class="context-menu-item" (click)="openEditTransactionModal(contextMenuTransactionId)">Edit</button>
   <button class="context-menu-item danger" (click)="deleteTransaction(contextMenuTransactionId)">Delete</button>
+
+  <div class="context-menu-separator"></div>
+
+  <label class="context-menu-item" [class.disabled]="isSelectedJournalLocked() || contextMenuAttachmentUploading">
+    {{ contextMenuAttachmentUploading ? 'Uploading...' : 'Add Attachment' }}
+    <input type="file" accept="application/pdf" hidden
+           [disabled]="isSelectedJournalLocked() || contextMenuAttachmentUploading"
+           (change)="onContextMenuAttachmentFileSelected($event)">
+  </label>
+
+  <div *ngIf="contextMenuAttachmentError" class="context-menu-attachment-error">{{ contextMenuAttachmentError }}</div>
+  <div *ngIf="contextMenuAttachmentsLoading" class="context-menu-item">Loading attachments...</div>
+
+  <div *ngFor="let attachment of contextMenuAttachments" class="context-menu-attachment-row">
+    <a class="context-menu-item context-menu-attachment-name" [href]="getAttachmentDownloadUrl(attachment)" target="_blank">
+      {{ attachment.fileName }}
+    </a>
+    <button type="button" class="btn-icon btn-icon-danger" [disabled]="isSelectedJournalLocked()"
+            title="Delete attachment" (click)="deleteContextMenuAttachment(attachment)">×</button>
+  </div>
 </div>

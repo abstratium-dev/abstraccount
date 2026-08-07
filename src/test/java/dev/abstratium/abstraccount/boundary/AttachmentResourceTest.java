@@ -234,16 +234,6 @@ class AttachmentResourceTest {
     }
 
     @Test
-    @TestSecurity(user = "testuser", roles = {Roles.USER})
-    void testDownloadTransactionZip_unknownTransaction_returns404() {
-        given()
-        .when()
-            .get("/api/attachment/transaction/{transactionId}/zip", "non-existent-transaction")
-        .then()
-            .statusCode(404);
-    }
-
-    @Test
     @TestSecurity(user = "second-org-user", roles = {Roles.USER})
     @OidcSecurity(claims = @Claim(key = "orgId", value = "second-org"))
     void testListAttachments_crossOrgTransaction_returns404() {

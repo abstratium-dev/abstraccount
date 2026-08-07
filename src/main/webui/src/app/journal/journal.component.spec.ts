@@ -22,7 +22,11 @@ describe('JournalComponent', () => {
       'getTransactions',
       'getTags',
       'setSelectedJournalId',
-      'deleteTransaction'
+      'deleteTransaction',
+      'listAttachments',
+      'uploadAttachment',
+      'deleteAttachment',
+      'getAttachmentDownloadUrl'
     ]);
     const infoDialogSpy = jasmine.createSpyObj('InfoDialogService', ['show']);
     const confirmDialogSpy = jasmine.createSpyObj('ConfirmDialogService', ['confirm']);
@@ -262,6 +266,149 @@ describe('JournalComponent', () => {
 
       expect(confirmDialog.confirm).toHaveBeenCalled();
       expect(controller.deleteTransaction).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('context menu attachments', () => {
+    const lockedJournal = { id: '1', title: 'Locked Journal', subtitle: null, currency: 'CHF', commodities: {}, logo: null, previousJournalId: null, locked: true };
+    const unlockedJournal = { id: '1', title: 'Open Journal', subtitle: null, currency: 'CHF', commodities: {}, logo: null, previousJournalId: null, locked: false };
+    const mockAttachment = {
+      id: 'att-1',
+      transactionId: 'tx-1',
+      fileName: 'receipt.pdf',
+      contentType: 'application/pdf',
+      sizeBytes: 2048,
+      uploadedAt: '2024-01-15T10:00:00Z',
+      uploadedBy: 'testuser'
+    };
+
+    const mockContextMenuEvent = (): MouseEvent => ({
+      preventDefault: () => {},
+      stopPropagation: () => {},
+      currentTarget: {
+        getBoundingClientRect: () => ({ right: 100, bottom: 50, left: 80, top: 30, width: 20, height: 20 })
+      }
+    } as unknown as MouseEvent);
+
+    it('loads attachments when the context menu is opened', async () => {
+      controller.listAttachments.and.returnValue(Promise.resolve([mockAttachment]));
+      const event = mockContextMenuEvent();
+
+      component.openContextMenu(event, 'tx-1');
+      await fixture.whenStable();
+
+      expect(component.contextMenuTransactionId).toBe('tx-1');
+      expect(controller.listAttachments).toHaveBeenCalledWith('tx-1');
+      expect(component.contextMenuAttachments).toEqual([mockAttachment]);
+    });
+
+    it('surfaces an error if loading attachments fails', async () => {
+      controller.listAttachments.and.returnValue(Promise.reject(new Error('boom')));
+
+      await component.loadContextMenuAttachments('tx-1');
+
+      expect(component.contextMenuAttachmentError).toContain('Failed to load attachments');
+    });
+
+    it('clears attachment state when the context menu is closed', () => {
+      component.contextMenuTransactionId = 'tx-1';
+      component.contextMenuAttachments = [mockAttachment];
+      component.contextMenuAttachmentError = 'oops';
+
+      component.closeContextMenu();
+
+      expect(component.contextMenuTransactionId).toBeNull();
+      expect(component.contextMenuAttachments).toEqual([]);
+      expect(component.contextMenuAttachmentError).toBeNull();
+    });
+
+    it('uploads a selected file and refreshes the attachment list', async () => {
+      component.selectedJournal = unlockedJournal;
+      component.contextMenuTransactionId = 'tx-1';
+      const file = new File(['%PDF-1.4'], 'receipt.pdf', { type: 'application/pdf' });
+      controller.uploadAttachment.and.returnValue(Promise.resolve(mockAttachment));
+      controller.listAttachments.and.returnValue(Promise.resolve([mockAttachment]));
+
+      const event = { target: { files: [file], value: '' } } as unknown as Event;
+      await component.onContextMenuAttachmentFileSelected(event);
+
+      expect(controller.uploadAttachment).toHaveBeenCalledWith('tx-1', file);
+      expect(component.contextMenuAttachments).toEqual([mockAttachment]);
+      expect(component.contextMenuAttachmentUploading).toBe(false);
+    });
+
+    it('does not upload when the journal is locked', async () => {
+      component.selectedJournal = lockedJournal;
+      component.contextMenuTransactionId = 'tx-1';
+      const file = new File(['%PDF-1.4'], 'receipt.pdf', { type: 'application/pdf' });
+
+      const event = { target: { files: [file], value: '' } } as unknown as Event;
+      await component.onContextMenuAttachmentFileSelected(event);
+
+      expect(controller.uploadAttachment).not.toHaveBeenCalled();
+    });
+
+    it('surfaces an error if upload fails', async () => {
+      component.selectedJournal = unlockedJournal;
+      component.contextMenuTransactionId = 'tx-1';
+      const file = new File(['%PDF-1.4'], 'receipt.pdf', { type: 'application/pdf' });
+      controller.uploadAttachment.and.returnValue(Promise.reject(new Error('too big')));
+
+      const event = { target: { files: [file], value: '' } } as unknown as Event;
+      await component.onContextMenuAttachmentFileSelected(event);
+
+      expect(component.contextMenuAttachmentError).toContain('Failed to upload attachment');
+    });
+
+    it('builds the download URL via the controller', () => {
+      controller.getAttachmentDownloadUrl.and.returnValue('/api/attachment/att-1');
+
+      expect(component.getAttachmentDownloadUrl(mockAttachment)).toBe('/api/attachment/att-1');
+    });
+
+    it('deletes an attachment after confirmation and refreshes the list', async () => {
+      component.selectedJournal = unlockedJournal;
+      component.contextMenuTransactionId = 'tx-1';
+      confirmDialog.confirm.and.resolveTo(true);
+      controller.deleteAttachment.and.returnValue(Promise.resolve());
+      controller.listAttachments.and.returnValue(Promise.resolve([]));
+
+      await component.deleteContextMenuAttachment(mockAttachment);
+
+      expect(confirmDialog.confirm).toHaveBeenCalled();
+      expect(controller.deleteAttachment).toHaveBeenCalledWith('att-1');
+      expect(component.contextMenuAttachments).toEqual([]);
+    });
+
+    it('does not delete the attachment when the user cancels the confirmation', async () => {
+      component.selectedJournal = unlockedJournal;
+      component.contextMenuTransactionId = 'tx-1';
+      confirmDialog.confirm.and.resolveTo(false);
+
+      await component.deleteContextMenuAttachment(mockAttachment);
+
+      expect(controller.deleteAttachment).not.toHaveBeenCalled();
+    });
+
+    it('does not delete the attachment when the journal is locked', async () => {
+      component.selectedJournal = lockedJournal;
+      component.contextMenuTransactionId = 'tx-1';
+
+      await component.deleteContextMenuAttachment(mockAttachment);
+
+      expect(confirmDialog.confirm).not.toHaveBeenCalled();
+      expect(controller.deleteAttachment).not.toHaveBeenCalled();
+    });
+
+    it('surfaces an error if delete fails', async () => {
+      component.selectedJournal = unlockedJournal;
+      component.contextMenuTransactionId = 'tx-1';
+      confirmDialog.confirm.and.resolveTo(true);
+      controller.deleteAttachment.and.returnValue(Promise.reject(new Error('locked')));
+
+      await component.deleteContextMenuAttachment(mockAttachment);
+
+      expect(component.contextMenuAttachmentError).toContain('Failed to delete attachment');
     });
   });
 });

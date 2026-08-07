@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, inject, Input, OnInit, Output } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { AttachmentDTO, Controller, CreateEntryRequest, CreateTransactionRequest, TransactionDTO, UpdateEntryRequest, UpdateTransactionRequest, TagDTO } from '../controller';
+import { Controller, CreateEntryRequest, CreateTransactionRequest, TransactionDTO, UpdateEntryRequest, UpdateTransactionRequest, TagDTO } from '../controller';
 import { ModelService } from '../model.service';
 import { AutocompleteComponent, AutocompleteOption } from '../core/autocomplete/autocomplete.component';
 
@@ -35,102 +35,17 @@ export class TransactionEditModalComponent implements OnInit {
 
   availableStatuses = ['CLEARED', 'PENDING', 'RECONCILED'];
 
-  // Attachments (only available once the transaction has been saved/has an id)
-  attachments: AttachmentDTO[] = [];
-  attachmentsLoading = false;
-  attachmentError: string | null = null;
-  attachmentUploading = false;
-
   ngOnInit(): void {
     this.isNew = !this.transactionId;
     
     if (this.transactionId) {
       this.loadTransaction();
-      this.loadAttachments();
     } else {
       // Initialize with default values for new transaction
       this.date = new Date().toISOString().split('T')[0];
       this.addEntry();
       this.addEntry();
     }
-  }
-
-  /**
-   * Whether the owning journal is locked, i.e. attachments may be viewed but
-   * not uploaded/replaced/deleted. Mirrors the backend's journal-locking
-   * rules (see JournalPersistenceService.requireNotLocked).
-   */
-  isJournalLocked(): boolean {
-    return this.modelService.journals$().find(j => j.id === this.journalId)?.locked ?? false;
-  }
-
-  async loadAttachments(): Promise<void> {
-    if (!this.transactionId) return;
-    this.attachmentsLoading = true;
-    this.attachmentError = null;
-    try {
-      this.attachments = await this.controller.listAttachments(this.transactionId);
-    } catch (err: any) {
-      this.attachmentError = 'Failed to load attachments: ' + err.message;
-    } finally {
-      this.attachmentsLoading = false;
-    }
-  }
-
-  async onAttachmentFileSelected(event: Event): Promise<void> {
-    const input = event.target as HTMLInputElement;
-    const file = input.files && input.files[0];
-    input.value = '';
-    if (!file || !this.transactionId) return;
-
-    this.attachmentError = null;
-    this.attachmentUploading = true;
-    try {
-      await this.controller.uploadAttachment(this.transactionId, file);
-      await this.loadAttachments();
-    } catch (err: any) {
-      this.attachmentError = 'Failed to upload attachment: ' + err.message;
-    } finally {
-      this.attachmentUploading = false;
-    }
-  }
-
-  async onAttachmentReplaceSelected(event: Event, attachment: AttachmentDTO): Promise<void> {
-    const input = event.target as HTMLInputElement;
-    const file = input.files && input.files[0];
-    input.value = '';
-    if (!file) return;
-
-    this.attachmentError = null;
-    this.attachmentUploading = true;
-    try {
-      await this.controller.replaceAttachment(attachment.id, file);
-      await this.loadAttachments();
-    } catch (err: any) {
-      this.attachmentError = 'Failed to replace attachment: ' + err.message;
-    } finally {
-      this.attachmentUploading = false;
-    }
-  }
-
-  async deleteAttachment(attachment: AttachmentDTO): Promise<void> {
-    this.attachmentError = null;
-    try {
-      await this.controller.deleteAttachment(attachment.id);
-      await this.loadAttachments();
-    } catch (err: any) {
-      this.attachmentError = 'Failed to delete attachment: ' + err.message;
-    }
-  }
-
-  getAttachmentDownloadUrl(attachment: AttachmentDTO): string {
-    return this.controller.getAttachmentDownloadUrl(attachment.id);
-  }
-
-  formatAttachmentSize(sizeBytes: number): string {
-    if (sizeBytes < 1024) return sizeBytes + ' B';
-    if (sizeBytes < 1024 * 1024) return (sizeBytes / 1024).toFixed(1) + ' KB';
-    return (sizeBytes / (1024 * 1024)).toFixed(1) + ' MB';
   }
 
   async loadTransaction(): Promise<void> {

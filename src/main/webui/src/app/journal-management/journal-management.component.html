@@ -54,6 +54,14 @@
 
     <hr />
 
+    <div class="management-section attachments-section">
+      <h2>Attachments</h2>
+      <p>Download a zip containing every attachment (e.g. receipts) from every transaction in this journal.</p>
+      <a class="btn-secondary" [href]="getJournalAttachmentsZipUrl()" target="_blank">Download Attachments (ZIP)</a>
+    </div>
+
+    <hr />
+
     <div class="management-section lock-section">
       <h2>Lock / Unlock</h2>
       <p *ngIf="!selectedJournal.locked">

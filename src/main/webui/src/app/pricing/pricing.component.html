@@ -1,0 +1,48 @@
+<div class="pricing-page">
+
+  <section class="pricing-hero">
+    <h1 class="pricing-title">Pricing</h1>
+    <p class="pricing-subtitle">
+      Simple, transparent pricing that grows with your business. Start for free, upgrade whenever you need more.
+    </p>
+  </section>
+
+  <div class="pricing-grid">
+    @for (tier of tiers; track tier.name) {
+      <div class="pricing-card" [class.pricing-card-featured]="tier.featured">
+        @if (tier.featured) {
+          <div class="pricing-card-badge">Most Popular</div>
+        }
+        <h2 class="pricing-card-name">{{ tier.name }}</h2>
+        <p class="pricing-card-description">{{ tier.description }}</p>
+        <div class="pricing-card-price">
+          <span class="pricing-card-amount">{{ tier.price }}</span>
+          <span class="pricing-card-suffix">{{ tier.priceSuffix }}</span>
+        </div>
+        <ul class="pricing-card-features">
+          @for (feature of tier.features; track feature) {
+            <li>
+              <svg class="pricing-check-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <span>{{ feature }}</span>
+            </li>
+          }
+        </ul>
+        @if (tier.ctaEnabled) {
+          <button type="button" class="pricing-card-cta" (click)="signIn()">{{ tier.ctaLabel }}</button>
+        } @else {
+          <button type="button" class="pricing-card-cta" disabled>{{ tier.ctaLabel }}</button>
+        }
+      </div>
+    }
+  </div>
+
+  <section class="pricing-note">
+    <p>
+      Need something bigger, such as multiple journals, dedicated onboarding, or a custom contract?
+      <a routerLink="/legal">Get in touch</a> and we'll find a plan that fits.
+    </p>
+  </section>
+
+</div>

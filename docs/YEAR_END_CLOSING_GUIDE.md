@@ -248,9 +248,9 @@ December 31, 2025 * Provision for corporate income tax
 If your company has a profit of CHF 50,000:
 - Estimated income tax (20%): CHF 10,000
 - Estimated capital tax on CHF 20,000 equity (0.2%): CHF 40
-- Total tax provision: CHF 10,040
+- Total estimated tax for the year: CHF 10,040
 
-Note: that example doesn't subtract the taxes paid after the tax authorities sent an invoice for 2025 in march 2025, based on their own estimates. 
+Important: the amount you enter into the `TaxProvision` macro (`additional_tax_amount`) is **not** this total. If the tax authorities already sent an invoice earlier in the year (e.g. an acompte in March 2025, based on their own estimate) and you paid/expensed it to account 8900, subtract that amount first. For example, if CHF 9,500 was already paid and expensed, the provision amount to enter is `10,040 - 9,500 = 540`, not `10,040`. See the in-app User Guide, section "Tax provisions and payments across years", for a full worked example spanning two tax years.
 
 **Important Notes:**
 

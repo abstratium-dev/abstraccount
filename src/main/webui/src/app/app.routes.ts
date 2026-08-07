@@ -96,6 +96,10 @@ export const routes: Routes = [
     loadComponent: () => import('./legal/legal.component').then(m => m.LegalComponent)
   },
   {
+    path: 'pricing',
+    loadComponent: () => import('./pricing/pricing.component').then(m => m.PricingComponent)
+  },
+  {
     path: 'signed-in',
     canActivate: [authGuard],
     loadComponent: () => import('./core/signed-in/signed-in.component').then(m => m.SignedInComponent)

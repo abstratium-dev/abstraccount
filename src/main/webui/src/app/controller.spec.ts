@@ -85,5 +85,14 @@ describe('Controller', () => {
     it('should build the attachment download URL without an HTTP call', () => {
       expect(controller.getAttachmentDownloadUrl('att-1')).toBe('/api/attachment/att-1');
     });
+
+    it('should build the journal attachments zip URL without a date range', () => {
+      expect(controller.getJournalAttachmentsZipUrl('journal-1')).toBe('/api/attachment/journal/journal-1/zip');
+    });
+
+    it('should build the journal attachments zip URL with a date range', () => {
+      expect(controller.getJournalAttachmentsZipUrl('journal-1', '2024-01-01', '2024-12-31'))
+        .toBe('/api/attachment/journal/journal-1/zip?from=2024-01-01&to=2024-12-31');
+    });
   });
 });

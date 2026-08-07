@@ -14,7 +14,7 @@ describe('JournalManagementComponent', () => {
   let confirmDialog: jasmine.SpyObj<ConfirmDialogService>;
 
   beforeEach(async () => {
-    controller = jasmine.createSpyObj<Controller>('Controller', ['listJournals', 'selectJournal', 'exportJournal', 'deleteJournal', 'lockJournal', 'unlockJournal']);
+    controller = jasmine.createSpyObj<Controller>('Controller', ['listJournals', 'selectJournal', 'exportJournal', 'deleteJournal', 'lockJournal', 'unlockJournal', 'getJournalAttachmentsZipUrl']);
     confirmDialog = jasmine.createSpyObj<ConfirmDialogService>('ConfirmDialogService', ['confirm']);
 
     await TestBed.configureTestingModule({
@@ -48,7 +48,26 @@ describe('JournalManagementComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('Export');
     expect(fixture.nativeElement.querySelector('#import-journal').classList).toContain('btn-secondary');
     expect(fixture.nativeElement.querySelector('#create-journal').classList).toContain('btn-primary');
-    expect(fixture.nativeElement.querySelectorAll('hr').length).toBe(6);
+    expect(fixture.nativeElement.querySelectorAll('hr').length).toBe(7);
+  });
+
+  it('renders an attachments zip download link for the selected journal', () => {
+    controller.getJournalAttachmentsZipUrl.and.returnValue('/api/attachment/journal/journal-id/zip');
+    modelService.setJournals([{
+      id: 'journal-id', title: 'Current Journal', subtitle: null, currency: 'CHF',
+      commodities: { CHF: '1000.00' }, logo: null, previousJournalId: null, locked: false
+    }]);
+
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Attachments');
+    expect(component.getJournalAttachmentsZipUrl()).toBe('/api/attachment/journal/journal-id/zip');
+    expect(controller.getJournalAttachmentsZipUrl).toHaveBeenCalledWith('journal-id');
+  });
+
+  it('returns an empty attachments zip URL when no journal is selected', () => {
+    expect(component.getJournalAttachmentsZipUrl()).toBe('');
+    expect(controller.getJournalAttachmentsZipUrl).not.toHaveBeenCalled();
   });
 
   it('navigates to import and journal creation from the shared buttons', () => {

@@ -1094,6 +1094,20 @@ export class Controller {
   }
 
   /**
+   * URL to download a zip of every attachment belonging to every transaction
+   * of a journal, optionally restricted to transactions whose date falls
+   * within [from, to] (both inclusive, ISO yyyy-MM-dd). No separate HTTP call
+   * needed to build this — use it directly as an <a href>.
+   */
+  getJournalAttachmentsZipUrl(journalId: string, from?: string, to?: string): string {
+    const params = new URLSearchParams();
+    if (from) params.set('from', from);
+    if (to) params.set('to', to);
+    const query = params.toString();
+    return `/api/attachment/journal/${journalId}/zip` + (query ? `?${query}` : '');
+  }
+
+  /**
    * Get all distinct tag keys across all journals.
    * Useful for autocomplete suggestions.
    */
@@ -1199,6 +1213,8 @@ export class Controller {
       );
       // Refresh transactions for the journal
       await this.getTransactions(request.journalId);
+      // Refresh journal list so the header reflects the new locked state
+      await this.listJournals();
       return result;
     } catch (error) {
       console.error('Error executing close-books:', error);

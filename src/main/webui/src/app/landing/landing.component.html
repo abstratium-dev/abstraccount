@@ -17,10 +17,14 @@
       <div class="landing-actions">
         <a routerLink="/journal" class="landing-action-link">Go to Journal</a>
         <a routerLink="/accounts-table" class="landing-action-link">View Accounts</a>
+        <a routerLink="/pricing" class="landing-action-link">View Pricing</a>
       </div>
     } @else {
       <button (click)="signIn()">Sign In</button>
       <p class="signup-note">Users will be able to sign up soon.</p>
+      <p class="signup-note">
+        <a routerLink="/pricing">See our pricing plans</a>
+      </p>
     }
   </section>
 

@@ -61,6 +61,15 @@ export class JournalManagementComponent implements OnInit {
            this.confirmationName === this.selectedJournal.title;
   }
 
+  /**
+   * URL to download a zip of every attachment belonging to every transaction
+   * of the selected journal. Used directly as an <a href> so the browser
+   * handles the download (the OIDC session cookie covers authentication).
+   */
+  getJournalAttachmentsZipUrl(): string {
+    return this.selectedJournal ? this.controller.getJournalAttachmentsZipUrl(this.selectedJournal.id) : '';
+  }
+
   async exportJournal(): Promise<void> {
     if (!this.selectedJournal) return;
 

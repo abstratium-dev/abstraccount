@@ -175,8 +175,8 @@ test.describe('Year-End Closing', () => {
     console.log('Filling description field...');
     await macrosPage.fillParameter(page, 'description', 'Test 007 tax provision for 2024');
 
-    console.log('Filling total tax amount field (50.00)...');
-    await macrosPage.fillParameter(page, 'total_tax_amount', '50.00');
+    console.log('Filling additional tax amount field (50.00)...');
+    await macrosPage.fillParameter(page, 'additional_tax_amount', '50.00');
 
     console.log('All fields filled');
 
@@ -215,7 +215,7 @@ test.describe('Year-End Closing', () => {
     console.log('  - Macro selection and parameter form display');
     console.log('  - Date: 2024-12-31 (year-end)');
     console.log('  - Description: Test 007 tax provision for 2024');
-    console.log('  - Total tax amount: CHF 50.00');
+    console.log('  - Additional tax amount: CHF 50.00');
     console.log('  - Transaction created with 2 entries (Dr 8900, Cr 2208)');
 
     console.log('=== Test 7.1: TaxProvision Macro - PASSED ===');

@@ -1,8 +1,8 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectorRef, Component, OnInit, ViewChild, effect, inject } from '@angular/core';
+import { ChangeDetectorRef, Component, ElementRef, OnInit, ViewChild, effect, inject } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { AccountService } from '../account.service';
-import { Controller, JournalMetadataDTO, TransactionDTO, TagDTO } from '../controller';
+import { AttachmentDTO, Controller, JournalMetadataDTO, TransactionDTO, TagDTO } from '../controller';
 import { ModelService } from '../model.service';
 import { FilterInputComponent } from './filter-input/filter-input.component';
 import { TransactionEditModalComponent } from '../transaction-edit-modal/transaction-edit-modal.component';
@@ -41,7 +41,15 @@ export class JournalComponent implements OnInit {
 
   // Context menu
   contextMenuTransactionId: string | null = null;
-  contextMenuPosition = { x: 0, y: 0 };
+  contextMenuPosition = { right: 0, top: 0 };
+
+  @ViewChild('contextMenuEl') contextMenuEl?: ElementRef<HTMLElement>;
+
+  // Context menu attachments
+  contextMenuAttachments: AttachmentDTO[] = [];
+  contextMenuAttachmentsLoading = false;
+  contextMenuAttachmentError: string | null = null;
+  contextMenuAttachmentUploading = false;
 
   modelService = inject(ModelService); // Public for template
   accountService = inject(AccountService); // Public for template
@@ -208,6 +216,14 @@ export class JournalComponent implements OnInit {
   }
 
   /**
+   * Pure check (no side effects) of whether the currently selected journal is
+   * locked. Safe to call from the template, e.g. to disable buttons.
+   */
+  isSelectedJournalLocked(): boolean {
+    return this.selectedJournal?.locked ?? false;
+  }
+
+  /**
    * Returns true and shows an informational dialog if the currently selected
    * journal is locked. Mutating actions (add/edit/delete transaction) must
    * call this before performing their action so the user gets a clear UI
@@ -229,11 +245,108 @@ export class JournalComponent implements OnInit {
     event.preventDefault();
     event.stopPropagation();
     this.contextMenuTransactionId = transactionId;
-    this.contextMenuPosition = { x: event.clientX, y: event.clientY };
+
+    // Anchor the menu's right edge to the trigger button's right edge (rather
+    // than the click position) so it can never overflow past the right side
+    // of the viewport, no matter how wide the attachment list makes it.
+    const trigger = event.currentTarget as HTMLElement;
+    const triggerRect = trigger.getBoundingClientRect();
+    const margin = 8;
+    this.contextMenuPosition = {
+      right: Math.max(margin, window.innerWidth - triggerRect.right),
+      top: triggerRect.bottom
+    };
+
+    // Reposition vertically once the menu (and its eventual attachment list)
+    // has rendered, so it never overflows past the bottom of the viewport either.
+    setTimeout(() => this.keepContextMenuInViewport());
+    this.loadContextMenuAttachments(transactionId).then(() => this.keepContextMenuInViewport());
+  }
+
+  /**
+   * Nudges contextMenuPosition.top upward if needed so the rendered context
+   * menu never overflows past the bottom of the browser viewport. Horizontal
+   * placement is handled purely via CSS (anchored to the trigger button's
+   * right edge), so no width measurement is needed here.
+   */
+  private keepContextMenuInViewport(): void {
+    const el = this.contextMenuEl?.nativeElement;
+    if (!el) return;
+
+    const margin = 8;
+    const { height } = el.getBoundingClientRect();
+    if (this.contextMenuPosition.top + height > window.innerHeight - margin) {
+      this.contextMenuPosition = {
+        ...this.contextMenuPosition,
+        top: Math.max(margin, window.innerHeight - height - margin)
+      };
+    }
   }
 
   closeContextMenu(): void {
     this.contextMenuTransactionId = null;
+    this.contextMenuAttachments = [];
+    this.contextMenuAttachmentError = null;
+  }
+
+  async loadContextMenuAttachments(transactionId: string): Promise<void> {
+    this.contextMenuAttachmentsLoading = true;
+    this.contextMenuAttachmentError = null;
+    try {
+      this.contextMenuAttachments = await this.controller.listAttachments(transactionId);
+    } catch (err: any) {
+      this.contextMenuAttachmentError = 'Failed to load attachments: ' + err.message;
+    } finally {
+      this.contextMenuAttachmentsLoading = false;
+    }
+  }
+
+  async onContextMenuAttachmentFileSelected(event: Event): Promise<void> {
+    const input = event.target as HTMLInputElement;
+    const file = input.files && input.files[0];
+    input.value = '';
+    if (!file || !this.contextMenuTransactionId) return;
+    if (this.isJournalLocked()) return;
+
+    const transactionId = this.contextMenuTransactionId;
+    this.contextMenuAttachmentError = null;
+    this.contextMenuAttachmentUploading = true;
+    try {
+      await this.controller.uploadAttachment(transactionId, file);
+      await this.loadContextMenuAttachments(transactionId);
+    } catch (err: any) {
+      this.contextMenuAttachmentError = 'Failed to upload attachment: ' + err.message;
+    } finally {
+      this.contextMenuAttachmentUploading = false;
+    }
+  }
+
+  getAttachmentDownloadUrl(attachment: AttachmentDTO): string {
+    return this.controller.getAttachmentDownloadUrl(attachment.id);
+  }
+
+  async deleteContextMenuAttachment(attachment: AttachmentDTO): Promise<void> {
+    if (this.isJournalLocked()) return;
+
+    const confirmed = await this.confirmDialog.confirm({
+      title: 'Delete Attachment',
+      message: `Are you sure you want to delete "${attachment.fileName}"? This action cannot be undone.`,
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      confirmClass: 'btn-danger',
+    });
+    if (!confirmed) return;
+
+    const transactionId = this.contextMenuTransactionId;
+    this.contextMenuAttachmentError = null;
+    try {
+      await this.controller.deleteAttachment(attachment.id);
+      if (transactionId) {
+        await this.loadContextMenuAttachments(transactionId);
+      }
+    } catch (err: any) {
+      this.contextMenuAttachmentError = 'Failed to delete attachment: ' + err.message;
+    }
   }
 
   async deleteTransaction(transactionId: string): Promise<void> {
