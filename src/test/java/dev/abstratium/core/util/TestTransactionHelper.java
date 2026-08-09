@@ -49,15 +49,17 @@ public class TestTransactionHelper {
 
     @Transactional
     public void deleteAllData() {
+        // Use native SQL so we bypass Hibernate's @TenantId filter and clean up data
+        // that may have been created under any tenant / orgId.
         entityManager.createNativeQuery("DELETE FROM T_attachment_content").executeUpdate();
-        entityManager.createQuery("DELETE FROM AttachmentEntity").executeUpdate();
-        entityManager.createQuery("DELETE FROM TagEntity").executeUpdate();
-        entityManager.createQuery("DELETE FROM EntryEntity").executeUpdate();
-        entityManager.createQuery("DELETE FROM TransactionEntity").executeUpdate();
-        entityManager.createQuery("UPDATE AccountEntity SET parentAccountId = NULL").executeUpdate();
-        entityManager.createQuery("DELETE FROM AccountEntity").executeUpdate();
-        entityManager.createQuery("UPDATE JournalEntity SET previousJournalId = NULL").executeUpdate();
+        entityManager.createNativeQuery("DELETE FROM T_attachment").executeUpdate();
+        entityManager.createNativeQuery("DELETE FROM T_tag").executeUpdate();
+        entityManager.createNativeQuery("DELETE FROM T_entry").executeUpdate();
+        entityManager.createNativeQuery("DELETE FROM T_transaction").executeUpdate();
+        entityManager.createNativeQuery("UPDATE T_account SET parent_account_id = NULL").executeUpdate();
+        entityManager.createNativeQuery("DELETE FROM T_account").executeUpdate();
+        entityManager.createNativeQuery("UPDATE T_journal SET previous_journal_id = NULL").executeUpdate();
         entityManager.createNativeQuery("DELETE FROM T_journal_commodity").executeUpdate();
-        entityManager.createQuery("DELETE FROM JournalEntity").executeUpdate();
+        entityManager.createNativeQuery("DELETE FROM T_journal").executeUpdate();
     }
 }

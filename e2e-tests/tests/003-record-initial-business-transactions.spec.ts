@@ -7,6 +7,8 @@ import * as macrosPage from '../pages/macros.page';
 import * as toastPage from '../pages/toast.page';
 import { authenticate } from './auth-helper';
 import { TEST_JOURNAL_NAME, TEST_USER_EMAIL, TEST_USER_PASSWORD, TEST_PARTNERS } from './test-constants';
+import path from 'path';
+import fs from 'fs';
 
 /**
  * Test 3: Record Initial Business Transactions
@@ -1437,5 +1439,214 @@ test.describe('Initial Business Transactions', () => {
     
     console.log('✓ Partner Activity Report verified successfully!');
     console.log('=== Partner Activity Report Verification Complete ===');
+  });
+
+  // ==========================================================================
+  // Test 3.10: Upload and delete PDF attachments on a transaction
+  //
+  // This test verifies that PDF attachments can be uploaded to and deleted from
+  // transactions via the journal page's transaction context menu (⋮ button).
+  //
+  // It uploads TWO attachments, then deletes only ONE, leaving the other
+  // ("test-receipt.pdf") on the transaction. This remaining attachment is used
+  // later by test 010 to verify that attachments can still be viewed on a
+  // locked journal but not added or deleted.
+  // ==========================================================================
+  test('should upload and delete PDF attachments on a transaction', async ({ page }) => {
+    test.setTimeout(120_000);
+    console.log('=== Starting Test 3.10: Transaction Attachments ===');
+
+    const PDF_FIXTURE_PATH = path.resolve(__dirname, '..', 'fixtures', 'test-receipt.pdf');
+    const KEEP_FILE_NAME = 'test-receipt.pdf';
+    const DELETE_FILE_NAME = 'test-receipt-2.pdf';
+
+    // Navigate to the application
+    await page.goto('/');
+
+    const signOutLink = page.locator('#signout-link');
+    const isSignedIn = await signOutLink.isVisible({ timeout: 2000 }).catch(() => false);
+
+    if (!isSignedIn) {
+      console.log('Not signed in, performing authentication...');
+      await authenticate(page, TEST_USER_EMAIL, TEST_USER_PASSWORD);
+      console.log('Authentication complete');
+    }
+
+    await headerPage.waitForHeader(page);
+
+    // Select the journal (Abstratium 2024 — still unlocked at this point in the test sequence)
+    await headerPage.selectJournal(page, TEST_JOURNAL_NAME);
+
+    // Get the journal ID from localStorage
+    const journalId = await page.evaluate(() => localStorage.getItem('journalId'));
+    expect(journalId).toBeTruthy();
+    console.log(`Journal ID: ${journalId}`);
+
+    // Verify the journal is not locked
+    const metaResponse = await page.request.get(`/api/journal/${journalId}/metadata`);
+    expect(metaResponse.ok()).toBe(true);
+    const metadata = await metaResponse.json();
+    expect(metadata.locked).toBe(false);
+    console.log('✓ Journal is unlocked (attachments are allowed)');
+
+    // Find a transaction via the API to use for the attachment test.
+    // Use the first transaction ("Short term loan from John Smith").
+    console.log('--- Finding a transaction for the attachment test ---');
+    const txResponse = await page.request.get(`/api/journal/${journalId}/transactions`);
+    expect(txResponse.ok()).toBe(true);
+    const transactions = await txResponse.json();
+    expect(transactions.length).toBeGreaterThan(0);
+    const targetTransaction = transactions[0];
+    console.log(`Using transaction: "${targetTransaction.description}" (id: ${targetTransaction.id})`);
+
+    // Clean up any existing attachments on this transaction (idempotency)
+    console.log('--- Cleaning up existing attachments ---');
+    const existingAttachments = await (await page.request.get(`/api/attachment/transaction/${targetTransaction.id}`)).json();
+    for (const att of existingAttachments) {
+      await page.request.delete(`/api/attachment/${att.id}`);
+    }
+    if (existingAttachments.length > 0) {
+      console.log(`  Cleaned up ${existingAttachments.length} existing attachment(s)`);
+    }
+
+    // Navigate to the journal page
+    console.log('--- Navigating to Journal page ---');
+    await headerPage.clickJournalLink(page);
+    await transactionsPage.waitForJournalPage(page);
+
+    // Open the context menu for the first transaction
+    console.log('--- Opening context menu for the first transaction ---');
+    const contextMenuTrigger = page.locator('button.context-menu-trigger').first();
+    await expect(contextMenuTrigger).toBeVisible({ timeout: 10000 });
+    await contextMenuTrigger.click();
+    console.log('Context menu trigger clicked');
+
+    // Verify the context menu is visible with the expected options
+    const contextMenu = page.locator('.context-menu');
+    await expect(contextMenu).toBeVisible({ timeout: 5000 });
+    await expect(contextMenu.locator('button:has-text("Edit")')).toBeVisible();
+    await expect(contextMenu.locator('button:has-text("Delete")')).toBeVisible();
+    await expect(contextMenu.locator('label:has-text("Add Attachment")')).toBeVisible();
+    console.log('✓ Context menu displayed with Edit, Delete, and Add Attachment options');
+
+    // Upload the first PDF attachment (this one will be KEPT for test 010)
+    console.log(`--- Uploading first PDF attachment (${KEEP_FILE_NAME}) ---`);
+    const fileInput = contextMenu.locator('input[type="file"]');
+    await expect(fileInput).toBeAttached();
+    await fileInput.setInputFiles(PDF_FIXTURE_PATH);
+    console.log(`File selected: ${KEEP_FILE_NAME}`);
+
+    // Wait for the upload to complete
+    await expect(contextMenu.locator('text=Uploading...')).toBeHidden({ timeout: 15000 });
+    const keepAttachmentLink = contextMenu.locator('.context-menu-attachment-name', { hasText: KEEP_FILE_NAME });
+    await expect(keepAttachmentLink).toBeVisible({ timeout: 10000 });
+    console.log(`✓ Attachment "${KEEP_FILE_NAME}" appears in the context menu`);
+
+    // Verify the first attachment via the API
+    let attachments = await (await page.request.get(`/api/attachment/transaction/${targetTransaction.id}`)).json();
+    expect(attachments.length).toBe(1);
+    expect(attachments[0].fileName).toBe(KEEP_FILE_NAME);
+    expect(attachments[0].contentType).toBe('application/pdf');
+    console.log(`✓ API confirms attachment: fileName="${attachments[0].fileName}", contentType="${attachments[0].contentType}"`);
+
+    // Upload the second PDF attachment (this one will be DELETED)
+    // We need to re-locate the file input since the context menu may have re-rendered
+    console.log(`--- Uploading second PDF attachment (${DELETE_FILE_NAME}) ---`);
+    const fileInput2 = contextMenu.locator('input[type="file"]');
+    await expect(fileInput2).toBeAttached();
+    // Playwright allows setting a different file name via setInputFiles with an object
+    await fileInput2.setInputFiles({ name: DELETE_FILE_NAME, mimeType: 'application/pdf', buffer: fs.readFileSync(PDF_FIXTURE_PATH) });
+    console.log(`File selected: ${DELETE_FILE_NAME}`);
+
+    // Wait for the upload to complete
+    await expect(contextMenu.locator('text=Uploading...')).toBeHidden({ timeout: 15000 });
+    const deleteAttachmentLink = contextMenu.locator('.context-menu-attachment-name', { hasText: DELETE_FILE_NAME });
+    await expect(deleteAttachmentLink).toBeVisible({ timeout: 10000 });
+    console.log(`✓ Attachment "${DELETE_FILE_NAME}" appears in the context menu`);
+
+    // Verify both attachments via the API
+    attachments = await (await page.request.get(`/api/attachment/transaction/${targetTransaction.id}`)).json();
+    expect(attachments.length).toBe(2);
+    const keepAttachment = attachments.find(a => a.fileName === KEEP_FILE_NAME);
+    const deleteAttachment = attachments.find(a => a.fileName === DELETE_FILE_NAME);
+    expect(keepAttachment).toBeTruthy();
+    expect(deleteAttachment).toBeTruthy();
+    console.log(`✓ API confirms both attachments present`);
+
+    // Verify both attachments can be downloaded
+    console.log('--- Verifying both attachments can be downloaded ---');
+    for (const att of attachments) {
+      const downloadResponse = await page.request.get(`/api/attachment/${att.id}`);
+      expect(downloadResponse.ok()).toBe(true);
+      expect(downloadResponse.headers()['content-type']).toContain('application/pdf');
+      const body = await downloadResponse.body();
+      expect(body[0]).toBe(0x25); // %
+      expect(body[1]).toBe(0x50); // P
+      expect(body[2]).toBe(0x44); // D
+      expect(body[3]).toBe(0x46); // F
+      expect(body[4]).toBe(0x2d); // -
+    }
+    console.log('✓ Both attachments downloaded successfully and are valid PDFs');
+
+    // Delete the second attachment via the × button
+    console.log(`--- Deleting attachment "${DELETE_FILE_NAME}" via context menu ---`);
+    // Find the × button that is a sibling of the attachment link containing DELETE_FILE_NAME
+    const deleteAttachmentRow = contextMenu.locator('.context-menu-attachment-row', { hasText: DELETE_FILE_NAME });
+    const deleteBtn = deleteAttachmentRow.locator('.btn-icon-danger');
+    await expect(deleteBtn).toBeVisible();
+    // Use force: true because the context menu overlay can intercept pointer
+    // events, even though the button itself is visible and clickable.
+    await deleteBtn.click({ force: true });
+    console.log('Delete attachment button clicked');
+
+    // Verify the confirmation dialog appears
+    console.log('--- Verifying confirmation dialog ---');
+    const confirmDialog = page.locator('ux-confirm-dialog .dialog-overlay');
+    await expect(confirmDialog).toBeVisible({ timeout: 5000 });
+
+    const confirmTitle = await confirmDialog.locator('h2').textContent();
+    expect(confirmTitle?.trim()).toBe('Delete Attachment');
+    console.log('✓ Confirm dialog title is "Delete Attachment"');
+
+    const confirmMessage = await confirmDialog.locator('.dialog-body p').textContent();
+    expect(confirmMessage).toContain(DELETE_FILE_NAME);
+    expect(confirmMessage).toContain('cannot be undone');
+    console.log(`✓ Confirm dialog mentions file name "${DELETE_FILE_NAME}"`);
+
+    // Confirm the deletion
+    console.log('--- Confirming deletion ---');
+    const confirmBtn = confirmDialog.locator('button:has-text("Delete")');
+    await expect(confirmBtn).toBeVisible();
+    await confirmBtn.click();
+
+    // Wait for the dialog to close
+    await expect(confirmDialog).toBeHidden({ timeout: 10000 });
+    console.log('✓ Confirmation dialog closed');
+
+    // Verify the deleted attachment is no longer in the context menu
+    console.log('--- Verifying deleted attachment is gone ---');
+    await expect(contextMenu.locator('.context-menu-attachment-name', { hasText: DELETE_FILE_NAME })).toBeHidden({ timeout: 10000 });
+    console.log(`✓ Attachment "${DELETE_FILE_NAME}" no longer appears in the context menu`);
+
+    // Verify the kept attachment is still in the context menu
+    await expect(contextMenu.locator('.context-menu-attachment-name', { hasText: KEEP_FILE_NAME })).toBeVisible({ timeout: 5000 });
+    console.log(`✓ Attachment "${KEEP_FILE_NAME}" still appears in the context menu`);
+
+    // Verify via the API that only one attachment remains
+    console.log('--- Verifying via API ---');
+    const remainingAttachments = await (await page.request.get(`/api/attachment/transaction/${targetTransaction.id}`)).json();
+    expect(remainingAttachments.length).toBe(1);
+    expect(remainingAttachments[0].fileName).toBe(KEEP_FILE_NAME);
+    console.log(`✓ API confirms only "${KEEP_FILE_NAME}" remains (1 attachment)`);
+
+    // Close the context menu by clicking outside
+    console.log('--- Closing context menu ---');
+    await page.locator('body').click({ position: { x: 0, y: 0 } });
+    await expect(contextMenu).toBeHidden({ timeout: 5000 });
+    console.log('✓ Context menu closed');
+
+    console.log('✓ Attachment upload, view, and delete verified!');
+    console.log(`✓ "${KEEP_FILE_NAME}" left on transaction for test 010 (locked journal viewing)`);
+    console.log('=== Test 3.10: Transaction Attachments - PASSED ===');
   });
 });

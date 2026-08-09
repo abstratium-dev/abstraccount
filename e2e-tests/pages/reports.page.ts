@@ -83,17 +83,25 @@ export async function getTemplateNames(page: Page): Promise<string[]> {
  */
 export async function selectReportTemplate(page: Page, templateName: string): Promise<void> {
   console.log(`Selecting report template: ${templateName}`);
-  
+
   await page.waitForSelector('select#template-select', { state: 'visible' });
-  
-  // Get all options and find the matching one
-  const options = await page.locator('select#template-select option').allTextContents();
-  const matchingOption = options.find(opt => opt.trim().includes(templateName));
-  
+
+  // The template options are loaded asynchronously. Wait for the target
+  // option to appear rather than reading the dropdown too early (which can
+  // show only the placeholder "-- Choose a report --").
+  let options: string[] = [];
+  let matchingOption: string | undefined;
+  for (let attempt = 0; attempt < 20; attempt++) {
+    options = await page.locator('select#template-select option').allTextContents();
+    matchingOption = options.find(opt => opt.trim().includes(templateName));
+    if (matchingOption) break;
+    await page.waitForTimeout(500);
+  }
+
   if (!matchingOption) {
     throw new Error(`Report template "${templateName}" not found. Available: ${options.join(', ')}`);
   }
-  
+
   await page.selectOption('select#template-select', { label: matchingOption.trim() });
   console.log(`Report template "${templateName}" selected`);
 }

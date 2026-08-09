@@ -83,74 +83,77 @@ test.describe('Setup: Authentication and Environment', () => {
     await expect(journalLink).toBeVisible({ timeout: 10000 });
     await page.waitForLoadState('networkidle').catch(() => undefined);
 
-    // The journal selector dropdown now lives on the Journal Management page,
-    // so navigate there once before the cleanup loop.
-    await page.goto('/journal-management');
-    await page.waitForLoadState('networkidle').catch(() => undefined);
-    await journalManagementPage.waitForJournalManagementPage(page);
+    // List all journals via the API so we can unlock locked ones before deleting.
+    // The backend refuses to delete a locked journal (returns 423), so we must
+    // unlock first. We also clean up "Abstratium 2025" (created by test 009)
+    // in addition to "Abstratium 2024".
+    const JOURNAL_TITLES_TO_CLEAN = [TEST_JOURNAL_NAME, 'Abstratium 2025'];
 
-    let deletedCount = 0;
-    let hasMoreJournals = true;
+    console.log('--- Fetching journal list via API ---');
+    const journalsResponse = await page.request.get('/api/journal/list');
+    if (!journalsResponse.ok()) {
+      throw new Error(`Failed to list journals: ${journalsResponse.status()}`);
+    }
+    const allJournals: Array<{ id: string; title: string; locked: boolean; previousJournalId: string | null }> = await journalsResponse.json();
+    const journalsToDelete = allJournals.filter(j => JOURNAL_TITLES_TO_CLEAN.includes(j.title));
+    // Sort so that journals with a previousJournalId (follow-on years) are
+    // deleted first. This avoids foreign-key constraint violations when the
+    // referenced (parent) journal is deleted before the referencing child.
+    journalsToDelete.sort((a, b) => {
+      if (a.previousJournalId && !b.previousJournalId) return -1;
+      if (!a.previousJournalId && b.previousJournalId) return 1;
+      return 0;
+    });
+    console.log(`Found ${journalsToDelete.length} journal(s) to delete: ${journalsToDelete.map(j => `"${j.title}"`).join(', ')}`);
 
-    // Keep deleting until no more test journals are found
-    while (hasMoreJournals) {
-      // Get all journal options from the select on the Journal Management page
-      const journalSelector = page.locator('#journal-select');
-      const journalOptions = await journalSelector.locator('option').allTextContents();
-
-      // Find a test journal (there might be multiple with the same name)
-      const testJournalOption = journalOptions.find(option => option.includes(TEST_JOURNAL_NAME));
-
-      if (testJournalOption) {
-        console.log(`Found test journal: "${testJournalOption}", deleting it...`);
-
-        // Select the test journal (we are already on the Journal Management page)
-        await headerPage.selectJournalOnManagementPage(page, TEST_JOURNAL_NAME);
-
-        // Delete the journal (the danger zone is on this same page)
-        await journalManagementPage.deleteJournal(page, TEST_JOURNAL_NAME);
-
-        deletedCount++;
-        console.log(`Test journal deleted (${deletedCount} total deleted)`);
-
-        // After deletion the app navigates to '/'. The auth guard will then
-        // redirect to /create-journal if no journals remain, or back to a
-        // journal-related page if journals still exist. Wait for the page to
-        // stabilise before checking which destination we landed on.
-        await page.waitForLoadState('networkidle').catch(() => undefined);
-        const createJournalHeading = page.getByRole('heading', { name: /^Start Your Books$/i });
-        const journalLink = page.locator('#journal');
-        const landedOnCreateJournal = await createJournalHeading.isVisible({ timeout: 5000 }).catch(() => false);
-        if (landedOnCreateJournal) {
-          console.log('No journals remaining after deletion, exiting cleanup loop');
-          hasMoreJournals = false;
-        } else {
-          // Wait for the journal link to be visible before navigating
-          await expect(journalLink).toBeVisible({ timeout: 10000 });
-          await page.waitForLoadState('networkidle').catch(() => undefined);
-          // Navigate to journal-management. The auth guard may redirect to
-          // /create-journal if no journals remain (e.g. if the deletion just
-          // removed the last one). In that case, exit the loop.
-          await page.goto('/journal-management');
-          await page.waitForLoadState('networkidle').catch(() => undefined);
-          const redirectedToCreateJournal = await createJournalHeading.isVisible({ timeout: 5000 }).catch(() => false);
-          if (redirectedToCreateJournal) {
-            console.log('Redirected to /create-journal after navigation — no journals remain');
-            hasMoreJournals = false;
-          } else {
-            await journalManagementPage.waitForJournalManagementPage(page);
-          }
+    // Unlock all locked journals first, then delete in order. If a deletion
+    // fails (e.g. because of an unexpected dependency), retry it after the
+    // others have been deleted — the dependency may have been removed.
+    for (const journal of journalsToDelete) {
+      if (journal.locked) {
+        console.log(`  Unlocking journal: "${journal.title}" (id: ${journal.id})`);
+        const unlockResponse = await page.request.post(`/api/journal/${journal.id}/unlock`);
+        if (!unlockResponse.ok()) {
+          throw new Error(`Failed to unlock journal "${journal.title}": ${unlockResponse.status()}`);
         }
-      } else {
-        // No more test journals found
-        hasMoreJournals = false;
-        console.log(`No more test journals found. Total deleted: ${deletedCount}`);
+        console.log('  Journal unlocked');
       }
     }
 
-    if (deletedCount === 0) {
+    let remaining = [...journalsToDelete];
+    let deletedCount = 0;
+    for (let attempt = 0; attempt < 3 && remaining.length > 0; attempt++) {
+      const failed: typeof remaining = [];
+      for (const journal of remaining) {
+        console.log(`  Deleting journal: "${journal.title}" (id: ${journal.id}, previousJournalId: ${journal.previousJournalId ?? 'none'})`);
+        const deleteResponse = await page.request.delete(`/api/journal/${journal.id}`);
+        if (deleteResponse.ok()) {
+          console.log('  Journal deleted');
+          deletedCount++;
+        } else {
+          const body = await deleteResponse.text().catch(() => '<no body>');
+          console.log(`  Delete failed: ${deleteResponse.status()} — ${body}`);
+          failed.push(journal);
+        }
+      }
+      remaining = failed;
+    }
+    if (remaining.length > 0) {
+      throw new Error(`Failed to delete ${remaining.length} journal(s): ${remaining.map(j => `"${j.title}"`).join(', ')}`);
+    }
+
+    if (deletedCount > 0) {
+      console.log(`Deleted ${deletedCount} journal(s)`);
+    } else {
       console.log('No existing test journals found, environment is clean');
     }
+
+    // Clear the selected journal ID from localStorage so that subsequent tests
+    // start fresh. If the old journal ID remains, the SPA tries to load a
+    // deleted journal on the next page.goto('/') and gets stuck instead of
+    // redirecting to /create-journal.
+    await page.evaluate(() => localStorage.removeItem('journalId'));
+    console.log('Cleared journalId from localStorage');
 
     console.log('=== Cleanup complete: Environment ready for testing ===');
   });

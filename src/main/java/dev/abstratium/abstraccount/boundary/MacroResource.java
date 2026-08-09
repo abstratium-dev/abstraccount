@@ -13,7 +13,6 @@ import dev.abstratium.abstraccount.model.Journal;
 import dev.abstratium.abstraccount.model.Tag;
 import dev.abstratium.abstraccount.model.Transaction;
 import dev.abstratium.abstraccount.service.AccountService;
-import dev.abstratium.abstraccount.service.JournalLockedException;
 import dev.abstratium.abstraccount.service.JournalParser;
 import dev.abstratium.abstraccount.service.JournalPersistenceService;
 import dev.abstratium.abstraccount.service.MacroImportExportService;
@@ -158,13 +157,43 @@ public class MacroResource {
     @Consumes(MediaType.APPLICATION_JSON)
     public String executeMacro(MacroExecuteRequestDTO request) {
         LOG.debugf("Executing macro: %s for journal: %s", request.macroId(), request.journalId());
-        
-        // Load the macro
+
         MacroEntity macro = macroService.loadMacro(request.macroId());
         if (macro == null) {
             throw new NotFoundException("Macro not found");
         }
 
+        return executeMacroInternal(request, macro);
+    }
+
+    /**
+     * Executes a macro on behalf of an automated client.
+     * Only macros explicitly flagged as machine-runnable can be invoked through this endpoint.
+     *
+     * @param request the execution request containing macroId, journalId, and parameter values
+     * @return the ID of the created transaction
+     */
+    @POST
+    @Path("/execute/machine")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @RolesAllowed({Roles.MACHINE})
+    public String executeMachineMacro(MacroExecuteRequestDTO request) {
+        LOG.debugf("Executing machine macro: %s for journal: %s", request.macroId(), request.journalId());
+
+        MacroEntity macro = macroService.loadMacro(request.macroId());
+        if (macro == null) {
+            throw new NotFoundException("Macro not found");
+        }
+
+        if (!macro.isMachineRunnable()) {
+            LOG.warnf("Machine execution rejected for macro %s: not flagged as machine-runnable", macro.getId());
+            throw new ForbiddenException("Macro is not enabled for machine execution");
+        }
+
+        return executeMacroInternal(request, macro);
+    }
+
+    private String executeMacroInternal(MacroExecuteRequestDTO request, MacroEntity macro) {
         // Reject execution against a locked journal
         journalPersistenceService.requireNotLocked(request.journalId());
 
@@ -177,7 +206,11 @@ public class MacroResource {
         Map<String, String> accountCodePaths = extractAccountCodePaths(transactionText, request.parameters());
         
         // Parse the transaction text
-        // We need to wrap it in a minimal journal structure for the parser
+        // We need to wrap it in a minimal journal structure for the parser.
+        // The currency and commodity declared here are placeholders: the parser requires
+        // them to build a valid Journal model, but the persisted transaction entries use
+        // the commodity that appears on each entry line in the generated transaction text.
+        // This means macros can be executed against journals whose actual currency differs.
         String journalContent = "; title: Macro Execution\n" +
                                "; currency: CHF\n" +
                                "commodity CHF 0.01\n\n" +
@@ -333,6 +366,7 @@ public class MacroResource {
                 entity.getTemplate(),
                 validation,
                 entity.getNotes(),
+                entity.isMachineRunnable(),
                 entity.getCreatedDate().toString(),
                 entity.getModifiedDate().toString()
             );
@@ -355,6 +389,7 @@ public class MacroResource {
             entity.setDescription(dto.description());
             entity.setParameters(objectMapper.writeValueAsString(dto.parameters()));
             entity.setTemplate(dto.template());
+            entity.setMachineRunnable(dto.machineRunnable());
             
             if (dto.validation() != null) {
                 entity.setValidation(objectMapper.writeValueAsString(dto.validation()));
@@ -396,9 +431,10 @@ public class MacroResource {
         }
         
         // Also extract account paths directly from the transaction text
-        // Pattern: account identifier followed by whitespace and amount
-        // Account identifier can be a code path or a full account name
-        Pattern entryPattern = Pattern.compile("^\\s+(.+?)\\s+CHF\\s+[-]?[0-9.]+", Pattern.MULTILINE);
+        // Pattern: account identifier followed by commodity and amount.
+        // Account identifier can be a code path or a full account name.
+        // The commodity is matched generically so macros work with any currency.
+        Pattern entryPattern = Pattern.compile("^\\s+(.+?)\\s+\\S+\\s+[-]?[0-9.]+", Pattern.MULTILINE);
         Matcher matcher = entryPattern.matcher(transactionText);
         while (matcher.find()) {
             String accountIdentifier = matcher.group(1).trim();

@@ -10,10 +10,12 @@ import java.util.Optional;
 import java.util.Set;
 
 import dev.abstratium.abstraccount.entity.AccountEntity;
+import dev.abstratium.abstraccount.entity.AttachmentContentEntity;
+import dev.abstratium.abstraccount.entity.AttachmentEntity;
 import dev.abstratium.abstraccount.entity.EntryEntity;
 import dev.abstratium.abstraccount.entity.JournalEntity;
-import dev.abstratium.abstraccount.entity.TransactionEntity;
 import dev.abstratium.abstraccount.entity.TagEntity;
+import dev.abstratium.abstraccount.entity.TransactionEntity;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;
@@ -507,6 +509,28 @@ public class JournalPersistenceService {
                 TransactionEntity.class)
                 .setParameter("journalId", journalId)
                 .getResultList();
+
+        // Delete attachments (metadata + content) for each transaction before
+        // removing the transactions themselves, otherwise a foreign-key
+        // constraint on T_attachment.transaction_id prevents the deletion.
+        // Use managed entity removal (not bulk/native DELETE) so that Envers
+        // captures the deletions — see docs/ENVERS_AUDITING.md.
+        for (TransactionEntity tx : transactions) {
+            List<AttachmentEntity> attachments = entityManager.createQuery(
+                    "SELECT a FROM AttachmentEntity a WHERE a.transactionId = :txId",
+                    AttachmentEntity.class)
+                    .setParameter("txId", tx.getId())
+                    .getResultList();
+            for (AttachmentEntity attachment : attachments) {
+                AttachmentContentEntity content = entityManager.find(AttachmentContentEntity.class, attachment.getId());
+                if (content != null) {
+                    entityManager.remove(content);
+                }
+                entityManager.remove(attachment);
+            }
+        }
+        entityManager.flush();
+
         transactions.forEach(entityManager::remove);
         entityManager.flush();
 

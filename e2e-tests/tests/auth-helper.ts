@@ -49,13 +49,18 @@ export async function handleAuthServer(page: Page, email: string, password: stri
   const emailField = page.getByRole('textbox', { name: /email/i });
   const approveBtn = page.getByRole('button', { name: 'Approve' });
 
+  // Match http://localhost (the app's URL) but NOT the auth server's
+  // authorize URL, which contains "localhost" inside the redirect_uri
+  // query parameter (e.g. redirect_uri=http%3A%2F%2Flocalhost%3A8083).
+  const appUrl = /^http:\/\/localhost/;
+
   console.log('[AuthHelper] Waiting for auth server response (login form, approval, or redirect)...');
 
   // Wait for any of the three outcomes
   await Promise.race([
     emailField.waitFor({ state: 'visible', timeout: 15000 }),
     approveBtn.waitFor({ state: 'visible', timeout: 15000 }),
-    page.waitForURL(/localhost/, { timeout: 15000 }),
+    page.waitForURL(appUrl, { timeout: 15000 }),
   ]);
 
   console.log(`[AuthHelper] URL after trigger: ${page.url()}`);
@@ -74,7 +79,7 @@ export async function handleAuthServer(page: Page, email: string, password: stri
   if (await approveBtn.isVisible().catch(() => false)) {
     console.log('[AuthHelper] Consent screen detected, approving');
     await approveBtn.click();
-    await page.waitForURL(/localhost/, { timeout: 15000 });
+    await page.waitForURL(appUrl, { timeout: 15000 });
   } else {
     console.log('[AuthHelper] No consent screen, already back on app');
   }
@@ -106,7 +111,13 @@ export async function authenticate(page: Page, email: string, password: string):
   await handleAuthServer(page, email, password);
 
   // Wait for the app to load after redirect
-  await page.waitForURL(/localhost/, { timeout: 15000 });
+  await page.waitForURL(/^http:\/\/localhost/, { timeout: 15000 });
+
+  // After OIDC redirect, the SPA lands on /signed-in which has an empty
+  // template. SignedInComponent.ngOnInit then redirects to the last route
+  // (or '/'). Wait for that redirect and any subsequent API calls to settle
+  // so callers don't interact with a blank or partially-rendered page.
+  await page.waitForLoadState('networkidle').catch(() => undefined);
 
   console.log('[AuthHelper] Authentication complete');
 }

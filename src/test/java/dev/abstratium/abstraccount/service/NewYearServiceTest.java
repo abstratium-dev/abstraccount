@@ -41,6 +41,7 @@ class NewYearServiceTest {
     private String revenueAccountId;
     private String expenseAccountId;
     private String bankAccountId;
+    private String receivablesAccountId;
     private String loanAccountId;
     private String retainedEarningsId;
 
@@ -101,15 +102,28 @@ class NewYearServiceTest {
         em.persist(expenseAccount);
 
         // Create child accounts with explicit IDs
+        // Bank account is CASH type (as in the real application — bank accounts
+        // are classified as Cash and Cash Equivalents, separate from regular assets)
         bankAccountId = UUID.randomUUID().toString();
         AccountEntity bankAccount = new AccountEntity();
         bankAccount.setId(bankAccountId);
         bankAccount.setJournalId(sourceJournalId);
         bankAccount.setName("1020 Bank");
-        bankAccount.setType(AccountType.ASSET);
+        bankAccount.setType(AccountType.CASH);
         bankAccount.setParentAccountId(assetAccountId);
         bankAccount.setAccountOrder(5);
         em.persist(bankAccount);
+
+        // Receivables account is ASSET type (non-cash current asset)
+        receivablesAccountId = UUID.randomUUID().toString();
+        AccountEntity receivablesAccount = new AccountEntity();
+        receivablesAccount.setId(receivablesAccountId);
+        receivablesAccount.setJournalId(sourceJournalId);
+        receivablesAccount.setName("1100 Receivables");
+        receivablesAccount.setType(AccountType.ASSET);
+        receivablesAccount.setParentAccountId(assetAccountId);
+        receivablesAccount.setAccountOrder(11);
+        em.persist(receivablesAccount);
 
         loanAccountId = UUID.randomUUID().toString();
         AccountEntity loanAccount = new AccountEntity();
@@ -166,6 +180,11 @@ class NewYearServiceTest {
         createTransaction(yearEnd, "Initial balance", sourceJournalId,
             new EntryData(bankAccountId, "CHF", new BigDecimal("10000.00")),
             new EntryData(assetAccountId, "CHF", new BigDecimal("-10000.00")));
+
+        // Receivables: CHF 2,000 (debit/positive)
+        createTransaction(yearEnd, "Outstanding invoice", sourceJournalId,
+            new EntryData(receivablesAccountId, "CHF", new BigDecimal("2000.00")),
+            new EntryData(assetAccountId, "CHF", new BigDecimal("-2000.00")));
 
         // Loan account: CHF 5,000 (credit/negative in our system)
         createTransaction(yearEnd, "Loan taken", sourceJournalId,
@@ -251,16 +270,17 @@ class NewYearServiceTest {
         assertEquals("Test Journal 2026", preview.newJournalTitle());
         assertEquals("2026-01-01", preview.openingDate());
 
-        // accountCount includes ALL accounts in the source journal (11 total including 2979)
-        assertEquals(11, preview.accountCount());
-        // accounts list only includes balance sheet accounts (ASSET, LIABILITY, EQUITY)
-        // 1 Assets, 1020 Bank, 2 Liabilities, 2000 Loans, 3 Equity, 2970 Retained, 2979 Annual profit/loss = 7 accounts
-        assertEquals(7, preview.accounts().size());
+        // accountCount includes ALL accounts in the source journal (12 total including 2979)
+        assertEquals(12, preview.accountCount());
+        // accounts list only includes balance sheet accounts (ASSET, CASH, LIABILITY, EQUITY)
+        // 1 Assets, 1020 Bank (CASH), 1100 Receivables (ASSET), 2 Liabilities, 2000 Loans,
+        // 3 Equity, 2970 Retained, 2979 Annual profit/loss = 8 accounts
+        assertEquals(8, preview.accounts().size());
 
-        // openingBalanceCount is balance sheet accounts (ASSET, LIABILITY, EQUITY) with non-zero balances
-        // Bank (10000), 1 Assets (-10000), Loan (-5000), 2 Liabilities (5000),
-        // Retained (3000), 3 Equity (-3000), 2979 Annual profit/loss (-30000) = 7 accounts
-        assertEquals(7, preview.openingBalanceCount());
+        // openingBalanceCount is balance sheet accounts (ASSET, CASH, LIABILITY, EQUITY) with non-zero balances
+        // Bank (10000), Receivables (2000), 1 Assets (-12000), Loan (-5000), 2 Liabilities (5000),
+        // Retained (3000), 3 Equity (-30000), 2979 Annual profit/loss (-30000) = 8 accounts
+        assertEquals(8, preview.openingBalanceCount());
 
         // Verify retained earnings account was found
         assertEquals("3:2970", preview.retainedEarningsCodePath());
@@ -349,8 +369,8 @@ class NewYearServiceTest {
         assertNotNull(result);
         assertNotNull(result.newJournalId());
         assertEquals(newTitle, result.newJournalTitle());
-        assertEquals(11, result.accountCount()); // All accounts copied (including revenue/expense and 2979)
-        assertEquals(7, result.openingBalanceCount()); // Only balance sheet accounts with non-zero balances get opening transactions (now 7 with 2979)
+        assertEquals(12, result.accountCount()); // All accounts copied (including revenue/expense and 2979)
+        assertEquals(8, result.openingBalanceCount()); // Only balance sheet accounts with non-zero balances get opening transactions
 
         // Verify the new journal exists
         JournalEntity newJournal = em.find(JournalEntity.class, result.newJournalId());
@@ -363,7 +383,7 @@ class NewYearServiceTest {
 
         // Verify accounts were copied (all accounts including revenue/expense and 2979)
         List<AccountEntity> newAccounts = journalPersistenceService.loadAllAccounts(result.newJournalId());
-        assertEquals(11, newAccounts.size());
+        assertEquals(12, newAccounts.size());
 
         // Verify account hierarchy is preserved
         AccountEntity newAssetAccount = newAccounts.stream()
@@ -419,6 +439,7 @@ class NewYearServiceTest {
 
         // Verify all account types are preserved
         assertTrue(newAccounts.stream().anyMatch(a -> a.getType() == AccountType.ASSET));
+        assertTrue(newAccounts.stream().anyMatch(a -> a.getType() == AccountType.CASH));
         assertTrue(newAccounts.stream().anyMatch(a -> a.getType() == AccountType.LIABILITY));
         assertTrue(newAccounts.stream().anyMatch(a -> a.getType() == AccountType.EQUITY));
         assertTrue(newAccounts.stream().anyMatch(a -> a.getType() == AccountType.REVENUE));
@@ -475,7 +496,7 @@ class NewYearServiceTest {
         );
 
         // Then
-        // Find the bank account preview
+        // Find the bank account preview (CASH type)
         NewYearAccountPreviewDTO bankPreview = preview.accounts().stream()
             .filter(a -> a.accountFullName().contains("Bank"))
             .findFirst()
@@ -483,6 +504,14 @@ class NewYearServiceTest {
 
         assertEquals(0, bankPreview.openingBalance().compareTo(new BigDecimal("10000.00")));
         assertEquals("CHF", bankPreview.commodity());
+
+        // Find the receivables account preview (ASSET type)
+        NewYearAccountPreviewDTO receivablesPreview = preview.accounts().stream()
+            .filter(a -> a.accountFullName().contains("Receivables"))
+            .findFirst()
+            .orElseThrow();
+
+        assertEquals(0, receivablesPreview.openingBalance().compareTo(new BigDecimal("2000.00")));
 
         // Find the loan account preview
         NewYearAccountPreviewDTO loanPreview = preview.accounts().stream()

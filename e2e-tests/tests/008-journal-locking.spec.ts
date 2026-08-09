@@ -504,8 +504,15 @@ test.describe('Journal Locking', () => {
     // Wait for the dialog to close
     await expect(confirmDialog).not.toBeVisible({ timeout: 10000 });
 
-    // Verify the journal is unlocked via the API
-    const isLockedAfter = await isJournalLocked(page);
+    // The confirm dialog closes immediately when the promise resolves, but the
+    // HTTP unlock call is still in progress. Wait for network activity to settle
+    // and then poll until the journal is actually unlocked (or timeout).
+    await page.waitForLoadState('networkidle').catch(() => undefined);
+    let isLockedAfter = true;
+    for (let attempt = 0; attempt < 10 && isLockedAfter; attempt++) {
+      await page.waitForTimeout(500);
+      isLockedAfter = await isJournalLocked(page);
+    }
     expect(isLockedAfter).toBe(false);
     console.log('✓ Journal is unlocked (confirmed via API)');
 

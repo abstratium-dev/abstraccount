@@ -20,26 +20,18 @@ These TODOs are to be resolved by the developer, NOT THE LLM.
 
 - make all production stuff work with a non-default orgId by creating a new org and using that one
 
-- bug: does adding new year copy the account descriptions?
-  - llm says no bug but why is 2026 empty?
-
-- add a pricing page and work out how to actually sell this
-
-- add an endpoint for getting support by a contact page
-
 - add community support
-
-- the user guide and closing page should describe that before hand, the user should do the tax provision (and tax payment?) and legal reserve allocation
-
-- finish e2e tests
-  - multitenancy tests
-  - attachments
-  - X test closing the books and year end, checking accounts have the correct balances at the end.
-  - open next year
 
 - deploy to test and prod
 
+- add an endpoint to create a payment by a customer.
+  - needs to know which orgId to write to! this also needs to be secure!
+    - there is a chat in abstrauth dedicated to this problem.
+  - the new macros endpoint needs to be able to override the orgId somehow
+
 ## Tomorrow
+
+- add an endpoint for getting support by a contact page - as pricing says this is available
 
 - virus scanning of attachments
 

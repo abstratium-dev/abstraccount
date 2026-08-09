@@ -2,10 +2,12 @@ package dev.abstratium.abstraccount.service;
 
 import dev.abstratium.abstraccount.entity.JournalEntity;
 import dev.abstratium.abstraccount.entity.MacroEntity;
+import dev.abstratium.core.service.CurrentOrgContext;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -28,12 +30,21 @@ public class MacroServiceExecutionTest {
     @Inject
     EntityManager em;
 
+    @Inject
+    CurrentOrgContext currentOrgContext;
+
+    @Inject
+    @ConfigProperty(name = "default.org.uuid")
+    String defaultOrgId;
+
     private String testJournalId;
     private String testMacroId;
-    
+
     @BeforeEach
     @Transactional
     public void setup() {
+        currentOrgContext.setOrgId(defaultOrgId);
+
         testJournalId = UUID.randomUUID().toString();
         testMacroId = UUID.randomUUID().toString();
         
@@ -106,7 +117,40 @@ public class MacroServiceExecutionTest {
         // Should generate PI00000001 since no invoices exist
         assertTrue(result.contains("PI00000001"));
     }
-    
+
+    @Test
+    @Transactional
+    public void testExecuteMacro_replacesDefaultCurrency() {
+        // Create a journal whose currency is not CHF
+        String journalId = UUID.randomUUID().toString();
+        JournalEntity journal = new JournalEntity();
+        journal.setId(journalId);
+        journal.setTitle("USD Journal");
+        journal.setCurrency("USD");
+        em.persist(journal);
+        em.flush();
+
+        MacroEntity macro = new MacroEntity();
+        macro.setId(UUID.randomUUID().toString());
+        macro.setName("DefaultCurrencyMacro");
+        macro.setDescription("Test default currency replacement");
+        macro.setParameters("[]");
+        macro.setTemplate("{date} * Partner | Description\n    Assets:Bank  {default_currency} {amount}\n    Expenses:Test  {default_currency} -{amount}");
+        macro.setCreatedDate(LocalDateTime.now());
+        macro.setModifiedDate(LocalDateTime.now());
+        MacroEntity created = macroService.createMacro(macro);
+
+        Map<String, String> parameters = new HashMap<>();
+        parameters.put("date", "2024-01-15");
+        parameters.put("amount", "100.00");
+
+        String result = macroService.executeMacro(created, parameters, journalId);
+
+        assertTrue(result.contains("USD 100.00"), "Default currency placeholder should be replaced with journal currency");
+        assertTrue(result.contains("USD -100.00"), "Default currency placeholder should be replaced in both entries");
+        assertFalse(result.contains("{default_currency}"), "No unresolved default currency placeholder should remain");
+    }
+
     @Test
     public void testEvaluateArithmeticExpressions_subtraction() {
         Map<String, String> params = Map.of("a", "380", "b", "350");
@@ -307,7 +351,7 @@ public class MacroServiceExecutionTest {
             "INSERT INTO T_transaction (id, org_id, journal_id, transaction_date, description, status) " +
             "VALUES (:id, :orgId, :journalId, :date, :description, :status)")
             .setParameter("id", transactionId)
-            .setParameter("orgId", "00000000-0000-0000-0000-000000000000")
+            .setParameter("orgId", defaultOrgId)
             .setParameter("journalId", journalId)
             .setParameter("date", java.sql.Date.valueOf(LocalDate.now()))
             .setParameter("description", "Test transaction")
@@ -319,7 +363,7 @@ public class MacroServiceExecutionTest {
             "INSERT INTO T_tag (id, org_id, transaction_id, tag_key, tag_value) " +
             "VALUES (:id, :orgId, :transactionId, :tagKey, :tagValue)")
             .setParameter("id", UUID.randomUUID().toString())
-            .setParameter("orgId", "00000000-0000-0000-0000-000000000000")
+            .setParameter("orgId", defaultOrgId)
             .setParameter("transactionId", transactionId)
             .setParameter("tagKey", "invoice")
             .setParameter("tagValue", invoiceNumber)

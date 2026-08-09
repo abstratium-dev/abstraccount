@@ -165,6 +165,7 @@ export interface MacroDTO {
   template: string;
   validation: MacroValidationDTO | null;
   notes: string | null;
+  machineRunnable: boolean;
   createdDate: string;
   modifiedDate: string;
 }

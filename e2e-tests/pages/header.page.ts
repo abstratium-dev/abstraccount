@@ -133,11 +133,11 @@ export async function selectJournal(page: Page, journalTitle: string) {
 export async function selectCreateNewJournal(page: Page) {
   console.log('Selecting "Create New Journal" action...');
 
-  // After sign-in the SPA redirects from /signed-in to either /create-journal
-  // (empty database) or a journal-related page. Wait for the create-journal
-  // heading with a generous timeout; if it appears, we are already where we
-  // need to be. If it does not appear, journals exist and we navigate to the
-  // journal management page to click the "Create New Journal" button.
+  // After sign-in the SPA redirects from /signed-in to the last route (or '/').
+  // The final destination depends on whether journals exist:
+  //   - No journals → auth guard redirects to /create-journal
+  //   - Journals exist → lands on a journal-related page
+  // Wait for the create-journal heading; if it appears, we are already there.
   const createJournalHeading = page.getByRole('heading', { name: /^Start Your Books$/i });
   const alreadyOnCreateJournal = await createJournalHeading.isVisible({ timeout: 10000 }).catch(() => false);
   if (alreadyOnCreateJournal) {
@@ -145,6 +145,23 @@ export async function selectCreateNewJournal(page: Page) {
     return;
   }
 
+  // If we're not on /create-journal, try clicking the #journal link in the
+  // header. This triggers the auth guard which redirects to /create-journal
+  // when there are no journals. If journals DO exist, we'll land on the
+  // journal page and can navigate to journal management from there.
+  const journalLink = page.locator('#journal');
+  const journalLinkVisible = await journalLink.isVisible({ timeout: 5000 }).catch(() => false);
+  if (journalLinkVisible) {
+    console.log('Clicking #journal link to trigger auth guard redirect');
+    await journalLink.click();
+    const landedOnCreateJournal = await createJournalHeading.isVisible({ timeout: 10000 }).catch(() => false);
+    if (landedOnCreateJournal) {
+      console.log('Auth guard redirected to /create-journal (no journals exist)');
+      return;
+    }
+  }
+
+  // Journals exist — navigate to journal management to click "Create New Journal"
   await goToJournalManagementPage(page);
   const createButton = page.locator('#create-journal');
   await expect(createButton).toBeVisible({ timeout: 10000 });

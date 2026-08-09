@@ -109,8 +109,8 @@ public class NewYearService {
         int openingBalanceCount = 0;
         for (AccountEntity account : sourceAccounts) {
             AccountType type = account.getType();
-            // Only balance sheet accounts (Assets, Liabilities, Equity) carry forward
-            if (type != AccountType.ASSET && type != AccountType.LIABILITY && type != AccountType.EQUITY) {
+            // Only balance sheet accounts (Assets, Cash, Liabilities, Equity) carry forward
+            if (type != AccountType.ASSET && type != AccountType.CASH && type != AccountType.LIABILITY && type != AccountType.EQUITY) {
                 continue;
             }
 

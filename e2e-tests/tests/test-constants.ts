@@ -10,6 +10,13 @@ export const TEST_USER_EMAIL = 'test@abstratium.dev';
 export const TEST_USER_PASSWORD = 'secretLong';
 
 /**
+ * Second test user belonging to a different organisation (tenant).
+ * Used by multitenancy tests (011) to verify journal isolation.
+ */
+export const SECOND_TEST_USER_EMAIL = 'test@maxant.ch';
+export const SECOND_TEST_USER_PASSWORD = 'secretLong';
+
+/**
  * Partners needed by the e2e tests, mapped by partner number → name.
  * These are created via the Add Partner form if they don't already exist.
  */

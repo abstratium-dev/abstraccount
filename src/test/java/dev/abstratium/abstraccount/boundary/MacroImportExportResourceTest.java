@@ -1,21 +1,26 @@
 package dev.abstratium.abstraccount.boundary;
 
+import static io.restassured.RestAssured.given;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
 import dev.abstratium.abstraccount.Roles;
 import dev.abstratium.abstraccount.entity.MacroEntity;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.security.TestSecurity;
 import io.quarkus.test.security.oidc.Claim;
 import io.quarkus.test.security.oidc.OidcSecurity;
-import io.restassured.http.ContentType;
 import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-
-import static io.restassured.RestAssured.given;
-import static org.hamcrest.Matchers.*;
-import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Integration tests for macro YAML import/export endpoints.
@@ -50,6 +55,7 @@ class MacroImportExportResourceTest {
         assertTrue(exported.contains("macros"));
         assertTrue(exported.contains("PayBill"));
         assertTrue(exported.contains("Pay a bill"));
+        assertTrue(exported.contains("machine_runnable"));
     }
 
     @Test
@@ -65,6 +71,7 @@ class MacroImportExportResourceTest {
                 template: '{date} * Test'
                 validation: '{"balanceCheck":true,"minPostings":2}'
                 notes: Some notes
+                machine_runnable: true
             """;
 
         given()
@@ -84,6 +91,7 @@ class MacroImportExportResourceTest {
         assertNotNull(imported);
         assertEquals("An imported macro", imported.getDescription());
         assertTrue(imported.getParameters().contains("date"));
+        assertTrue(imported.isMachineRunnable(), "machineRunnable flag should be imported");
     }
 
     @Test
@@ -274,6 +282,7 @@ class MacroImportExportResourceTest {
         macro.setDescription(description);
         macro.setParameters("[]");
         macro.setTemplate("test");
+        macro.setMachineRunnable(false);
         em.persist(macro);
         em.flush();
     }

@@ -1,5 +1,6 @@
 package dev.abstratium.abstraccount.service;
 
+import dev.abstratium.abstraccount.entity.JournalEntity;
 import dev.abstratium.abstraccount.entity.MacroEntity;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -96,6 +97,7 @@ public class MacroService {
         existing.setTemplate(macro.getTemplate());
         existing.setValidation(macro.getValidation());
         existing.setNotes(macro.getNotes());
+        existing.setMachineRunnable(macro.isMachineRunnable());
         existing.setModifiedDate(LocalDateTime.now());
         return existing;
     }
@@ -146,7 +148,13 @@ public class MacroService {
         result = result.replace("{year}", String.valueOf(now.getYear()));
         result = result.replace("{month}", String.format("%02d", now.getMonthValue()));
         result = result.replace("{day}", String.format("%02d", now.getDayOfMonth()));
-        
+
+        // Replace default currency placeholder with the journal's actual currency
+        String defaultCurrency = resolveDefaultCurrency(journalId);
+        if (defaultCurrency != null && !defaultCurrency.isBlank()) {
+            result = result.replace("{default_currency}", defaultCurrency);
+        }
+
         // Replace {next_invoice_*} patterns with next invoice number
         Pattern invoicePattern = Pattern.compile("\\{next_invoice_([A-Z]+)\\}");
         Matcher invoiceMatcher = invoicePattern.matcher(result);
@@ -354,6 +362,20 @@ public class MacroService {
             LOG.warnf("Could not parse invoice number from: %s (number part: %s), starting from 00000001", lastInvoice, numberPart);
             return prefix + "00000001";
         }
+    }
+
+    /**
+     * Resolves the default currency placeholder to the journal's actual currency.
+     * Returns {@code null} if the journal cannot be found or has no currency.
+     */
+    private String resolveDefaultCurrency(String journalId) {
+        if (journalId == null) {
+            return null;
+        }
+        return journalPersistenceService.findJournalById(journalId)
+            .map(JournalEntity::getCurrency)
+            .filter(currency -> currency != null && !currency.isBlank())
+            .orElse(null);
     }
 
 }

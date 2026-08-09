@@ -60,7 +60,8 @@ public class MacroImportExportService {
                 macro.getParameters(),
                 macro.getTemplate(),
                 macro.getValidation(),
-                macro.getNotes()
+                macro.getNotes(),
+                macro.isMachineRunnable()
             ));
         }
 
@@ -120,7 +121,8 @@ public class MacroImportExportService {
                 macro.parameters(),
                 macro.template(),
                 macro.validation(),
-                macro.notes()
+                macro.notes(),
+                macro.machineRunnable()
             ));
         }
 
@@ -179,6 +181,7 @@ public class MacroImportExportService {
             entity.setTemplate(macro.template());
             entity.setValidation(macro.validation());
             entity.setNotes(macro.notes());
+            entity.setMachineRunnable(macro.machineRunnable());
 
             em.persist(entity);
             imported.add(new ImportedItemSummary(macro.name(), finalName, entity.getId()));

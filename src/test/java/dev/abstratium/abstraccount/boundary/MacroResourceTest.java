@@ -38,6 +38,7 @@ public class MacroResourceTest {
         macro.setTemplate("Test template");
         macro.setValidation("{\"balanceCheck\":true,\"minPostings\":2}");
         macro.setNotes("Test notes");
+        macro.setMachineRunnable(false);
         em.persist(macro);
         em.flush();
         testMacroId = macro.getId();
@@ -322,6 +323,45 @@ public class MacroResourceTest {
     }
     
     @Transactional
+    String[] setupTestDataForMachineMacro(boolean machineRunnable) {
+        // Create a test journal
+        dev.abstratium.abstraccount.entity.JournalEntity journal = new dev.abstratium.abstraccount.entity.JournalEntity();
+        journal.setTitle("Machine Test Journal");
+        journal.setCurrency("CHF");
+        em.persist(journal);
+        em.flush();
+
+        String journalId = journal.getId();
+
+        // Create simple accounts
+        dev.abstratium.abstraccount.entity.AccountEntity cashAccount = new dev.abstratium.abstraccount.entity.AccountEntity();
+        cashAccount.setJournalId(journalId);
+        cashAccount.setName("Cash");
+        cashAccount.setType(AccountType.ASSET);
+        em.persist(cashAccount);
+
+        dev.abstratium.abstraccount.entity.AccountEntity expenseAccount = new dev.abstratium.abstraccount.entity.AccountEntity();
+        expenseAccount.setJournalId(journalId);
+        expenseAccount.setName("Test");
+        expenseAccount.setType(AccountType.EXPENSE);
+        em.persist(expenseAccount);
+
+        // Create a test macro
+        dev.abstratium.abstraccount.entity.MacroEntity macro = new dev.abstratium.abstraccount.entity.MacroEntity();
+        macro.setName("MachineTestMacro");
+        macro.setDescription("Test macro for machine execution");
+        macro.setParameters("[{\"name\":\"date\",\"type\":\"date\",\"required\":true},{\"name\":\"amount\",\"type\":\"amount\",\"required\":true}]");
+        macro.setTemplate("{date} * | Machine test\n    Assets:Cash  CHF {amount}\n    Expenses:Test  CHF -{amount}");
+        macro.setValidation("{\"balanceCheck\":true,\"minPostings\":2}");
+        macro.setMachineRunnable(machineRunnable);
+        em.persist(macro);
+
+        em.flush();
+
+        return new String[] { macro.getId(), journalId };
+    }
+
+    @Transactional
     String[] setupTestDataForInvoiceTest() {
         // Create a test journal
         dev.abstratium.abstraccount.entity.JournalEntity journal = new dev.abstratium.abstraccount.entity.JournalEntity();
@@ -357,6 +397,372 @@ public class MacroResourceTest {
         
         em.flush();
         
+        return new String[] { macro.getId(), journalId };
+    }
+
+    @Test
+    @TestSecurity(user = "machineuser", roles = {Roles.MACHINE})
+    void testExecuteMachineMacro_machineRunnable_succeeds() {
+        String[] ids = setupTestDataForMachineMacro(true);
+        String macroId = ids[0];
+        String journalId = ids[1];
+
+        String requestBody = String.format("""
+            {
+                "macroId": "%s",
+                "journalId": "%s",
+                "parameters": {
+                    "date": "2026-01-15",
+                    "amount": "100.00"
+                }
+            }
+            """, macroId, journalId);
+
+        given()
+            .contentType(ContentType.JSON)
+            .body(requestBody)
+        .when()
+            .post("/api/macro/execute/machine")
+        .then()
+            .statusCode(200)
+            .body(notNullValue());
+    }
+
+    @Test
+    @TestSecurity(user = "machineuser", roles = {Roles.MACHINE})
+    void testExecuteMachineMacro_notMachineRunnable_returns403() {
+        String[] ids = setupTestDataForMachineMacro(false);
+        String macroId = ids[0];
+        String journalId = ids[1];
+
+        String requestBody = String.format("""
+            {
+                "macroId": "%s",
+                "journalId": "%s",
+                "parameters": {
+                    "date": "2026-01-15",
+                    "amount": "100.00"
+                }
+            }
+            """, macroId, journalId);
+
+        given()
+            .contentType(ContentType.JSON)
+            .body(requestBody)
+        .when()
+            .post("/api/macro/execute/machine")
+        .then()
+            .statusCode(403);
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {Roles.USER})
+    void testExecuteMachineMacro_withUserRole_returns403() {
+        String[] ids = setupTestDataForMachineMacro(true);
+        String macroId = ids[0];
+        String journalId = ids[1];
+
+        String requestBody = String.format("""
+            {
+                "macroId": "%s",
+                "journalId": "%s",
+                "parameters": {
+                    "date": "2026-01-15",
+                    "amount": "100.00"
+                }
+            }
+            """, macroId, journalId);
+
+        given()
+            .contentType(ContentType.JSON)
+            .body(requestBody)
+        .when()
+            .post("/api/macro/execute/machine")
+        .then()
+            .statusCode(403);
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {Roles.USER})
+    void testExecuteMacro_withDifferentCurrency() {
+        // This test verifies that the CHF placeholder in the minimal journal wrapper
+        // does not force the created transaction to use CHF. The journal and macro
+        // template both use USD, and the persisted entries must keep USD.
+        String[] ids = setupTestDataForDifferentCurrency();
+        String macroId = ids[0];
+        String journalId = ids[1];
+
+        String requestBody = String.format("""
+            {
+                "macroId": "%s",
+                "journalId": "%s",
+                "parameters": {
+                    "date": "2026-01-15",
+                    "amount": "123.45"
+                }
+            }
+            """, macroId, journalId);
+
+        String transactionId = given()
+            .contentType(ContentType.JSON)
+            .body(requestBody)
+        .when()
+            .post("/api/macro/execute")
+        .then()
+            .statusCode(200)
+            .extract()
+            .asString();
+
+        dev.abstratium.abstraccount.entity.TransactionEntity transaction = em.find(
+            dev.abstratium.abstraccount.entity.TransactionEntity.class,
+            transactionId.replace("\"", "")
+        );
+
+        assertNotNull(transaction);
+        assertEquals("USD transaction", transaction.getDescription());
+        assertEquals(2, transaction.getEntries().size());
+        assertTrue(
+            transaction.getEntries().stream().allMatch(entry -> "USD".equals(entry.getCommodity())),
+            "Entries should use the currency from the macro template, not the placeholder CHF header"
+        );
+    }
+
+    @Transactional
+    String[] setupTestDataForDifferentCurrency() {
+        // Create a test journal whose actual currency is not CHF
+        dev.abstratium.abstraccount.entity.JournalEntity journal = new dev.abstratium.abstraccount.entity.JournalEntity();
+        journal.setTitle("USD Test Journal");
+        journal.setCurrency("USD");
+        em.persist(journal);
+        em.flush();
+
+        String journalId = journal.getId();
+
+        // Create simple accounts
+        dev.abstratium.abstraccount.entity.AccountEntity cashAccount = new dev.abstratium.abstraccount.entity.AccountEntity();
+        cashAccount.setJournalId(journalId);
+        cashAccount.setName("Cash");
+        cashAccount.setType(AccountType.ASSET);
+        em.persist(cashAccount);
+
+        dev.abstratium.abstraccount.entity.AccountEntity expenseAccount = new dev.abstratium.abstraccount.entity.AccountEntity();
+        expenseAccount.setJournalId(journalId);
+        expenseAccount.setName("Test");
+        expenseAccount.setType(AccountType.EXPENSE);
+        em.persist(expenseAccount);
+
+        // Create a macro whose template uses USD instead of CHF
+        dev.abstratium.abstraccount.entity.MacroEntity macro = new dev.abstratium.abstraccount.entity.MacroEntity();
+        macro.setName("UsdMacro");
+        macro.setDescription("Test macro using USD currency");
+        macro.setParameters("[{\"name\":\"date\",\"type\":\"date\",\"required\":true},{\"name\":\"amount\",\"type\":\"amount\",\"required\":true}]");
+        macro.setTemplate("{date} * | USD transaction\n    Assets:Cash  USD {amount}\n    Expenses:Test  USD -{amount}");
+        macro.setValidation("{\"balanceCheck\":true,\"minPostings\":2}");
+        macro.setMachineRunnable(false);
+        em.persist(macro);
+
+        em.flush();
+
+        return new String[] { macro.getId(), journalId };
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {Roles.USER})
+    void testExecuteMacro_withNumericCodePathAndDifferentCurrency() {
+        // This test verifies that non-CHF commodities work together with numeric account
+        // code paths, which requires extractAccountCodePaths to be currency-agnostic.
+        String[] ids = setupTestDataForNumericCodePathDifferentCurrency();
+        String macroId = ids[0];
+        String journalId = ids[1];
+
+        String requestBody = String.format("""
+            {
+                "macroId": "%s",
+                "journalId": "%s",
+                "parameters": {
+                    "date": "2026-01-15",
+                    "amount": "250.00"
+                }
+            }
+            """, macroId, journalId);
+
+        String transactionId = given()
+            .contentType(ContentType.JSON)
+            .body(requestBody)
+        .when()
+            .post("/api/macro/execute")
+        .then()
+            .statusCode(200)
+            .extract()
+            .asString();
+
+        dev.abstratium.abstraccount.entity.TransactionEntity transaction = em.find(
+            dev.abstratium.abstraccount.entity.TransactionEntity.class,
+            transactionId.replace("\"", "")
+        );
+
+        assertNotNull(transaction);
+        assertEquals("USD payment", transaction.getDescription());
+        assertEquals(2, transaction.getEntries().size());
+        assertTrue(
+            transaction.getEntries().stream().allMatch(entry -> "USD".equals(entry.getCommodity())),
+            "Entries should use the currency from the macro template, not the placeholder CHF header"
+        );
+    }
+
+    @Transactional
+    String[] setupTestDataForNumericCodePathDifferentCurrency() {
+        // Create a test journal whose actual currency is not CHF
+        dev.abstratium.abstraccount.entity.JournalEntity journal = new dev.abstratium.abstraccount.entity.JournalEntity();
+        journal.setTitle("USD Numeric Code Path Journal");
+        journal.setCurrency("USD");
+        em.persist(journal);
+        em.flush();
+
+        String journalId = journal.getId();
+
+        // Build account hierarchy for code path 1:10:100
+        dev.abstratium.abstraccount.entity.AccountEntity assets = new dev.abstratium.abstraccount.entity.AccountEntity();
+        assets.setJournalId(journalId);
+        assets.setName("1 Assets");
+        assets.setType(AccountType.ASSET);
+        em.persist(assets);
+        em.flush();
+
+        dev.abstratium.abstraccount.entity.AccountEntity cash = new dev.abstratium.abstraccount.entity.AccountEntity();
+        cash.setJournalId(journalId);
+        cash.setName("10 Cash");
+        cash.setParentAccountId(assets.getId());
+        cash.setType(AccountType.ASSET);
+        em.persist(cash);
+        em.flush();
+
+        dev.abstratium.abstraccount.entity.AccountEntity bank = new dev.abstratium.abstraccount.entity.AccountEntity();
+        bank.setJournalId(journalId);
+        bank.setName("100 Bank");
+        bank.setParentAccountId(cash.getId());
+        bank.setType(AccountType.ASSET);
+        em.persist(bank);
+        em.flush();
+
+        // Build account hierarchy for code path 2:20:200
+        dev.abstratium.abstraccount.entity.AccountEntity liabilities = new dev.abstratium.abstraccount.entity.AccountEntity();
+        liabilities.setJournalId(journalId);
+        liabilities.setName("2 Liabilities");
+        liabilities.setType(AccountType.LIABILITY);
+        em.persist(liabilities);
+        em.flush();
+
+        dev.abstratium.abstraccount.entity.AccountEntity payables = new dev.abstratium.abstraccount.entity.AccountEntity();
+        payables.setJournalId(journalId);
+        payables.setName("20 Payables");
+        payables.setParentAccountId(liabilities.getId());
+        payables.setType(AccountType.LIABILITY);
+        em.persist(payables);
+        em.flush();
+
+        dev.abstratium.abstraccount.entity.AccountEntity vendor = new dev.abstratium.abstraccount.entity.AccountEntity();
+        vendor.setJournalId(journalId);
+        vendor.setName("200 Vendor");
+        vendor.setParentAccountId(payables.getId());
+        vendor.setType(AccountType.LIABILITY);
+        em.persist(vendor);
+        em.flush();
+
+        // Create a macro whose template uses USD with numeric code paths
+        dev.abstratium.abstraccount.entity.MacroEntity macro = new dev.abstratium.abstraccount.entity.MacroEntity();
+        macro.setName("UsdNumericCodePathMacro");
+        macro.setDescription("Test macro using USD and numeric code paths");
+        macro.setParameters("[{\"name\":\"date\",\"type\":\"date\",\"required\":true},{\"name\":\"amount\",\"type\":\"amount\",\"required\":true}]");
+        macro.setTemplate("{date} * | USD payment\n    1:10:100  USD -{amount}\n    2:20:200  USD {amount}");
+        macro.setValidation("{\"balanceCheck\":true,\"minPostings\":2}");
+        macro.setMachineRunnable(false);
+        em.persist(macro);
+
+        em.flush();
+
+        return new String[] { macro.getId(), journalId };
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {Roles.USER})
+    void testExecuteMacro_withDefaultCurrencyPlaceholder() {
+        // This test verifies that the {default_currency} placeholder is replaced
+        // with the target journal's currency when the macro is executed.
+        String[] ids = setupTestDataForDefaultCurrencyPlaceholder();
+        String macroId = ids[0];
+        String journalId = ids[1];
+
+        String requestBody = String.format("""
+            {
+                "macroId": "%s",
+                "journalId": "%s",
+                "parameters": {
+                    "date": "2026-01-15",
+                    "amount": "75.00"
+                }
+            }
+            """, macroId, journalId);
+
+        String transactionId = given()
+            .contentType(ContentType.JSON)
+            .body(requestBody)
+        .when()
+            .post("/api/macro/execute")
+        .then()
+            .statusCode(200)
+            .extract()
+            .asString();
+
+        dev.abstratium.abstraccount.entity.TransactionEntity transaction = em.find(
+            dev.abstratium.abstraccount.entity.TransactionEntity.class,
+            transactionId.replace("\"", "")
+        );
+
+        assertNotNull(transaction);
+        assertEquals(2, transaction.getEntries().size());
+        assertTrue(
+            transaction.getEntries().stream().allMatch(entry -> "EUR".equals(entry.getCommodity())),
+            "Entries should use the journal currency resolved from {default_currency}"
+        );
+    }
+
+    @Transactional
+    String[] setupTestDataForDefaultCurrencyPlaceholder() {
+        // Create a test journal with EUR as its currency
+        dev.abstratium.abstraccount.entity.JournalEntity journal = new dev.abstratium.abstraccount.entity.JournalEntity();
+        journal.setTitle("EUR Test Journal");
+        journal.setCurrency("EUR");
+        em.persist(journal);
+        em.flush();
+
+        String journalId = journal.getId();
+
+        // Create simple accounts
+        dev.abstratium.abstraccount.entity.AccountEntity cashAccount = new dev.abstratium.abstraccount.entity.AccountEntity();
+        cashAccount.setJournalId(journalId);
+        cashAccount.setName("Cash");
+        cashAccount.setType(AccountType.ASSET);
+        em.persist(cashAccount);
+
+        dev.abstratium.abstraccount.entity.AccountEntity expenseAccount = new dev.abstratium.abstraccount.entity.AccountEntity();
+        expenseAccount.setJournalId(journalId);
+        expenseAccount.setName("Test");
+        expenseAccount.setType(AccountType.EXPENSE);
+        em.persist(expenseAccount);
+
+        // Create a macro whose template uses the {default_currency} placeholder
+        dev.abstratium.abstraccount.entity.MacroEntity macro = new dev.abstratium.abstraccount.entity.MacroEntity();
+        macro.setName("DefaultCurrencyMacro");
+        macro.setDescription("Test macro using the default currency placeholder");
+        macro.setParameters("[{\"name\":\"date\",\"type\":\"date\",\"required\":true},{\"name\":\"amount\",\"type\":\"amount\",\"required\":true}]");
+        macro.setTemplate("{date} * | Default currency transaction\n    Assets:Cash  {default_currency} {amount}\n    Expenses:Test  {default_currency} -{amount}");
+        macro.setValidation("{\"balanceCheck\":true,\"minPostings\":2}");
+        macro.setMachineRunnable(false);
+        em.persist(macro);
+
+        em.flush();
+
         return new String[] { macro.getId(), journalId };
     }
 }
