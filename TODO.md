@@ -26,6 +26,13 @@ These TODOs are to be resolved by the developer, NOT THE LLM.
 
 # TODOs for Abstracore (to be deleted downstream)
 
+- when @run-java-tests.py  is run as follows, it doesn't execute just one test, it seems to run all of them:
+
+    ./scripts/run-java-tests.py NonMultitenancyTokenResourceTest#testClientIdCollisionCannotBeUsedToDeleteOrganisation
+
+  is that a bug? is it related to the hashcode which should result in just one test method executing?
+
+
 - add this to end of angular.md in .devis/rules:
 
     ## Zoneless change detection
