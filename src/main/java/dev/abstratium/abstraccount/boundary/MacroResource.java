@@ -166,33 +166,6 @@ public class MacroResource {
         return executeMacroInternal(request, macro);
     }
 
-    /**
-     * Executes a macro on behalf of an automated client.
-     * Only macros explicitly flagged as machine-runnable can be invoked through this endpoint.
-     *
-     * @param request the execution request containing macroId, journalId, and parameter values
-     * @return the ID of the created transaction
-     */
-    @POST
-    @Path("/execute/machine")
-    @Consumes(MediaType.APPLICATION_JSON)
-    @RolesAllowed({Roles.MACHINE})
-    public String executeMachineMacro(MacroExecuteRequestDTO request) {
-        LOG.debugf("Executing machine macro: %s for journal: %s", request.macroId(), request.journalId());
-
-        MacroEntity macro = macroService.loadMacro(request.macroId());
-        if (macro == null) {
-            throw new NotFoundException("Macro not found");
-        }
-
-        if (!macro.isMachineRunnable()) {
-            LOG.warnf("Machine execution rejected for macro %s: not flagged as machine-runnable", macro.getId());
-            throw new ForbiddenException("Macro is not enabled for machine execution");
-        }
-
-        return executeMacroInternal(request, macro);
-    }
-
     private String executeMacroInternal(MacroExecuteRequestDTO request, MacroEntity macro) {
         // Reject execution against a locked journal
         journalPersistenceService.requireNotLocked(request.journalId());
@@ -366,7 +339,6 @@ public class MacroResource {
                 entity.getTemplate(),
                 validation,
                 entity.getNotes(),
-                entity.isMachineRunnable(),
                 entity.getCreatedDate().toString(),
                 entity.getModifiedDate().toString()
             );
@@ -389,7 +361,6 @@ public class MacroResource {
             entity.setDescription(dto.description());
             entity.setParameters(objectMapper.writeValueAsString(dto.parameters()));
             entity.setTemplate(dto.template());
-            entity.setMachineRunnable(dto.machineRunnable());
             
             if (dto.validation() != null) {
                 entity.setValidation(objectMapper.writeValueAsString(dto.validation()));

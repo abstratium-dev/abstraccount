@@ -2,7 +2,7 @@
 
 ## Overview
 
-The macro system allows users and automated clients to define and execute reusable transaction templates. Macros simplify common accounting tasks like paying bills, recording recurring transactions, performing year-end operations, and posting machine-generated transactions such as online payments.
+The macro system allows users to define reusable transaction templates that can be executed through the Angular web interface. Macros simplify common accounting tasks like paying bills, recording recurring transactions, and performing year-end operations.
 
 ## Architecture
 
@@ -40,7 +40,6 @@ CREATE TABLE T_macro (
     template TEXT NOT NULL,    -- Transaction template with placeholders
     validation TEXT,           -- JSON object with validation rules
     notes TEXT,               -- Additional notes/documentation
-    machine_runnable BOOLEAN NOT NULL DEFAULT FALSE,  -- Can be executed by machine clients
     created_date TIMESTAMP NOT NULL,
     modified_date TIMESTAMP NOT NULL,
     CONSTRAINT FK_macro_journal FOREIGN KEY (journal_id) 
@@ -79,9 +78,6 @@ public class MacroEntity {
     
     @Column(columnDefinition = "TEXT")
     private String notes;
-
-    @Column(name = "machine_runnable", nullable = false)
-    private boolean machineRunnable;
     
     @Column(name = "created_date", nullable = false)
     private LocalDateTime createdDate;
@@ -102,7 +98,6 @@ public record MacroDTO(
     String template,
     MacroValidationDTO validation,
     String notes,
-    boolean machineRunnable,
     String createdDate,
     String modifiedDate
 ) {}
@@ -285,25 +280,8 @@ public class MacroResource {
     @Path("/execute")
     @Consumes(MediaType.APPLICATION_JSON)
     public String executeMacro(MacroExecuteRequestDTO request);
-    
-    @POST
-    @Path("/execute/machine")
-    @Consumes(MediaType.APPLICATION_JSON)
-    @RolesAllowed({Roles.MACHINE})
-    public String executeMachineMacro(MacroExecuteRequestDTO request);
 }
 ```
-
-The interactive UI uses `/api/macro/execute`. The `/api/macro/execute/machine` endpoint is for automated clients only and additionally verifies that the requested macro has `machineRunnable = true`.
-
-## Machine Execution
-
-Macros can be flagged as `machineRunnable` so that automated clients can invoke them through a dedicated endpoint. This lets operators change the transaction behaviour for machine integrations by editing macros instead of code.
-
-- `machineRunnable` defaults to `false`.
-- Only macros with `machineRunnable = true` may be called through `POST /api/macro/execute/machine`.
-- The endpoint requires the `abstratium-abstraccount_machine` role.
-- The same macro can be used by both interactive users and machines if `machineRunnable` is true; the flag only affects the machine endpoint.
 
 ## JSON Storage Format
 
@@ -363,10 +341,7 @@ items:
     template: "{date} * {partner} | ..."
     validation: '{"balanceCheck":true,"minPostings":3}'
     notes: "..."
-    machine_runnable: true
 ```
-
-The `machine_runnable` field is optional on import and defaults to `false` when omitted.
 
 ## UI Integration
 
@@ -390,14 +365,12 @@ The `machine_runnable` field is optional on import and defaults to `false` when 
 
 ## Security Considerations
 
-1. **Authorization**: Only users with `Roles.USER` can access macro management and `/api/macro/execute`
-2. **Machine authorization**: Only clients with `Roles.MACHINE` can call `/api/macro/execute/machine`
-3. **Machine-runnable restriction**: The machine endpoint refuses to run macros where `machineRunnable = false`
-4. **Journal isolation**: Macros are scoped to journals, enforced by foreign key
-5. **Validation**: All parameters validated before transaction creation
-6. **Balance checks**: Transactions must balance unless explicitly disabled
-7. **Account verification**: Only existing accounts can be referenced
-8. **Audit trail**: All macro executions logged via transaction creation
+1. **Authorization**: Only users with `Roles.USER` can access macros
+2. **Journal isolation**: Macros are scoped to journals, enforced by foreign key
+3. **Validation**: All parameters validated before transaction creation
+4. **Balance checks**: Transactions must balance unless explicitly disabled
+5. **Account verification**: Only existing accounts can be referenced
+6. **Audit trail**: All macro executions logged via transaction creation
 
 ## Example Macros
 
@@ -410,10 +383,6 @@ See `V01.013__insertStandardMacros.sql` for pre-loaded macro examples including:
 - **PaymentForGoods** - Purchase inventory for resale
 - **InvoiceForServicesOrSaas** - Send customer invoice
 - **CustomerPaysInvoice** - Record customer payment
-- **RecordOnlinePayment** - Machine: record an order paid online through a payment provider
-- **RecordInvoiceIssued** - Machine: issue an invoice to a customer who will pay later
-- **RecordInvoicePayment** - Machine: record an online payment against an existing invoice
-- **TransferStripeToBank** - Machine: sweep payment-provider balance to the bank account
 - **InventoryAdjustment** - Year-end inventory write-down
 - **RecordDepreciation** - Annual depreciation entry
 - **TaxProvision** - Year-end tax provision
@@ -437,8 +406,6 @@ See `V01.013__insertStandardMacros.sql` for pre-loaded macro examples including:
   - DELETE macro
   - Verify journal isolation
   - Verify authorization
-  - Verify `/api/macro/execute/machine` enforces `Roles.MACHINE`
-  - Verify machine endpoint rejects non-machine-runnable macros
 
 ### Coverage Goals
 

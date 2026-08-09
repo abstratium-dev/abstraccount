@@ -14,7 +14,6 @@ public record MacroDTO(
     String template,
     MacroValidationDTO validation,
     String notes,
-    boolean machineRunnable,
     String createdDate,
     String modifiedDate
 ) {}

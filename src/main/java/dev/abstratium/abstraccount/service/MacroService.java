@@ -97,7 +97,6 @@ public class MacroService {
         existing.setTemplate(macro.getTemplate());
         existing.setValidation(macro.getValidation());
         existing.setNotes(macro.getNotes());
-        existing.setMachineRunnable(macro.isMachineRunnable());
         existing.setModifiedDate(LocalDateTime.now());
         return existing;
     }

@@ -24,10 +24,12 @@ These TODOs are to be resolved by the developer, NOT THE LLM.
 
 - deploy to test and prod
 
-- add an endpoint to create a payment by a customer.
-  - needs to know which orgId to write to! this also needs to be secure!
-    - there is a chat in abstrauth dedicated to this problem.
-  - the new macros endpoint needs to be able to override the orgId somehow
+- if i do bulk transactions how can i track mwst of individual product sales and fees? it's kind of strange that i pay 8.10 CHF for a sale of 100 CHF but stripe charges me say 5 CHF. is that right, or is the mwst paid on the 100-5 = 95 CHF?
+
+- add a macro for stripe payments which allows me to show how much product was sold, what the charges were, etc.
+
+
+
 
 ## Tomorrow
 

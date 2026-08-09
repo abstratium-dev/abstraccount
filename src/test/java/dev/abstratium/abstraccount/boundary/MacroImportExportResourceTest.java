@@ -55,7 +55,6 @@ class MacroImportExportResourceTest {
         assertTrue(exported.contains("macros"));
         assertTrue(exported.contains("PayBill"));
         assertTrue(exported.contains("Pay a bill"));
-        assertTrue(exported.contains("machine_runnable"));
     }
 
     @Test
@@ -71,7 +70,6 @@ class MacroImportExportResourceTest {
                 template: '{date} * Test'
                 validation: '{"balanceCheck":true,"minPostings":2}'
                 notes: Some notes
-                machine_runnable: true
             """;
 
         given()
@@ -91,7 +89,6 @@ class MacroImportExportResourceTest {
         assertNotNull(imported);
         assertEquals("An imported macro", imported.getDescription());
         assertTrue(imported.getParameters().contains("date"));
-        assertTrue(imported.isMachineRunnable(), "machineRunnable flag should be imported");
     }
 
     @Test
@@ -282,7 +279,6 @@ class MacroImportExportResourceTest {
         macro.setDescription(description);
         macro.setParameters("[]");
         macro.setTemplate("test");
-        macro.setMachineRunnable(false);
         em.persist(macro);
         em.flush();
     }

@@ -41,9 +41,6 @@ public class MacroEntity {
     
     @Column(columnDefinition = "TEXT")
     private String notes;
-
-    @Column(name = "machine_runnable", nullable = false)
-    private boolean machineRunnable;
     
     @Column(name = "created_date", nullable = false)
     private LocalDateTime createdDate;
@@ -112,14 +109,6 @@ public class MacroEntity {
     
     public void setNotes(String notes) {
         this.notes = notes;
-    }
-
-    public boolean isMachineRunnable() {
-        return machineRunnable;
-    }
-
-    public void setMachineRunnable(boolean machineRunnable) {
-        this.machineRunnable = machineRunnable;
     }
     
     public LocalDateTime getCreatedDate() {

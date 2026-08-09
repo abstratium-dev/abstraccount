@@ -38,7 +38,6 @@ public class MacroResourceTest {
         macro.setTemplate("Test template");
         macro.setValidation("{\"balanceCheck\":true,\"minPostings\":2}");
         macro.setNotes("Test notes");
-        macro.setMachineRunnable(false);
         em.persist(macro);
         em.flush();
         testMacroId = macro.getId();
@@ -323,45 +322,6 @@ public class MacroResourceTest {
     }
     
     @Transactional
-    String[] setupTestDataForMachineMacro(boolean machineRunnable) {
-        // Create a test journal
-        dev.abstratium.abstraccount.entity.JournalEntity journal = new dev.abstratium.abstraccount.entity.JournalEntity();
-        journal.setTitle("Machine Test Journal");
-        journal.setCurrency("CHF");
-        em.persist(journal);
-        em.flush();
-
-        String journalId = journal.getId();
-
-        // Create simple accounts
-        dev.abstratium.abstraccount.entity.AccountEntity cashAccount = new dev.abstratium.abstraccount.entity.AccountEntity();
-        cashAccount.setJournalId(journalId);
-        cashAccount.setName("Cash");
-        cashAccount.setType(AccountType.ASSET);
-        em.persist(cashAccount);
-
-        dev.abstratium.abstraccount.entity.AccountEntity expenseAccount = new dev.abstratium.abstraccount.entity.AccountEntity();
-        expenseAccount.setJournalId(journalId);
-        expenseAccount.setName("Test");
-        expenseAccount.setType(AccountType.EXPENSE);
-        em.persist(expenseAccount);
-
-        // Create a test macro
-        dev.abstratium.abstraccount.entity.MacroEntity macro = new dev.abstratium.abstraccount.entity.MacroEntity();
-        macro.setName("MachineTestMacro");
-        macro.setDescription("Test macro for machine execution");
-        macro.setParameters("[{\"name\":\"date\",\"type\":\"date\",\"required\":true},{\"name\":\"amount\",\"type\":\"amount\",\"required\":true}]");
-        macro.setTemplate("{date} * | Machine test\n    Assets:Cash  CHF {amount}\n    Expenses:Test  CHF -{amount}");
-        macro.setValidation("{\"balanceCheck\":true,\"minPostings\":2}");
-        macro.setMachineRunnable(machineRunnable);
-        em.persist(macro);
-
-        em.flush();
-
-        return new String[] { macro.getId(), journalId };
-    }
-
-    @Transactional
     String[] setupTestDataForInvoiceTest() {
         // Create a test journal
         dev.abstratium.abstraccount.entity.JournalEntity journal = new dev.abstratium.abstraccount.entity.JournalEntity();
@@ -398,88 +358,6 @@ public class MacroResourceTest {
         em.flush();
         
         return new String[] { macro.getId(), journalId };
-    }
-
-    @Test
-    @TestSecurity(user = "machineuser", roles = {Roles.MACHINE})
-    void testExecuteMachineMacro_machineRunnable_succeeds() {
-        String[] ids = setupTestDataForMachineMacro(true);
-        String macroId = ids[0];
-        String journalId = ids[1];
-
-        String requestBody = String.format("""
-            {
-                "macroId": "%s",
-                "journalId": "%s",
-                "parameters": {
-                    "date": "2026-01-15",
-                    "amount": "100.00"
-                }
-            }
-            """, macroId, journalId);
-
-        given()
-            .contentType(ContentType.JSON)
-            .body(requestBody)
-        .when()
-            .post("/api/macro/execute/machine")
-        .then()
-            .statusCode(200)
-            .body(notNullValue());
-    }
-
-    @Test
-    @TestSecurity(user = "machineuser", roles = {Roles.MACHINE})
-    void testExecuteMachineMacro_notMachineRunnable_returns403() {
-        String[] ids = setupTestDataForMachineMacro(false);
-        String macroId = ids[0];
-        String journalId = ids[1];
-
-        String requestBody = String.format("""
-            {
-                "macroId": "%s",
-                "journalId": "%s",
-                "parameters": {
-                    "date": "2026-01-15",
-                    "amount": "100.00"
-                }
-            }
-            """, macroId, journalId);
-
-        given()
-            .contentType(ContentType.JSON)
-            .body(requestBody)
-        .when()
-            .post("/api/macro/execute/machine")
-        .then()
-            .statusCode(403);
-    }
-
-    @Test
-    @TestSecurity(user = "testuser", roles = {Roles.USER})
-    void testExecuteMachineMacro_withUserRole_returns403() {
-        String[] ids = setupTestDataForMachineMacro(true);
-        String macroId = ids[0];
-        String journalId = ids[1];
-
-        String requestBody = String.format("""
-            {
-                "macroId": "%s",
-                "journalId": "%s",
-                "parameters": {
-                    "date": "2026-01-15",
-                    "amount": "100.00"
-                }
-            }
-            """, macroId, journalId);
-
-        given()
-            .contentType(ContentType.JSON)
-            .body(requestBody)
-        .when()
-            .post("/api/macro/execute/machine")
-        .then()
-            .statusCode(403);
     }
 
     @Test
@@ -558,7 +436,6 @@ public class MacroResourceTest {
         macro.setParameters("[{\"name\":\"date\",\"type\":\"date\",\"required\":true},{\"name\":\"amount\",\"type\":\"amount\",\"required\":true}]");
         macro.setTemplate("{date} * | USD transaction\n    Assets:Cash  USD {amount}\n    Expenses:Test  USD -{amount}");
         macro.setValidation("{\"balanceCheck\":true,\"minPostings\":2}");
-        macro.setMachineRunnable(false);
         em.persist(macro);
 
         em.flush();
@@ -676,7 +553,6 @@ public class MacroResourceTest {
         macro.setParameters("[{\"name\":\"date\",\"type\":\"date\",\"required\":true},{\"name\":\"amount\",\"type\":\"amount\",\"required\":true}]");
         macro.setTemplate("{date} * | USD payment\n    1:10:100  USD -{amount}\n    2:20:200  USD {amount}");
         macro.setValidation("{\"balanceCheck\":true,\"minPostings\":2}");
-        macro.setMachineRunnable(false);
         em.persist(macro);
 
         em.flush();
@@ -758,7 +634,6 @@ public class MacroResourceTest {
         macro.setParameters("[{\"name\":\"date\",\"type\":\"date\",\"required\":true},{\"name\":\"amount\",\"type\":\"amount\",\"required\":true}]");
         macro.setTemplate("{date} * | Default currency transaction\n    Assets:Cash  {default_currency} {amount}\n    Expenses:Test  {default_currency} -{amount}");
         macro.setValidation("{\"balanceCheck\":true,\"minPostings\":2}");
-        macro.setMachineRunnable(false);
         em.persist(macro);
 
         em.flush();

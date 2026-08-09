@@ -74,7 +74,6 @@ describe('MacrosComponent', () => {
 
   it('should execute macro and navigate to journal', async () => {
     const testMacro = {
-      machineRunnable: false,
       id: 'test-macro',
       name: 'Test Macro',
       description: 'Test',
@@ -106,7 +105,6 @@ describe('MacrosComponent', () => {
 
   it('should show error if required parameter is missing', async () => {
     const testMacro = {
-      machineRunnable: false,
       id: 'test-macro',
       name: 'Test Macro',
       description: 'Test',
@@ -131,7 +129,6 @@ describe('MacrosComponent', () => {
 
   it('should initialize default values for autocomplete parameters (invoice type)', () => {
     const testMacro = {
-      machineRunnable: false,
       id: 'test-macro',
       name: 'InvoiceForServicesOrSaas',
       description: 'Test invoice macro',
@@ -315,7 +312,6 @@ describe('MacrosComponent', () => {
 
   it('should delete macro when confirmed', async () => {
     const testMacro = {
-      machineRunnable: false,
       id: 'macro-to-delete',
       name: 'Deletable Macro',
       description: 'Test',
@@ -348,7 +344,6 @@ describe('MacrosComponent', () => {
 
   it('should not delete macro when confirmation is cancelled', async () => {
     const testMacro = {
-      machineRunnable: false,
       id: 'macro-to-delete',
       name: 'Deletable Macro',
       description: 'Test',
@@ -373,7 +368,6 @@ describe('MacrosComponent', () => {
 
   it('should stop propagation so the tile click does not open the execute dialog', async () => {
     const testMacro = {
-      machineRunnable: false,
       id: 'macro-to-delete',
       name: 'Deletable Macro',
       description: 'Test',
@@ -397,7 +391,6 @@ describe('MacrosComponent', () => {
 
   it('should show error message and toast when delete fails', async () => {
     const testMacro = {
-      machineRunnable: false,
       id: 'macro-to-delete',
       name: 'Deletable Macro',
       description: 'Test',
@@ -437,7 +430,6 @@ describe('MacrosComponent', () => {
 
   describe('locked journal guard', () => {
     const testMacro = {
-      machineRunnable: false,
       id: 'test-macro',
       name: 'Test Macro',
       description: 'Test',

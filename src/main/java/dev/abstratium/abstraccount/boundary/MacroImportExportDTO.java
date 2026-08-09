@@ -1,6 +1,5 @@
 package dev.abstratium.abstraccount.boundary;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import io.quarkus.runtime.annotations.RegisterForReflection;
 
 /**
@@ -15,7 +14,6 @@ public record MacroImportExportDTO(
     String parameters,
     String template,
     String validation,
-    String notes,
-    @JsonProperty("machine_runnable") boolean machineRunnable
+    String notes
 ) {
 }
