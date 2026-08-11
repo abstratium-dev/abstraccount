@@ -495,3 +495,49 @@ export async function getVisibleTransactionDescriptions(page: Page): Promise<str
   console.log(`Visible transaction descriptions: ${descriptions.length}`);
   return descriptions;
 }
+
+/**
+ * Delete all transactions in the currently selected journal (per localStorage
+ * `journalId`) whose description equals or contains `description`, via the API.
+ *
+ * This is more reliable than the UI-based delete flow (one at a time, can fail
+ * if the modal doesn't open) and is used for test cleanup before a test creates
+ * its own transactions, so re-runs don't accumulate duplicates.
+ */
+export async function deleteTransactionsByDescription(page: Page, description: string): Promise<number> {
+  console.log(`Looking for transactions with description: "${description}"`);
+
+  const journalId = await page.evaluate(() => localStorage.getItem('journalId'));
+  if (!journalId) {
+    console.log('No journalId in localStorage, skipping cleanup');
+    return 0;
+  }
+
+  const response = await page.request.get(`/api/journal/${journalId}/transactions`);
+  if (!response.ok()) {
+    console.log(`API request failed: ${response.status()}, skipping cleanup`);
+    return 0;
+  }
+  const transactions = await response.json() as Array<{ id: string; description?: string }>;
+
+  let deletedCount = 0;
+  for (const tx of transactions) {
+    const txDescription = tx.description || '';
+    if (txDescription === description || txDescription.includes(description)) {
+      console.log(`  Deleting transaction: "${txDescription}" (id: ${tx.id})`);
+      const deleteResponse = await page.request.delete(`/api/transaction/${tx.id}`);
+      if (deleteResponse.ok()) {
+        deletedCount++;
+        console.log(`  ✓ Deleted transaction ${tx.id}`);
+      } else {
+        console.log(`  ✗ Failed to delete transaction ${tx.id}: ${deleteResponse.status()}`);
+      }
+    }
+  }
+  if (deletedCount === 0) {
+    console.log(`Transaction "${description}" not found, nothing to delete`);
+  } else {
+    console.log(`Cleanup complete: ${deletedCount} transaction(s) deleted for "${description}"`);
+  }
+  return deletedCount;
+}

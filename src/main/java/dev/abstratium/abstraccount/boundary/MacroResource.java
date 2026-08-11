@@ -13,6 +13,7 @@ import dev.abstratium.abstraccount.model.Journal;
 import dev.abstratium.abstraccount.model.Tag;
 import dev.abstratium.abstraccount.model.Transaction;
 import dev.abstratium.abstraccount.service.AccountService;
+import dev.abstratium.abstraccount.service.CsvLineParser;
 import dev.abstratium.abstraccount.service.JournalParser;
 import dev.abstratium.abstraccount.service.JournalPersistenceService;
 import dev.abstratium.abstraccount.service.MacroImportExportService;
@@ -164,6 +165,138 @@ public class MacroResource {
         }
 
         return executeMacroInternal(request, macro);
+    }
+
+    /**
+     * Executes a macro once per row of a pasted/uploaded CSV batch, creating one
+     * transaction per valid row. There is no preview step: valid rows are posted
+     * as transactions immediately; invalid rows are skipped and reported with a
+     * warning so the caller can fix and resubmit just those rows.
+     *
+     * <p>{@code sharedParameters} are applied to every row. The remaining macro
+     * parameters (those not present in {@code sharedParameters}) are taken, in
+     * the macro's parameter order, from the CSV columns of each row.</p>
+     *
+     * @param request the batch execution request
+     * @return a per-row result summary
+     */
+    @POST
+    @Path("/execute-batch")
+    @Consumes(MediaType.APPLICATION_JSON)
+    public MacroBatchExecuteResultDTO executeMacroBatch(MacroBatchExecuteRequestDTO request) {
+        LOG.debugf("Executing macro batch: %s for journal: %s", request.macroId(), request.journalId());
+
+        MacroEntity macro = macroService.loadMacro(request.macroId());
+        if (macro == null) {
+            throw new NotFoundException("Macro not found");
+        }
+
+        journalPersistenceService.requireNotLocked(request.journalId());
+
+        Map<String, String> sharedParameters = request.sharedParameters() != null
+            ? request.sharedParameters() : Map.of();
+
+        List<String> rowParameterNames = determineRowParameterNames(macro, sharedParameters);
+        List<List<String>> rows = parseCsvRows(request.csv(), rowParameterNames);
+
+        List<MacroBatchRowResultDTO> results = new ArrayList<>();
+        int successCount = 0;
+        for (int i = 0; i < rows.size(); i++) {
+            int rowNumber = i + 1;
+            List<String> fields = rows.get(i);
+
+            if (fields.size() != rowParameterNames.size()) {
+                results.add(new MacroBatchRowResultDTO(rowNumber, false, null,
+                    "Expected " + rowParameterNames.size() + " column(s), got " + fields.size()));
+                continue;
+            }
+
+            Map<String, String> rowParameters = new HashMap<>(sharedParameters);
+            for (int c = 0; c < rowParameterNames.size(); c++) {
+                rowParameters.put(rowParameterNames.get(c), fields.get(c).trim());
+            }
+
+            try {
+                MacroExecuteRequestDTO singleRequest = new MacroExecuteRequestDTO(
+                    request.macroId(), request.journalId(), rowParameters);
+                String transactionId = executeMacroInternal(singleRequest, macro);
+                results.add(new MacroBatchRowResultDTO(rowNumber, true, transactionId, null));
+                successCount++;
+            } catch (Exception e) {
+                LOG.warnf(e, "Failed to execute macro for batch row %d", rowNumber);
+                results.add(new MacroBatchRowResultDTO(rowNumber, false, null, e.getMessage()));
+            }
+        }
+
+        return new MacroBatchExecuteResultDTO(rows.size(), successCount, rows.size() - successCount, results);
+    }
+
+    /**
+     * Determines, in the macro's parameter order, the names of the parameters
+     * that must come from CSV columns rather than the shared parameters.
+     */
+    private List<String> determineRowParameterNames(MacroEntity macro, Map<String, String> sharedParameters) {
+        List<MacroParameterDTO> macroParams;
+        try {
+            macroParams = objectMapper.readValue(macro.getParameters(), new TypeReference<List<MacroParameterDTO>>() {});
+        } catch (JsonProcessingException e) {
+            LOG.errorf(e, "Failed to parse macro parameters for macro: %s", macro.getId());
+            throw new WebApplicationException("Failed to parse macro parameters", 400);
+        }
+
+        List<String> rowParameterNames = new ArrayList<>();
+        for (MacroParameterDTO param : macroParams) {
+            if (!sharedParameters.containsKey(param.name())) {
+                rowParameterNames.add(param.name());
+            }
+        }
+        return rowParameterNames;
+    }
+
+    /**
+     * Splits CSV content into rows of fields, skipping blank lines and, if
+     * present, a header row that matches the expected per-row parameter names.
+     */
+    private List<List<String>> parseCsvRows(String csv, List<String> rowParameterNames) {
+        List<List<String>> rows = new ArrayList<>();
+        if (csv == null || csv.isBlank()) {
+            return rows;
+        }
+
+        String[] lines = csv.split("\\r?\\n");
+        boolean first = true;
+        for (String line : lines) {
+            if (line.trim().isEmpty()) {
+                continue;
+            }
+            List<String> fields = CsvLineParser.parseFields(line);
+            if (first) {
+                first = false;
+                if (isHeaderRow(fields, rowParameterNames)) {
+                    continue;
+                }
+            }
+            rows.add(fields);
+        }
+        return rows;
+    }
+
+    /**
+     * A row is treated as a header if, once trimmed, its fields are exactly the
+     * expected per-row parameter names (case-insensitive), in any order.
+     */
+    private boolean isHeaderRow(List<String> fields, List<String> rowParameterNames) {
+        if (fields.size() != rowParameterNames.size()) {
+            return false;
+        }
+        for (String field : fields) {
+            boolean matchesAParameterName = rowParameterNames.stream()
+                .anyMatch(name -> name.equalsIgnoreCase(field.trim()));
+            if (!matchesAParameterName) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private String executeMacroInternal(MacroExecuteRequestDTO request, MacroEntity macro) {
@@ -405,7 +538,7 @@ public class MacroResource {
         // Pattern: account identifier followed by commodity and amount.
         // Account identifier can be a code path or a full account name.
         // The commodity is matched generically so macros work with any currency.
-        Pattern entryPattern = Pattern.compile("^\\s+(.+?)\\s+\\S+\\s+[-]?[0-9.]+", Pattern.MULTILINE);
+        Pattern entryPattern = Pattern.compile("^\\s+(?!;)(.+?)\\s+\\S+\\s+[-]?[0-9.]+\\s*$", Pattern.MULTILINE);
         Matcher matcher = entryPattern.matcher(transactionText);
         while (matcher.find()) {
             String accountIdentifier = matcher.group(1).trim();

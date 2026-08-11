@@ -100,7 +100,7 @@ Total Equity:               CHF 31,500  ← UNCHANGED
 - They don't "cancel out" - they're both adding to equity
 - The allocation simply MOVES CHF 500 from 2979 to 2950
 - Total equity remains the same
-- In hledger, credit balances show as negative numbers, which can be confusing
+- credit balances show as negative numbers, which can be confusing
 
 **This is legally required:**
 - Swiss Code of Obligations Art. 671-672
@@ -118,8 +118,8 @@ Total Equity:               CHF 31,500  ← UNCHANGED
 1. **Phase 2.4:** Record tax provision (account 8900)
 2. **Phase 2.5:** Allocate legal reserves (5% of profit to account 2950)
 3. **Phase 2.6:** 📊 **PRINT FINANCIAL STATEMENTS**
-   - Income statement: `hledger is -f 2025.journal -e 2026-01-01`
-   - Balance sheet: `hledger bs -f 2025.journal -e 2026-01-01`
+   - Income statement
+   - Balance sheet
    - Save these for tax filing
 4. **Phase 3:** Close all revenue and expense accounts to 2979
 5. **Phase 4:** Transfer 2979 to 2970 (January 1 of next year)

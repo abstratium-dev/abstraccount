@@ -82,7 +82,8 @@ class JournalCreationIntegrationTest {
                 .body("find { it.name == '5 Personnel expenses' }.children.name", containsInAnyOrder("5000 Salaries"))
                 .body("find { it.name == '6 Other operating expenses' }.children.name", containsInAnyOrder(
                         "6300 Insurance expense", "6500 Administrative expenses", "6570 IT and computing expenses",
-                        "6700 Other operating expenses", "6800 Depreciation", "6900 Financial expense"));
+                        "6700 Other operating expenses", "6800 Depreciation", "6900 Financial expense",
+                        "6901 Payment processing fees"));
 
         given()
             .when()

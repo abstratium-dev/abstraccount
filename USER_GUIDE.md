@@ -141,6 +141,8 @@ Several environment variables hold secrets that must be generated before deploym
      -e ABSTRATIUM_TOGGLES_CONTEXT="abstratium-public-abstraccount" \
      -e STAGE="prod" \
      -e DEPLOYMENT_ENV="prod" \
+     -e ABSTRA_LEGAL_CONTENT_FILE="/config/legal.html" \
+     -e PARTNER_DATA_DIR="data/partners" \
      ghcr.io/abstratium-dev/abstraccount:latest
    ```
 

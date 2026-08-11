@@ -126,6 +126,8 @@ public class JournalCreationService {
             "Petty cash on hand.");
         createAccount(journalId, "1020 Bank Account", AccountType.CASH, cash.getId(), order++,
             "Money held in the company's bank account(s), as opposed to a loan or overdraft, which would be a liability.");
+        createAccount(journalId, "1021 Payment processor", AccountType.CASH, cash.getId(), order++,
+            "Funds held by a payment service provider (e.g. Stripe, PayPal, Square, Adyen) after a sale, before payout to the company's bank account.");
         AccountEntity receivables = createAccount(journalId, "110 Accounts Receivable", AccountType.ASSET, currentAssets.getId(), order++,
             "Money owed to the company by customers for goods delivered or services rendered that has not yet been paid. Also known as trade receivables or debtors.");
         createAccount(journalId, "1100 Trade receivables", AccountType.ASSET, receivables.getId(), order++,
@@ -196,6 +198,8 @@ public class JournalCreationService {
             "Annual depreciation of fixed assets, such as machinery, equipment and furniture.");
         createAccount(journalId, "6900 Financial expense", AccountType.EXPENSE, operatingExpenses.getId(), order++,
             "Bank charges, interest paid on loans, and other costs related to financing the business.");
+        createAccount(journalId, "6901 Payment processing fees", AccountType.EXPENSE, operatingExpenses.getId(), order++,
+            "Fees charged by payment service providers (e.g. Stripe, PayPal, Square, Adyen) on card and online payments. Kept separate from bank charges in 6900.");
         AccountEntity nonOperatingExpenses = createAccount(journalId, "8 Non-operating expenses", AccountType.EXPENSE, null, order++,
             "Expenses and income that fall outside normal business operations, such as prior-period corrections or extraordinary, one-off items.");
         createAccount(journalId, "8900 Direct taxes", AccountType.EXPENSE, nonOperatingExpenses.getId(), order++,

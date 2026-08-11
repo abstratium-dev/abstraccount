@@ -280,6 +280,12 @@ public class MacroResource {
     @Path("/execute")
     @Consumes(MediaType.APPLICATION_JSON)
     public String executeMacro(MacroExecuteRequestDTO request);
+
+    @POST
+    @Path("/execute-batch")
+    @Consumes(MediaType.APPLICATION_JSON)
+    public MacroBatchExecuteResultDTO executeMacroBatch(
+        MacroBatchExecuteRequestDTO request);
 }
 ```
 
@@ -343,6 +349,84 @@ items:
     notes: "..."
 ```
 
+## Batch Macro Execution
+
+A macro normally creates one transaction per execution. Batch execution runs the *same* macro
+once per row of a pasted/uploaded CSV, so many similar transactions (e.g. a day's worth of
+payment processor sales) can be created in a single action, without a preview step.
+
+### Shared vs. row parameters
+
+- **Shared parameters**: the macro's `account`-type parameters (e.g. a revenue account, a fee
+  expense account, a processor account). These are filled in once and applied to every row.
+- **Row parameters**: all remaining parameters, taken from the CSV, in the same order as they
+  appear in the macro's parameter list. A header row is optional: if the first CSV row's fields
+  exactly match the row parameter names (case-insensitively, in any order), it is skipped.
+
+This split is entirely determined by parameter *type*, so batch execution works for any macro
+without extra configuration.
+
+### Request/response DTOs
+
+```java
+public record MacroBatchExecuteRequestDTO(
+    String macroId,
+    String journalId,
+    Map<String, String> sharedParameters,
+    String csv
+) {}
+
+public record MacroBatchExecuteResultDTO(
+    int totalRows,
+    int successCount,
+    int failureCount,
+    List<MacroBatchRowResultDTO> results
+) {}
+
+public record MacroBatchRowResultDTO(
+    int row,
+    boolean success,
+    String transactionId,
+    String error
+) {}
+```
+
+### Execution semantics
+
+- Rows are processed **independently**: each row is parsed, validated and persisted as its own
+  transaction, in its own transaction/commit. A failure in one row does not roll back or block
+  other rows.
+- The endpoint always returns HTTP 200 with a **partial result**: `successCount` rows were
+  created, `failureCount` rows were skipped, and `results` lists a per-row outcome (the created
+  `transactionId`, or an `error` message) so the caller can identify and fix just the failed rows.
+- CSV parsing supports quoted fields and doubled quotes as a literal quote character (see
+  `CsvLineParser`), the same convention used for partner data import.
+- The journal-locked check (`JournalPersistenceService.requireNotLocked`) is applied once for the
+  whole batch, before any row is processed.
+
+```mermaid
+sequenceDiagram
+    participant UI as Angular UI
+    participant MR as MacroResource
+    participant MS as MacroService
+    participant AS as AccountService
+
+    UI->>MR: POST /api/macro/execute-batch<br/>{macroId, journalId, sharedParameters, csv}
+    MR->>MR: Determine row parameter names<br/>(non-account parameters)
+    MR->>MR: Parse CSV into rows (skip optional header)
+    loop for each row
+        MR->>MR: Merge sharedParameters + row values
+        MR->>MS: executeMacro(macro, parameters, journalId)
+        MR->>AS: findAccountByCodePath(...)
+        alt row succeeds
+            MR->>MR: record success + transactionId
+        else row fails
+            MR->>MR: record failure + error message
+        end
+    end
+    MR-->>UI: MacroBatchExecuteResultDTO<br/>(totalRows, successCount, failureCount, results)
+```
+
 ## UI Integration
 
 ### Macro Execution Flow
@@ -359,9 +443,15 @@ items:
 
 ### Angular Components
 
-- `MacroSelectorComponent` - Dropdown to select macro
-- `MacroFormComponent` - Dynamic form based on macro parameters
-- `MacroPreviewComponent` - Preview generated transaction before creation
+- `MacrosComponent` (`macros.component.ts`) - Macro grid, single-execution dialog, batch-execution
+  dialog, and import/export UI. Follows the Controller/Model pattern (see
+  `docs/CONTROLLER_AND_MODEL.md`): the component calls `Controller.executeMacro` /
+  `Controller.executeMacroBatch`, which perform the HTTP requests.
+  - The single-execution dialog builds a dynamic form from `macro.parameters` and shows an
+    autocomplete for `account`, `partner` and `invoice` typed parameters.
+  - The batch-execution dialog shows the macro's `account`-type parameters as shared inputs, a
+    CSV textarea for the row parameters, and — after submission — a per-row results list
+    (success with transaction id, or a warning with the failure reason).
 
 ## Security Considerations
 
@@ -389,6 +479,15 @@ See `V01.013__insertStandardMacros.sql` for pre-loaded macro examples including:
 - **TaxPayment** - Pay provisioned taxes with adjustment
 - **LegalReserveAllocation** - Mandatory 5% profit allocation (Swiss Sàrl)
 
+See `V01.024__insertPaymentProcessorMacros.sql` for the online payment processor macros:
+
+- **PaymentProcessorSale** - Record a sale made through an online payment processor (e.g.
+  Stripe, PayPal): credits revenue for the gross amount, debits the payment processing fees
+  expense account for the PSP fee, and debits the payment processor balance account for the net
+  amount. Designed to be run in batch, one row per reviewed payment.
+- **TransferPaymentProcessorFunds** - Record a payout from the payment processor balance account
+  to any cash/bank account.
+
 ## Testing Strategy
 
 ### Unit Tests
@@ -404,6 +503,9 @@ See `V01.013__insertStandardMacros.sql` for pre-loaded macro examples including:
   - POST create new macro
   - PUT update existing macro
   - DELETE macro
+  - POST execute a single macro
+  - POST execute a batch (all rows succeed, header row skipped, partial failure with
+    per-row warnings, macro not found, locked journal)
   - Verify journal isolation
   - Verify authorization
 
@@ -421,7 +523,6 @@ See `V01.013__insertStandardMacros.sql` for pre-loaded macro examples including:
 5. **Loops** - Support `{for}` loops for split transactions
 6. **Macro marketplace** - Share macros with community
 7. **Scheduled execution** - Recurring macro execution
-8. **Batch execution** - Execute multiple macros at once
 
 ## Migration Path
 

@@ -3,6 +3,7 @@ package dev.abstratium.abstraccount.adapters;
 import dev.abstratium.abstraccount.model.CreatePartnerResult;
 import dev.abstratium.abstraccount.model.ImportPartnersResult;
 import dev.abstratium.abstraccount.model.PartnerData;
+import dev.abstratium.abstraccount.service.CsvLineParser;
 import io.quarkus.runtime.Startup;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
@@ -441,31 +442,7 @@ public class PartnerDataAdapter {
      * fields to represent a literal quote character (e.g. {@code ""} → {@code "}).
      */
     List<String> parseCsvFields(String line) {
-        List<String> fields = new ArrayList<>();
-        StringBuilder currentField = new StringBuilder();
-        boolean inQuotes = false;
-
-        for (int i = 0; i < line.length(); i++) {
-            char c = line.charAt(i);
-
-            if (c == '"' && inQuotes && i + 1 < line.length() && line.charAt(i + 1) == '"') {
-                // Doubled quote inside a quoted field → literal quote
-                currentField.append('"');
-                i++; // skip the next quote
-            } else if (c == '"') {
-                inQuotes = !inQuotes;
-            } else if (c == ',' && !inQuotes) {
-                fields.add(currentField.toString());
-                currentField = new StringBuilder();
-            } else {
-                currentField.append(c);
-            }
-        }
-
-        // Add the last field
-        fields.add(currentField.toString());
-
-        return fields;
+        return CsvLineParser.parseFields(line);
     }
 
     private Path getOrgFilePath(String orgId) {

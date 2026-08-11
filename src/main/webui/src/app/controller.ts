@@ -169,6 +169,20 @@ export interface MacroDTO {
   modifiedDate: string;
 }
 
+export interface MacroBatchRowResult {
+  row: number;
+  success: boolean;
+  transactionId: string | null;
+  error: string | null;
+}
+
+export interface MacroBatchExecuteResult {
+  totalRows: number;
+  successCount: number;
+  failureCount: number;
+  results: MacroBatchRowResult[];
+}
+
 export interface ImportConflict {
   existingId: string;
   name: string;
@@ -803,6 +817,30 @@ export class Controller {
       return transactionId;
     } catch (error) {
       console.error('Error executing macro:', error);
+      throw error;
+    }
+  }
+
+  async executeMacroBatch(
+    macroId: string,
+    journalId: string,
+    sharedParameters: Record<string, string>,
+    csv: string
+  ): Promise<MacroBatchExecuteResult> {
+    try {
+      const result = await firstValueFrom(
+        this.http.post<MacroBatchExecuteResult>('/api/macro/execute-batch', {
+          macroId,
+          journalId,
+          sharedParameters,
+          csv
+        })
+      );
+      // Refresh transactions since successful rows created new ones
+      await this.getTransactions(journalId);
+      return result;
+    } catch (error) {
+      console.error('Error executing macro batch:', error);
       throw error;
     }
   }

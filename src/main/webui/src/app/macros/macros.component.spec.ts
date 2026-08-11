@@ -29,7 +29,7 @@ describe('MacrosComponent', () => {
 
   beforeEach(async () => {
     mockController = jasmine.createSpyObj('Controller', [
-      'listMacros', 'executeMacro', 'exportMacros', 'importMacros', 'deleteMacro'
+      'listMacros', 'executeMacro', 'executeMacroBatch', 'exportMacros', 'importMacros', 'deleteMacro'
     ]);
     mockModelService = jasmine.createSpyObj('ModelService', ['getAccounts', 'getSelectedJournalId'], {
       macros$: signal([]),
@@ -499,6 +499,177 @@ describe('MacrosComponent', () => {
 
       // No journal -> no lock dialog, the modal opens (the backend will reject if no journal)
       expect(mockInfoDialog.show).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('batch execution', () => {
+    const batchMacro = {
+      id: 'batch-macro',
+      name: 'PaymentProcessorSale',
+      description: 'Record a PSP sale',
+      parameters: [
+        { name: 'date', type: 'date', prompt: 'Date', required: true, defaultValue: null, filter: null },
+        { name: 'description', type: 'text', prompt: 'Description', required: true, defaultValue: null, filter: null },
+        { name: 'gross_amount', type: 'amount', prompt: 'Gross amount', required: true, defaultValue: null, filter: null },
+        { name: 'revenue_account', type: 'account', prompt: 'Revenue account', required: true, defaultValue: null, filter: '^3:.*$' },
+        { name: 'processor_account', type: 'account', prompt: 'Processor account', required: true, defaultValue: null, filter: '^1021.*$' }
+      ],
+      template: 'test template',
+      validation: null,
+      notes: null,
+      createdDate: '2024-01-01',
+      modifiedDate: '2024-01-01'
+    };
+
+    beforeEach(() => {
+      (mockModelService.journals$ as any).set([unlockedJournal]);
+    });
+
+    it('splits parameters into shared (account) and row (non-account) groups', () => {
+      expect(component.getBatchSharedParameters(batchMacro).map(p => p.name)).toEqual([
+        'revenue_account', 'processor_account'
+      ]);
+      expect(component.getBatchRowParameterNames(batchMacro)).toEqual([
+        'date', 'description', 'gross_amount'
+      ]);
+    });
+
+    it('opens the batch dialog for the selected macro and resets state', () => {
+      const event = new Event('click');
+      spyOn(event, 'stopPropagation');
+
+      component.batchResult = {
+        totalRows: 1, successCount: 1, failureCount: 0,
+        results: [{ row: 1, success: true, transactionId: 'tx', error: null }]
+      };
+
+      component.selectMacroForBatch(batchMacro, event);
+
+      expect(event.stopPropagation).toHaveBeenCalled();
+      expect(component.showBatchDialog).toBeTrue();
+      expect(component.selectedBatchMacro).toEqual(batchMacro);
+      expect(component.batchResult).toBeNull();
+      expect(component.getBatchSharedValue('revenue_account')).toBe('');
+      expect(component.getBatchSharedValue('processor_account')).toBe('');
+    });
+
+    it('blocks opening the batch dialog when the journal is locked', () => {
+      (mockModelService.journals$ as any).set([lockedJournal]);
+      const event = new Event('click');
+
+      component.selectMacroForBatch(batchMacro, event);
+
+      expect(component.showBatchDialog).toBeFalse();
+      expect(mockInfoDialog.show).toHaveBeenCalled();
+    });
+
+    it('closes the batch dialog and resets state', () => {
+      component.selectMacroForBatch(batchMacro, new Event('click'));
+      component.batchCsv = '2026-01-01,desc,10.00';
+
+      component.closeBatchDialog();
+
+      expect(component.showBatchDialog).toBeFalse();
+      expect(component.selectedBatchMacro).toBeNull();
+      expect(component.batchCsv).toBe('');
+      expect(component.batchResult).toBeNull();
+    });
+
+    it('requires shared account parameters before executing a batch', async () => {
+      component.selectMacroForBatch(batchMacro, new Event('click'));
+      component.batchCsv = '2026-01-01,desc,10.00';
+      // Leave shared account parameters empty
+
+      await component.executeBatch();
+
+      expect(component.batchErrorMessage).toContain('required');
+      expect(mockController.executeMacroBatch).not.toHaveBeenCalled();
+    });
+
+    it('requires CSV data before executing a batch', async () => {
+      component.selectMacroForBatch(batchMacro, new Event('click'));
+      component.setBatchSharedValue('revenue_account', '3400');
+      component.setBatchSharedValue('processor_account', '1021');
+
+      await component.executeBatch();
+
+      expect(component.batchErrorMessage).toContain('CSV');
+      expect(mockController.executeMacroBatch).not.toHaveBeenCalled();
+    });
+
+    it('executes a batch and stores the per-row result summary', async () => {
+      component.selectMacroForBatch(batchMacro, new Event('click'));
+      component.setBatchSharedValue('revenue_account', '3400');
+      component.setBatchSharedValue('processor_account', '1021');
+      component.batchCsv = '2026-01-01,Sale 1,10.00\n2026-01-02,Sale 2,20.00';
+
+      const result = {
+        totalRows: 2, successCount: 2, failureCount: 0,
+        results: [
+          { row: 1, success: true, transactionId: 'tx-1', error: null },
+          { row: 2, success: true, transactionId: 'tx-2', error: null }
+        ]
+      };
+      mockController.executeMacroBatch.and.returnValue(Promise.resolve(result));
+
+      await component.executeBatch();
+
+      expect(mockController.executeMacroBatch).toHaveBeenCalledWith(
+        'batch-macro',
+        'test-journal-id',
+        { revenue_account: '3400', processor_account: '1021' },
+        '2026-01-01,Sale 1,10.00\n2026-01-02,Sale 2,20.00'
+      );
+      expect(component.batchResult).toEqual(result);
+      expect(mockToast.success).toHaveBeenCalledWith(jasmine.stringMatching(/Successfully created 2 transaction\(s\)/));
+    });
+
+    it('shows an error toast summarising partial failures', async () => {
+      component.selectMacroForBatch(batchMacro, new Event('click'));
+      component.setBatchSharedValue('revenue_account', '3400');
+      component.setBatchSharedValue('processor_account', '1021');
+      component.batchCsv = '2026-01-01,Sale 1,10.00\nbad-row';
+
+      const result = {
+        totalRows: 2, successCount: 1, failureCount: 1,
+        results: [
+          { row: 1, success: true, transactionId: 'tx-1', error: null },
+          { row: 2, success: false, transactionId: null, error: 'Expected 3 column(s), got 1' }
+        ]
+      };
+      mockController.executeMacroBatch.and.returnValue(Promise.resolve(result));
+
+      await component.executeBatch();
+
+      expect(component.batchResult).toEqual(result);
+      expect(mockToast.error).toHaveBeenCalledWith(jasmine.stringMatching(/1 row\(s\) failed/));
+    });
+
+    it('blocks executing a batch when the journal is locked', async () => {
+      component.selectMacroForBatch(batchMacro, new Event('click'));
+      component.setBatchSharedValue('revenue_account', '3400');
+      component.setBatchSharedValue('processor_account', '1021');
+      component.batchCsv = '2026-01-01,Sale 1,10.00';
+
+      (mockModelService.journals$ as any).set([lockedJournal]);
+
+      await component.executeBatch();
+
+      expect(mockController.executeMacroBatch).not.toHaveBeenCalled();
+      expect(mockInfoDialog.show).toHaveBeenCalled();
+    });
+
+    it('shows an error message when the batch request fails', async () => {
+      component.selectMacroForBatch(batchMacro, new Event('click'));
+      component.setBatchSharedValue('revenue_account', '3400');
+      component.setBatchSharedValue('processor_account', '1021');
+      component.batchCsv = '2026-01-01,Sale 1,10.00';
+      mockController.executeMacroBatch.and.returnValue(Promise.reject(new Error('Network error')));
+
+      await component.executeBatch();
+
+      expect(component.batchErrorMessage).toContain('Failed to execute macro batch');
+      expect(component.batchInProgress).toBeFalse();
     });
   });
 });

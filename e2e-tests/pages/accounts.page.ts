@@ -506,6 +506,28 @@ export async function getAccountBalanceText(page: Page, code: string, accountNam
 }
 
 /**
+ * Parse a displayed balance string (e.g. "CHF 1680.50" or "-95.00") into a number.
+ * Strips the currency code/symbol and any thousands separators.
+ */
+export function parseBalanceText(text: string): number {
+  const cleaned = text.replace(/[^0-9.\-]/g, '');
+  const value = parseFloat(cleaned);
+  if (isNaN(value)) {
+    throw new Error(`Could not parse balance text as a number: "${text}"`);
+  }
+  return value;
+}
+
+/**
+ * Get the displayed balance for an account as a number (see {@link getAccountBalanceText}
+ * and {@link parseBalanceText}).
+ */
+export async function getAccountBalance(page: Page, code: string, accountName?: string): Promise<number> {
+  const text = await getAccountBalanceText(page, code, accountName);
+  return parseBalanceText(text);
+}
+
+/**
  * Check if the account's balance is displayed in bold (displaced-balance class),
  * which indicates the account is collapsed and showing the subtree sum.
  */

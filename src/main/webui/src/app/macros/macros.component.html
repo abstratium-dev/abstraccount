@@ -36,6 +36,9 @@
           <div class="macro-params">
             <strong>Parameters:</strong> {{ macro.parameters.length }}
           </div>
+          <button class="btn-secondary macro-batch-btn" (click)="selectMacroForBatch(macro, $event)" data-testid="batch-macro-btn">
+            Execute Batch…
+          </button>
         </div>
       }
     </div>
@@ -95,6 +98,98 @@
           <div class="actions">
             <button class="btn btn-primary" (click)="generateTransaction()">
               Execute Macro
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- Batch Execute Macro Dialog -->
+  @if (showBatchDialog && selectedBatchMacro) {
+    <div class="modal-overlay" (click)="closeBatchDialog()">
+      <div class="modal-content" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <h2>{{ selectedBatchMacro.name }} (Batch)</h2>
+          <button class="close-btn" (click)="closeBatchDialog()">✕</button>
+        </div>
+
+        <div class="modal-body">
+          @if (selectedBatchMacro.description) {
+            <p class="description">{{ selectedBatchMacro.description }}</p>
+          }
+
+          @if (batchErrorMessage) {
+            <div class="error-message">{{ batchErrorMessage }}</div>
+          }
+
+          <div class="parameters-section">
+            <h3>Shared Parameters</h3>
+            <p class="hint">These are used for every row in the batch.</p>
+            @for (param of getBatchSharedParameters(selectedBatchMacro); track param.name) {
+              <div class="parameter-field">
+                <label [for]="'batch-param-' + param.name">
+                  {{ param.prompt || param.name }}
+                  @if (param.required) {
+                    <span class="required">*</span>
+                  }
+                </label>
+                <abs-autocomplete
+                  [placeholder]="param.prompt || param.name"
+                  [required]="param.required"
+                  [fetchOptions]="getAutocompleteFetch(param)!"
+                  [ngModel]="getBatchSharedValue(param.name)"
+                  (ngModelChange)="setBatchSharedValue(param.name, $event)"
+                  [allowFreeText]="true"
+                />
+              </div>
+            }
+          </div>
+
+          <div class="parameters-section">
+            <h3>Rows (CSV)</h3>
+            <p class="hint">
+              One row per transaction, comma-separated, in this column order:
+              <strong>{{ getBatchRowParameterNames(selectedBatchMacro).join(', ') }}</strong>.
+              A header row matching these names is optional and will be skipped.
+            </p>
+            <textarea
+              class="batch-csv-input"
+              rows="8"
+              [ngModel]="batchCsv"
+              (ngModelChange)="batchCsv = $event"
+              placeholder="{{ getBatchRowParameterNames(selectedBatchMacro).join(',') }}"
+              data-testid="batch-csv-input"
+            ></textarea>
+          </div>
+
+          @if (batchResult) {
+            <div class="batch-results-section">
+              <h3>Results</h3>
+              <p>
+                {{ batchResult.successCount }} of {{ batchResult.totalRows }} row(s) created successfully.
+                @if (batchResult.failureCount > 0) {
+                  {{ batchResult.failureCount }} row(s) failed.
+                }
+              </p>
+              <ul class="batch-results-list">
+                @for (result of batchResult.results; track result.row) {
+                  <li [class.batch-row-success]="result.success" [class.batch-row-error]="!result.success">
+                    Row {{ result.row }}:
+                    @if (result.success) {
+                      created transaction {{ result.transactionId }}
+                    } @else {
+                      {{ result.error }}
+                    }
+                  </li>
+                }
+              </ul>
+            </div>
+          }
+
+          <div class="actions">
+            <button class="btn btn-primary" (click)="executeBatch()" [disabled]="batchInProgress" data-testid="execute-batch-btn">
+              {{ batchInProgress ? 'Executing...' : 'Execute Batch' }}
             </button>
           </div>
         </div>

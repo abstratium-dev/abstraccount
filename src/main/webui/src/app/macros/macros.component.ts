@@ -2,7 +2,7 @@ import { Component, OnInit, Signal, inject, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { Controller, MacroDTO, MacroParameterDTO, ImportResult, ImportConflict } from '../controller';
+import { Controller, MacroDTO, MacroParameterDTO, ImportResult, ImportConflict, MacroBatchExecuteResult } from '../controller';
 import { ModelService } from '../model.service';
 import { AutocompleteComponent, AutocompleteOption } from '../core/autocomplete/autocomplete.component';
 import { ConfirmDialogService } from '../core/confirm-dialog/confirm-dialog.service';
@@ -37,6 +37,15 @@ export class MacrosComponent implements OnInit {
   importInProgress: boolean = false;
 
   menuOpen: boolean = false;
+
+  // Batch execution
+  selectedBatchMacro: MacroDTO | null = null;
+  showBatchDialog: boolean = false;
+  batchSharedValues: Map<string, string> = new Map();
+  batchCsv: string = '';
+  batchResult: MacroBatchExecuteResult | null = null;
+  batchInProgress: boolean = false;
+  batchErrorMessage: string = '';
 
   constructor() {
   }
@@ -185,6 +194,106 @@ export class MacrosComponent implements OnInit {
     }
   }
 
+
+  // ===== Batch execution =====
+
+  /**
+   * The macro's account-type parameters are filled in once for the whole batch
+   * (e.g. revenue account, fee expense account, processor account).
+   */
+  getBatchSharedParameters(macro: MacroDTO): MacroParameterDTO[] {
+    return macro.parameters.filter(param => param.type === 'account');
+  }
+
+  /**
+   * The macro's remaining parameters come from the CSV, in this order, one row per transaction.
+   */
+  getBatchRowParameterNames(macro: MacroDTO): string[] {
+    return macro.parameters.filter(param => param.type !== 'account').map(param => param.name);
+  }
+
+  selectMacroForBatch(macro: MacroDTO, event: Event): void {
+    event.stopPropagation();
+    if (this.isJournalLocked()) return;
+    this.selectedBatchMacro = macro;
+    this.showBatchDialog = true;
+    this.batchErrorMessage = '';
+    this.batchResult = null;
+    this.batchCsv = '';
+    this.batchSharedValues.clear();
+    for (const param of this.getBatchSharedParameters(macro)) {
+      this.batchSharedValues.set(param.name, '');
+    }
+  }
+
+  closeBatchDialog(): void {
+    this.showBatchDialog = false;
+    this.selectedBatchMacro = null;
+    this.batchSharedValues.clear();
+    this.batchCsv = '';
+    this.batchResult = null;
+    this.batchErrorMessage = '';
+  }
+
+  getBatchSharedValue(paramName: string): string {
+    return this.batchSharedValues.get(paramName) || '';
+  }
+
+  setBatchSharedValue(paramName: string, value: string): void {
+    this.batchSharedValues.set(paramName, value);
+  }
+
+  async executeBatch(): Promise<void> {
+    if (!this.selectedBatchMacro) return;
+    if (this.isJournalLocked()) return;
+
+    this.batchErrorMessage = '';
+
+    for (const param of this.getBatchSharedParameters(this.selectedBatchMacro)) {
+      if (param.required && !this.batchSharedValues.get(param.name)) {
+        this.batchErrorMessage = `Parameter "${param.prompt || param.name}" is required.`;
+        return;
+      }
+    }
+
+    if (!this.batchCsv.trim()) {
+      this.batchErrorMessage = 'Please paste CSV data with one row per transaction.';
+      return;
+    }
+
+    const journalId = this.modelService.selectedJournalId$();
+    if (!journalId) {
+      this.batchErrorMessage = 'No journal selected';
+      return;
+    }
+
+    const sharedParameters: Record<string, string> = {};
+    this.batchSharedValues.forEach((value, key) => {
+      sharedParameters[key] = value;
+    });
+
+    this.batchInProgress = true;
+    try {
+      this.batchResult = await this.controller.executeMacroBatch(
+        this.selectedBatchMacro.id,
+        journalId,
+        sharedParameters,
+        this.batchCsv
+      );
+      if (this.batchResult.failureCount === 0) {
+        this.toast.success(`Successfully created ${this.batchResult.successCount} transaction(s).`);
+      } else {
+        this.toast.error(
+          `Created ${this.batchResult.successCount} transaction(s), ${this.batchResult.failureCount} row(s) failed.`
+        );
+      }
+    } catch (error) {
+      console.error('Error executing macro batch:', error);
+      this.batchErrorMessage = 'Failed to execute macro batch. Please try again.';
+    } finally {
+      this.batchInProgress = false;
+    }
+  }
 
   getParameterInputType(param: MacroParameterDTO): string {
     switch (param.type) {

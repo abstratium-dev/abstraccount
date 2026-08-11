@@ -96,9 +96,9 @@ graph TD
     R --> R2["3200 Goods for resale"]
     R --> R3[3400 Services]
     R --> R4[3600 Other operating income]
-    R1 -.future.-> R1a["3000.001 Product A"]
-    R2 -.future.-> R2a["3200.001 Product B"]
-    R4 -.future.-> R4a["3600.001 Product C"]
+    R1 -.->|future| R1a["3000.001 Product A"]
+    R2 -.->|future| R2a["3200.001 Product B"]
+    R4 -.->|future| R4a["3600.001 Product C"]
 
     E[6 Other operating expenses] --> E1["6900 Financial expense"]
     E --> E2["6901 Payment processing fees (NEW)"]
@@ -216,7 +216,20 @@ date,partner,description,gross_amount,fee_amount,stripe_txn,contract_id
 2025-08-09,P00000002,Gadget sale,250.00,7.50,pi_3Mtwyyyy,C-12346
 ```
 
-The header is optional. Comma is the default delimiter; tab could be supported later.
+The header is optional. Comma is the delimiter.
+
+### Execution behaviour
+
+There is no preview step. Submitting the batch (shared parameters + CSV) creates transactions
+directly, one per row, in a single request to the batch endpoint.
+
+Rows are processed independently:
+
+- Valid rows are posted as transactions.
+- Invalid rows (e.g. bad date, non-existent account, unbalanced amounts) are skipped.
+- The response is a partial result: it lists which rows succeeded and which failed, with a
+  warning message per failed row (row number/identifying data + reason), so the user can fix
+  and resubmit just those rows.
 
 ### Tags
 
@@ -228,17 +241,6 @@ id, replacing the invoice number used by other macros:
 ```
 
 These tags are stored in `T_tag` and can be used for reconciliation and reporting.
-
-### Future hledger-style input
-
-A later enhancement could allow pasting hledger transaction headers without postings:
-
-```hledger
-2025-08-09 * P00000001 | Widget sale
-    ; stripe_txn:pi_3Mtwxxxx, contract_id:C-12345
-```
-
-For the first version, CSV is sufficient.
 
 ### Backward compatibility
 
@@ -258,10 +260,12 @@ Existing macros keep working as single-execution macros. Batch mode is an additi
 5. `src/main/java/dev/abstratium/abstraccount/service/MacroService.java` — support batch
    template evaluation.
 6. `src/main/webui/src/app/macros/macros.component.ts` and its HTML template — add batch mode
-   UI with shared parameters, CSV textarea, preview, and parsing.
-7. Tests — unit and integration tests for the new accounts, macros, and batch execution.
+   UI with shared parameters, CSV textarea, parsing, and display of the per-row results
+   (successes and warnings) returned by the batch endpoint.
+7. Tests — unit and integration tests for the new accounts, macros, and batch execution
+   (including partial-failure scenarios).
 8. `docs/ephemeral-and-volatile-and-temporary-but-interesting/MACRO_SYSTEM.md` — update the
-   example macro list.
+   example macro list and document the new batch execution mode.
 
 Reports are expected to work without changes because `1021` is matched by `CASH`, revenue
 accounts by `REVENUE`, and `6901` by `EXPENSE`.
@@ -282,14 +286,10 @@ accounts by `REVENUE`, and `6901` by `EXPENSE`.
 | Revenue account per batch | User chooses once per product batch |
 | Payouts | Manual `TransferPaymentProcessorFunds` macro |
 | Batch input format | CSV as primary format |
-
-## Open questions
-
-1. CSV delimiter: comma, tab, or configurable?
-2. Should the batch UI preview generated transactions before creating them?
-3. Should the batch endpoint create all transactions in one request, or return a preview first?
-4. How should a single invalid row be handled: fail whole batch, skip row, or create partial
-   result with warnings?
+| CSV delimiter | Comma |
+| Batch UI preview before creation? | **No** — transactions are created directly |
+| Batch endpoint behaviour | Creates all transactions in one request (no separate preview step) |
+| Invalid row handling | Create a partial result: valid rows are posted, invalid rows are skipped and reported as warnings identifying which rows failed and why |
 
 ## References
 

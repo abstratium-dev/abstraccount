@@ -640,4 +640,243 @@ public class MacroResourceTest {
 
         return new String[] { macro.getId(), journalId };
     }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {Roles.USER})
+    void testExecuteMacroBatch_success() {
+        String[] ids = setupTestDataForBatchExecution();
+        String macroId = ids[0];
+        String journalId = ids[1];
+        String revenueCode = ids[2];
+        String feeExpenseCode = ids[3];
+        String processorCode = ids[4];
+
+        String requestBody = String.format("""
+            {
+                "macroId": "%s",
+                "journalId": "%s",
+                "sharedParameters": {
+                    "revenue_account": "%s",
+                    "fee_expense_account": "%s",
+                    "processor_account": "%s"
+                },
+                "csv": "2026-01-10,,Widget sale,100.00,5.00,pi_aaa,C-1\\n2026-01-11,,Gadget sale,50.00,2.00,pi_bbb,C-2"
+            }
+            """, macroId, journalId, revenueCode, feeExpenseCode, processorCode);
+
+        given()
+            .contentType(ContentType.JSON)
+            .body(requestBody)
+        .when()
+            .post("/api/macro/execute-batch")
+        .then()
+            .statusCode(200)
+            .body("totalRows", equalTo(2))
+            .body("successCount", equalTo(2))
+            .body("failureCount", equalTo(0))
+            .body("results", hasSize(2))
+            .body("results[0].success", equalTo(true))
+            .body("results[0].transactionId", notNullValue())
+            .body("results[1].success", equalTo(true))
+            .body("results[1].transactionId", notNullValue());
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {Roles.USER})
+    void testExecuteMacroBatch_skipsMatchingHeaderRow() {
+        String[] ids = setupTestDataForBatchExecution();
+        String macroId = ids[0];
+        String journalId = ids[1];
+        String revenueCode = ids[2];
+        String feeExpenseCode = ids[3];
+        String processorCode = ids[4];
+
+        String requestBody = String.format("""
+            {
+                "macroId": "%s",
+                "journalId": "%s",
+                "sharedParameters": {
+                    "revenue_account": "%s",
+                    "fee_expense_account": "%s",
+                    "processor_account": "%s"
+                },
+                "csv": "date,partner,description,gross_amount,fee_amount,stripe_txn,contract_id\\n2026-01-10,,Widget sale,100.00,5.00,pi_aaa,C-1"
+            }
+            """, macroId, journalId, revenueCode, feeExpenseCode, processorCode);
+
+        given()
+            .contentType(ContentType.JSON)
+            .body(requestBody)
+        .when()
+            .post("/api/macro/execute-batch")
+        .then()
+            .statusCode(200)
+            .body("totalRows", equalTo(1))
+            .body("successCount", equalTo(1))
+            .body("failureCount", equalTo(0));
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {Roles.USER})
+    void testExecuteMacroBatch_partialFailureReportsWarningForInvalidRow() {
+        String[] ids = setupTestDataForBatchExecution();
+        String macroId = ids[0];
+        String journalId = ids[1];
+        String revenueCode = ids[2];
+        String feeExpenseCode = ids[3];
+        String processorCode = ids[4];
+
+        // Second row is missing a column (only 6 fields instead of 7)
+        String requestBody = String.format("""
+            {
+                "macroId": "%s",
+                "journalId": "%s",
+                "sharedParameters": {
+                    "revenue_account": "%s",
+                    "fee_expense_account": "%s",
+                    "processor_account": "%s"
+                },
+                "csv": "2026-01-10,,Widget sale,100.00,5.00,pi_aaa,C-1\\n2026-01-11,,Gadget sale,50.00,pi_bbb,C-2"
+            }
+            """, macroId, journalId, revenueCode, feeExpenseCode, processorCode);
+
+        given()
+            .contentType(ContentType.JSON)
+            .body(requestBody)
+        .when()
+            .post("/api/macro/execute-batch")
+        .then()
+            .statusCode(200)
+            .body("totalRows", equalTo(2))
+            .body("successCount", equalTo(1))
+            .body("failureCount", equalTo(1))
+            .body("results[0].success", equalTo(true))
+            .body("results[1].success", equalTo(false))
+            .body("results[1].error", notNullValue());
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {Roles.USER})
+    void testExecuteMacroBatch_macroNotFound_returns404() {
+        String requestBody = """
+            {
+                "macroId": "nonexistent",
+                "journalId": "some-journal",
+                "sharedParameters": {},
+                "csv": "2026-01-10,,desc,1.00,0.00,pi,C-1"
+            }
+            """;
+
+        given()
+            .contentType(ContentType.JSON)
+            .body(requestBody)
+        .when()
+            .post("/api/macro/execute-batch")
+        .then()
+            .statusCode(404);
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {Roles.USER})
+    void testExecuteMacroBatch_lockedJournal_returns423() {
+        String[] ids = setupTestDataForBatchExecution();
+        String macroId = ids[0];
+        String journalId = ids[1];
+        String revenueCode = ids[2];
+        String feeExpenseCode = ids[3];
+        String processorCode = ids[4];
+
+        lockJournal(journalId);
+
+        String requestBody = String.format("""
+            {
+                "macroId": "%s",
+                "journalId": "%s",
+                "sharedParameters": {
+                    "revenue_account": "%s",
+                    "fee_expense_account": "%s",
+                    "processor_account": "%s"
+                },
+                "csv": "2026-01-10,,Widget sale,100.00,5.00,pi_aaa,C-1"
+            }
+            """, macroId, journalId, revenueCode, feeExpenseCode, processorCode);
+
+        given()
+            .contentType(ContentType.JSON)
+            .body(requestBody)
+        .when()
+            .post("/api/macro/execute-batch")
+        .then()
+            .statusCode(423);
+    }
+
+    @Transactional
+    void lockJournal(String journalId) {
+        dev.abstratium.abstraccount.entity.JournalEntity journal = em.find(
+            dev.abstratium.abstraccount.entity.JournalEntity.class, journalId);
+        journal.setLocked(true);
+    }
+
+    /**
+     * Sets up a journal with revenue, fee-expense and payment-processor-balance accounts,
+     * plus a macro mirroring the PaymentProcessorSale macro's shape (account parameters as
+     * shared parameters, the remaining parameters coming from CSV rows).
+     *
+     * @return {macroId, journalId, revenueAccountCode, feeExpenseAccountCode, processorAccountCode}
+     */
+    @Transactional
+    String[] setupTestDataForBatchExecution() {
+        dev.abstratium.abstraccount.entity.JournalEntity journal = new dev.abstratium.abstraccount.entity.JournalEntity();
+        journal.setTitle("Batch Execution Journal");
+        journal.setCurrency("CHF");
+        em.persist(journal);
+        em.flush();
+
+        String journalId = journal.getId();
+
+        dev.abstratium.abstraccount.entity.AccountEntity revenue = new dev.abstratium.abstraccount.entity.AccountEntity();
+        revenue.setJournalId(journalId);
+        revenue.setName("3400 Services revenue");
+        revenue.setType(AccountType.REVENUE);
+        em.persist(revenue);
+
+        dev.abstratium.abstraccount.entity.AccountEntity feeExpense = new dev.abstratium.abstraccount.entity.AccountEntity();
+        feeExpense.setJournalId(journalId);
+        feeExpense.setName("6901 Payment processing fees");
+        feeExpense.setType(AccountType.EXPENSE);
+        em.persist(feeExpense);
+
+        dev.abstratium.abstraccount.entity.AccountEntity processor = new dev.abstratium.abstraccount.entity.AccountEntity();
+        processor.setJournalId(journalId);
+        processor.setName("1021 Payment processor");
+        processor.setType(AccountType.CASH);
+        em.persist(processor);
+
+        dev.abstratium.abstraccount.entity.MacroEntity macro = new dev.abstratium.abstraccount.entity.MacroEntity();
+        macro.setName("TestPaymentProcessorSale");
+        macro.setDescription("Test macro mirroring PaymentProcessorSale");
+        macro.setParameters(
+            "[{\"name\":\"date\",\"type\":\"date\",\"required\":true},"
+            + "{\"name\":\"partner\",\"type\":\"partner\",\"required\":false},"
+            + "{\"name\":\"description\",\"type\":\"text\",\"required\":true},"
+            + "{\"name\":\"gross_amount\",\"type\":\"amount\",\"required\":true},"
+            + "{\"name\":\"fee_amount\",\"type\":\"amount\",\"required\":true},"
+            + "{\"name\":\"stripe_txn\",\"type\":\"code\",\"required\":true},"
+            + "{\"name\":\"contract_id\",\"type\":\"code\",\"required\":true},"
+            + "{\"name\":\"revenue_account\",\"type\":\"account\",\"required\":true},"
+            + "{\"name\":\"fee_expense_account\",\"type\":\"account\",\"required\":true},"
+            + "{\"name\":\"processor_account\",\"type\":\"account\",\"required\":true}]");
+        macro.setTemplate("{date} * {partner} | {description}\n"
+            + "    ; stripe_txn:{stripe_txn}, contract_id:{contract_id}\n"
+            + "    {processor_account}       {default_currency} {gross_amount - fee_amount}\n"
+            + "    {fee_expense_account}     {default_currency} {fee_amount}\n"
+            + "    {revenue_account}         {default_currency} -{gross_amount}");
+        macro.setValidation("{\"balanceCheck\":true,\"minPostings\":3}");
+        em.persist(macro);
+
+        em.flush();
+
+        return new String[] { macro.getId(), journalId, revenue.getName().split(" ")[0],
+            feeExpense.getName().split(" ")[0], processor.getName().split(" ")[0] };
+    }
 }

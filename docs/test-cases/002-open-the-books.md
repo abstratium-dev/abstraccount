@@ -20,7 +20,7 @@ Verify that a user can "open the books" by creating an opening balances transact
 - **Transaction Type:** Opening Balances
 - **Transaction ID:** fdde1faa-b9b9-45cf-959b-122a39cf72a3
 - **Description:** "Opening Balances"
-- **Status:** Posted/Cleared (marked with `*` in hledger format)
+- **Status:** Posted/Cleared (marked with `*`)
 
 ### Opening Balance Entries
 
@@ -244,7 +244,7 @@ Feature: Opening Balances Transaction
 - This test establishes the "opening the books" pattern with zero balances
 - In real-world scenarios, opening balances would typically have non-zero amounts reflecting the actual financial position
 - This transaction serves as the foundation for all subsequent accounting entries
-- The hledger format uses `:` as the account hierarchy separator and supports multi-level nesting
+- The format uses `:` as the account hierarchy separator and supports multi-level nesting
 
 ## Technical Notes
 
@@ -252,7 +252,7 @@ Feature: Opening Balances Transaction
 
 The UI should support both:
 1. **Short display names** (e.g., "1000 Cash")
-2. **Full hierarchical paths** for internal storage and hledger export
+2. **Full hierarchical paths** for internal storage and export
 
 Example mapping:
 ```

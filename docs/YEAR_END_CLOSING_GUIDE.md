@@ -20,8 +20,8 @@
    - 2.4: Tax provisions
    - 2.5: Legal reserve allocation (5% of profit)
 3. **Phase 2.6: 📊 PRINT FINANCIAL STATEMENTS** ← **DO THIS NOW!**
-   - Print Income Statement: `hledger is -f 2025.journal -e 2026-01-01`
-   - Print Balance Sheet: `hledger bs -f 2025.journal -e 2026-01-01`
+   - Print Income Statement
+   - Print Balance Sheet
    - Save these for tax filing and records
 4. **Phase 3:** Closing entries (close all revenue and expense accounts to 2979)
 5. **Phase 4:** Transfer profit/loss to retained earnings (January 1 of next year)
@@ -89,8 +89,8 @@ Total Equity:                         CHF 31,500 (unchanged)
 ```
 
 **Why it looks "strange":**
-- Account 2950 shows a POSITIVE balance (credit, shown as negative in hledger)
-- Account 2979 shows a POSITIVE balance (credit, shown as negative in hledger)
+- Account 2950 shows a POSITIVE balance (credit, shown as negative)
+- Account 2979 shows a POSITIVE balance (credit, shown as negative)
 - They don't "cancel out" - they're both positive equity accounts
 - The allocation simply MOVES profit from 2979 to 2950
 
@@ -340,10 +340,8 @@ But BEFORE you:
 
 ```bash
 # Income Statement (Compte de résultat) - Shows profit/loss
-hledger is -f abstratium-2025.journal -e 2026-01-01
 
 # Balance Sheet (Bilan) - Shows financial position
-hledger bs -f abstratium-2025.journal -e 2026-01-01
 ```
 
 **Save these reports** as PDF or print them - these are your official financial statements for 2025 that you'll need for:
@@ -441,13 +439,6 @@ Based on Swiss accounting practice and software standards (e.g., Crésus Comptab
 - Swiss accounting software (Crésus, Banana, etc.) automatically generates this entry when "reopening" for the new year
 - This keeps the old year's file "closed" and complete, while the new year starts with the profit/loss transfer
 - For tax purposes, the Canton of Vaud requires the annual financial statements to show the profit/loss in account 2979 at year-end; the transfer to 2970 is an administrative action for the new year
-
-**Current hledger-web-extended Implementation:**
-
-The current implementation places the transfer entry (dated January 1, 2026) **in the old year's file** (2025.journal). This is a deviation from standard Swiss practice but has some practical advantages:
-- All transactions related to year 2025's results are in one file
-- The balance of account 2979 is automatically zero when opening the new year
-- Simpler opening balance calculation for the new year file
 
 **Recommendation:**
 
