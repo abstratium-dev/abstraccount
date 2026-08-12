@@ -12,6 +12,7 @@ import io.quarkus.test.security.oidc.OidcSecurity;
 import io.restassured.http.ContentType;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -37,10 +38,13 @@ class JournalListIntegrationTest {
     @Inject
     CurrentOrgContext currentOrgContext;
 
+    @ConfigProperty(name = "default.org.uuid")
+    String defaultOrgId;
+
     @BeforeEach
     @Transactional
     void setUp() {
-        currentOrgContext.setOrgId("00000000-0000-0000-0000-000000000000");
+        currentOrgContext.setOrgId(defaultOrgId);
         testTransactionHelper.deleteAllData();
     }
 
@@ -87,7 +91,7 @@ class JournalListIntegrationTest {
         secondOrgJournal.setCurrency("CHF");
 
         try {
-            currentOrgContext.setOrgId("00000000-0000-0000-0000-000000000000");
+            currentOrgContext.setOrgId(defaultOrgId);
             persistenceService.saveJournal(defaultOrgJournal);
             currentOrgContext.setOrgId("second-org");
             persistenceService.saveJournal(secondOrgJournal);
@@ -122,12 +126,12 @@ class JournalListIntegrationTest {
             .then()
                 .statusCode(404);
 
-            currentOrgContext.setOrgId("00000000-0000-0000-0000-000000000000");
+            currentOrgContext.setOrgId(defaultOrgId);
             assertTrue(persistenceService.findJournalById(defaultOrgJournal.getId()).isPresent());
         } finally {
             currentOrgContext.setOrgId("second-org");
             persistenceService.deleteJournal(secondOrgJournal.getId());
-            currentOrgContext.setOrgId("00000000-0000-0000-0000-000000000000");
+            currentOrgContext.setOrgId(defaultOrgId);
             persistenceService.deleteJournal(defaultOrgJournal.getId());
         }
     }
@@ -149,7 +153,7 @@ class JournalListIntegrationTest {
                 .path("id");
 
         try {
-            currentOrgContext.setOrgId("00000000-0000-0000-0000-000000000000");
+            currentOrgContext.setOrgId(defaultOrgId);
             assertTrue(persistenceService.findJournalById(journalId).isEmpty());
             currentOrgContext.setOrgId("second-org");
             assertTrue(persistenceService.findJournalById(journalId).isPresent());
@@ -187,7 +191,7 @@ class JournalListIntegrationTest {
                 .path("journalId");
 
         try {
-            currentOrgContext.setOrgId("00000000-0000-0000-0000-000000000000");
+            currentOrgContext.setOrgId(defaultOrgId);
             assertTrue(persistenceService.findJournalById(journalId).isEmpty());
             currentOrgContext.setOrgId("second-org");
             assertTrue(persistenceService.findJournalById(journalId).isPresent());
