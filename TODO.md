@@ -26,7 +26,7 @@ These TODOs are to be resolved by the developer, NOT THE LLM.
 
 # TODOs for Abstracore (to be deleted downstream)
 
-- add this to end of angular.md in .devis/rules:
+- add this to end of angular.md in .devin/rules:
 
     ## Zoneless change detection
 
