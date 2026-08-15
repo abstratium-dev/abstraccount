@@ -15,6 +15,8 @@ These TODOs are to be resolved by the developer, NOT THE LLM.
 
 - bug when creating new transaction and you select all the text, then the dialog closes. or how did m repeat that?
 
+- macro execution is a little weird - it needs to buttons. and make the text easier to read.
+
 - report that tells you what percentage of your investment is in cash and assets, so that you know if you need to file for bankrupcy in switzerland
 
 - use SecurityProblemLogger in all places where a security issue is detected
