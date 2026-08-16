@@ -26,6 +26,8 @@ These TODOs are to be resolved by the developer, NOT THE LLM.
 
 # TODOs for Abstracore (to be deleted downstream)
 
+- csp headers are probably missing for index.html, etc. check that. it was improved in abstrauth.
+
 - add this to end of angular.md in .devin/rules:
 
     ## Zoneless change detection
