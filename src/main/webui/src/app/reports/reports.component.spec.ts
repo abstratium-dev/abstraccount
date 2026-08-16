@@ -1419,4 +1419,57 @@ describe('ReportsComponent', () => {
 
     expect(router.navigate).toHaveBeenCalledWith(['/reports']);
   });
+
+  it('should generate a solvency check report with status rows', async () => {
+    const solvencyTemplate: ReportTemplate = {
+      id: 'solvency-check-001',
+      name: 'Swiss Insolvency Risk Check',
+      description: 'Swiss bankruptcy risk check',
+      templateContent: '{"sections":[{"title":"Swiss Insolvency Risk Check","calculated":"solvencyCheck","solvencyConfig":{"receivablesRegex":"^1:10:110"}}]}'
+    };
+    component.selectedTemplate = solvencyTemplate;
+
+    const solvencyAccounts: AccountTreeNode[] = [
+      ...mockAccounts,
+      {
+        id: 'acc4',
+        name: '2 Liabilities',
+        type: 'LIABILITY',
+        note: null,
+        parentId: null,
+        accountCode: 2000,
+        children: []
+      }
+    ];
+
+    const mockTransactions = [
+      {
+        id: 't1', date: '2024-06-01', description: 'Cash and liabilities', status: 'CLEARED', partnerId: null, partnerName: null, tags: [], entries: [
+          { id: 'e1', entryOrder: 1, entryId: 'e1', accountId: 'acc3', accountName: 'Bank', accountType: 'CASH', amount: 5000, commodity: 'CHF', note: null, tags: [] },
+          { id: 'e2', entryOrder: 2, entryId: 'e2', accountId: 'acc1', accountName: 'Cash', accountType: 'ASSET', amount: 3000, commodity: 'CHF', note: null, tags: [] },
+          { id: 'e3', entryOrder: 3, entryId: 'e3', accountId: 'acc4', accountName: '2 Liabilities', accountType: 'LIABILITY', amount: -2000, commodity: 'CHF', note: null, tags: [] }
+        ]
+      }
+    ];
+
+    controller.getTransactions.and.returnValue(Promise.resolve(mockTransactions));
+    controller.getAccountTree.and.returnValue(Promise.resolve(solvencyAccounts));
+    controller.getTags.and.returnValue(Promise.resolve([]));
+    modelService.getSelectedJournalId.and.returnValue('journal1');
+
+    await component.generateReport();
+    await fixture.whenStable();
+
+    expect(component.reportSections.length).toBe(1);
+    const section = component.reportSections[0];
+    expect(section.solvencyRows).toBeDefined();
+    expect(section.solvencyRows!.length).toBeGreaterThan(0);
+    expect(section.solvencyRows!.some(r => r.title === 'Total assets' && r.amount === 8000)).toBe(true);
+    expect(section.solvencyRows!.some(r => r.title === 'Total liabilities (debts)' && r.amount === 2000)).toBe(true);
+    expect(section.solvencyRows!.some(r => r.title === 'Net assets (distance to over-indebtedness)' && r.amount === 6000)).toBe(true);
+    expect(section.solvencyRows!.some(r => r.title === 'Cash available to spend (cash − all liabilities)' && r.amount === 3000)).toBe(true);
+    expect(section.solvencyRows!.some(r => r.title === 'Liquid headroom (cash + receivables − all liabilities)' && r.amount === 3000)).toBe(true);
+    expect(section.subtotal).toBe(6000);
+    expect(section.solvencyRows!.some(r => r.isStatus && r.status === 'safe')).toBe(true);
+  });
 });

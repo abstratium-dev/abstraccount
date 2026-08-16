@@ -227,3 +227,79 @@ th.sortable {
   }
 }
 
+// Swiss insolvency-risk check styles
+.solvency-container {
+  margin-top: 1rem;
+}
+
+.solvency-table {
+  tbody {
+    tr {
+      td {
+        padding: 0.5rem;
+
+        &.level-1 {
+          font-weight: 600;
+          border-top: 2px solid var(--color-border-primary);
+        }
+
+        &.level-2 {
+          padding-left: 1rem;
+        }
+
+        &.level-3 {
+          padding-left: 1rem;
+          font-weight: 600;
+          border-top: 1px solid var(--color-border-light);
+        }
+      }
+
+      &.solvency-status-row {
+        td {
+          font-weight: 600;
+        }
+      }
+
+      &.solvency-safe {
+        background-color: var(--color-success-bg, #d1fae5);
+        color: var(--color-success, #059669);
+      }
+
+      &.solvency-warning {
+        background-color: var(--color-warning-bg, #fef3c7);
+        color: var(--color-warning, #d97706);
+      }
+
+      &.solvency-danger {
+        background-color: var(--color-error-bg, #fee2e2);
+        color: var(--color-error, #dc2626);
+      }
+    }
+  }
+}
+
+.solvency-title {
+  display: block;
+}
+
+.solvency-note {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 400;
+  color: var(--color-text-secondary);
+  margin-top: 0.15rem;
+}
+
+.solvency-status-cell {
+  text-align: center;
+}
+
+.solvency-status-badge {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+

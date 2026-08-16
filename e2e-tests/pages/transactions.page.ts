@@ -152,9 +152,17 @@ export async function fillEntryAccount(page: Page, entryIndex: number, accountNu
   // Find the entry item first, then find the account autocomplete within it
   const entryItem = page.locator('.entry-item').nth(entryIndex);
   const accountInput = entryItem.locator('abs-autocomplete input.autocomplete-input').first();
-  
-  // Press Escape to close any open dropdown, then click to focus
-  await accountInput.press('Escape');
+
+  // Close any previously open autocomplete dropdown by blurring the active
+  // input. We click the modal header (non-interactive) to move focus away,
+  // then wait for the autocomplete's blur timeout (200ms) to close its
+  // dropdown. We must NOT press Escape here because the transaction modal
+  // has a document-level @HostListener('document:keydown.escape') that
+  // would close the entire modal.
+  await page.locator('.modal-header h2').click().catch(() => {});
+  await page.waitForTimeout(300);
+
+  // Now click the target account input to focus it
   await accountInput.click();
 
   // Fill with the account number to trigger a fresh search

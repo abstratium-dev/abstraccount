@@ -13,22 +13,9 @@ These TODOs are to be resolved by the developer, NOT THE LLM.
 
 ## Today
 
-- bug when creating new transaction and you select all the text, then the dialog closes. or how did m repeat that?
-
-- macro execution is a little weird - it needs to buttons. and make the text easier to read.
-
-- report that tells you what percentage of your investment is in cash and assets, so that you know if you need to file for bankrupcy in switzerland
-
 - use SecurityProblemLogger in all places where a security issue is detected
 
-- check duty of care 754.   Personal liability for directors — While shareholders are protected, directors/gérants of an Sàrl can face personal liability if they breach their duty of care (CO Art. 754) toward the company. But that's unrelated to your TOS; it's about how you run the company internally.
-  - check gemini response
-
-- make all production stuff work with a non-default orgId by creating a new org and using that one
-
 - add community support
-
-- deploy to test and prod
 
 - if i do bulk transactions how can i track mwst of individual product sales and fees? it's kind of strange that i pay 8.10 CHF for a sale of 100 CHF but stripe charges me say 5 CHF. is that right, or is the mwst paid on the 100-5 = 95 CHF?
 

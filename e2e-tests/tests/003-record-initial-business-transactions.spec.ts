@@ -1114,7 +1114,7 @@ test.describe('Initial Business Transactions', () => {
     await reportsPage.verifySectionExists(page, 'Equity');
     await reportsPage.verifyAccountBalance(page, '2800', '2,000.00');
 
-    await reportsPage.verifyReportMatches(page, /Net.*Loss.*153\.50\s*CHF/, 'Net Loss');
+    await reportsPage.verifyTotalLine(page, 'Net Loss', '153.50');
 
     // Verify the balance sheet balances
     await reportsPage.verifyBalanceSheetBalances(page, '1,893.10');
@@ -1169,7 +1169,7 @@ test.describe('Initial Business Transactions', () => {
     await reportsPage.verifyAccountBalance(page, '8900', '75.00');
 
     // Verify Net Loss (expenses 213.50 - revenue 60.00 = 153.50)
-    await reportsPage.verifyReportMatches(page, /Net.*Loss.*153\.50\s*CHF/, 'Net Loss of 153.50');
+    await reportsPage.verifyTotalLine(page, 'Net Loss', '153.50');
     
     console.log('✓ Income Statement verified successfully!');
     console.log('=== Income Statement Verification Complete ===');
@@ -1269,27 +1269,16 @@ test.describe('Initial Business Transactions', () => {
     
     // Swiss Income Statement groups expenses by category (4xxx, 5xxx, 6xxx)
     // It shows subtotals per category with specific labels based on KMU-Kontenplan
-    
-    // Verify the report contains expense data and net income
-    const content = await reportsPage.getReportContent(page);
-    
-    // Check that expenses section has data (should show 213.50 total expenses, 60.00 revenue, 153.50 net loss)
-    if (!content.includes('Expenses')) {
-      throw new Error('Expenses section not found in Swiss Income Statement');
-    }
-    console.log('✓ Expenses section found');
 
-    // Verify Net Income appears with the correct amount (153.50 net loss)
-    const hasNetIncome = content.includes('Net Income') || content.includes('Net Loss');
-    const hasAmount = content.includes('153.50') || content.includes('153,50');
-
-    if (!hasNetIncome) {
-      throw new Error('Net Income/Loss label not found in Swiss Income Statement');
+    // Verify Net Income/Loss with the correct amount (153.50 net loss).
+    // The label may be "Net Loss" or "Net Income" depending on sign;
+    // verifyTotalLine checks the value is on the same element as the label.
+    try {
+      await reportsPage.verifyTotalLine(page, 'Net Loss', '153.50');
+    } catch {
+      await reportsPage.verifyTotalLine(page, 'Net Income', '153.50');
     }
-    if (!hasAmount) {
-      throw new Error('Amount 153.50 CHF not found in Swiss Income Statement');
-    }
-    console.log('✓ Net Income/Loss: 153.50 CHF verified');
+    console.log('✓ Net Income/Loss: 153.50 CHF verified (same row as label)');
     
     console.log('✓ Swiss Income Statement verified with all values');
     
@@ -1336,43 +1325,106 @@ test.describe('Initial Business Transactions', () => {
 
     // Verify key accounts with their debit/credit balances
     // Account 1020: Net Debit 1,785.00
-    await reportsPage.verifyReportContains(page, '1020', 'Bank Account');
-    await reportsPage.verifyReportContains(page, '1,785.00', 'Bank balance');
+    await reportsPage.verifyAccountBalance(page, '1020', '1,785.00');
 
     // Account 1100: Net Debit 68.10
-    await reportsPage.verifyReportContains(page, '1100', 'Accounts receivable');
-    await reportsPage.verifyReportContains(page, '68.10', 'Receivables balance');
+    await reportsPage.verifyAccountBalance(page, '1100', '68.10');
 
     // Account 1230: Net Debit 40.00
-    await reportsPage.verifyReportContains(page, '1230', 'Goods held for resale');
-    await reportsPage.verifyReportContains(page, '40.00', 'Inventory balance');
+    await reportsPage.verifyAccountBalance(page, '1230', '40.00');
 
     // Account 2210.001: Credit 38.50
-    await reportsPage.verifyReportContains(page, '2210.001', 'John Smith liability');
-    await reportsPage.verifyReportContains(page, '38.50', 'John Smith balance');
+    await reportsPage.verifyAccountBalance(page, '2210.001', '38.50');
 
     // Account 2800: Credit 2,000.00
-    await reportsPage.verifyReportContains(page, '2800', 'Share Capital');
-    await reportsPage.verifyReportContains(page, '2,000.00', 'Share Capital balance');
+    await reportsPage.verifyAccountBalance(page, '2800', '2,000.00');
 
     // Account 3400: Credit 60.00 (revenue)
-    await reportsPage.verifyReportContains(page, '3400', 'Revenue from services');
-    await reportsPage.verifyReportContains(page, '60.00', 'Revenue balance');
+    await reportsPage.verifyAccountBalance(page, '3400', '60.00');
 
     // Account 6500: Debit 9.30 (34.30 - 25.00 refund)
-    await reportsPage.verifyReportContains(page, '6500', 'Administrative expenses');
-    await reportsPage.verifyReportContains(page, '9.30', 'Administrative expenses balance');
+    await reportsPage.verifyAccountBalance(page, '6500', '9.30');
 
     // Account 8900: Debit 75.00
-    await reportsPage.verifyReportContains(page, '8900', 'Direct taxes');
-    await reportsPage.verifyReportContains(page, '75.00', 'Direct taxes balance');
+    await reportsPage.verifyAccountBalance(page, '8900', '75.00');
 
     // Account 6900: Debit 15.00
-    await reportsPage.verifyReportContains(page, '6900', 'Financial expense');
-    await reportsPage.verifyReportContains(page, '15.00', 'Financial expense balance');
+    await reportsPage.verifyAccountBalance(page, '6900', '15.00');
     
     console.log('✓ Trial Balance verified successfully!');
     console.log('=== Trial Balance Verification Complete ===');
+  });
+
+  test('should verify Swiss Insolvency Risk Check report is correct', async ({ page }) => {
+    test.setTimeout(120_000);
+    console.log('=== Starting Swiss Insolvency Risk Check Verification ===');
+
+    // Navigate and authenticate
+    await page.goto('/');
+    const signOutLink = page.locator('#signout-link');
+    const isSignedIn = await signOutLink.isVisible({ timeout: 2000 }).catch(() => false);
+
+    if (!isSignedIn) {
+      console.log('Not signed in, performing authentication...');
+      await authenticate(page, TEST_USER_EMAIL, TEST_USER_PASSWORD);
+      console.log('Authentication complete');
+    }
+
+    await headerPage.waitForHeader(page);
+    await headerPage.selectJournal(page, TEST_JOURNAL_NAME);
+
+    // Navigate to reports page
+    console.log('--- Navigating to Reports Page ---');
+    await page.click('a#reports');
+    await reportsPage.waitForReportsPage(page);
+
+    // Select and generate Swiss Insolvency Risk Check report
+    await reportsPage.selectReportTemplate(page, 'Swiss Insolvency Risk Check');
+    await reportsPage.generateReport(page);
+
+    // Verify report structure and values
+    console.log('--- Verifying Swiss Insolvency Risk Check ---');
+
+    // Expected values (final balances after all 12 transactions):
+    // Total assets   = 1020 (1,785.00) + 1100 (68.10) + 1230 (40.00) = 1,893.10
+    // Total liab     = 2200 (8.10) + 2210.001 (38.50) = 46.60
+    // Net assets     = 1,893.10 - 46.60 = 1,846.50
+    // Cash           = 1020 (1,785.00) [1000 Cash is 0.00]
+    // Receivables    = 1100 = 68.10
+    // Quick liquid   = 1,785.00 + 68.10 = 1,853.10
+    // Cash available = 1,785.00 - 46.60 = 1,738.40
+    // Liquid headroom= 1,853.10 - 46.60 = 1,806.50
+    // Protected eq.  = 2800 share capital (2,000.00) + 2950 legal reserves (0.00) = 2,000.00
+    // Cap-loss thr.  = 2,000.00 / 2 = 1,000.00
+    // Distance       = 1,846.50 - 1,000.00 = 846.50
+    // Equity ratio   = 1,846.50 / 1,893.10 = 97.54%
+    // Status         = SOLVENT
+
+    // Capital structure
+    await reportsPage.verifySolvencyRowValue(page, 'Total assets', '1,893.10');
+    await reportsPage.verifySolvencyRowValue(page, 'Total liabilities (debts)', '46.60');
+    await reportsPage.verifySolvencyRowValue(page, 'Net assets (distance to over-indebtedness)', '1,846.50');
+    await reportsPage.verifySolvencyRowValue(page, 'Protected equity (share capital + legal reserves)', '2,000.00');
+    await reportsPage.verifySolvencyRowValue(page, 'Capital-loss threshold (half of protected equity)', '1,000.00');
+    await reportsPage.verifySolvencyRowValue(page, 'Distance to capital loss', '846.50');
+
+    // Liquidity indicators
+    await reportsPage.verifySolvencyRowValue(page, 'Cash and cash equivalents', '1,785.00');
+    await reportsPage.verifySolvencyRowValue(page, 'Receivables', '68.10');
+    await reportsPage.verifySolvencyRowValue(page, 'Quick liquid assets (cash + receivables)', '1,853.10');
+    await reportsPage.verifySolvencyRowValue(page, 'Cash available to spend (cash − all liabilities)', '1,738.40');
+    await reportsPage.verifySolvencyRowValue(page, 'Liquid headroom (cash + receivables − all liabilities)', '1,806.50');
+
+    // Key ratios and status
+    await reportsPage.verifySolvencyRowValue(page, 'Equity ratio', '97.54%', true);
+    await reportsPage.verifySolvencyRowValue(page, 'SOLVENT', 'OK');
+
+    // Monitoring notes explain the legal tests
+    await reportsPage.verifyReportContains(page, 'CO Art. 725b', 'Over-indebtedness note');
+    await reportsPage.verifyReportContains(page, 'CO Art. 725a', 'Capital-loss note');
+
+    console.log('✓ Swiss Insolvency Risk Check verified successfully!');
+    console.log('=== Swiss Insolvency Risk Check Verification Complete ===');
   });
 
   test('should verify Partner Activity Report is correct', async ({ page }) => {
@@ -1410,32 +1462,29 @@ test.describe('Initial Business Transactions', () => {
     await reportsPage.verifyReportContains(page, 'Expenses', 'Expenses column');
     await reportsPage.verifyReportContains(page, 'Net', 'Net column');
     
-    // Verify key expense amounts appear in the report
-    // Partner Activity Report shows income and expenses, not equity transactions
+    // Verify key expense amounts appear in the report paired with the
+    // correct partner row. The Partner Activity Report shows income and
+    // expenses per partner, not equity transactions.
     // Note: amounts may be netted (e.g., refunds reduce gross expenses)
 
     // P00000003 - Swiss Post: Expenses 4.20 (no refund)
-    await reportsPage.verifyReportContains(page, '4.20', 'Swiss Post expense');
+    await reportsPage.verifyPartnerExpense(page, 'Post', '4.20');
 
     // P00000004 - PostFinance: Expenses 15.00 (no refund)
-    await reportsPage.verifyReportContains(page, '15.00', 'PostFinance expense');
+    await reportsPage.verifyPartnerExpense(page, 'PostFinance', '15.00');
 
     // P00000007 - Anthropic: Expenses 100.00 (transaction 7a - Anthropic API services)
-    await reportsPage.verifyReportContains(page, '100.00', 'Anthropic expense');
+    await reportsPage.verifyPartnerExpense(page, 'Anthropic', '100.00');
 
     // P00000006 - Canton Vaud: Expenses 75.00 (transaction 12 - direct tax payment)
-    await reportsPage.verifyReportContains(page, '75.00', 'Canton Vaud tax expense');
+    await reportsPage.verifyPartnerExpense(page, 'Canton', '75.00');
 
-    // Verify at least some partner identifiers appear
-    const content = await reportsPage.getReportContent(page);
-    const hasPartnerData = content.includes('Smith') || content.includes('GmbH') ||
-                          content.includes('Post') || content.includes('Finance') ||
-                          content.includes('Anthropic') || content.includes('Canton') ||
-                          content.includes('P00000');
-    if (!hasPartnerData) {
-      throw new Error('No partner identifiers found in Partner Activity Report');
+    // Verify at least some partner identifiers appear in table rows
+    const hasPartnerRow = await page.locator('tr').filter({ hasText: 'P00000' }).first().isVisible({ timeout: 5000 }).catch(() => false);
+    if (!hasPartnerRow) {
+      throw new Error('No partner identifiers found in Partner Activity Report table rows');
     }
-    console.log('✓ Partner data and all expense values verified');
+    console.log('✓ Partner data and all expense values verified (paired with correct rows)');
     
     console.log('✓ Partner Activity Report verified successfully!');
     console.log('=== Partner Activity Report Verification Complete ===');

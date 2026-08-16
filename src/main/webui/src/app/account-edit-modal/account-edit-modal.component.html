@@ -1,8 +1,7 @@
-<div class="modal-overlay" (click)="onCancel()">
-  <div class="modal-content" (click)="$event.stopPropagation()">
+<div class="modal-overlay">
+  <div class="modal-content">
     <div class="modal-header">
       <h2>{{ getModalTitle() }}</h2>
-      <button class="close-button" (click)="onCancel()" type="button">&times;</button>
     </div>
 
     @if (loading) {

@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, Signal, effect } from '@angular/core';
+import { Component, inject, OnInit, Signal, effect, HostListener } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -7,7 +7,7 @@ import { Controller, ReportTemplate, AccountEntryDTO, AccountTreeNode, TagDTO, T
 import { ModelService } from '../model.service';
 import { AccountService } from '../account.service';
 import { ReportConfig, ReportSection, ReportSectionResult, AccountSummary, PartnerSummary, TagGroup } from './reporting-types';
-import { createReportingContext, groupEntriesByAccount, groupTransactionsByTag, createCashFlowStatement } from './reporting-context';
+import { createReportingContext, groupEntriesByAccount, groupTransactionsByTag, createCashFlowStatement, createSolvencyCheck } from './reporting-context';
 import { FilterInputComponent } from '../journal/filter-input/filter-input.component';
 import { ToastService } from '../core/toast/toast.service';
 import { ConfirmDialogService } from '../core/confirm-dialog/confirm-dialog.service';
@@ -747,6 +747,50 @@ export class ReportsComponent implements OnInit {
         sortColumn: null,
         sortDirection: 'asc'
       };
+    } else if (section.calculated === 'solvencyCheck') {
+      // Swiss insolvency-risk check: a structured set of metrics and a status.
+      const solvencyRows = createSolvencyCheck(context, accounts, section.solvencyConfig);
+      const netAssetsRow = solvencyRows.find(r => r.title === 'Net assets (distance to over-indebtedness)');
+      const subtotal = netAssetsRow?.amount ?? 0;
+      if (this.hideZeroBalances) {
+        const filteredRows = solvencyRows.filter(r => r.isStatus || r.amount !== 0);
+        return {
+          title: section.title,
+          level: section.level || 1,
+          accounts: [],
+          partners: undefined,
+          tagGroups: undefined,
+          cashFlowRows: undefined,
+          solvencyRows: filteredRows,
+          subtotal,
+          commodity,
+          showDebitsCredits: false,
+          showAccounts: false,
+          groupByPartner: false,
+          invertSign: false,
+          sortable: false,
+          sortColumn: null,
+          sortDirection: 'asc'
+        };
+      }
+      return {
+        title: section.title,
+        level: section.level || 1,
+        accounts: [],
+        partners: undefined,
+        tagGroups: undefined,
+        cashFlowRows: undefined,
+        solvencyRows,
+        subtotal,
+        commodity,
+        showDebitsCredits: false,
+        showAccounts: false,
+        groupByPartner: false,
+        invertSign: false,
+        sortable: false,
+        sortColumn: null,
+        sortDirection: 'asc'
+      };
     } else if (section.calculated === 'netIncome') {
       // Special case for net income
       subtotal = context.netIncome;
@@ -924,6 +968,13 @@ export class ReportsComponent implements OnInit {
     return this.formatCurrencyWithCommodity(Math.abs(value), commodity);
   }
 
+  formatPercentage(value: number): string {
+    if (!isFinite(value)) {
+      return 'N/A';
+    }
+    return `${value.toFixed(2)}%`;
+  }
+
   getNetIncomeLabel(value: number): string {
     if (value < 0) {
       return this.netIncomeLabel;
@@ -1094,6 +1145,13 @@ export class ReportsComponent implements OnInit {
     this.importFileName = '';
     this.importFileContent = '';
     this.importError = '';
+  }
+
+  @HostListener('document:keydown.escape')
+  onEscape(): void {
+    if (this.showImportDialog) {
+      this.closeImportDialog();
+    }
   }
 
   toggleMenu(): void {

@@ -88,9 +88,12 @@ export async function getMacroNames(page: Page): Promise<string[]> {
  */
 export async function selectMacro(page: Page, macroName: string): Promise<void> {
   console.log(`Selecting macro: ${macroName}`);
-  // Find the macro card by looking for the exact name in the card's title/heading
+  // Find the macro card by looking for the name in the card's heading.
+  // Use .first() to avoid strict-mode violations when duplicate macros
+  // (e.g. "PaymentForGoods (1)") exist from prior test runs — the original
+  // macro (exact name, no suffix) sorts first.
   const macroCard = page.locator('.macro-card').filter({ has: page.locator(`h3:has-text("${macroName}")`) });
-  await macroCard.click();
+  await macroCard.first().click();
   await waitForMacroDialog(page);
   console.log(`Macro "${macroName}" selected`);
 }
@@ -224,7 +227,8 @@ export async function executeMacro(page: Page): Promise<void> {
  */
 export async function closeDialog(page: Page): Promise<void> {
   console.log('Closing macro dialog...');
-  await page.click('.close-btn');
+  await page.locator('.modal-content').filter({ has: page.locator('.btn-primary') })
+    .locator('button', { hasText: 'Cancel' }).first().click();
   await page.waitForSelector('.modal-overlay', { state: 'hidden', timeout: 5000 });
   console.log('Macro dialog closed');
 }
@@ -430,7 +434,7 @@ export async function getBatchResultSummary(page: Page): Promise<BatchResultSumm
 export async function closeBatchDialog(page: Page): Promise<void> {
   console.log('Closing batch dialog...');
   await page.locator('.modal-content').filter({ has: page.locator('[data-testid="batch-csv-input"]') })
-    .locator('.close-btn').click();
+    .locator('button', { hasText: 'Cancel' }).click();
   await page.waitForSelector('[data-testid="batch-csv-input"]', { state: 'hidden', timeout: 5000 });
   console.log('Batch dialog closed');
 }

@@ -274,6 +274,70 @@ scheme. If `cashFlowConfig` is omitted, a default Swiss SME mapping is used.
 The template is available as a built-in import in
 `report-templates-export.yaml`.
 
+### Swiss Insolvency Risk Check
+
+Mirrors the three financial-distress thresholds of the revised Swiss company
+law (in force since 1 Jan 2023): capital loss (CO Art. 725a), over-indebtedness
+(CO Art. 725b) and (impending) illiquidity (CO Art. 725). Each line carries a
+note explaining which legal test it feeds into, so the report doubles as a
+monitoring checklist for the CFO.
+
+```json
+{
+  "sections": [
+    {
+      "title": "Swiss Insolvency Risk Check",
+      "calculated": "solvencyCheck",
+      "solvencyConfig": {
+        "receivablesRegex": "^1:10:110",
+        "protectedEquityRegex": "^2:28:280|^2:290:2950"
+      }
+    }
+  ]
+}
+```
+
+The `solvencyConfig` properties are matched against the full colon-separated
+account-code path:
+
+- `receivablesRegex` — which accounts count as receivables for the liquidity
+  indicators. Default Swiss KMU value `^1:10:110`; if omitted, receivables
+  defaults to zero.
+- `protectedEquityRegex` — which accounts make up the protected equity for the
+  CO Art. 725a capital-loss test (share capital + statutory capital reserve
+  not repayable to shareholders + statutory retained earnings). Default Swiss
+  KMU value `^2:28:280|^2:290:2950`; if omitted, the capital-loss test is
+  skipped.
+
+The report displays:
+
+- **Capital structure**:
+  - total assets and total liabilities (liabilities shown as a positive number);
+  - **net assets** (assets minus liabilities) — if negative, the company is
+    over-indebted and the board must notify the court (CO Art. 725b);
+  - **protected equity** (share capital + legal reserves) and the
+    **capital-loss threshold** (half of protected equity) — if net assets fall
+    below the threshold, the board must take measures and propose restructuring
+    to the general meeting (CO Art. 725a);
+  - **distance to capital loss** (net assets minus the threshold).
+- **Liquidity indicators**:
+  - cash and cash equivalents, receivables, quick liquid assets;
+  - **cash available to spend** (cash minus all liabilities) — if negative, the
+    company is illiquid (CO Art. 725);
+  - **liquid headroom** (cash plus receivables minus all liabilities).
+- **Key ratios**: the **equity ratio** (net assets as a percentage of total
+  assets; 0% = assets exactly equal liabilities, 100% = no liabilities).
+- **Status**: one of `SOLVENT`, `LOW EQUITY RATIO`, `CAPITAL LOSS`, `ILLIQUID`
+  or `OVER-INDEBTED`, in increasing severity, with a short explanation of the
+  duty that applies.
+
+This is a business-readability report: liabilities are shown as positive
+numbers and a negative net-assets value means the company is already
+over-indebted. The net-assets figure is the balance-sheet equity after the
+current period result, so it may differ from the raw equity-account total in a
+trial balance before year-end closing. The spendable-cash rows are conservative
+estimates that assume all recorded liabilities are due immediately.
+
 ### Tag Grouped Report (e.g., Unpaid Sales Invoices)
 
 Groups transactions by tag value and shows net balance per group. Useful for tracking invoices, bills, or any tagged transaction sets:

@@ -1,4 +1,4 @@
-import { Component, OnInit, Signal, inject, effect } from '@angular/core';
+import { Component, OnInit, Signal, inject, effect, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -68,7 +68,7 @@ export class MacrosComponent implements OnInit {
     this.selectedMacro = macro;
     this.showExecuteDialog = true;
     this.errorMessage = '';
-    
+
     // Initialize parameter values with defaults, resolving built-in date variables
     this.parameterValues.clear();
     const now = new Date();
@@ -90,11 +90,33 @@ export class MacrosComponent implements OnInit {
     }
   }
 
+  /**
+   * Called when the explicit "single" button on a macro card is clicked.
+   * Stops the click from bubbling to the card so the tile click handler
+   * does not open the same dialog a second time, then opens the single
+   * macro execution dialog.
+   */
+  selectSingleMacro(macro: MacroDTO, event: Event): void {
+    event.stopPropagation();
+    this.selectMacro(macro);
+  }
+
   closeDialog(): void {
     this.showExecuteDialog = false;
     this.selectedMacro = null;
     this.parameterValues.clear();
     this.errorMessage = '';
+  }
+
+  @HostListener('document:keydown.escape')
+  onEscape(): void {
+    if (this.showExecuteDialog) {
+      this.closeDialog();
+    } else if (this.showBatchDialog) {
+      this.closeBatchDialog();
+    } else if (this.showImportDialog) {
+      this.closeImportDialog();
+    }
   }
 
   /**

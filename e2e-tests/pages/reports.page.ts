@@ -134,6 +134,88 @@ export async function verifyReportContains(page: Page, value: string, descriptio
 }
 
 /**
+ * Verify a solvency row has the expected value on the same <tr> as its title.
+ * Solvency rows render as <tr> with <div class="solvency-title">{{title}}</div>
+ * in the first <td> and the amount in <td class="amount-column">.
+ *
+ * @param rowTitle - The title text of the solvency row (e.g. "Total assets")
+ * @param expectedValue - The expected value text (e.g. "1,893.10" or "97.54%")
+ * @param isPercentage - If true, the value is a percentage (no commodity suffix)
+ */
+export async function verifySolvencyRowValue(
+  page: Page,
+  rowTitle: string,
+  expectedValue: string,
+  isPercentage: boolean = false
+): Promise<void> {
+  // Find the <tr> inside the solvency table whose .solvency-title matches.
+  const row = page.locator('.solvency-table tr').filter({
+    has: page.locator('.solvency-title', { hasText: rowTitle })
+  }).first();
+
+  await expect(row).toBeVisible({ timeout: 10000 });
+
+  const rowText = await row.textContent();
+  if (!rowText || !rowText.includes(expectedValue)) {
+    throw new Error(
+      `Solvency row "${rowTitle}": expected value "${expectedValue}" on the same row, but row text was: "${rowText?.trim()}"`
+    );
+  }
+
+  console.log(`✓ Solvency row "${rowTitle}": ${expectedValue}${isPercentage ? ' (percentage)' : ''} (same row)`);
+}
+
+/**
+ * Verify a total/subtotal line has the expected value on the same element.
+ * Total lines render as <div class="total-line"> with <span class="total-label">
+ * and <span class="total-amount">, or as <tr class="subtotal-row"> in tables.
+ */
+export async function verifyTotalLine(
+  page: Page,
+  totalLabel: string,
+  expectedValue: string,
+  commodity: string = 'CHF'
+): Promise<void> {
+  // Try total-line div first (used for subtotal-only sections)
+  const totalDiv = page.locator('.total-line').filter({ hasText: totalLabel }).first();
+  const divVisible = await totalDiv.isVisible({ timeout: 3000 }).catch(() => false);
+
+  if (divVisible) {
+    const divText = await totalDiv.textContent();
+    const balancePattern = new RegExp(
+      `${expectedValue.replace(/,/g, '[,\\s]?')}\\s*${commodity}`
+    );
+    if (!divText || !balancePattern.test(divText)) {
+      throw new Error(
+        `Total line "${totalLabel}": expected ${expectedValue} ${commodity} in the same element, but text was: "${divText?.trim()}"`
+      );
+    }
+    console.log(`✓ Total line "${totalLabel}": ${expectedValue} ${commodity} (same element)`);
+    return;
+  }
+
+  // Fall back to subtotal-row in tables
+  const subtotalRow = page.locator('tr.subtotal-row').filter({ hasText: totalLabel }).first();
+  const rowVisible = await subtotalRow.isVisible({ timeout: 3000 }).catch(() => false);
+
+  if (rowVisible) {
+    const rowText = await subtotalRow.textContent();
+    const balancePattern = new RegExp(
+      `${expectedValue.replace(/,/g, '[,\\s]?')}\\s*${commodity}`
+    );
+    if (!rowText || !balancePattern.test(rowText)) {
+      throw new Error(
+        `Subtotal row "${totalLabel}": expected ${expectedValue} ${commodity} in the same row, but text was: "${rowText?.trim()}"`
+      );
+    }
+    console.log(`✓ Subtotal row "${totalLabel}": ${expectedValue} ${commodity} (same row)`);
+    return;
+  }
+
+  throw new Error(`Total line "${totalLabel}" not found in report`);
+}
+
+/**
  * Verify a pattern matches in the report
  */
 export async function verifyReportMatches(page: Page, pattern: RegExp, description: string): Promise<void> {
@@ -154,7 +236,9 @@ export async function verifySectionExists(page: Page, sectionTitle: string): Pro
 }
 
 /**
- * Verify an account appears in the report with a specific balance
+ * Verify an account appears in the report with a specific balance on the
+ * same row. This is stricter than checking both strings exist somewhere on
+ * the page — it ensures the balance is paired with the correct account.
  */
 export async function verifyAccountBalance(
   page: Page, 
@@ -162,24 +246,31 @@ export async function verifyAccountBalance(
   balance: string,
   commodity: string = 'CHF'
 ): Promise<void> {
-  const content = await page.content();
-  
-  // Check if account number appears
-  if (!content.includes(accountNumber)) {
-    throw new Error(`Account ${accountNumber} not found in report`);
+  // Find the table row (<tr>) that contains the account number.
+  // Account numbers appear in <a class="path-segment"> inside the first <td>.
+  const row = page.locator('tr').filter({ hasText: accountNumber }).first();
+
+  // Wait for the row to be visible
+  await expect(row).toBeVisible({ timeout: 10000 });
+
+  // Check that the same row contains the expected balance (with commodity).
+  // Allow for formatting variations: "1,785.00 CHF" or "1 785.00 CHF".
+  const balancePattern = new RegExp(
+    `${balance.replace(/,/g, '[,\\s]?')}\\s*${commodity}`
+  );
+  const rowText = await row.textContent();
+  if (!rowText || !balancePattern.test(rowText)) {
+    throw new Error(
+      `Account ${accountNumber}: expected balance ${balance} ${commodity} on the same row, but row text was: "${rowText?.trim()}"`
+    );
   }
-  
-  // Check if balance appears (allowing for formatting variations)
-  const balancePattern = new RegExp(`${balance.replace(/,/g, '[,\\s]?')}\\s*${commodity}`);
-  if (!balancePattern.test(content)) {
-    throw new Error(`Balance ${balance} ${commodity} not found for account ${accountNumber}`);
-  }
-  
-  console.log(`✓ Account ${accountNumber}: ${balance} ${commodity}`);
+
+  console.log(`✓ Account ${accountNumber}: ${balance} ${commodity} (same row)`);
 }
 
 /**
- * Verify total line matches expected value
+ * Verify total line matches expected value. Delegates to verifyTotalLine
+ * which checks the label and value are on the same row/element.
  */
 export async function verifyTotal(
   page: Page,
@@ -187,50 +278,25 @@ export async function verifyTotal(
   expectedValue: string,
   commodity: string = 'CHF'
 ): Promise<void> {
-  const content = await page.content();
-
-  // Create pattern to match total line — allow HTML tags and attributes
-  // (which may contain digits) between the label and the value.
-  const pattern = new RegExp(
-    `${totalLabel}[\\s\\S]{0,300}?${expectedValue.replace(/,/g, '[,\\s]?')}\\s*${commodity}`,
-    'i'
-  );
-
-  if (!pattern.test(content)) {
-    throw new Error(`Total "${totalLabel}" should be ${expectedValue} ${commodity}`);
-  }
-
-  console.log(`✓ ${totalLabel}: ${expectedValue} ${commodity}`);
+  await verifyTotalLine(page, totalLabel, expectedValue, commodity);
 }
 
 /**
- * Verify the balance sheet balances (Assets = Liabilities + Equity)
+ * Verify the balance sheet balances (Assets = Liabilities + Equity).
+ * Checks that both "Total Assets" and "Total Liabilities and Equity" rows
+ * show the expected total, with the value on the same row as the label.
  */
 export async function verifyBalanceSheetBalances(
   page: Page,
   expectedTotal: string,
   commodity: string = 'CHF'
 ): Promise<void> {
-  const content = await page.content();
-  
-  // Check Total Assets - allow for HTML tags and whitespace between label and value
-  const assetsPattern = new RegExp(
-    `Total Assets[\\s\\S]{0,200}?${expectedTotal.replace(/,/g, '[,\\s]?')}\\s*${commodity}`,
-    'i'
-  );
-  if (!assetsPattern.test(content)) {
-    throw new Error(`Total Assets should be ${expectedTotal} ${commodity}`);
-  }
+  // Check Total Assets on its own row
+  await verifyTotalLine(page, 'Total Assets', expectedTotal, commodity);
   console.log(`✓ Total Assets: ${expectedTotal} ${commodity}`);
-  
-  // Check Total Liabilities and Equity - allow for HTML tags and whitespace
-  const lePattern = new RegExp(
-    `Total Liabilities and Equity[\\s\\S]{0,200}?${expectedTotal.replace(/,/g, '[,\\s]?')}\\s*${commodity}`,
-    'i'
-  );
-  if (!lePattern.test(content)) {
-    throw new Error(`Total Liabilities and Equity should be ${expectedTotal} ${commodity} (must balance with Assets)`);
-  }
+
+  // Check Total Liabilities and Equity on its own row
+  await verifyTotalLine(page, 'Total Liabilities and Equity', expectedTotal, commodity);
   console.log(`✓ Total Liabilities and Equity: ${expectedTotal} ${commodity}`);
   console.log('✓ Balance sheet balances!');
 }
@@ -257,6 +323,33 @@ export async function verifyNoNegativeValues(page: Page, sectionName: string): P
 }
 
 /**
+ * Verify a partner appears in the Partner Activity Report with a specific
+ * expense value on the same row. The partner table has <tr> rows with the
+ * partner name in the first <td> and expense amount in an <td class="amount-column">.
+ */
+export async function verifyPartnerExpense(
+  page: Page,
+  partnerIdentifier: string,
+  expectedExpense: string,
+  commodity: string = 'CHF'
+): Promise<void> {
+  // Find the <tr> that contains the partner identifier (name or ID)
+  const row = page.locator('tr').filter({ hasText: partnerIdentifier }).first();
+  await expect(row).toBeVisible({ timeout: 10000 });
+
+  const rowText = await row.textContent();
+  const expensePattern = new RegExp(
+    `${expectedExpense.replace(/,/g, '[,\\s]?')}\\s*${commodity}`
+  );
+  if (!rowText || !expensePattern.test(rowText)) {
+    throw new Error(
+      `Partner "${partnerIdentifier}": expected expense ${expectedExpense} ${commodity} on the same row, but row text was: "${rowText?.trim()}"`
+    );
+  }
+  console.log(`✓ Partner "${partnerIdentifier}": expense ${expectedExpense} ${commodity} (same row)`);
+}
+
+/**
  * Verify a partner appears in the Partner Activity Report
  */
 export async function verifyPartnerActivity(
@@ -264,12 +357,19 @@ export async function verifyPartnerActivity(
   partnerId: string,
   partnerName: string
 ): Promise<void> {
-  const content = await page.content();
-  
-  // Check if either partner ID or name appears (format may vary)
-  if (!content.includes(partnerId) && !content.includes(partnerName)) {
-    throw new Error(`Partner ${partnerId} - ${partnerName} not found in report`);
+  // Check if either partner ID or name appears in a table row
+  const row = page.locator('tr').filter({
+    hasText: partnerId
+  }).first();
+  const rowVisible = await row.isVisible({ timeout: 5000 }).catch(() => false);
+
+  if (!rowVisible) {
+    const rowByName = page.locator('tr').filter({ hasText: partnerName }).first();
+    const rowByNameVisible = await rowByName.isVisible({ timeout: 5000 }).catch(() => false);
+    if (!rowByNameVisible) {
+      throw new Error(`Partner ${partnerId} - ${partnerName} not found in report`);
+    }
   }
-  
+
   console.log(`✓ Partner found: ${partnerId} or ${partnerName}`);
 }

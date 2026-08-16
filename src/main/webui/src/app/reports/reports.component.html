@@ -326,6 +326,27 @@
         <span class="total-amount"><strong>{{ section.title.toLowerCase().includes(netIncomeLabel.toLowerCase()) ? formatNetResultWithCommodity(section.subtotal, section.commodity) : formatCurrencyWithCommodity(applyDisplaySign(section.subtotal, section.invertSign), section.commodity) }}</strong></span>
       </div>
 
+      <!-- Solvency / insolvency-risk check rows -->
+      <div *ngIf="section.solvencyRows && section.solvencyRows.length > 0" class="solvency-container">
+        <table class="report-table solvency-table">
+          <tbody>
+            <tr *ngFor="let row of section.solvencyRows" [class.section-header-row]="row.level === 1" [class.subtotal-row]="row.level === 3" [class.solvency-status-row]="row.isStatus" [class.solvency-safe]="row.status === 'safe'" [class.solvency-warning]="row.status === 'warning'" [class.solvency-danger]="row.status === 'danger'">
+              <td [class.level-1]="row.level === 1" [class.level-2]="row.level === 2" [class.level-3]="row.level === 3">
+                <div class="solvency-title">{{ row.title }}</div>
+                <div *ngIf="row.note" class="solvency-note">{{ row.note }}</div>
+              </td>
+              <td class="amount-column" *ngIf="!row.isStatus && row.level > 1">
+                <span *ngIf="!row.isPercentage">{{ formatCurrencyWithCommodity(row.amount, section.commodity) }}</span>
+                <span *ngIf="row.isPercentage">{{ formatPercentage(row.amount) }}</span>
+              </td>
+              <td class="solvency-status-cell" *ngIf="row.isStatus" [class.solvency-safe]="row.status === 'safe'" [class.solvency-warning]="row.status === 'warning'" [class.solvency-danger]="row.status === 'danger'">
+                <span class="solvency-status-badge">{{ row.status === 'safe' ? 'OK' : row.status === 'warning' ? 'WARN' : 'ACTION REQUIRED' }}</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
       <!-- Cash flow statement rows -->
       <div *ngIf="section.cashFlowRows && section.cashFlowRows.length > 0" class="cash-flow-container">
         <p class="cash-flow-legend">
@@ -367,11 +388,10 @@
 
   <!-- Import Dialog -->
   @if (showImportDialog) {
-    <div class="modal-overlay" (click)="closeImportDialog()">
-      <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-overlay">
+      <div class="modal-content">
         <div class="modal-header">
           <h2>Import Report Templates</h2>
-          <button class="close-btn" (click)="closeImportDialog()">✕</button>
         </div>
         <div class="modal-body">
           @if (importError) {

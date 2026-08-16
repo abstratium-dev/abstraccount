@@ -1753,6 +1753,8 @@ button {
   cursor: pointer;
   transition: all 0.2s ease;
   position: relative;
+  display: flex;
+  flex-direction: column;
 
   &:hover {
     border-color: var(--color-primary);
@@ -1813,9 +1815,16 @@ button {
     color: var(--color-text-secondary);
   }
 
-  .macro-batch-btn {
-    margin-top: 0.75rem;
-    width: 100%;
+  .macro-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: auto;
+    padding-top: 0.75rem;
+
+    button {
+      flex: 1 1 0;
+      min-width: 0;
+    }
   }
 }
 

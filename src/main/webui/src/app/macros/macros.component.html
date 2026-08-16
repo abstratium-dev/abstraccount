@@ -36,9 +36,10 @@
           <div class="macro-params">
             <strong>Parameters:</strong> {{ macro.parameters.length }}
           </div>
-          <button class="btn-secondary macro-batch-btn" (click)="selectMacroForBatch(macro, $event)" data-testid="batch-macro-btn">
-            Execute Batch…
-          </button>
+          <div class="macro-actions">
+            <button class="btn-secondary macro-single-btn" (click)="selectSingleMacro(macro, $event)" data-testid="single-macro-btn">single</button>
+            <button class="btn-secondary macro-batch-btn" (click)="selectMacroForBatch(macro, $event)" data-testid="batch-macro-btn">bulk</button>
+          </div>
         </div>
       }
     </div>
@@ -46,11 +47,10 @@
 
   <!-- Execute Macro Dialog -->
   @if (showExecuteDialog && selectedMacro) {
-    <div class="modal-overlay" (click)="closeDialog()">
-      <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-overlay">
+      <div class="modal-content">
         <div class="modal-header">
           <h2>{{ selectedMacro.name }}</h2>
-          <button class="close-btn" (click)="closeDialog()">✕</button>
         </div>
 
         <div class="modal-body">
@@ -99,6 +99,7 @@
             <button class="btn btn-primary" (click)="generateTransaction()">
               Execute Macro
             </button>
+            <button class="btn btn-secondary" (click)="closeDialog()">Cancel</button>
           </div>
         </div>
       </div>
@@ -107,11 +108,10 @@
 
   <!-- Batch Execute Macro Dialog -->
   @if (showBatchDialog && selectedBatchMacro) {
-    <div class="modal-overlay" (click)="closeBatchDialog()">
-      <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-overlay">
+      <div class="modal-content">
         <div class="modal-header">
           <h2>{{ selectedBatchMacro.name }} (Batch)</h2>
-          <button class="close-btn" (click)="closeBatchDialog()">✕</button>
         </div>
 
         <div class="modal-body">
@@ -191,6 +191,7 @@
             <button class="btn btn-primary" (click)="executeBatch()" [disabled]="batchInProgress" data-testid="execute-batch-btn">
               {{ batchInProgress ? 'Executing...' : 'Execute Batch' }}
             </button>
+            <button class="btn btn-secondary" (click)="closeBatchDialog()" [disabled]="batchInProgress">Cancel</button>
           </div>
         </div>
       </div>
@@ -199,11 +200,10 @@
 
   <!-- Import Dialog -->
   @if (showImportDialog) {
-    <div class="modal-overlay" (click)="closeImportDialog()">
-      <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-overlay">
+      <div class="modal-content">
         <div class="modal-header">
           <h2>Import Macros</h2>
-          <button class="close-btn" (click)="closeImportDialog()">✕</button>
         </div>
         <div class="modal-body">
           @if (errorMessage) {

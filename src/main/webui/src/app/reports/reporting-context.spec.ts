@@ -1,4 +1,4 @@
-import { createReportingContext, groupEntriesByAccount, createCashFlowStatement } from './reporting-context';
+import { createReportingContext, groupEntriesByAccount, createCashFlowStatement, createSolvencyCheck } from './reporting-context';
 import { AccountEntryDTO, AccountTreeNode } from '../controller';
 
 describe('ReportingContext', () => {
@@ -834,6 +834,361 @@ describe('ReportingContext', () => {
       const customLine = rows.find(r => r.title === 'Custom customer debts');
       expect(customLine).toBeDefined();
       expect(customLine!.amount).toBe(-2000);
+    });
+  });
+
+  describe('createSolvencyCheck', () => {
+    function makeSolvencyAccount(id: string, name: string, type: string, parentId: string | null = null, code: number): AccountTreeNode {
+      return {
+        id,
+        name,
+        type: type as any,
+        note: null,
+        parentId,
+        accountCode: code,
+        children: []
+      };
+    }
+
+    const solvencyAccounts: AccountTreeNode[] = [
+      {
+        id: 'assets',
+        name: '1 Assets',
+        type: 'ASSET',
+        note: null,
+        parentId: null,
+        accountCode: 1,
+        children: [
+          {
+            id: 'current-assets',
+            name: '10 Current Assets',
+            type: 'ASSET',
+            note: null,
+            parentId: 'assets',
+            accountCode: 10,
+            children: [
+              {
+                id: 'cash',
+                name: '100 Cash and cash equivalents',
+                type: 'ASSET',
+                note: null,
+                parentId: 'current-assets',
+                accountCode: 100,
+                children: [
+                  {
+                    id: 'bank',
+                    name: '1000 Bank Account',
+                    type: 'CASH',
+                    note: null,
+                    parentId: 'cash',
+                    accountCode: 1000,
+                    children: []
+                  }
+                ]
+              },
+              {
+                id: 'receivables',
+                name: '110 Accounts Receivable',
+                type: 'ASSET',
+                note: null,
+                parentId: 'current-assets',
+                accountCode: 110,
+                children: [
+                  {
+                    id: 'trade-receivables',
+                    name: '1100 Trade Receivables',
+                    type: 'ASSET',
+                    note: null,
+                    parentId: 'receivables',
+                    accountCode: 1100,
+                    children: []
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'liabilities',
+        name: '2 Liabilities',
+        type: 'LIABILITY',
+        note: null,
+        parentId: null,
+        accountCode: 2,
+        children: [
+          makeSolvencyAccount('payables', '20 Payables', 'LIABILITY', 'liabilities', 20),
+          {
+            id: 'equity-capital',
+            name: '28 Equity capital',
+            type: 'EQUITY',
+            note: null,
+            parentId: 'liabilities',
+            accountCode: 28,
+            children: [
+              makeSolvencyAccount('share-capital', '280 Share capital', 'EQUITY', 'equity-capital', 280)
+            ]
+          },
+          {
+            id: 'reserves',
+            name: '290 Reserves',
+            type: 'EQUITY',
+            note: null,
+            parentId: 'liabilities',
+            accountCode: 290,
+            children: [
+              makeSolvencyAccount('legal-reserves', '2950 Legal reserves', 'EQUITY', 'reserves', 2950)
+            ]
+          }
+        ]
+      },
+      makeSolvencyAccount('revenue', '4 Revenue', 'REVENUE', null, 4),
+      makeSolvencyAccount('expense', '6 Expenses', 'EXPENSE', null, 6)
+    ];
+
+    function makeSolvencyEntry(id: string, accountId: string, amount: number): AccountEntryDTO {
+      return {
+        entryId: id,
+        transactionId: 'tx-' + id,
+        transactionDate: '2024-06-01',
+        description: 'entry',
+        commodity: 'CHF',
+        amount,
+        runningBalance: amount,
+        note: null,
+        accountId,
+        partnerId: null,
+        partnerName: null,
+        status: 'CLEARED',
+        tags: []
+      };
+    }
+
+    const swissSolvencyConfig = { receivablesRegex: '^1:10:110', protectedEquityRegex: '^2:28:280|^2:290:2950' };
+
+    it('should flag a solvent company with all KPIs computed', () => {
+      const entries = [
+        makeSolvencyEntry('e1', 'bank', 10000),
+        makeSolvencyEntry('e2', 'trade-receivables', 5000),
+        makeSolvencyEntry('e3', 'payables', -3000),
+        makeSolvencyEntry('e4', 'share-capital', -20000),
+        makeSolvencyEntry('e5', 'legal-reserves', -1000)
+      ];
+      const context = createReportingContext(entries, solvencyAccounts, null, null);
+      const rows = createSolvencyCheck(context, solvencyAccounts, swissSolvencyConfig);
+
+      expect(rows.find(r => r.title === 'Total assets')!.amount).toBe(15000);
+      expect(rows.find(r => r.title === 'Total liabilities (debts)')!.amount).toBe(3000);
+      expect(rows.find(r => r.title === 'Net assets (distance to over-indebtedness)')!.amount).toBe(12000);
+      expect(rows.find(r => r.title === 'Cash and cash equivalents')!.amount).toBe(10000);
+      expect(rows.find(r => r.title === 'Receivables')!.amount).toBe(5000);
+      expect(rows.find(r => r.title === 'Quick liquid assets (cash + receivables)')!.amount).toBe(15000);
+      expect(rows.find(r => r.title === 'Cash available to spend (cash − all liabilities)')!.amount).toBe(7000);
+      expect(rows.find(r => r.title === 'Liquid headroom (cash + receivables − all liabilities)')!.amount).toBe(12000);
+      expect(rows.find(r => r.title === 'Equity ratio')!.amount).toBeCloseTo(80, 5);
+
+      // Protected equity = share capital 20000 + legal reserves 1000 = 21000
+      expect(rows.find(r => r.title === 'Protected equity (share capital + legal reserves)')!.amount).toBe(21000);
+      expect(rows.find(r => r.title === 'Capital-loss threshold (half of protected equity)')!.amount).toBe(10500);
+      expect(rows.find(r => r.title === 'Distance to capital loss')!.amount).toBe(1500);
+
+      // Every line carries a monitoring note
+      expect(rows.every(r => r.note && r.note.length > 0)).toBe(true);
+
+      const statusRow = rows.find(r => r.isStatus);
+      expect(statusRow).toBeDefined();
+      expect(statusRow!.status).toBe('safe');
+    });
+
+    it('should flag a capital loss when net assets fall below half of protected equity', () => {
+      const entries = [
+        makeSolvencyEntry('e1', 'bank', 10000),
+        makeSolvencyEntry('e2', 'trade-receivables', 1000),
+        makeSolvencyEntry('e3', 'payables', -3000),
+        makeSolvencyEntry('e4', 'share-capital', -20000)
+      ];
+      const context = createReportingContext(entries, solvencyAccounts, null, null);
+      const rows = createSolvencyCheck(context, solvencyAccounts, swissSolvencyConfig);
+
+      // Net assets = 8000, protected equity = 20000, threshold = 10000 -> capital loss
+      expect(rows.find(r => r.title === 'Net assets (distance to over-indebtedness)')!.amount).toBe(8000);
+      expect(rows.find(r => r.title === 'Capital-loss threshold (half of protected equity)')!.amount).toBe(10000);
+      expect(rows.find(r => r.title === 'Distance to capital loss')!.amount).toBe(-2000);
+
+      const statusRow = rows.find(r => r.isStatus);
+      expect(statusRow!.status).toBe('warning');
+      expect(statusRow!.title).toContain('CAPITAL LOSS');
+    });
+
+    it('should flag an over-indebted company with a danger status', () => {
+      const entries = [
+        makeSolvencyEntry('e1', 'bank', 1000),
+        makeSolvencyEntry('e2', 'payables', -3000)
+      ];
+      const context = createReportingContext(entries, solvencyAccounts, null, null);
+      const rows = createSolvencyCheck(context, solvencyAccounts, swissSolvencyConfig);
+
+      expect(rows.find(r => r.title === 'Total assets')!.amount).toBe(1000);
+      expect(rows.find(r => r.title === 'Total liabilities (debts)')!.amount).toBe(3000);
+      expect(rows.find(r => r.title === 'Net assets (distance to over-indebtedness)')!.amount).toBe(-2000);
+      expect(rows.find(r => r.title === 'Cash available to spend (cash − all liabilities)')!.amount).toBe(-2000);
+      expect(rows.find(r => r.title === 'Equity ratio')!.amount).toBeCloseTo(-200, 2);
+
+      const statusRow = rows.find(r => r.isStatus);
+      expect(statusRow).toBeDefined();
+      expect(statusRow!.status).toBe('danger');
+      expect(statusRow!.title).toContain('OVER-INDEBTED');
+    });
+
+    it('should flag an illiquid company even when still solvent', () => {
+      const entries = [
+        makeSolvencyEntry('e1', 'bank', 1000),
+        makeSolvencyEntry('e2', 'trade-receivables', 5000),
+        makeSolvencyEntry('e3', 'payables', -3000),
+        makeSolvencyEntry('e4', 'share-capital', -3000)
+      ];
+      const context = createReportingContext(entries, solvencyAccounts, null, null);
+      const rows = createSolvencyCheck(context, solvencyAccounts, swissSolvencyConfig);
+
+      // Assets (6000) > liabilities (3000), so still solvent
+      expect(rows.find(r => r.title === 'Net assets (distance to over-indebtedness)')!.amount).toBe(3000);
+      // But cash (1000) < liabilities (3000), so illiquid
+      expect(rows.find(r => r.title === 'Cash available to spend (cash − all liabilities)')!.amount).toBe(-2000);
+
+      const statusRow = rows.find(r => r.isStatus);
+      expect(statusRow!.status).toBe('danger');
+      expect(statusRow!.title).toContain('ILLIQUID');
+    });
+
+    it('should warn when the equity ratio is thin but no capital loss', () => {
+      const entries = [
+        makeSolvencyEntry('e1', 'bank', 10000),
+        makeSolvencyEntry('e2', 'payables', -9500),
+        makeSolvencyEntry('e3', 'share-capital', -500)
+      ];
+      const context = createReportingContext(entries, solvencyAccounts, null, null);
+      const rows = createSolvencyCheck(context, solvencyAccounts, swissSolvencyConfig);
+
+      expect(rows.find(r => r.title === 'Equity ratio')!.amount).toBeCloseTo(5, 2);
+      expect(rows.find(r => r.title === 'Cash available to spend (cash − all liabilities)')!.amount).toBe(500);
+
+      const statusRow = rows.find(r => r.isStatus);
+      expect(statusRow!.status).toBe('warning');
+    });
+
+    it('should report zero receivables when no solvencyConfig is provided', () => {
+      const entries = [
+        makeSolvencyEntry('e1', 'bank', 10000),
+        makeSolvencyEntry('e2', 'trade-receivables', 5000),
+        makeSolvencyEntry('e3', 'payables', -3000),
+        makeSolvencyEntry('e4', 'share-capital', -12000)
+      ];
+      const context = createReportingContext(entries, solvencyAccounts, null, null);
+      const rows = createSolvencyCheck(context, solvencyAccounts);
+
+      expect(rows.find(r => r.title === 'Receivables')!.amount).toBe(0);
+      expect(rows.find(r => r.title === 'Protected equity (share capital + legal reserves)')!.amount).toBe(0);
+      expect(rows.find(r => r.title === 'Quick liquid assets (cash + receivables)')!.amount).toBe(10000);
+      expect(rows.find(r => r.title === 'Liquid headroom (cash + receivables − all liabilities)')!.amount).toBe(7000);
+    });
+
+    it('should use a custom receivablesRegex when provided', () => {
+      const customAccounts: AccountTreeNode[] = [
+        {
+          id: 'assets',
+          name: '1 Assets',
+          type: 'ASSET',
+          note: null,
+          parentId: null,
+          accountCode: 1,
+          children: [
+            {
+              id: 'current-assets',
+              name: '10 Current Assets',
+              type: 'ASSET',
+              note: null,
+              parentId: 'assets',
+              accountCode: 10,
+              children: [
+                {
+                  id: 'cash',
+                  name: '100 Cash and cash equivalents',
+                  type: 'ASSET',
+                  note: null,
+                  parentId: 'current-assets',
+                  accountCode: 100,
+                  children: [
+                    {
+                      id: 'bank',
+                      name: '1000 Bank Account',
+                      type: 'CASH',
+                      note: null,
+                      parentId: 'cash',
+                      accountCode: 1000,
+                      children: []
+                    }
+                  ]
+                },
+                {
+                  id: 'receivables',
+                  name: '110 Accounts Receivable',
+                  type: 'ASSET',
+                  note: null,
+                  parentId: 'current-assets',
+                  accountCode: 110,
+                  children: [
+                    {
+                      id: 'trade-receivables',
+                      name: '1100 Trade Receivables',
+                      type: 'ASSET',
+                      note: null,
+                      parentId: 'receivables',
+                      accountCode: 1100,
+                      children: []
+                    }
+                  ]
+                },
+                {
+                  id: 'other-receivables',
+                  name: '130 Other receivables',
+                  type: 'ASSET',
+                  note: null,
+                  parentId: 'current-assets',
+                  accountCode: 130,
+                  children: []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          id: 'liabilities',
+          name: '2 Liabilities',
+          type: 'LIABILITY',
+          note: null,
+          parentId: null,
+          accountCode: 2,
+          children: [
+            makeSolvencyAccount('payables', '20 Payables', 'LIABILITY', 'liabilities', 20),
+            makeSolvencyAccount('share-capital', '280 Share capital', 'EQUITY', 'liabilities', 280)
+          ]
+        },
+        makeSolvencyAccount('revenue', '4 Revenue', 'REVENUE', null, 4),
+        makeSolvencyAccount('expense', '6 Expenses', 'EXPENSE', null, 6)
+      ];
+      const entries = [
+        makeSolvencyEntry('e1', 'bank', 10000),
+        makeSolvencyEntry('e2', 'trade-receivables', 5000),
+        makeSolvencyEntry('e5', 'other-receivables', 2000),
+        makeSolvencyEntry('e3', 'payables', -3000),
+        makeSolvencyEntry('e4', 'share-capital', -14000)
+      ];
+      const context = createReportingContext(entries, customAccounts, null, null);
+      const rows = createSolvencyCheck(context, customAccounts, { receivablesRegex: '^1:10:13' });
+
+      // Only the 130 account is matched by ^1:10:13
+      expect(rows.find(r => r.title === 'Receivables')!.amount).toBe(2000);
+      expect(rows.find(r => r.title === 'Quick liquid assets (cash + receivables)')!.amount).toBe(12000);
     });
   });
 });

@@ -37,6 +37,15 @@ export interface CashFlowConfig {
   financing?: CashFlowAccountMapping[];
 }
 
+/**
+ * User-configurable account mappings for the Swiss insolvency-risk check.
+ * All patterns are matched against the full hierarchical account-code path.
+ */
+export interface SolvencyConfig {
+  receivablesRegex?: string; // e.g. "^1:10:110" for Swiss KMU receivables
+  protectedEquityRegex?: string; // e.g. "^2:28:280|^2:290:2950" for Swiss KMU share capital + legal reserves
+}
+
 export interface ReportSection {
   title: string;
   level?: number; // 1 = h1, 2 = h2, 3 = h3, etc. Default is 3 (h3)
@@ -47,7 +56,7 @@ export interface ReportSection {
   showAccounts?: boolean; // Whether to show individual accounts (default true)
   invertSign?: boolean;
   includeNetIncome?: boolean;
-  calculated?: 'netIncome' | 'totalAssets' | 'tagGrouped' | 'cashFlow' | string; // Special calculated values
+  calculated?: 'netIncome' | 'totalAssets' | 'tagGrouped' | 'cashFlow' | 'solvencyCheck' | string; // Special calculated values
   groupByPartner?: boolean; // Group entries by partner instead of account
   sortable?: boolean; // Whether columns can be sorted by clicking headers
   defaultSortColumn?: string; // Default column to sort by (e.g., 'net', 'income', 'partnerName')
@@ -59,6 +68,7 @@ export interface ReportSection {
   balanceAccountNameRegex?: string; // For tagGrouped: regex to match account names/paths (e.g., "1100" to match "1:10:110:1100")
   useJournalChain?: boolean; // If true, load data from all journals in the chain; otherwise only current journal (default: false)
   cashFlowConfig?: CashFlowConfig; // For cashFlow: account-pattern mappings
+  solvencyConfig?: SolvencyConfig; // For solvencyCheck: account-pattern mappings
 }
 
 /**
@@ -125,6 +135,19 @@ export interface CashFlowRow {
 }
 
 /**
+ * A single line in the Swiss insolvency-risk check result.
+ */
+export interface SolvencyRow {
+  title: string;
+  amount: number;
+  level: number; // 1 = heading, 2 = metric, 3 = subtotal/conclusion
+  isStatus: boolean;
+  status?: 'safe' | 'warning' | 'danger';
+  note?: string; // Explanatory text shown beneath the title
+  isPercentage?: boolean; // If true, amount is rendered with a % sign
+}
+
+/**
  * Report section result after processing
  */
 export interface ReportSectionResult {
@@ -134,6 +157,7 @@ export interface ReportSectionResult {
   partners?: PartnerSummary[]; // For partner-based reports
   tagGroups?: TagGroup[]; // For tagGrouped reports
   cashFlowRows?: CashFlowRow[]; // For cashFlow reports
+  solvencyRows?: SolvencyRow[]; // For solvencyCheck reports
   subtotal: number;
   commodity: string;
   showDebitsCredits: boolean;

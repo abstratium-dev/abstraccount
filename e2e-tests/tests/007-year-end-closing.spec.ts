@@ -427,7 +427,7 @@ test.describe('Year-End Closing', () => {
 
     // --- Net Loss line ---
     // Net Loss = 178.00 revenue − 336.50 expenses = 158.50
-    await reportsPage.verifyReportMatches(page, /Net.*Loss.*158\.50\s*CHF/, 'Net Loss');
+    await reportsPage.verifyTotalLine(page, 'Net Loss', '158.50');
 
     // --- Total Liabilities and Equity (must balance with Total Assets) ---
     await reportsPage.verifyBalanceSheetBalances(page, '1,899.60');
@@ -512,7 +512,7 @@ test.describe('Year-End Closing', () => {
 
     // --- Net Loss line ---
     // Net Loss = 178.00 revenue − 336.50 expenses = 158.50
-    await reportsPage.verifyReportMatches(page, /Net.*Loss.*158\.50\s*CHF/, 'Net Loss of 158.50');
+    await reportsPage.verifyTotalLine(page, 'Net Loss', '158.50');
 
     console.log('✓ Income Statement verified — every line correct!');
     console.log('=== Income Statement Verification (Phase 2.6) Complete ===');
@@ -557,32 +557,25 @@ test.describe('Year-End Closing', () => {
 
     // Verify key accounts with their debit/credit balances
     // Account 1020: Bank - Net Debit 1,680.50 (unchanged by year-end closing)
-    await reportsPage.verifyReportContains(page, '1020', 'Bank Account');
-    await reportsPage.verifyReportContains(page, '1,680.50', 'Bank balance');
+    await reportsPage.verifyAccountBalance(page, '1020', '1,680.50');
 
     // Account 1100: Receivables - Net Debit 179.10 (unchanged)
-    await reportsPage.verifyReportContains(page, '1100', 'Receivables');
-    await reportsPage.verifyReportContains(page, '179.10', 'Receivables balance');
+    await reportsPage.verifyAccountBalance(page, '1100', '179.10');
 
     // Account 2800: Share Capital - Credit 2,000.00 (unchanged)
-    await reportsPage.verifyReportContains(page, '2800', 'Share Capital');
-    await reportsPage.verifyReportContains(page, '2,000.00', 'Share Capital balance');
+    await reportsPage.verifyAccountBalance(page, '2800', '2,000.00');
 
     // Account 3400: Revenue - Credit 178.00 (unchanged)
-    await reportsPage.verifyReportContains(page, '3400', 'Revenue');
-    await reportsPage.verifyReportContains(page, '178.00', 'Revenue balance');
+    await reportsPage.verifyAccountBalance(page, '3400', '178.00');
 
     // Account 8900: Direct taxes - Debit 180.00 (130.00 from test 004 + 50.00 from test 007)
-    await reportsPage.verifyReportContains(page, '8900', 'Direct taxes');
-    await reportsPage.verifyReportContains(page, '180.00', 'Direct taxes balance');
+    await reportsPage.verifyAccountBalance(page, '8900', '180.00');
 
     // Account 2208: Tax liabilities - Credit 50.00 (from test 007 TaxProvision)
-    await reportsPage.verifyReportContains(page, '2208', 'Tax liabilities');
-    await reportsPage.verifyReportContains(page, '50.00', 'Tax liabilities balance');
+    await reportsPage.verifyAccountBalance(page, '2208', '50.00');
 
     // Account 2950: Legal reserves - Credit 10.00 (from test 007 LegalReserveAllocation)
-    await reportsPage.verifyReportContains(page, '2950', 'Legal reserves');
-    await reportsPage.verifyReportContains(page, '10.00', 'Legal reserves balance');
+    await reportsPage.verifyAccountBalance(page, '2950', '10.00');
 
     console.log('✓ Trial Balance verified successfully!');
     console.log('=== Trial Balance Verification Complete ===');

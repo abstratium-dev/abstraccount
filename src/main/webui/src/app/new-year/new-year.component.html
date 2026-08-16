@@ -90,11 +90,10 @@
 
   <!-- Confirmation dialog -->
   @if (showConfirmDialog && preview) {
-    <div class="modal-overlay" (click)="cancelConfirm()">
-      <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-overlay">
+      <div class="modal-content">
         <div class="modal-header">
           <h2>Confirm: Create New Year Journal</h2>
-          <button class="close-btn" (click)="cancelConfirm()">✕</button>
         </div>
 
         <div class="modal-body">

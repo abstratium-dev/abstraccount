@@ -1,5 +1,5 @@
 import { AccountEntryDTO, AccountTreeNode, TransactionDTO, TagDTO } from '../controller';
-import { ReportingContext, AccountSummary, TagGroup, CashFlowRow, CashFlowConfig } from './reporting-types';
+import { ReportingContext, AccountSummary, TagGroup, CashFlowRow, CashFlowConfig, SolvencyConfig, SolvencyRow } from './reporting-types';
 import { buildHierarchicalAccountName } from '../account-utils';
 
 // Cache for hierarchical account names to avoid recomputing
@@ -526,6 +526,158 @@ export function createCashFlowStatement(
   addLine('Cash at the start of the period', context.openingCash ?? 0);
   addLine('Cash at the end of the period', context.closingCash ?? 0);
   addSubtotal('Difference in cash', (context.closingCash ?? 0) - (context.openingCash ?? 0), 3);
+
+  return rows;
+}
+
+/**
+ * Builds a Swiss insolvency-risk check from a reporting context.
+ *
+ * The report mirrors the three legal thresholds of the revised company law
+ * (in force since 1 Jan 2023):
+ *
+ * - CO Art. 725a: capital loss — net assets must still cover at least half of
+ *   the protected equity (share capital + statutory capital reserve not
+ *   repayable to shareholders + statutory retained earnings). If not, the
+ *   board must take measures and propose restructuring to the general meeting.
+ * - CO Art. 725b: over-indebtedness — liabilities exceed assets. The board
+ *   must notify the court unless claims are subordinated or the shortfall can
+ *   be eliminated within 90 days.
+ * - CO Art. 725: (impending) illiquidity — the company cannot pay its debts as
+ *   they fall due. The board must monitor solvency and take measures to
+ *   restore liquidity.
+ *
+ * Each line carries a note explaining which legal test it feeds into, so the
+ * report doubles as a monitoring checklist for the CFO.
+ *
+ * Amounts use the conventional business sign: positive = available / owed to
+ * the company; negative = shortfall / owed by the company.
+ */
+export function createSolvencyCheck(
+  context: ReportingContext,
+  accounts: AccountTreeNode[],
+  config?: SolvencyConfig
+): SolvencyRow[] {
+  const rows: SolvencyRow[] = [];
+
+  const totalAssets = context.getBalanceByAccountTypes(['ASSET', 'CASH']);
+  const totalLiabilitiesRaw = context.getBalanceByAccountType('LIABILITY');
+  const totalLiabilities = -totalLiabilitiesRaw; // business-positive sign
+  const equity = totalAssets + totalLiabilitiesRaw; // = assets - liabilities
+
+  // Cash and receivables are the main liquid resources in the Swiss SME chart.
+  const cash = context.getBalanceByAccountType('CASH');
+  let receivables = 0;
+  const receivablesRegex = config?.receivablesRegex;
+  if (receivablesRegex) {
+    try {
+      receivables = context.getBalanceByAccountRegex(receivablesRegex);
+    } catch {
+      // If the regex matches no accounts, ignore.
+    }
+  }
+  const liquidAssets = cash + receivables;
+  const cashAvailableToSpend = cash - totalLiabilities;
+  const liquidHeadroom = liquidAssets - totalLiabilities;
+
+  // Protected equity (Art. 725a): share capital + statutory capital reserve
+  // not repayable to shareholders + statutory retained earnings. Balances are
+  // credit-side (negative), so flip the sign for business display.
+  let protectedEquity = 0;
+  const protectedEquityRegex = config?.protectedEquityRegex;
+  if (protectedEquityRegex) {
+    try {
+      protectedEquity = -context.getBalanceByAccountRegex(protectedEquityRegex);
+    } catch {
+      // If the regex matches no accounts, ignore.
+    }
+  }
+  const capitalLossThreshold = protectedEquity / 2;
+  const distanceToCapitalLoss = equity - capitalLossThreshold;
+
+  // Equity ratio: net assets relative to total assets. 0% means assets exactly
+  // equal liabilities (the CO Art. 725b threshold); 100% means no liabilities.
+  const equityRatio = totalAssets > 0 ? (equity / totalAssets) * 100 : 0;
+
+  let status: 'safe' | 'warning' | 'danger';
+  let statusText: string;
+  let note: string;
+  if (equity < 0) {
+    status = 'danger';
+    statusText = 'OVER-INDEBTED – notify the court without delay';
+    note = 'Liabilities exceed assets (CO Art. 725b). The board must notify the bankruptcy court immediately unless creditors subordinate claims covering the shortfall or the over-indebtedness can be eliminated within 90 days.';
+  } else if (cashAvailableToSpend < 0) {
+    status = 'danger';
+    statusText = 'ILLIQUID – restore liquidity now';
+    note = 'Cash does not cover recorded liabilities (CO Art. 725). The board must take measures to restore liquidity; inability to pay debts as they fall due is a bankruptcy ground (Art. 190 SchKG).';
+  } else if (protectedEquity > 0 && equity < capitalLossThreshold) {
+    status = 'warning';
+    statusText = 'CAPITAL LOSS – restructuring duty under CO Art. 725a';
+    note = 'Net assets no longer cover half of share capital + legal reserves. The board must take measures to eliminate the capital loss, propose restructuring to the general meeting, and have the annual statements audited.';
+  } else if (equityRatio < 10) {
+    status = 'warning';
+    statusText = 'LOW EQUITY RATIO – monitor closely';
+    note = 'Net assets are thin relative to total assets. A small loss could trigger the capital-loss duty (CO Art. 725a) or over-indebtedness (CO Art. 725b).';
+  } else {
+    status = 'safe';
+    statusText = 'SOLVENT';
+    note = 'Assets exceed liabilities, net assets cover half of share capital + legal reserves, and cash covers recorded liabilities.';
+  }
+
+  rows.push({ title: 'Capital structure', amount: 0, level: 1, isStatus: false, note: 'The basis for the over-indebtedness test (CO Art. 725b).' });
+  rows.push({ title: 'Total assets', amount: totalAssets, level: 2, isStatus: false, note: 'Everything the company owns. Falls when cash is spent on losses.' });
+  rows.push({ title: 'Total liabilities (debts)', amount: totalLiabilities, level: 2, isStatus: false, note: 'What the company owes. Must stay below total assets.' });
+  rows.push({
+    title: 'Net assets (distance to over-indebtedness)',
+    amount: equity,
+    level: 3,
+    isStatus: false,
+    note: 'Assets minus liabilities. If this falls below zero, the company is over-indebted and the board must notify the court (CO Art. 725b).'
+  });
+  rows.push({
+    title: 'Protected equity (share capital + legal reserves)',
+    amount: protectedEquity,
+    level: 2,
+    isStatus: false,
+    note: 'The equity cushion protected by CO Art. 725a: share capital, statutory capital reserve not repayable to shareholders, and statutory retained earnings.'
+  });
+  rows.push({
+    title: 'Capital-loss threshold (half of protected equity)',
+    amount: capitalLossThreshold,
+    level: 2,
+    isStatus: false,
+    note: 'If net assets fall below this, the board must take measures and propose restructuring to the general meeting (CO Art. 725a).'
+  });
+  rows.push({
+    title: 'Distance to capital loss',
+    amount: distanceToCapitalLoss,
+    level: 3,
+    isStatus: false,
+    note: 'Net assets minus the capital-loss threshold. Positive = still above half of protected equity; negative = capital-loss duty triggered.'
+  });
+
+  rows.push({ title: 'Liquidity indicators', amount: 0, level: 1, isStatus: false, note: 'The basis for the illiquidity test (CO Art. 725).' });
+  rows.push({ title: 'Cash and cash equivalents', amount: cash, level: 2, isStatus: false, note: 'The liquid funds available today.' });
+  rows.push({ title: 'Receivables', amount: receivables, level: 2, isStatus: false, note: 'Liquid only if customers pay on time. Monitor ageing closely.' });
+  rows.push({ title: 'Quick liquid assets (cash + receivables)', amount: liquidAssets, level: 3, isStatus: false, note: 'What could be mobilised quickly if all customers paid.' });
+  rows.push({
+    title: 'Cash available to spend (cash − all liabilities)',
+    amount: cashAvailableToSpend,
+    level: 2,
+    isStatus: false,
+    note: 'Conservative estimate: assumes all recorded liabilities are due immediately. If negative, the company is illiquid (CO Art. 725).'
+  });
+  rows.push({
+    title: 'Liquid headroom (cash + receivables − all liabilities)',
+    amount: liquidHeadroom,
+    level: 3,
+    isStatus: false,
+    note: 'How much you could still spend if all receivables were collected and all liabilities paid.'
+  });
+
+  rows.push({ title: 'Key ratios', amount: 0, level: 1, isStatus: false, note: 'Quick indicators to watch over time.' });
+  rows.push({ title: 'Equity ratio', amount: equityRatio, level: 3, isStatus: false, isPercentage: true, note: 'Net assets as a percentage of total assets. 0% = assets exactly equal liabilities; 100% = no liabilities.' });
+  rows.push({ title: statusText, amount: 0, level: 2, isStatus: true, status, note });
 
   return rows;
 }

@@ -357,4 +357,13 @@ describe('TransactionEditModalComponent', () => {
     expect(component.entries[0].accountName).toBe('Cash');
   });
 
+  it('should emit close when Escape is pressed', () => {
+    let closed = false;
+    component.close.subscribe(() => closed = true);
+
+    component.onEscape();
+
+    expect(closed).toBe(true);
+  });
+
 });

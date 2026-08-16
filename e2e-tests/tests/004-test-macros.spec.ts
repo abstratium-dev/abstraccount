@@ -654,9 +654,14 @@ test.describe('Test Macros', () => {
     await page.waitForTimeout(500);
     console.log('Receivable account 1:10:110:1100 entered');
     
-    // Close any open dropdown by pressing Escape
-    await page.keyboard.press('Escape');
-    await page.waitForTimeout(500);
+    // Close any open autocomplete dropdown by blurring the active input.
+    // We click the dialog header (non-interactive) to move focus away,
+    // then wait for the autocomplete's blur timeout (200ms) to close its
+    // dropdown. We must NOT press Escape here because the macros component
+    // has a document-level @HostListener('document:keydown.escape') that
+    // would close the entire execute dialog.
+    await page.locator('.modal-header h2').click().catch(() => {});
+    await page.waitForTimeout(300);
     
     console.log('All fields filled');
     
@@ -823,8 +828,8 @@ test.describe('Test Macros', () => {
     await page.waitForTimeout(500);
     console.log('Receivable account 1:10:110:1100 entered');
     
-    await page.keyboard.press('Escape');
-    await page.waitForTimeout(500);
+    await page.locator('.modal-header h2').click().catch(() => {});
+    await page.waitForTimeout(300);
     
     console.log('All fields filled');
     
@@ -995,8 +1000,8 @@ test.describe('Test Macros', () => {
     await page.waitForTimeout(500);
     console.log('Receivable account 1:10:110:1100 entered');
     
-    await page.keyboard.press('Escape');
-    await page.waitForTimeout(500);
+    await page.locator('.modal-header h2').click().catch(() => {});
+    await page.waitForTimeout(300);
     
     console.log('All fields filled');
     
@@ -1168,8 +1173,8 @@ test.describe('Test Macros', () => {
     await page.waitForTimeout(500);
     console.log('Staff member account 2210.001 selected');
     
-    await page.keyboard.press('Escape');
-    await page.waitForTimeout(500);
+    await page.locator('.modal-header h2').click().catch(() => {});
+    await page.waitForTimeout(300);
     
     console.log('All fields filled');
     
@@ -1347,8 +1352,8 @@ test.describe('Test Macros', () => {
     await page.waitForTimeout(500);
     console.log('Staff member account 2210.001 selected');
     
-    await page.keyboard.press('Escape');
-    await page.waitForTimeout(500);
+    await page.locator('.modal-header h2').click().catch(() => {});
+    await page.waitForTimeout(300);
     
     console.log('All fields filled');
     
@@ -1624,7 +1629,7 @@ test.describe('Verify Reports After Macro Transactions', () => {
     await reportsPage.verifySectionExists(page, 'Equity');
     await reportsPage.verifyAccountBalance(page, '2800', '2,000.00');
 
-    await reportsPage.verifyReportMatches(page, /Net.*Loss.*108\.50\s*CHF/, 'Net Loss');
+    await reportsPage.verifyTotalLine(page, 'Net Loss', '108.50');
 
     // Verify the balance sheet balances
     await reportsPage.verifyBalanceSheetBalances(page, '1,899.60');
@@ -1686,7 +1691,7 @@ test.describe('Verify Reports After Macro Transactions', () => {
     await reportsPage.verifyAccountBalance(page, '8900', '130.00');
 
     // Verify Net Loss (revenue 178.00 - expenses 286.50 = -108.50)
-    await reportsPage.verifyReportMatches(page, /Net.*Loss.*108\.50\s*CHF/, 'Net Loss of 108.50');
+    await reportsPage.verifyTotalLine(page, 'Net Loss', '108.50');
     
     console.log('✓ Income Statement verified successfully!');
     console.log('=== Income Statement Verification Complete ===');
@@ -1864,36 +1869,28 @@ test.describe('Verify Reports After Macro Transactions', () => {
     
     // Verify key accounts with their debit/credit balances (macros run once)
     // Account 1020: Bank - Net Debit 1,680.50
-    await reportsPage.verifyReportContains(page, '1020', 'Bank Account');
-    await reportsPage.verifyReportContains(page, '1,680.50', 'Bank balance');
+    await reportsPage.verifyAccountBalance(page, '1020', '1,680.50');
 
     // Account 1100: Receivables - Net Debit 179.10
-    await reportsPage.verifyReportContains(page, '1100', 'Receivables');
-    await reportsPage.verifyReportContains(page, '179.10', 'Receivables balance');
+    await reportsPage.verifyAccountBalance(page, '1100', '179.10');
 
     // Account 2800: Share Capital - Credit 2,000.00
-    await reportsPage.verifyReportContains(page, '2800', 'Share Capital');
-    await reportsPage.verifyReportContains(page, '2,000.00', 'Share Capital balance');
+    await reportsPage.verifyAccountBalance(page, '2800', '2,000.00');
 
     // Account 3400: Revenue - Credit 178.00
-    await reportsPage.verifyReportContains(page, '3400', 'Revenue');
-    await reportsPage.verifyReportContains(page, '178.00', 'Revenue balance');
+    await reportsPage.verifyAccountBalance(page, '3400', '178.00');
 
     // Account 6500: Administrative expenses - Debit 9.30
-    await reportsPage.verifyReportContains(page, '6500', 'Administrative expenses');
-    await reportsPage.verifyReportContains(page, '9.30', 'Administrative expenses balance');
+    await reportsPage.verifyAccountBalance(page, '6500', '9.30');
 
     // Account 6570.001: IT expense - Debit 17.00
-    await reportsPage.verifyReportContains(page, '6570.001', 'IT expense');
-    await reportsPage.verifyReportContains(page, '17.00', 'IT expense 6570.001 balance');
+    await reportsPage.verifyAccountBalance(page, '6570.001', '17.00');
 
     // Account 6900: Financial expense - Debit 16.00
-    await reportsPage.verifyReportContains(page, '6900', 'Financial expense');
-    await reportsPage.verifyReportContains(page, '16.00', 'Financial expense balance');
+    await reportsPage.verifyAccountBalance(page, '6900', '16.00');
 
     // Account 8900: Direct taxes - Debit 130.00
-    await reportsPage.verifyReportContains(page, '8900', 'Direct taxes');
-    await reportsPage.verifyReportContains(page, '130.00', 'Direct taxes balance');
+    await reportsPage.verifyAccountBalance(page, '8900', '130.00');
     
     console.log('✓ Trial Balance verified successfully!');
     console.log('=== Trial Balance Verification Complete ===');

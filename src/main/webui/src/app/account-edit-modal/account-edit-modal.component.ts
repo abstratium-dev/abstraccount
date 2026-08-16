@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, EventEmitter, inject, Input, OnInit, Output } from '@angular/core';
+import { Component, EventEmitter, HostListener, inject, Input, OnInit, Output } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Controller, CreateAccountRequest, UpdateAccountRequest, AccountTreeNode } from '../controller';
 import { ModelService } from '../model.service';
@@ -210,6 +210,11 @@ export class AccountEditModalComponent implements OnInit {
 
   onCancel(): void {
     this.close.emit();
+  }
+
+  @HostListener('document:keydown.escape')
+  onEscape(): void {
+    this.onCancel();
   }
 
   getModalTitle(): string {

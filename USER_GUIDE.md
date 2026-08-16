@@ -15,7 +15,7 @@ Abstraccount™ is a double-entry bookkeeping application designed for Swiss SME
 - **Transaction attachments** — attach, view, and delete PDF receipts and other supporting documents from any transaction, or download every attachment in a journal as a single ZIP file. Attachments are private to your organisation and, once a journal is locked, remain viewable but not modifiable.
 - **Swiss chart of accounts** — hierarchical accounts compatible with the Swiss KMU-Kontenplan, organised into assets, liabilities, equity, revenue, and expenses with rolled-up balances.
 - **Macros & automation** — reusable templates for recurring entries such as invoices, payments, depreciation, and salaries.
-- **Financial reports** — trial balance, profit and loss, balance sheet, and cash flow statement over any date range.
+- **Financial reports** — trial balance, profit and loss, balance sheet, cash flow statement, and a Swiss insolvency risk check that shows how close the company is to the CO Art. 725 filing thresholds.
 - **Partner management** — track customers, vendors, and employees with per-partner ledgers and history.
 - **VAT & compliance** — tax codes and VAT reports are coming soon. Audit trails and year-end closing are already available.
 - **Multi-currency** — configure a currency per journal and record transactions in your chosen currency, with manual conversion to your main currency noted in each transaction.

@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -201,6 +201,13 @@ export class NewYearComponent implements OnInit {
   cancelConfirm(): void {
     this.showConfirmDialog = false;
     this.preview = null;
+  }
+
+  @HostListener('document:keydown.escape')
+  onEscape(): void {
+    if (this.showConfirmDialog) {
+      this.cancelConfirm();
+    }
   }
 
   formatBalance(account: NewYearAccountPreviewDTO): string {

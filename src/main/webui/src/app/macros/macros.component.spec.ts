@@ -389,6 +389,29 @@ describe('MacrosComponent', () => {
     expect(component.selectedMacro).toBeNull();
   });
 
+  it('should open the single execute dialog and stop propagation when the single button is clicked', () => {
+    const testMacro = {
+      id: 'single-macro',
+      name: 'Single Macro',
+      description: 'Test',
+      parameters: [],
+      template: 'test template',
+      validation: null,
+      notes: null,
+      createdDate: '2024-01-01',
+      modifiedDate: '2024-01-01'
+    };
+
+    const event = new Event('click');
+    spyOn(event, 'stopPropagation');
+
+    component.selectSingleMacro(testMacro, event);
+
+    expect(event.stopPropagation).toHaveBeenCalled();
+    expect(component.showExecuteDialog).toBeTrue();
+    expect(component.selectedMacro).toEqual(testMacro);
+  });
+
   it('should show error message and toast when delete fails', async () => {
     const testMacro = {
       id: 'macro-to-delete',
