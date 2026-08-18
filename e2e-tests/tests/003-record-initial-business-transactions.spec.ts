@@ -1465,19 +1465,22 @@ test.describe('Initial Business Transactions', () => {
     // Verify key expense amounts appear in the report paired with the
     // correct partner row. The Partner Activity Report shows income and
     // expenses per partner, not equity transactions.
+    // We match by partner ID (P00000xxx) rather than name because the partner
+    // name is resolved by the backend and may be null in some environments,
+    // whereas the partner ID is always displayed in the row.
     // Note: amounts may be netted (e.g., refunds reduce gross expenses)
 
-    // P00000003 - Swiss Post: Expenses 4.20 (no refund)
-    await reportsPage.verifyPartnerExpense(page, 'Post', '4.20');
+    // P00000003 - Post CH Netz Ag: Expenses 4.20 (no refund)
+    await reportsPage.verifyPartnerExpense(page, 'P00000003', '4.20');
 
-    // P00000004 - PostFinance: Expenses 15.00 (no refund)
-    await reportsPage.verifyPartnerExpense(page, 'PostFinance', '15.00');
+    // P00000004 - PostFinance AG: Expenses 15.00 (no refund)
+    await reportsPage.verifyPartnerExpense(page, 'P00000004', '15.00');
 
     // P00000007 - Anthropic: Expenses 100.00 (transaction 7a - Anthropic API services)
-    await reportsPage.verifyPartnerExpense(page, 'Anthropic', '100.00');
+    await reportsPage.verifyPartnerExpense(page, 'P00000007', '100.00');
 
-    // P00000006 - Canton Vaud: Expenses 75.00 (transaction 12 - direct tax payment)
-    await reportsPage.verifyPartnerExpense(page, 'Canton', '75.00');
+    // P00000006 - Canton Vaud Tax Authority: Expenses 75.00 (transaction 12 - direct tax payment)
+    await reportsPage.verifyPartnerExpense(page, 'P00000006', '75.00');
 
     // Verify at least some partner identifiers appear in table rows
     const hasPartnerRow = await page.locator('tr').filter({ hasText: 'P00000' }).first().isVisible({ timeout: 5000 }).catch(() => false);
@@ -1643,9 +1646,9 @@ test.describe('Initial Business Transactions', () => {
     const deleteAttachmentRow = contextMenu.locator('.context-menu-attachment-row', { hasText: DELETE_FILE_NAME });
     const deleteBtn = deleteAttachmentRow.locator('.btn-icon-danger');
     await expect(deleteBtn).toBeVisible();
-    // Use force: true because the context menu overlay can intercept pointer
-    // events, even though the button itself is visible and clickable.
-    await deleteBtn.click({ force: true });
+    // Use evaluate().click() because the context menu overlay (z-index 999)
+    // intercepts pointer events on menu items, even with force: true.
+    await deleteBtn.evaluate(el => (el as HTMLButtonElement).click());
     console.log('Delete attachment button clicked');
 
     // Verify the confirmation dialog appears

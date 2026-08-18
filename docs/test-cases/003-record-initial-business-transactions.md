@@ -573,6 +573,10 @@ Feature: Initial Business Transactions
     And the user selects the "Partner Activity" report template
     Then the report should be generated and displayed
     And the report should contain "Income", "Expenses", and "Net" columns
+    And the report should show partner "P00000003" with expenses "4.20" CHF on the same row
+    And the report should show partner "P00000004" with expenses "15.00" CHF on the same row
+    And the report should show partner "P00000007" with expenses "100.00" CHF on the same row
+    And the report should show partner "P00000006" with expenses "75.00" CHF on the same row
 ```
 
 ## Expected Results
@@ -871,7 +875,7 @@ Feature: Initial Business Transactions
 - [ ] Income Statement report correctly shows revenue and expenses
 - [ ] Swiss Balance Sheet (Bilan) report correctly reflects account balances
 - [ ] Trial Balance report correctly shows all accounts with their balances
-- [ ] Partner Activity report shows income, expenses, and net columns
+- [ ] Partner Activity report shows income, expenses, and net columns with per-partner expense amounts on the same row as the partner ID
 
 ## Notes
 

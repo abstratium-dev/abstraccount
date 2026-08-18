@@ -96,7 +96,11 @@ export async function fillTransactionPartner(page: Page, partnerNumber: string):
   }
   
   if (foundItem) {
-    // Click the dropdown item to select it
+    // Use click({ force: true }) to bypass Playwright's interception/stability
+    // checks (the 200ms blur timeout may close the dropdown while waiting).
+    // Unlike evaluate(el => el.click()), Playwright's .click() dispatches real
+    // browser mousedown+mouseup+click events that zone.js intercepts, ensuring
+    // Angular's (mousedown)="selectOption(option)" handler fires.
     await foundItem.click({ force: true });
     // Wait for the dropdown to close and the value to be set
     await page.waitForTimeout(500);
@@ -115,13 +119,25 @@ export async function setTransactionStatus(page: Page, status: string): Promise<
 }
 
 /**
- * Add a tag to the transaction by typing in the tag input and clicking Add Tag
+ * Add a tag to the transaction by typing in the tag input and clicking Add Tag.
+ *
+ * After typing the tag value, the autocomplete dropdown may still be open
+ * (showing "No results found" for free-text tags) and intercept clicks on the
+ * "Add Tag" button. We dismiss the dropdown by blurring the input — clicking
+ * on the modal header (a non-interactive element) — before clicking the
+ * button. We must NOT press Escape because the transaction modal has a
+ * document-level @HostListener('document:keydown.escape') that closes the
+ * entire modal.
  */
 export async function addTag(page: Page, tag: string): Promise<void> {
   console.log(`Adding tag: ${tag}`);
   // Find the tag input field - it's the autocomplete input with placeholder "key:value or key"
   const tagInput = page.locator('abs-autocomplete[name="tagInput"] input.autocomplete-input');
   await tagInput.fill(tag);
+  // Dismiss the autocomplete dropdown by blurring the input. The dropdown
+  // overlay would otherwise intercept the "Add Tag" button click.
+  await page.locator('.modal-header h2').click().catch(() => {});
+  await page.waitForTimeout(200);
   // Click the Add Tag button
   await page.click('button:has-text("Add Tag")');
   // Wait a moment for the tag to be added
@@ -185,11 +201,18 @@ export async function fillEntryAccount(page: Page, entryIndex: number, accountNu
   const matchedText = (await matchingItem.textContent() ?? '').trim();
   console.log(`Matched dropdown item: "${matchedText}"`);
 
-  // Click using force:true to handle any blur-closes-dropdown timing
+  // Use click({ force: true }) to bypass Playwright's interception/stability
+  // checks. Playwright's .click() dispatches real browser events (mousedown,
+  // mouseup, click) that zone.js intercepts, ensuring Angular's
+  // (mousedown)="selectOption(option)" handler fires and the model updates.
   await matchingItem.click({ force: true });
-  // Wait for the input to update with the selected account's label
-  await expect(accountInput).not.toHaveValue('', { timeout: 5000 });
-  
+  // Wait for selectOption to update the input with the account's full label
+  // (e.g. "2000 Accounts payable" rather than just "2000"). This confirms
+  // the Angular model was updated, not just the input text.
+  await expect(accountInput).toHaveValue(new RegExp(escapedNumber), { timeout: 5000 });
+  const finalValue = await accountInput.inputValue();
+  console.log(`Entry ${entryIndex + 1} account value: "${finalValue}"`);
+
   console.log(`Entry ${entryIndex + 1} account filled`);
 }
 

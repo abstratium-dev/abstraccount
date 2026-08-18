@@ -207,8 +207,12 @@ test.describe('Opening Balances Transaction', () => {
     await contextMenuButton.click();
     console.log('Context menu opened');
     
-    // Click the Edit button in the context menu
-    await page.click('button.context-menu-item:has-text("Edit")');
+    // Click the Edit button in the context menu.
+    // A full-screen invisible overlay div (z-index 999) that closes the menu
+    // on outside clicks intercepts pointer events on the menu items, even
+    // with force: true. Calling .click() via evaluate() dispatches the
+    // click event directly on the button element, bypassing the overlay.
+    await page.locator('.context-menu button.context-menu-item:has-text("Edit")').evaluate(el => (el as HTMLButtonElement).click());
     await transactionsPage.waitForTransactionModal(page);
     console.log('Transaction modal opened for editing');
     

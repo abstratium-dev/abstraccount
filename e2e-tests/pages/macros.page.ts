@@ -205,6 +205,8 @@ export async function fillParameterAutocomplete(
   }
   
   if (foundItem) {
+    // Use click({ force: true }) — Playwright dispatches real browser events
+    // that zone.js intercepts, ensuring Angular's (mousedown) handler fires.
     await foundItem.click({ force: true });
     await page.waitForTimeout(500);
     console.log(`Parameter ${paramPrompt} filled with ${searchValue}`);

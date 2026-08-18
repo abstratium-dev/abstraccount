@@ -644,7 +644,16 @@ test.describe('Test Macros', () => {
     await revenueInput.type('3:3400');
     await page.waitForTimeout(500);
     console.log('Revenue account 3:3400 entered');
-    
+
+    // Dismiss the autocomplete dropdown before moving to the next field,
+    // otherwise it intercepts pointer events on the receivable input.
+    // We click the dialog header (non-interactive) to blur the active input.
+    // We must NOT press Escape because the macros component has a
+    // document-level @HostListener('document:keydown.escape') that would
+    // close the entire execute dialog.
+    await page.locator('.modal-header h2').click().catch(() => {});
+    await page.waitForTimeout(300);
+
     console.log('Filling receivable account field...');
     // Receivable account - 4th autocomplete input (partner=0, invoice=1, revenue=2, receivable=3)
     const receivableInput = allAutocompleteInputs.nth(3);
@@ -653,13 +662,8 @@ test.describe('Test Macros', () => {
     await receivableInput.type('1:10:110:1100');
     await page.waitForTimeout(500);
     console.log('Receivable account 1:10:110:1100 entered');
-    
+
     // Close any open autocomplete dropdown by blurring the active input.
-    // We click the dialog header (non-interactive) to move focus away,
-    // then wait for the autocomplete's blur timeout (200ms) to close its
-    // dropdown. We must NOT press Escape here because the macros component
-    // has a document-level @HostListener('document:keydown.escape') that
-    // would close the entire execute dialog.
     await page.locator('.modal-header h2').click().catch(() => {});
     await page.waitForTimeout(300);
     
@@ -819,7 +823,11 @@ test.describe('Test Macros', () => {
     await revenueInput.type('3:3400');
     await page.waitForTimeout(500);
     console.log('Revenue account 3:3400 entered');
-    
+
+    // Dismiss the autocomplete dropdown before moving to the next field.
+    await page.locator('.modal-header h2').click().catch(() => {});
+    await page.waitForTimeout(300);
+
     console.log('Filling receivable account field...');
     const receivableInput = allAutocompleteInputs.nth(3);
     await receivableInput.click();
@@ -827,7 +835,7 @@ test.describe('Test Macros', () => {
     await receivableInput.type('1:10:110:1100');
     await page.waitForTimeout(500);
     console.log('Receivable account 1:10:110:1100 entered');
-    
+
     await page.locator('.modal-header h2').click().catch(() => {});
     await page.waitForTimeout(300);
     
@@ -990,7 +998,11 @@ test.describe('Test Macros', () => {
     await ingoingInput.type('1:10:100:1020');
     await page.waitForTimeout(500);
     console.log('Ingoing account 1:10:100:1020 (Bank) entered');
-    
+
+    // Dismiss the autocomplete dropdown before moving to the next field.
+    await page.locator('.modal-header h2').click().catch(() => {});
+    await page.waitForTimeout(300);
+
     console.log('Filling receivable account field (1100)...');
     // Receivable account is the 4th autocomplete (partner=0, invoice=1, bank=2, receivable=3)
     const receivableInput = allAutocompleteInputs.nth(3);
@@ -999,7 +1011,7 @@ test.describe('Test Macros', () => {
     await receivableInput.type('1:10:110:1100');
     await page.waitForTimeout(500);
     console.log('Receivable account 1:10:110:1100 entered');
-    
+
     await page.locator('.modal-header h2').click().catch(() => {});
     await page.waitForTimeout(300);
     

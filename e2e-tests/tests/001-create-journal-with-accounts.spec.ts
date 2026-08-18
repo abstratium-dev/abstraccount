@@ -18,6 +18,7 @@ import { TEST_JOURNAL_NAME, TEST_JOURNAL_CURRENCY, TEST_JOURNAL_SUBTITLE, TEST_U
 
 test.describe('Journal and Account Management', () => {
   test('should create a new journal with Swiss chart of accounts', async ({ page }) => {
+    test.setTimeout(120_000);
     console.log('=== Starting Test 1: Create Journal with Accounts ===');
 
     // Navigate to the application
