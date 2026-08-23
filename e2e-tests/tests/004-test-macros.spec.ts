@@ -1556,7 +1556,277 @@ test.describe('Test Macros', () => {
 
     console.log('=== Test 4.9: TaxPayment Macro - PASSED ===');
   });
+
+  test('should execute PayInvoiceFromBank macro, verify both transactions, then delete them', async ({ page }) => {
+    test.setTimeout(120_000);
+    console.log('=== Starting Test 4.11: Test Macros - PayInvoiceFromBank ===');
+
+    await page.goto('/');
+    const signOutLink = page.locator('#signout-link');
+    const isSignedIn = await signOutLink.isVisible({ timeout: 2000 }).catch(() => false);
+
+    if (!isSignedIn) {
+      console.log('Not signed in, performing authentication...');
+      await authenticate(page, TEST_USER_EMAIL, TEST_USER_PASSWORD);
+      console.log('Authentication complete');
+    } else {
+      console.log('Already signed in');
+    }
+
+    await headerPage.waitForHeader(page);
+    await headerPage.selectJournal(page, TEST_JOURNAL_NAME);
+    await headerPage.clickJournalLink(page);
+    await transactionsPage.waitForJournalPage(page);
+    console.log('Journal page loaded');
+
+    // Clean up any previous run of this test (both transactions share the invoice tag)
+    const testInvoiceNumber = 'PI004711';
+    console.log('--- Cleaning up existing PayInvoiceFromBank test transactions ---');
+    await deleteTransactionsByInvoiceTag(page, testInvoiceNumber);
+
+    // Navigate to macros page
+    console.log('--- Navigating to Macros Page ---');
+    await page.click('a#macros');
+    await macrosPage.waitForMacrosPage(page);
+    console.log('Macros page loaded');
+
+    await macrosPage.verifyMacroExists(page, 'PayInvoiceFromBank');
+    console.log('✓ PayInvoiceFromBank macro is available in the macro list');
+
+    await macrosPage.selectMacro(page, 'PayInvoiceFromBank');
+    console.log('PayInvoiceFromBank macro selected');
+
+    // Fill in parameters
+    console.log('--- Filling in Macro Parameters ---');
+
+    console.log('Filling invoice date field (2024-08-20)...');
+    await macrosPage.fillParameter(page, 'invoice_date', '2024-08-20');
+
+    console.log('Filling payment date field (2024-08-25)...');
+    await macrosPage.fillParameter(page, 'payment_date', '2024-08-25');
+
+    console.log('Filling partner field (P00000007 - Anthropic)...');
+    await macrosPage.fillParameterAutocomplete(page, 'Partner (supplier)', 'P00000007');
+
+    console.log('Filling description field...');
+    await macrosPage.fillParameter(page, 'description', 'Test macros 004.11 pay invoice from bank');
+
+    console.log(`Filling invoice number field (${testInvoiceNumber})...`);
+    await macrosPage.fillParameter(page, 'invoice_number', testInvoiceNumber);
+
+    console.log('Filling amount field (25.00)...');
+    await macrosPage.fillParameter(page, 'amount', '25.00');
+
+    console.log('Filling expense account field (6570.001)...');
+    const expenseAccountInput = page.locator('.parameter-field')
+      .filter({ hasText: 'Expense account' })
+      .locator('abs-autocomplete input.autocomplete-input');
+    await expenseAccountInput.click();
+    await page.waitForTimeout(300);
+    await expenseAccountInput.fill('6570.001');
+    await page.waitForSelector('.dropdown .dropdown-item:not(.loading):not(.no-results):not(.hint)', { timeout: 10000 });
+    await page.waitForTimeout(500);
+
+    const account6570 = page.locator('.dropdown .dropdown-item:has-text("6570.001")');
+    await expect(account6570.first()).toBeVisible();
+    console.log('✓ Account 6570.001 is available');
+    await account6570.first().click({ force: true });
+    await page.waitForTimeout(500);
+    console.log('Expense account 6570.001 selected');
+
+    console.log('Filling liability account field (2000)...');
+    const liabilityAccountInput = page.locator('.parameter-field')
+      .filter({ hasText: 'Liability account' })
+      .locator('abs-autocomplete input.autocomplete-input');
+    await liabilityAccountInput.click();
+    await page.waitForTimeout(300);
+    await liabilityAccountInput.fill('2000');
+    await page.waitForSelector('.dropdown .dropdown-item:not(.loading):not(.no-results):not(.hint)', { timeout: 10000 });
+    await page.waitForTimeout(500);
+
+    const account2000 = page.locator('.dropdown .dropdown-item:has-text("2000")');
+    await expect(account2000.first()).toBeVisible();
+    console.log('✓ Account 2000 is available');
+    await account2000.first().click({ force: true });
+    await page.waitForTimeout(500);
+    console.log('Liability account 2000 selected');
+
+    console.log('Filling bank account field (1020)...');
+    const bankAccountInput = page.locator('.parameter-field')
+      .filter({ hasText: 'Bank account' })
+      .locator('abs-autocomplete input.autocomplete-input');
+    await bankAccountInput.click();
+    await page.waitForTimeout(300);
+    await bankAccountInput.fill('1020');
+    await page.waitForSelector('.dropdown .dropdown-item:not(.loading):not(.no-results):not(.hint)', { timeout: 10000 });
+    await page.waitForTimeout(500);
+
+    const account1020 = page.locator('.dropdown .dropdown-item:has-text("1020")');
+    await expect(account1020.first()).toBeVisible();
+    console.log('✓ Account 1020 is available');
+    await account1020.first().click({ force: true });
+    await page.waitForTimeout(500);
+    console.log('Bank account 1020 selected');
+
+    console.log('All fields filled');
+
+    // Execute the macro
+    console.log('--- Executing Macro ---');
+    await macrosPage.executeMacro(page);
+    console.log('Macro execution initiated');
+
+    await page.waitForTimeout(2000);
+
+    const hasError = await macrosPage.hasErrorMessage(page);
+    if (hasError) {
+      const errorMsg = await macrosPage.getErrorMessage(page);
+      console.log(`ERROR: ${errorMsg}`);
+      throw new Error(`Macro execution failed: ${errorMsg}`);
+    }
+
+    await page.waitForSelector('.modal-overlay', { state: 'hidden', timeout: 10000 });
+    console.log('✓ Macro dialog closed (execution successful)');
+
+    await transactionsPage.waitForJournalPage(page);
+    console.log('✓ Navigated back to journal page');
+
+    // Verify BOTH transactions were created
+    console.log('--- Verifying Both Transactions Were Created ---');
+
+    await transactionsPage.verifyTransactionExists(page, 'Test macros 004.11 pay invoice from bank');
+    console.log('✓ Invoice transaction "Test macros 004.11 pay invoice from bank" appears in journal');
+
+    await transactionsPage.verifyTransactionExists(page, 'Payment of invoice');
+    console.log('✓ Payment transaction "Payment of invoice" appears in journal');
+
+    await transactionsPage.verifyTransactionDetails(page, 'Test macros 004.11 pay invoice from bank', {
+      date: '2024-08-20',
+      partner: 'P00000007',
+      value: '25.00'
+    });
+
+    await transactionsPage.verifyTransactionDetails(page, 'Payment of invoice', {
+      date: '2024-08-25',
+      partner: 'P00000007',
+      value: '25.00'
+    });
+
+    console.log('✓ Both transactions are present and correct');
+
+    // Delete both transactions via API (they share the invoice tag)
+    console.log('--- Deleting Both Transactions ---');
+    const deletedCount = await deleteTransactionsByInvoiceTag(page, testInvoiceNumber);
+    console.log(`✓ Deleted ${deletedCount} transaction(s) tagged with invoice ${testInvoiceNumber}`);
+    expect(deletedCount, 'Should have deleted exactly 2 transactions').toBe(2);
+
+    // Verify via the API that no transactions with our invoice tag remain.
+    // We cannot assert "Payment of invoice" is not visible in the UI because
+    // that description is hardcoded in the macro template and may appear in
+    // transactions left over from previous test runs with different invoice
+    // numbers. Instead, we verify that no transactions tagged with our
+    // specific invoice number exist.
+    const remainingCount = await countTransactionsByInvoiceTag(page, testInvoiceNumber);
+    expect(remainingCount, 'No transactions with invoice tag PI004711 should remain').toBe(0);
+    console.log(`✓ API confirms 0 transactions remain with invoice tag ${testInvoiceNumber}`);
+
+    // Navigate away and back to force a fresh data load, then verify our
+    // unique test transaction description is gone from the UI.
+    await page.click('a#macros');
+    await macrosPage.waitForMacrosPage(page);
+    await page.click('a#journal');
+    await transactionsPage.waitForJournalPage(page);
+
+    await transactionsPage.assertTransactionNotVisible(page, 'Test macros 004.11 pay invoice from bank');
+    console.log('✓ Test transaction removed from journal UI');
+
+    console.log('✓ PayInvoiceFromBank macro scenarios validated:');
+    console.log('  - Macro selection and parameter form display (9 parameters)');
+    console.log('  - Partner selection (P00000007 - Anthropic)');
+    console.log('  - Invoice date: 2024-08-20');
+    console.log('  - Payment date: 2024-08-25');
+    console.log('  - Amount: CHF 25.00');
+    console.log('  - Expense account: 6570.001');
+    console.log('  - Liability account: 2000');
+    console.log('  - Bank account: 1020');
+    console.log('  - Both transactions created (invoice + payment)');
+    console.log('  - Both transactions deleted cleanly');
+
+    console.log('=== Test 4.11: PayInvoiceFromBank Macro - PASSED ===');
+  });
 });
+
+/**
+ * Helper function to delete ALL transactions that have a tag with key "invoice"
+ * and the given invoice value. Used by the PayInvoiceFromBank test because that
+ * macro creates two transactions (invoice recording + payment) that share the
+ * same invoice tag, but have different descriptions.
+ */
+async function deleteTransactionsByInvoiceTag(page: any, invoiceValue: string): Promise<number> {
+  console.log(`Looking for transactions with invoice tag: ${invoiceValue}`);
+
+  const journalId = await page.evaluate(() => localStorage.getItem('journalId'));
+  if (!journalId) {
+    console.log('No journalId in localStorage, skipping cleanup');
+    return 0;
+  }
+
+  const response = await page.request.get(`/api/journal/${journalId}/transactions`);
+  if (!response.ok()) {
+    console.log(`API request failed: ${response.status()}, skipping cleanup`);
+    return 0;
+  }
+  const transactions = await response.json();
+
+  let deletedCount = 0;
+  for (const tx of transactions) {
+    const hasTag = (tx.tags || []).some((tag: any) =>
+      tag.key === 'invoice' && tag.value === invoiceValue
+    );
+    if (hasTag) {
+      console.log(`  Deleting transaction: "${tx.description}" (id: ${tx.id})`);
+      const deleteResponse = await page.request.delete(`/api/transaction/${tx.id}`);
+      if (deleteResponse.ok()) {
+        deletedCount++;
+        console.log(`  ✓ Deleted transaction ${tx.id}`);
+      } else {
+        console.log(`  ✗ Failed to delete transaction ${tx.id}: ${deleteResponse.status()}`);
+      }
+    }
+  }
+  if (deletedCount === 0) {
+    console.log(`No transactions found with invoice tag ${invoiceValue}`);
+  } else {
+    console.log(`Cleanup complete: ${deletedCount} transaction(s) deleted for invoice ${invoiceValue}`);
+  }
+  return deletedCount;
+}
+
+/**
+ * Helper function to count transactions that have a tag with key "invoice"
+ * and the given invoice value. Used to verify that deletion was successful.
+ */
+async function countTransactionsByInvoiceTag(page: any, invoiceValue: string): Promise<number> {
+  const journalId = await page.evaluate(() => localStorage.getItem('journalId'));
+  if (!journalId) {
+    return 0;
+  }
+
+  const response = await page.request.get(`/api/journal/${journalId}/transactions`);
+  if (!response.ok()) {
+    return 0;
+  }
+  const transactions = await response.json();
+  let count = 0;
+  for (const tx of transactions) {
+    const hasTag = (tx.tags || []).some((tag: any) =>
+      tag.key === 'invoice' && tag.value === invoiceValue
+    );
+    if (hasTag) {
+      count++;
+    }
+  }
+  return count;
+}
 
 /**
  * Test 4.7: Verify Reports After All Macro Transactions

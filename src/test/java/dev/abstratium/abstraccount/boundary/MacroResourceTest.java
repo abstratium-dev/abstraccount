@@ -824,6 +824,190 @@ public class MacroResourceTest {
      *
      * @return {macroId, journalId, revenueAccountCode, feeExpenseAccountCode, processorAccountCode}
      */
+    @Test
+    @TestSecurity(user = "testuser", roles = {Roles.USER})
+    void testExecuteMacro_multiTransaction_createsBothTransactions() {
+        // This test verifies that a macro template containing two transactions
+        // separated by a blank line (like PayInvoiceFromBank) creates BOTH
+        // transactions, not just the first one.
+        String[] ids = setupTestDataForMultiTransactionMacro();
+        String macroId = ids[0];
+        String journalId = ids[1];
+        String expenseCode = ids[2];
+        String liabilityCode = ids[3];
+        String bankCode = ids[4];
+
+        String requestBody = String.format("""
+            {
+                "macroId": "%s",
+                "journalId": "%s",
+                "parameters": {
+                    "invoice_date": "2026-01-10",
+                    "payment_date": "2026-01-15",
+                    "partner": "P00000001",
+                    "description": "Office supplies",
+                    "invoice_number": "PI00000042",
+                    "amount": "150.00",
+                    "expense_account": "%s",
+                    "liability_account": "%s",
+                    "bank_account": "%s"
+                }
+            }
+            """, macroId, journalId, expenseCode, liabilityCode, bankCode);
+
+        String transactionIds = given()
+            .contentType(ContentType.JSON)
+            .body(requestBody)
+        .when()
+            .post("/api/macro/execute")
+        .then()
+            .statusCode(200)
+            .extract()
+            .asString();
+
+        // The response should contain two comma-separated transaction IDs
+        String[] idsArray = transactionIds.replace("\"", "").split(",");
+        assertEquals(2, idsArray.length, "Macro should create exactly 2 transactions");
+
+        // Verify the first transaction (record the invoice)
+        dev.abstratium.abstraccount.entity.TransactionEntity tx1 = em.find(
+            dev.abstratium.abstraccount.entity.TransactionEntity.class, idsArray[0]);
+        assertNotNull(tx1);
+        assertEquals("Office supplies", tx1.getDescription());
+        assertEquals(2, tx1.getEntries().size(), "First transaction should have 2 entries");
+
+        // Verify the second transaction (pay the invoice)
+        dev.abstratium.abstraccount.entity.TransactionEntity tx2 = em.find(
+            dev.abstratium.abstraccount.entity.TransactionEntity.class, idsArray[1]);
+        assertNotNull(tx2);
+        assertEquals("Payment of invoice", tx2.getDescription());
+        assertEquals(2, tx2.getEntries().size(), "Second transaction should have 2 entries");
+    }
+
+    @Transactional
+    String[] setupTestDataForMultiTransactionMacro() {
+        dev.abstratium.abstraccount.entity.JournalEntity journal = new dev.abstratium.abstraccount.entity.JournalEntity();
+        journal.setTitle("Multi-Transaction Journal");
+        journal.setCurrency("CHF");
+        em.persist(journal);
+        em.flush();
+
+        String journalId = journal.getId();
+
+        // Build expense account hierarchy (6:6570)
+        dev.abstratium.abstraccount.entity.AccountEntity expenses = new dev.abstratium.abstraccount.entity.AccountEntity();
+        expenses.setJournalId(journalId);
+        expenses.setName("6 Expenses");
+        expenses.setType(AccountType.EXPENSE);
+        em.persist(expenses);
+        em.flush();
+
+        dev.abstratium.abstraccount.entity.AccountEntity expense = new dev.abstratium.abstraccount.entity.AccountEntity();
+        expense.setJournalId(journalId);
+        expense.setName("6570 Office supplies");
+        expense.setParentAccountId(expenses.getId());
+        expense.setType(AccountType.EXPENSE);
+        em.persist(expense);
+        em.flush();
+
+        // Build liability account (2:20:200:2000)
+        dev.abstratium.abstraccount.entity.AccountEntity liabilities = new dev.abstratium.abstraccount.entity.AccountEntity();
+        liabilities.setJournalId(journalId);
+        liabilities.setName("2 Liabilities");
+        liabilities.setType(AccountType.LIABILITY);
+        em.persist(liabilities);
+        em.flush();
+
+        dev.abstratium.abstraccount.entity.AccountEntity payables = new dev.abstratium.abstraccount.entity.AccountEntity();
+        payables.setJournalId(journalId);
+        payables.setName("20 Accounts payable");
+        payables.setParentAccountId(liabilities.getId());
+        payables.setType(AccountType.LIABILITY);
+        em.persist(payables);
+        em.flush();
+
+        dev.abstratium.abstraccount.entity.AccountEntity apDetail = new dev.abstratium.abstraccount.entity.AccountEntity();
+        apDetail.setJournalId(journalId);
+        apDetail.setName("200 AP detail");
+        apDetail.setParentAccountId(payables.getId());
+        apDetail.setType(AccountType.LIABILITY);
+        em.persist(apDetail);
+        em.flush();
+
+        dev.abstratium.abstraccount.entity.AccountEntity ap = new dev.abstratium.abstraccount.entity.AccountEntity();
+        ap.setJournalId(journalId);
+        ap.setName("2000 Trade creditors");
+        ap.setParentAccountId(apDetail.getId());
+        ap.setType(AccountType.LIABILITY);
+        em.persist(ap);
+        em.flush();
+
+        // Build bank account (1:10:100:1020)
+        dev.abstratium.abstraccount.entity.AccountEntity assets = new dev.abstratium.abstraccount.entity.AccountEntity();
+        assets.setJournalId(journalId);
+        assets.setName("1 Assets");
+        assets.setType(AccountType.ASSET);
+        em.persist(assets);
+        em.flush();
+
+        dev.abstratium.abstraccount.entity.AccountEntity cash = new dev.abstratium.abstraccount.entity.AccountEntity();
+        cash.setJournalId(journalId);
+        cash.setName("10 Cash");
+        cash.setParentAccountId(assets.getId());
+        cash.setType(AccountType.ASSET);
+        em.persist(cash);
+        em.flush();
+
+        dev.abstratium.abstraccount.entity.AccountEntity bank = new dev.abstratium.abstraccount.entity.AccountEntity();
+        bank.setJournalId(journalId);
+        bank.setName("100 Bank");
+        bank.setParentAccountId(cash.getId());
+        bank.setType(AccountType.ASSET);
+        em.persist(bank);
+        em.flush();
+
+        dev.abstratium.abstraccount.entity.AccountEntity bankAcc = new dev.abstratium.abstraccount.entity.AccountEntity();
+        bankAcc.setJournalId(journalId);
+        bankAcc.setName("1020 Bank Account");
+        bankAcc.setParentAccountId(bank.getId());
+        bankAcc.setType(AccountType.ASSET);
+        em.persist(bankAcc);
+        em.flush();
+
+        // Create a two-transaction macro mirroring PayInvoiceFromBank
+        dev.abstratium.abstraccount.entity.MacroEntity macro = new dev.abstratium.abstraccount.entity.MacroEntity();
+        macro.setName("TestPayInvoiceFromBank");
+        macro.setDescription("Test two-transaction macro");
+        macro.setParameters(
+            "[{\"name\":\"invoice_date\",\"type\":\"date\",\"required\":true},"
+            + "{\"name\":\"payment_date\",\"type\":\"date\",\"required\":true},"
+            + "{\"name\":\"partner\",\"type\":\"partner\",\"required\":true},"
+            + "{\"name\":\"description\",\"type\":\"text\",\"required\":true},"
+            + "{\"name\":\"invoice_number\",\"type\":\"code\",\"required\":true},"
+            + "{\"name\":\"amount\",\"type\":\"amount\",\"required\":true},"
+            + "{\"name\":\"expense_account\",\"type\":\"account\",\"filter\":\"^6.*:.*$\",\"required\":true},"
+            + "{\"name\":\"liability_account\",\"type\":\"account\",\"filter\":\"^2.*:20.*:200.*:2000.*$\",\"required\":true},"
+            + "{\"name\":\"bank_account\",\"type\":\"account\",\"filter\":\"^1.*:10.*:100.*:1020.*$\",\"required\":true}]");
+        macro.setTemplate(
+            "{invoice_date} * {partner} | {description}\n"
+            + "    ; invoice:{invoice_number}\n"
+            + "    {expense_account}        {default_currency} {amount}\n"
+            + "    {liability_account}      {default_currency} -{amount}\n"
+            + "\n"
+            + "{payment_date} * {partner} | Payment of invoice\n"
+            + "    ; Payment:, invoice:{invoice_number}\n"
+            + "    {liability_account}      {default_currency} {amount}\n"
+            + "    {bank_account}           {default_currency} -{amount}");
+        macro.setValidation("{\"balanceCheck\":true,\"minPostings\":2}");
+        em.persist(macro);
+        em.flush();
+
+        return new String[] {
+            macro.getId(), journalId,
+            "6:6570", "2:20:200:2000", "1:10:100:1020"
+        };
+    }
+
     @Transactional
     String[] setupTestDataForBatchExecution() {
         dev.abstratium.abstraccount.entity.JournalEntity journal = new dev.abstratium.abstraccount.entity.JournalEntity();

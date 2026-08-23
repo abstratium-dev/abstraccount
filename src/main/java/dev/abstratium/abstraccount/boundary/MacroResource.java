@@ -327,24 +327,26 @@ public class MacroResource {
         if (journal.transactions().isEmpty()) {
             throw new WebApplicationException("Failed to parse transaction from macro", 400);
         }
-        
-        Transaction transaction = journal.transactions().get(0);
-        
-        // Convert Transaction model to TransactionEntity
-        // Pass macro for parameter filter validation and account code paths
-        TransactionEntity entity;
-        try {
-            entity = convertToEntity(transaction, request.journalId(), macro, request.parameters(), accountCodePaths);
-        } catch (JsonProcessingException e) {
-            LOG.errorf(e, "Failed to parse macro parameters");
-            throw new WebApplicationException("Failed to parse macro parameters", 400);
+
+        List<String> transactionIds = new ArrayList<>();
+        for (Transaction transaction : journal.transactions()) {
+            // Convert Transaction model to TransactionEntity
+            // Pass macro for parameter filter validation and account code paths
+            TransactionEntity entity;
+            try {
+                entity = convertToEntity(transaction, request.journalId(), macro, request.parameters(), accountCodePaths);
+            } catch (JsonProcessingException e) {
+                LOG.errorf(e, "Failed to parse macro parameters");
+                throw new WebApplicationException("Failed to parse macro parameters", 400);
+            }
+
+            // Save the transaction
+            TransactionEntity saved = journalPersistenceService.saveTransaction(entity);
+            LOG.debugf("Created transaction: %s", saved.getId());
+            transactionIds.add(saved.getId());
         }
-        
-        // Save the transaction
-        TransactionEntity saved = journalPersistenceService.saveTransaction(entity);
-        
-        LOG.debugf("Created transaction: %s", saved.getId());
-        return saved.getId();
+
+        return String.join(",", transactionIds);
     }
     
     /**
