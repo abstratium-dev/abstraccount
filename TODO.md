@@ -26,7 +26,15 @@ These TODOs are to be resolved by the developer, NOT THE LLM.
 
 # TODOs for Abstracore (to be deleted downstream)
 
-- csp headers are probably missing for index.html, etc. check that. it was improved in abstrauth.
+- CSP duplicates - Bonus finding: duplicate/conflicting security headers
+Your nginx is also adding security headers that conflict with the app's:
+
+    X-Frame-Options: DENY              ← app (SecurityHeadersFilter)
+    X-Frame-Options: SAMEORIGIN        ← nginx
+    
+    Referrer-Policy: strict-origin-when-cross-origin  ← app
+    Referrer-Policy: origin-when-cross-origin          ← nginx
+    Plus duplicated Strict-Transport-Security, X-XSS-Protection, and X-Content-Type-Options. You should pick one layer to set these headers (either remove them from SecurityHeadersFilter or from the nginx config) to avoid conflicts.
 
 - add this to end of angular.md in .devin/rules:
 
