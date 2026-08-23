@@ -6,7 +6,7 @@ import * as landingPage from '../pages/landing.page';
  *
  * The auth flow is:
  *  1. Navigate to "/" (landing page, public).
- *  2. Click "Sign In" → browser navigates to /api/auth/login.
+ *  2. Click "Get Started" → browser navigates to /api/auth/login.
  *  3. Quarkus OIDC redirects to the external auth server.
  *  4. The auth server may show:
  *     a. A login form (if no existing session) → fill credentials, submit.
@@ -21,7 +21,7 @@ import * as landingPage from '../pages/landing.page';
 
 /**
  * The cookie notice overlay intercepts pointer events until dismissed, which
- * blocks any click on the landing page (including "Sign In"). The notice is
+ * blocks any click on the landing page (including "Get Started"). The notice is
  * shown when localStorage key "cookieNoticeAccepted" is not "true".
  *
  * This dismisses the cookie notice if present by clicking "Got it!". It is
@@ -88,7 +88,7 @@ export async function handleAuthServer(page: Page, email: string, password: stri
 }
 
 /**
- * Full sign-in flow: navigate to landing page, click Sign In, handle auth
+ * Full sign-in flow: navigate to landing page, click Get Started, handle auth
  * server, and wait for redirect back to the app.
  *
  * @param page - Playwright page

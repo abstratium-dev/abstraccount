@@ -4,7 +4,7 @@ import { expect, Page } from '@playwright/test';
  * Page Object Model for the Landing page (public, no auth required).
  *
  * The root path "/" renders the LandingComponent. When the user is not signed
- * in, it shows a "Sign In" button that triggers the OIDC flow by navigating
+ * in, it shows a "Get Started" button that triggers the OIDC flow by navigating
  * the browser to /api/auth/login.
  */
 
@@ -20,11 +20,11 @@ function getHeading(page: Page) {
 }
 
 /**
- * Gets the "Sign In" button shown when the user is not authenticated.
- * The landing page renders <button (click)="signIn()">Sign In</button>.
+ * Gets the "Get Started" button shown when the user is not authenticated.
+ * The landing page renders <button (click)="signIn()">Get Started</button>.
  */
-function getSignInButton(page: Page) {
-  return page.getByRole('button', { name: /^Sign In$/i });
+function getStartedButton(page: Page) {
+  return page.getByRole('button', { name: /^Get Started$/i });
 }
 
 // ============================================================================
@@ -41,24 +41,24 @@ export async function waitForLandingPage(page: Page) {
 }
 
 /**
- * Clicks the "Sign In" button on the landing page to initiate the OIDC flow.
+ * Clicks the "Get Started" button on the landing page to initiate the OIDC flow.
  * This causes a full browser navigation to /api/auth/login.
  */
 export async function clickSignIn(page: Page) {
-  console.log('Clicking Sign In button on landing page...');
-  const signInButton = getSignInButton(page);
-  await expect(signInButton).toBeVisible({ timeout: 10000 });
-  await signInButton.click();
-  console.log('Sign In button clicked');
+  console.log('Clicking Get Started button on landing page...');
+  const getStartedBtn = getStartedButton(page);
+  await expect(getStartedBtn).toBeVisible({ timeout: 10000 });
+  await getStartedBtn.click();
+  console.log('Get Started button clicked');
 }
 
 /**
  * Verifies that the landing page is displayed correctly and the user is not
- * signed in (the Sign In button is visible).
+ * signed in (the Get Started button is visible).
  */
 export async function verifyLandingPageSignedOut(page: Page) {
   console.log('Verifying landing page (signed out)...');
   await expect(getHeading(page)).toBeVisible();
-  await expect(getSignInButton(page)).toBeVisible();
+  await expect(getStartedButton(page)).toBeVisible();
   console.log('Landing page verified (signed out)');
 }

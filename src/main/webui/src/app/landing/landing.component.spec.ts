@@ -29,13 +29,13 @@ describe('LandingComponent', () => {
 
   it('should render the sign-up note', () => {
     const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.textContent).toContain('Users will be able to sign up soon');
+    expect(compiled.textContent).toContain('Sign up now');
   });
 
-  it('should have a sign-in button', () => {
+  it('should have a get-started button', () => {
     const compiled = fixture.nativeElement as HTMLElement;
     const button = compiled.querySelector('button');
     expect(button).toBeTruthy();
-    expect(button?.textContent).toContain('Sign In');
+    expect(button?.textContent).toContain('Get Started');
   });
 });
